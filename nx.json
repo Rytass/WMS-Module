@@ -25,7 +25,8 @@
         }
       },
       "exclude": [
-        "libs/core/*"
+        "libs/core/*",
+        "libs/graphql/*"
       ]
     },
     {
@@ -42,7 +43,8 @@
     {
       "plugin": "@nx/js/typescript",
       "include": [
-        "libs/core/*"
+        "libs/core/*",
+        "libs/graphql/*"
       ],
       "options": {
         "typecheck": {

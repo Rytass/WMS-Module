@@ -3970,6 +3970,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@wms-module/graphql@workspace:libs/graphql":
+  version: 0.0.0-use.local
+  resolution: "@wms-module/graphql@workspace:libs/graphql"
+  languageName: unknown
+  linkType: soft
+
 "@wms-module/source@workspace:.":
   version: 0.0.0-use.local
   resolution: "@wms-module/source@workspace:."
