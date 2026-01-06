@@ -1,7 +1,10 @@
+import { EntityManager } from 'typeorm';
+
 export type CreateLoaderTypeInput = {
   id: string;
   description: string;
   serial: string;
+  manager?: EntityManager;
 };
 
 export type UpdateLoaderTypeInput = Partial<

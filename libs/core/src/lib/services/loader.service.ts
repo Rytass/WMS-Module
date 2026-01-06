@@ -1,7 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { In, Repository } from 'typeorm';
-import { LoadersEntity } from '../models/metadata/loader.entity';
-import { LoaderTypeEntity } from '../models/metadata/loader-type.entity';
+import { EntityManager, type EntityTarget, In } from 'typeorm';
+import {
+  LoadersEntity,
+  LoadersEntityClass,
+} from '../models/metadata/loader.entity';
+import {
+  LoaderTypeEntity,
+  LoaderTypeEntityClass,
+} from '../models/metadata/loader-type.entity';
 import { DataSource } from 'typeorm/browser';
 import {
   CreateLoaderInput,
@@ -13,114 +19,144 @@ import {
 } from '../typings/create-loader-type.input';
 import { FindLoaderInput } from '../typings/find-loader.input';
 
+/**
+ * Service for managing loaders and their types
+ * Supports dynamic entity injection for customization
+ * T - Loader entity type
+ * K - Loader Type entity type
+ */
 @Injectable()
-export class LoaderService {
-  readonly loaderRepository!: Repository<LoadersEntity>;
-  readonly loaderTypeRepository!: Repository<LoaderTypeEntity>;
+export class LoaderService<
+  T extends LoadersEntityClass = LoadersEntityClass,
+  K extends LoaderTypeEntityClass = LoaderTypeEntityClass
+> {
   constructor(
     private readonly dataSource: DataSource,
     @Inject('LOADER_SERIAL_MAX_DIGITS')
-    private readonly loaderSerialMaxDigits = 4
-  ) {
-    this.loaderRepository = this.dataSource.getRepository(LoadersEntity);
-    this.loaderTypeRepository = this.dataSource.getRepository(LoaderTypeEntity);
+    private readonly loaderSerialMaxDigits = 4,
+    @Inject(LoadersEntity) readonly loaderEntity: EntityTarget<T>,
+    @Inject(LoaderTypeEntity) readonly loaderTypeEntity: EntityTarget<K>
+  ) {}
+
+  async createLoader({
+    manager = this.dataSource.manager,
+    ...options
+  }: CreateLoaderInput & { manager?: EntityManager }): Promise<T[]> {
+    const loaderRepository = manager.getRepository<LoadersEntityClass>(
+      this.loaderEntity
+    );
+    const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
+      this.loaderTypeEntity
+    );
+
+    const { serial } = await loaderTypeRepository.findOneByOrFail({
+      id: options.typeId,
+    });
+
+    const startSeq = await this.getSeq(serial, options.quantity, manager);
+
+    const loaders: LoadersEntityClass[] = [];
+    for (let i = 0; i < options.quantity; i++) {
+      const seqNum = startSeq + i;
+      const paddedSeq = seqNum
+        .toString()
+        .padStart(this.loaderSerialMaxDigits, '0');
+      const loader = loaderRepository.create({
+        ...options,
+        serialId: `${serial}${paddedSeq}`,
+      });
+      loaders.push(loader);
+    }
+
+    return loaderRepository.save(loaders, { chunk: 1000 }) as Promise<T[]>;
   }
 
-  createLoader(options: CreateLoaderInput): Promise<LoadersEntity[]> {
-    return this.dataSource.transaction(async (manager) => {
-      const loaderRepository = manager.getRepository(LoadersEntity);
-      const loaderTypeRepository = manager.getRepository(LoaderTypeEntity);
+  async createBatchLoaders({
+    options,
+    manager = this.dataSource.manager,
+  }: {
+    options: CreateLoaderInput[];
+    manager?: EntityManager;
+  }): Promise<T[]> {
+    if (options.length === 0) return [];
 
-      const { serial } = await loaderTypeRepository.findOneByOrFail({
-        id: options.typeId,
-      });
+    const loaderRepository = manager.getRepository<LoadersEntityClass>(
+      this.loaderEntity
+    );
+    const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
+      this.loaderTypeEntity
+    );
 
-      const startSeq = await this.getSeq(serial, options.quantity, manager);
+    const typeMap = await loaderTypeRepository
+      .findBy({ id: In(options.map(({ typeId }) => typeId)) })
+      .then((types) => new Map(types.map((t) => [t.id, t])));
 
-      const loaders: LoadersEntity[] = [];
-      for (let i = 0; i < options.quantity; i++) {
-        const seqNum = startSeq + i;
-        const paddedSeq = seqNum
-          .toString()
-          .padStart(this.loaderSerialMaxDigits, '0');
-        const loader = loaderRepository.create({
-          ...options,
-          serialId: `${serial}${paddedSeq}`,
-        });
-        loaders.push(loader);
-      }
+    const loaders: LoadersEntityClass[] = [];
+    await Promise.all(
+      options.map(async (option) => {
+        const { serial } = typeMap.get(option.typeId)!;
 
-      return loaderRepository.save(loaders, { chunk: 1000 });
-    });
-  }
+        const startSeq = await this.getSeq(serial, option.quantity, manager);
+        for (let i = 0; i < option.quantity; i++) {
+          const seqNum = startSeq + i;
+          const paddedSeq = seqNum
+            .toString()
+            .padStart(this.loaderSerialMaxDigits, '0');
+          const loader = loaderRepository.create({
+            ...option,
+            serialId: `${serial}${paddedSeq}`,
+          });
+          loaders.push(loader);
+        }
+      })
+    );
 
-  createBatchLoaders(options: CreateLoaderInput[]): Promise<LoadersEntity[]> {
-    return this.dataSource.transaction(async (manager) => {
-      if (options.length === 0) return [];
-
-      const loaderRepository = manager.getRepository(LoadersEntity);
-      const loaderTypeRepository = manager.getRepository(LoaderTypeEntity);
-
-      const types = await loaderTypeRepository.findBy({
-        id: In(options.map(({ typeId }) => typeId)),
-      });
-      const typeMap = new Map<string, LoaderTypeEntity>(
-        types.map((t) => [t.id, t])
-      );
-
-      const loaders: LoadersEntity[] = [];
-      Promise.all(
-        options.map(async (option) => {
-          const { serial } = typeMap.get(option.typeId)!;
-
-          const startSeq = await this.getSeq(serial, option.quantity, manager);
-          for (let i = 0; i < option.quantity; i++) {
-            const seqNum = startSeq + i;
-            const paddedSeq = seqNum
-              .toString()
-              .padStart(this.loaderSerialMaxDigits, '0');
-            const loader = loaderRepository.create({
-              ...option,
-              serialId: `${serial}${paddedSeq}`,
-            });
-            loaders.push(loader);
-          }
-        })
-      );
-
-      return loaderRepository.save(loaders, { chunk: 1000 });
-    });
+    return loaderRepository.save(loaders, { chunk: 1000 }) as Promise<T[]>;
   }
 
   async updateLoader({
     id,
+    manager = this.dataSource.manager,
     ...options
-  }: UpdateLoaderInput): Promise<LoadersEntity> {
-    const loader = await this.loaderRepository.findOneByOrFail({ id });
-    return this.loaderRepository.save(
-      this.loaderRepository.create({
+  }: UpdateLoaderInput & { manager?: EntityManager }): Promise<T> {
+    const loadersRepository = manager.getRepository<LoadersEntityClass>(
+      this.loaderEntity
+    );
+    const loader = await loadersRepository.findOneByOrFail({ id });
+    return loadersRepository.save(
+      loadersRepository.create({
         ...loader,
         ...options,
       })
-    );
+    ) as Promise<T>;
   }
 
-  createLoaderType(options: CreateLoaderTypeInput): Promise<LoaderTypeEntity> {
-    const loaderType = this.loaderTypeRepository.create(options);
-    return this.loaderTypeRepository.save(loaderType);
+  createLoaderType({
+    manager = this.dataSource.manager,
+    ...options
+  }: CreateLoaderTypeInput & { manager?: EntityManager }): Promise<K> {
+    const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
+      this.loaderTypeEntity
+    );
+    const loaderType = loaderTypeRepository.create(options);
+    return loaderTypeRepository.save(loaderType) as Promise<K>;
   }
 
   async updateLoaderType({
     id,
+    manager = this.dataSource.manager,
     ...options
-  }: UpdateLoaderTypeInput): Promise<LoaderTypeEntity> {
-    const loaderType = await this.loaderTypeRepository.findOneByOrFail({ id });
-    return this.loaderTypeRepository.save(
-      this.loaderTypeRepository.create({
+  }: UpdateLoaderTypeInput & { manager?: EntityManager }): Promise<K> {
+    const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
+      this.loaderTypeEntity
+    );
+    const loaderType = await loaderTypeRepository.findOneByOrFail({ id });
+    return loaderTypeRepository.save(
+      loaderTypeRepository.create({
         ...loaderType,
         ...options,
       })
-    );
+    ) as Promise<K>;
   }
 
   async getSeq(
@@ -166,46 +202,48 @@ export class LoaderService {
     return startVal;
   }
 
-  findMany(options: FindLoaderInput): Promise<[LoadersEntity[], number]> {
-    const queryBuilder = this.loaderRepository.createQueryBuilder('loader');
+  findMany(options: FindLoaderInput): Promise<[T[], number]> {
+    const queryBuilder = this.dataSource
+      .getRepository<T>(this.loaderEntity)
+      .createQueryBuilder('loader');
 
     if (options.typeId)
-      queryBuilder.andWhere('loader.typeId = :typeId', {
+      queryBuilder.andWhere('loader."typeId" = :typeId', {
         typeId: options.typeId,
       });
 
     if (options.typeIds?.length)
-      queryBuilder.andWhere('loader.typeId IN (:...typeIds)', {
+      queryBuilder.andWhere('loader."typeId" IN (:...typeIds)', {
         typeIds: options.typeIds,
       });
 
     if (options.locationId)
-      queryBuilder.andWhere('loader.locationId = :locationId', {
+      queryBuilder.andWhere('loader."locationId" = :locationId', {
         locationId: options.locationId,
       });
 
     if (options.locationIds?.length)
-      queryBuilder.andWhere('loader.locationId IN (:...locationIds)', {
+      queryBuilder.andWhere('loader."locationId" IN (:...locationIds)', {
         locationIds: options.locationIds,
       });
 
     if (options.serialId)
-      queryBuilder.andWhere('loader.serialId = :serialId', {
+      queryBuilder.andWhere('loader."serialId" = :serialId', {
         serialId: options.serialId,
       });
 
     if (options.serialIds?.length)
-      queryBuilder.andWhere('loader.serialId IN (:...serialIds)', {
+      queryBuilder.andWhere('loader."serialId" IN (:...serialIds)', {
         serialIds: options.serialIds,
       });
 
     if (options.isActive !== undefined)
-      queryBuilder.andWhere('loader.isActive = :isActive', {
+      queryBuilder.andWhere('loader."isActive" = :isActive', {
         isActive: options.isActive,
       });
 
     if (options.dateRange)
-      queryBuilder.andWhere('loader.createdAt BETWEEN :from AND :to', {
+      queryBuilder.andWhere('loader."createdAt" BETWEEN :from AND :to', {
         from: options.dateRange.from,
         to: options.dateRange.to,
       });
@@ -215,13 +253,11 @@ export class LoaderService {
         note: `%${options.note}%`,
       });
 
-    if (
-      options.offset !== undefined &&
-      options.offset >= 0 &&
-      options.limit !== undefined &&
-      options.limit > 0
-    )
-      queryBuilder.skip(options.offset).take(options.limit);
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
 
     return queryBuilder.getManyAndCount();
   }

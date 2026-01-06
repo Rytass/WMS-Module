@@ -6,12 +6,17 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  TableInheritance,
   UpdateDateColumn,
 } from 'typeorm';
-import { LoaderTypeEntity } from './loader-type.entity';
+import { LoaderTypeEntityClass } from './loader-type.entity';
 import { LocationEntity } from '@rytass/wms-base-nestjs-module';
+
+export const LoadersEntity = Symbol('LoadersEntity');
+
 @Entity('loaders')
-export class LoadersEntity {
+@TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
+export class LoadersEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -61,7 +66,7 @@ export class LoadersEntity {
 
   @ManyToOne('loader_types')
   @JoinColumn({ name: 'typeId', referencedColumnName: 'id' })
-  type!: LoaderTypeEntity;
+  type!: LoaderTypeEntityClass;
 
   @ManyToOne('locations')
   @JoinColumn({ name: 'locationId', referencedColumnName: 'id' })

@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
 import { LoaderService } from './services/loader.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LoadersEntity } from './models/metadata/loader.entity';
-import { LoaderTypeEntity } from './models/metadata/loader-type.entity';
+import { WMSBaseModule } from '@rytass/wms-base-nestjs-module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LoadersEntity, LoaderTypeEntity])],
+  imports: [WMSBaseModule.forRoot({}), TypeOrmModule.forFeature([])],
   providers: [LoaderService],
   exports: [LoaderService],
 })

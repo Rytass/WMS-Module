@@ -3,11 +3,15 @@ import {
   CreateDateColumn,
   Entity,
   PrimaryColumn,
+  TableInheritance,
   UpdateDateColumn,
 } from 'typeorm';
 
+export const LoaderTypeEntity = Symbol('LoaderTypeEntity');
+
 @Entity('loader_types')
-export class LoaderTypeEntity {
+@TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
+export class LoaderTypeEntityClass {
   @PrimaryColumn({ type: 'varchar' })
   id!: string;
 
