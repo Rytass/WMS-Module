@@ -70,10 +70,12 @@ export class MaterialService<
     const material = await materialRepository.findOneByOrFail({
       id: options.id,
     });
-    const updated = await materialRepository.save({
-      ...material,
-      ...options,
-    });
+    const updated = await materialRepository.save(
+      materialRepository.create({
+        ...material,
+        ...options,
+      })
+    );
 
     if (options.units?.length) {
       const newUnits: Partial<MaterialUnitEntityClass>[] = [];
@@ -91,7 +93,9 @@ export class MaterialService<
 
       if (newUnits.length)
         await materialUnitRepository.save(
-          materialUnitRepository.create(newUnits)
+          materialUnitRepository.create(
+            newUnits.map((unit) => ({ ...unit, materialId: options.id }))
+          )
         );
       if (existingUnits.length)
         await Promise.all(
