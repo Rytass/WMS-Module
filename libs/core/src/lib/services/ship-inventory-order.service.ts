@@ -7,13 +7,7 @@ import {
   ShipInventoryOrderItemEntity,
   ShipInventoryOrderItemEntityClass,
 } from '../models/extensions/ship-inventory-order-item.entity';
-import {
-  DataSource,
-  EntityManager,
-  In,
-  IsNull,
-  type EntityTarget,
-} from 'typeorm';
+import { DataSource, EntityManager, IsNull, type EntityTarget } from 'typeorm';
 import {
   CreateShipInventoryOrderInput,
   UpdateShipInventoryOrderInput,
@@ -129,6 +123,15 @@ export class ShipInventoryOrderService<
     }
 
     return updated as T;
+  }
+
+  async removeShipInventoryOrder(id: string): Promise<boolean> {
+    return this.dataSource
+      .getRepository<ShipInventoryOrderEntityClass>(
+        this.shipInventoryOrderEntity
+      )
+      .update({ id }, { removedAt: new Date() })
+      .then(({ affected }) => !!affected && affected > 0);
   }
 
   findMany(options: FindShipInventoryOrderInput): Promise<[T[], number]> {
