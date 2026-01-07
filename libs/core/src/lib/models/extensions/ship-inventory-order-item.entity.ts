@@ -46,6 +46,9 @@ export class ShipInventoryOrderItemEntityClass {
   @Column({ type: 'varchar', nullable: true })
   stockId!: string | null;
 
+  @Column({ type: 'timestamptz', nullable: true })
+  removedAt!: Date | null;
+
   @ManyToOne(
     'ship_inventory_orders',
     (entity: ShipInventoryOrderEntityClass) => entity.items

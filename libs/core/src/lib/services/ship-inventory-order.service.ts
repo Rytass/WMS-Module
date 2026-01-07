@@ -7,7 +7,13 @@ import {
   ShipInventoryOrderItemEntity,
   ShipInventoryOrderItemEntityClass,
 } from '../models/extensions/ship-inventory-order-item.entity';
-import { DataSource, EntityManager, In, type EntityTarget } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  In,
+  IsNull,
+  type EntityTarget,
+} from 'typeorm';
 import {
   CreateShipInventoryOrderInput,
   UpdateShipInventoryOrderInput,
@@ -81,7 +87,10 @@ export class ShipInventoryOrderService<
         this.shipInventoryOrderItemEntity
       );
 
-    const order = await shipInventoryOrderRepository.findOneByOrFail({ id });
+    const order = await shipInventoryOrderRepository.findOneByOrFail({
+      id,
+      removedAt: IsNull(),
+    });
     const updated = await shipInventoryOrderRepository.save(
       shipInventoryOrderRepository.create({
         ...order,
@@ -92,16 +101,16 @@ export class ShipInventoryOrderService<
     if (options.items?.length) {
       const newItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
       const existingItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
-      const removeItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
 
       await shipInventoryOrderItemRepository
         .find({ where: { orderId: id } })
         .then((items) => {
           const itemSet = new Set(items!.map((i) => i.id));
           options.items?.forEach((item) => {
+            if (item.removedAt) return;
+
             if (!item.id) newItems.push(item);
             else if (itemSet.has(item.id)) existingItems.push(item);
-            else removeItems.push(item);
           });
         });
 
@@ -117,11 +126,6 @@ export class ShipInventoryOrderService<
             shipInventoryOrderItemRepository.update({ id: item.id }, item)
           )
         );
-
-      if (removeItems.length)
-        await shipInventoryOrderItemRepository.delete({
-          id: In(removeItems.map((item) => item.id!)),
-        });
     }
 
     return updated as T;

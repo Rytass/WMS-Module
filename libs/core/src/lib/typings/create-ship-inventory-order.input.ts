@@ -16,6 +16,7 @@ export type CreateShipInventoryOrderInput = {
 export type UpdateShipInventoryOrderItemInput =
   Partial<CreateShipInventoryOrderItemInput> & {
     id?: string;
+    removedAt?: Date;
   };
 
 export type UpdateShipInventoryOrderInput = Partial<
