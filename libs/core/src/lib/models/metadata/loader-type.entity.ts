@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryColumn,
   TableInheritance,
   UpdateDateColumn,
@@ -19,6 +20,7 @@ export class LoaderTypeEntityClass {
   description!: string;
 
   @Column({ type: 'varchar' })
+  @Index()
   serial!: string;
 
   @CreateDateColumn({ type: 'timestamptz' })

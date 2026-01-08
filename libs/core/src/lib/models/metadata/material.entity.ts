@@ -1,4 +1,4 @@
-import { ChildEntity, Column } from 'typeorm';
+import { ChildEntity, Column, Index } from 'typeorm';
 import { MaterialEntity as BaseMaterialEntity } from '@rytass/wms-base-nestjs-module';
 
 export const MaterialEntity = Symbol('MaterialEntity');
@@ -6,6 +6,7 @@ export const MaterialEntity = Symbol('MaterialEntity');
 @ChildEntity()
 export class MaterialEntityClass extends BaseMaterialEntity {
   @Column({ type: 'text' })
+  @Index()
   description!: string;
 
   @Column({ type: 'varchar' })

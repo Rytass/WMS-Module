@@ -18,6 +18,12 @@ import {
 } from '../typings/find-ship-inventory-order.input';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 
+/**
+ * Service for managing ship inventory orders and their items
+ * Supports dynamic entity injection for customization
+ * T - Ship Inventory Order entity type
+ * K - Ship Inventory Order Item entity type
+ */
 @Injectable()
 export class ShipInventoryOrderService<
   T extends ShipInventoryOrderEntityClass = ShipInventoryOrderEntityClass,
@@ -67,6 +73,10 @@ export class ShipInventoryOrderService<
     return order as T;
   }
 
+  /**
+   * Update a ship inventory order and its items
+   * update existing item when id is provided, otherwise create new item, remove behaviour controlled by removedAt field
+   */
   async updateShipInventoryOrder({
     id,
     manager = this.dataSource.manager,
@@ -222,6 +232,12 @@ export class ShipInventoryOrderService<
           break;
       }
     }
+
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
 
     return queryBuilder.getManyAndCount();
   }

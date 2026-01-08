@@ -18,6 +18,12 @@ import {
   ReceiveInventoryOrderStatus,
 } from '../typings/find-receive-inventory-order.input';
 
+/**
+ * Service for managing receive inventory orders and their items
+ * Supports dynamic entity injection for customization
+ * T - Receive Inventory Order entity type
+ * K - Receive Inventory Order Item entity type
+ */
 @Injectable()
 export class ReceiveInventoryOrderService<
   T extends ReceiveInventoryOrderEntityClass = ReceiveInventoryOrderEntityClass,
@@ -69,6 +75,10 @@ export class ReceiveInventoryOrderService<
     return order as T;
   }
 
+  /**
+   * Update a receive inventory order and its items
+   * update existing item when id is provided, otherwise create new item, remove behaviour controlled by removedAt field
+   */
   async updateReceiveInventoryOrder({
     id,
     manager = this.dataSource.manager,
@@ -226,6 +236,12 @@ export class ReceiveInventoryOrderService<
           break;
       }
     }
+
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
 
     return queryBuilder.getManyAndCount();
   }
