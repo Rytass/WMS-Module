@@ -1,37 +1,41 @@
 import { Field, Float, ID, Int, ObjectType } from '@nestjs/graphql';
+import { PaginatedResponse } from './pagination.dto';
 
 @ObjectType()
 export class LoaderDto {
   @Field(() => ID)
   id!: string;
 
-  @Field(() => String, { description: '編碼前綴' })
-  prefix!: string;
-
-  @Field(() => Int, { description: '數量' })
+  @Field(() => Int)
   quantity!: number;
 
-  @Field(() => Float, { nullable: true, description: '長度' })
+  @Field(() => Float, { nullable: true })
   length!: number | null;
 
-  @Field(() => Float, { nullable: true, description: '寬度' })
+  @Field(() => Float, { nullable: true })
   width!: number | null;
 
-  @Field(() => Float, { nullable: true, description: '高度' })
+  @Field(() => Float, { nullable: true })
   height!: number | null;
 
-  @Field(() => String, { nullable: true, description: '尺寸單位' })
+  @Field(() => String, { nullable: true })
   sizeUnit!: string | null;
 
-  @Field(() => Float, { nullable: true, description: '體積' })
+  @Field(() => Float, { nullable: true })
   volume!: number | null;
 
-  @Field(() => String, { nullable: true, description: '體積單位' })
+  @Field(() => String, { nullable: true })
   volumeUnit!: string | null;
 
-  @Field(() => Date, { description: '建立時間' })
-  createdAt!: Date;
+  @Field(() => String, { nullable: true })
+  note!: string | null;
 
-  @Field(() => Date, { description: '更新時間' })
-  updatedAt!: Date;
+  @Field(() => Boolean)
+  isActive!: boolean;
+
+  @Field(() => Date)
+  createdAt!: Date;
 }
+
+@ObjectType()
+export class Loaders extends PaginatedResponse(LoaderDto) {}

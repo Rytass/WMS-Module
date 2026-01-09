@@ -3439,6 +3439,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/lodash@npm:^4":
+  version: 4.17.21
+  resolution: "@types/lodash@npm:4.17.21"
+  checksum: 10c0/73cb006e047d8871e9d63f3a165543bf16c44a5b6fe3f9f6299e37cb8d67a7b1d55ac730959a81f9def510fd07232ff7e30e05413e5d5a12793baad84ebe36c3
+  languageName: node
+  linkType: hard
+
 "@types/long@npm:^4.0.0":
   version: 4.0.2
   resolution: "@types/long@npm:4.0.2"
@@ -3964,7 +3971,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@wms-module/core@workspace:libs/core":
+"@wms-module/core@workspace:^, @wms-module/core@workspace:libs/core":
   version: 0.0.0-use.local
   resolution: "@wms-module/core@workspace:libs/core"
   languageName: unknown
@@ -3973,6 +3980,11 @@ __metadata:
 "@wms-module/graphql@workspace:libs/graphql":
   version: 0.0.0-use.local
   resolution: "@wms-module/graphql@workspace:libs/graphql"
+  dependencies:
+    "@types/lodash": "npm:^4"
+    "@wms-module/core": "workspace:^"
+    dataloader: "npm:^2.2.3"
+    lodash: "npm:^4.17.21"
   languageName: unknown
   linkType: soft
 
@@ -5501,6 +5513,13 @@ __metadata:
   dependencies:
     css-tree: "npm:~2.2.0"
   checksum: 10c0/ab4beb1e97dd7e207c10e9925405b45f15a6cd1b4880a8686ad573aa6d476aed28b4121a666cffd26c37a26179f7b54741f7c257543003bfb244d06a62ad569b
+  languageName: node
+  linkType: hard
+
+"dataloader@npm:^2.2.3":
+  version: 2.2.3
+  resolution: "dataloader@npm:2.2.3"
+  checksum: 10c0/9b9a056fbc863ca86da87d59e053e871e263b4966aa4d55e40d61a65e96815fae5530ca220629064ca5f8e3000c0c4ec93292e170c38ff393fb34256b4d7c1aa
   languageName: node
   linkType: hard
 
@@ -8169,7 +8188,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash@npm:4.17.21":
+"lodash@npm:4.17.21, lodash@npm:^4.17.21":
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: 10c0/d8cbea072bb08655bb4c989da418994b073a608dffa608b09ac04b43a791b12aeae7cd7ad919aa4c925f33b48490b5cfe6c1f71d827956071dae2e7bb3a6b74c

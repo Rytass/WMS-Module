@@ -11,5 +11,13 @@
       "default": "./src/index.ts"
     },
     "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@wms-module/core": "workspace:^",
+    "dataloader": "^2.2.3",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4"
   }
 }

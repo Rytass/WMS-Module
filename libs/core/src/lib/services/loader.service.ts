@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EntityManager, type EntityTarget, In } from 'typeorm';
+import { EntityManager, type EntityTarget, In, Repository } from 'typeorm';
 import {
   LoadersEntity,
   LoadersEntityClass,
@@ -30,13 +30,20 @@ export class LoaderService<
   T extends LoadersEntityClass = LoadersEntityClass,
   K extends LoaderTypeEntityClass = LoaderTypeEntityClass
 > {
+  readonly loaderRepository: Repository<T>;
+  readonly loaderTypeRepository: Repository<K>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject('LOADER_SERIAL_MAX_DIGITS')
     private readonly loaderSerialMaxDigits = 4,
     @Inject(LoadersEntity) readonly loaderEntity: EntityTarget<T>,
     @Inject(LoaderTypeEntity) readonly loaderTypeEntity: EntityTarget<K>
-  ) {}
+  ) {
+    this.loaderRepository = this.dataSource.getRepository<T>(this.loaderEntity);
+    this.loaderTypeRepository = this.dataSource.getRepository<K>(
+      this.loaderTypeEntity
+    );
+  }
 
   async createLoader({
     manager = this.dataSource.manager,
