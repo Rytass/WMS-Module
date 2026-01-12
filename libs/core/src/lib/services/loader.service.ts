@@ -1,5 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EntityManager, type EntityTarget, In, Repository } from 'typeorm';
+import {
+  EntityManager,
+  type EntityTarget,
+  In,
+  Repository,
+  DataSource,
+} from 'typeorm';
 import {
   LoadersEntity,
   LoadersEntityClass,
@@ -8,7 +14,6 @@ import {
   LoaderTypeEntity,
   LoaderTypeEntityClass,
 } from '../models/metadata/loader-type.entity';
-import { DataSource } from 'typeorm/browser';
 import {
   CreateLoaderInput,
   UpdateLoaderInput,

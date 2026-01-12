@@ -16,8 +16,8 @@ export class ReceiveInventoryOrderDto {
   @Field(() => Date, { nullable: true })
   removedAt!: Date | null;
 
-  @Field(() => [ReceiveInventoryOrderItemDto], { nullable: true })
-  items?: ReceiveInventoryOrderItemDto[];
+  @Field(() => [ReceiveInventoryOrderItemDto])
+  items!: ReceiveInventoryOrderItemDto[];
 }
 
 @ObjectType()

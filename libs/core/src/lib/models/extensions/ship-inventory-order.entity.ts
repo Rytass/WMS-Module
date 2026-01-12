@@ -8,6 +8,7 @@ import {
   PrimaryColumn,
   TableInheritance,
 } from 'typeorm';
+import { ShipInventoryOrderItemEntityClass } from './ship-inventory-order-item.entity';
 
 export const ShipInventoryOrderEntity = Symbol('ShipInventoryOrderEntity');
 
@@ -32,8 +33,8 @@ export class ShipInventoryOrderEntityClass {
 
   @OneToMany(
     'ship_inventory_order_items',
-    (entity: ShipInventoryOrderEntityClass) => entity.order
+    (entity: ShipInventoryOrderItemEntityClass) => entity.order
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
-  items!: ShipInventoryOrderEntityClass[];
+  items!: ShipInventoryOrderItemEntityClass[];
 }

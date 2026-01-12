@@ -7,7 +7,13 @@ import {
   ReceiveInventoryOrderItemEntity,
   ReceiveInventoryOrderItemEntityClass,
 } from '../models/extensions/receive-inventory-order-item.entity';
-import { DataSource, EntityManager, IsNull, type EntityTarget } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  IsNull,
+  Repository,
+  type EntityTarget,
+} from 'typeorm';
 import {
   CreateReceiveInventoryOrderInput,
   UpdateReceiveInventoryOrderInput,
@@ -29,13 +35,18 @@ export class ReceiveInventoryOrderService<
   T extends ReceiveInventoryOrderEntityClass = ReceiveInventoryOrderEntityClass,
   K extends ReceiveInventoryOrderItemEntityClass = ReceiveInventoryOrderItemEntityClass
 > {
+  readonly receiveInventoryOrderRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(ReceiveInventoryOrderEntity)
     readonly receiveInventoryOrderEntity: EntityTarget<T>,
     @Inject(ReceiveInventoryOrderItemEntity)
     readonly receiveInventoryOrderItemEntity: EntityTarget<K>
-  ) {}
+  ) {
+    this.receiveInventoryOrderRepository = this.dataSource.getRepository<T>(
+      this.receiveInventoryOrderEntity
+    );
+  }
 
   async createReceiveInventoryOrder({
     manager = this.dataSource.manager,

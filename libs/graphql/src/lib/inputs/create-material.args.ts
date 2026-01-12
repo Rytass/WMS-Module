@@ -1,8 +1,5 @@
 import { ArgsType, Field, ID, OmitType, PartialType } from '@nestjs/graphql';
-import {
-  CreateMaterialUnitArgs,
-  UpdateMaterialUnitArgs,
-} from './create-material-unit.args';
+import { CreateMaterialUnitArgs } from './create-material-unit.args';
 
 @ArgsType()
 export class CreateMaterialArgs {
@@ -29,6 +26,6 @@ export class UpdateMaterialArgs extends PartialType(
   @Field(() => ID)
   id!: string;
 
-  @Field(() => [UpdateMaterialUnitArgs], { nullable: true })
-  units?: UpdateMaterialUnitArgs[];
+  @Field(() => [CreateMaterialUnitArgs], { nullable: true })
+  units?: CreateMaterialUnitArgs[];
 }

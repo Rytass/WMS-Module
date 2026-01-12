@@ -7,7 +7,13 @@ import {
   ShipInventoryOrderItemEntity,
   ShipInventoryOrderItemEntityClass,
 } from '../models/extensions/ship-inventory-order-item.entity';
-import { DataSource, EntityManager, IsNull, type EntityTarget } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  IsNull,
+  Repository,
+  type EntityTarget,
+} from 'typeorm';
 import {
   CreateShipInventoryOrderInput,
   UpdateShipInventoryOrderInput,
@@ -29,13 +35,18 @@ export class ShipInventoryOrderService<
   T extends ShipInventoryOrderEntityClass = ShipInventoryOrderEntityClass,
   K extends ShipInventoryOrderItemEntityClass = ShipInventoryOrderItemEntityClass
 > {
+  readonly shipInventoryOrderRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(ShipInventoryOrderEntity)
     readonly shipInventoryOrderEntity: EntityTarget<T>,
     @Inject(ShipInventoryOrderItemEntity)
     readonly shipInventoryOrderItemEntity: EntityTarget<K>
-  ) {}
+  ) {
+    this.shipInventoryOrderRepository = this.dataSource.getRepository<T>(
+      this.shipInventoryOrderEntity
+    );
+  }
 
   async createShipInventoryOrder({
     manager = this.dataSource.manager,

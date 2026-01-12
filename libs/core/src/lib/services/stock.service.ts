@@ -3,6 +3,7 @@ import { StockEntity, StockEntityClass } from '../models/metadata/stock.entity';
 import {
   DataSource,
   ObjectLiteral,
+  Repository,
   SelectQueryBuilder,
   type EntityTarget,
 } from 'typeorm';
@@ -17,11 +18,14 @@ export class StockService<
   T extends StockEntityClass = StockEntityClass,
   K extends MaterialEntityClass = MaterialEntityClass
 > {
+  readonly stockRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(StockEntity) private readonly stockEntity: EntityTarget<T>,
     @Inject(MaterialEntity) private readonly materialEntity: EntityTarget<K>
-  ) {}
+  ) {
+    this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
+  }
 
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(
     options: FindStockInput,

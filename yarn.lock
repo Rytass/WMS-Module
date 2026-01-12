@@ -3951,43 +3951,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wms-module/api-e2e@workspace:apps/api-e2e":
-  version: 0.0.0-use.local
-  resolution: "@wms-module/api-e2e@workspace:apps/api-e2e"
-  languageName: unknown
-  linkType: soft
-
-"@wms-module/api@workspace:apps/api":
-  version: 0.0.0-use.local
-  resolution: "@wms-module/api@workspace:apps/api"
-  dependencies:
-    "@nestjs/common": "npm:^11.0.0"
-    "@nestjs/core": "npm:^11.0.0"
-    "@nestjs/platform-express": "npm:^11.0.0"
-    "@nestjs/testing": "npm:^11.0.0"
-    reflect-metadata: "npm:^0.1.13"
-    rxjs: "npm:^7.8.0"
-    tslib: "npm:^2.3.0"
-  languageName: unknown
-  linkType: soft
-
-"@wms-module/core@workspace:^, @wms-module/core@workspace:libs/core":
-  version: 0.0.0-use.local
-  resolution: "@wms-module/core@workspace:libs/core"
-  languageName: unknown
-  linkType: soft
-
-"@wms-module/graphql@workspace:libs/graphql":
-  version: 0.0.0-use.local
-  resolution: "@wms-module/graphql@workspace:libs/graphql"
-  dependencies:
-    "@types/lodash": "npm:^4"
-    "@wms-module/core": "workspace:^"
-    dataloader: "npm:^2.2.3"
-    lodash: "npm:^4.17.21"
-  languageName: unknown
-  linkType: soft
-
 "@wms-module/source@workspace:.":
   version: 0.0.0-use.local
   resolution: "@wms-module/source@workspace:."
@@ -4011,10 +3974,13 @@ __metadata:
     "@swc-node/register": "npm:~1.9.1"
     "@swc/core": "npm:~1.5.7"
     "@swc/helpers": "npm:~0.5.11"
+    "@types/lodash": "npm:^4"
     "@types/node": "npm:20.19.9"
     "@types/pg": "npm:^8"
     axios: "npm:^1.6.0"
+    dataloader: "npm:^2.2.3"
     graphql: "npm:^16.12.0"
+    lodash: "npm:^4.17.21"
     nx: "npm:22.3.3"
     pg: "npm:^8.16.3"
     reflect-metadata: "npm:^0.1.13"

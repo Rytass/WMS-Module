@@ -1,15 +1,9 @@
 import { Field, ID, ArgsType, registerEnumType } from '@nestjs/graphql';
 import { PaginationArgs } from './pagination.args';
 import { DateRangeArgs } from './date-range.args';
+import { ReceiveInventoryOrderStatus } from '@wms-module/core';
 
-export enum ReceiveInventoryOrderStatusEnum {
-  PENDING = 'PENDING',
-  RECEIVED = 'RECEIVED',
-  REMOVED = 'REMOVED',
-  PARTIAL_RECEIVED = 'PARTIAL_RECEIVED',
-}
-
-registerEnumType(ReceiveInventoryOrderStatusEnum, {
+registerEnumType(ReceiveInventoryOrderStatus, {
   name: 'ReceiveInventoryOrderStatus',
 });
 
@@ -21,8 +15,8 @@ export class FindReceiveInventoryOrderArgs extends PaginationArgs {
   @Field(() => String, { nullable: true })
   createdBy?: string;
 
-  @Field(() => ReceiveInventoryOrderStatusEnum, { nullable: true })
-  status?: ReceiveInventoryOrderStatusEnum;
+  @Field(() => ReceiveInventoryOrderStatus, { nullable: true })
+  status?: ReceiveInventoryOrderStatus;
 
   @Field(() => DateRangeArgs, { nullable: true })
   dateRange?: DateRangeArgs;

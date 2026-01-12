@@ -23,5 +23,5 @@ export type UpdateShipInventoryOrderInput = Partial<
   Omit<CreateShipInventoryOrderInput, 'items'>
 > & {
   id: string;
-  items: UpdateShipInventoryOrderItemInput[];
+  items?: UpdateShipInventoryOrderItemInput[];
 };

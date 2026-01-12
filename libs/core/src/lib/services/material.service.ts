@@ -11,7 +11,12 @@ import {
   MaterialUnitEntity,
   MaterialUnitEntityClass,
 } from '../models/metadata/material-unit.entity';
-import { DataSource, EntityManager, type EntityTarget } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  Repository,
+  type EntityTarget,
+} from 'typeorm';
 import { FindMaterialInput } from '../typings/find-material.input';
 
 /**
@@ -25,11 +30,16 @@ export class MaterialService<
   T extends MaterialEntityClass = MaterialEntityClass,
   K extends MaterialUnitEntityClass = MaterialUnitEntityClass
 > {
+  readonly materialRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(MaterialEntity) readonly materialEntity: EntityTarget<T>,
     @Inject(MaterialUnitEntity) readonly materialUnitEntity: EntityTarget<K>
-  ) {}
+  ) {
+    this.materialRepository = this.dataSource.getRepository<T>(
+      this.materialEntity
+    );
+  }
 
   async createMaterial({
     manager = this.dataSource.manager,

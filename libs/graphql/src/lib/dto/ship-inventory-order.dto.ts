@@ -16,8 +16,8 @@ export class ShipInventoryOrderDto {
   @Field(() => Date, { nullable: true })
   removedAt!: Date | null;
 
-  @Field(() => [ShipInventoryOrderItemDto], { nullable: true })
-  items?: ShipInventoryOrderItemDto[];
+  @Field(() => [ShipInventoryOrderItemDto])
+  items!: ShipInventoryOrderItemDto[];
 }
 
 @ObjectType()
