@@ -3,17 +3,6 @@
   "compileOnSave": false,
   "files": [],
   "references": [
-    {
-      "path": "./apps/api-e2e"
-    },
-    {
-      "path": "./apps/api"
-    },
-    {
-      "path": "./libs/core"
-    },
-    {
-      "path": "./libs/graphql"
-    }
+   
   ]
 }

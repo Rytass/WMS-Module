@@ -18,8 +18,8 @@
     "baseUrl": ".",
     "jsx": "react-jsx",
     "paths": {
-      "@wms/core": ["libs/core/src/index.ts"],
-      "@wms/graphql": ["libs/graphql/src/index.ts"]
+      "@wms-module/core": ["libs/core/src/index.ts"],
+      "@wms-module/graphql": ["libs/graphql/src/index.ts"]
     }
   }
 }
