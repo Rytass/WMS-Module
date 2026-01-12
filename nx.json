@@ -6,6 +6,19 @@
     "enabled": false
   },
   "defaultProject": "api",
+  "generators": {
+    "@nx/js:library": {
+      "strict": true,
+      "bundler": "tsc"
+    },
+    "@nx/nest:library": {
+      "strict": true,
+      "buildable": true
+    },
+    "@nx/nest:application": {
+      "strict": true
+    }
+  },
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"]

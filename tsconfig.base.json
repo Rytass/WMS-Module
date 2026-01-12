@@ -1,21 +1,25 @@
 {
   "compilerOptions": {
-    "composite": true,
-    "declarationMap": true,
-    "emitDeclarationOnly": true,
-    "importHelpers": true,
-    "isolatedModules": true,
-    "lib": ["es2022"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "noEmitOnError": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitOverride": true,
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
     "noImplicitReturns": true,
-    "noUnusedLocals": true,
+    "importHelpers": true,
+    "esModuleInterop": true,
+    "target": "esnext",
+    "module": "esnext",
+    "lib": ["esnext", "dom"],
     "skipLibCheck": true,
-    "strict": true,
-    "target": "es2022",
-    "customConditions": ["@wms-module/source"]
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "paths": {
+      "@wms/core": ["libs/core/src/index.ts"],
+      "@wms/graphql": ["libs/graphql/src/index.ts"]
+    }
   }
 }
