@@ -1,0 +1,8 @@
+{
+  "name": "@wms-module/core",
+  "projectType": "library",
+  "sourceRoot": "libs/core/src",
+  "prefix": "wms-module",
+  "targets": {},
+  "tags": []
+}

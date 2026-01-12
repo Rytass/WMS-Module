@@ -1,0 +1,8 @@
+{
+  "name": "@wms-module/graphql",
+  "projectType": "library",
+  "sourceRoot": "libs/graphql/src",
+  "prefix": "wms-module",
+  "targets": {},
+  "tags": []
+}

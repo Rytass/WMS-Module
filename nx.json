@@ -1,13 +1,19 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "projectFilePatterns": ["project.json"],
+  "neverConnectToCloud": true,
+  "tui": {
+    "enabled": false
+  },
+  "defaultProject": "api",
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"]
+    }
+  },
   "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals"
-    ],
-    "production": [
-      "default"
-    ],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": ["default"],
     "sharedGlobals": []
   },
   "plugins": [
@@ -24,10 +30,7 @@
           "watchDepsName": "watch-deps"
         }
       },
-      "exclude": [
-        "libs/core/*",
-        "libs/graphql/*"
-      ]
+      "exclude": ["libs/core/*", "libs/graphql/*"]
     },
     {
       "plugin": "@nx/webpack/plugin",
@@ -42,10 +45,7 @@
     },
     {
       "plugin": "@nx/js/typescript",
-      "include": [
-        "libs/core/*",
-        "libs/graphql/*"
-      ],
+      "include": ["libs/core/*", "libs/graphql/*"],
       "options": {
         "typecheck": {
           "targetName": "typecheck"
