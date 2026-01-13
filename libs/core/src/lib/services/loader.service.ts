@@ -37,10 +37,9 @@ export class LoaderService<
 > {
   readonly loaderRepository: Repository<T>;
   readonly loaderTypeRepository: Repository<K>;
+  readonly loaderSerialMaxDigits = 4;
   constructor(
     private readonly dataSource: DataSource,
-    @Inject('LOADER_SERIAL_MAX_DIGITS')
-    private readonly loaderSerialMaxDigits = 4,
     @Inject(LoadersEntity) readonly loaderEntity: EntityTarget<T>,
     @Inject(LoaderTypeEntity) readonly loaderTypeEntity: EntityTarget<K>
   ) {

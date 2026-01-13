@@ -14,6 +14,16 @@ import {
   MaterialEntityClass,
 } from './metadata/material.entity';
 import { StockEntity, StockEntityClass } from './metadata/stock.entity';
+import {
+  ReceiveInventoryOrderEntity,
+  ReceiveInventoryOrderEntityClass,
+  ReceiveInventoryOrderItemEntity,
+  ReceiveInventoryOrderItemEntityClass,
+  ShipInventoryOrderEntity,
+  ShipInventoryOrderEntityClass,
+  ShipInventoryOrderItemEntity,
+  ShipInventoryOrderItemEntityClass,
+} from './extensions';
 
 const entities = [
   [MaterialEntity, MaterialEntityClass],
@@ -21,6 +31,10 @@ const entities = [
   [LoadersEntity, LoadersEntityClass],
   [LoaderTypeEntity, LoaderTypeEntityClass],
   [StockEntity, StockEntityClass],
+  [ReceiveInventoryOrderEntity, ReceiveInventoryOrderEntityClass],
+  [ReceiveInventoryOrderItemEntity, ReceiveInventoryOrderItemEntityClass],
+  [ShipInventoryOrderEntity, ShipInventoryOrderEntityClass],
+  [ShipInventoryOrderItemEntity, ShipInventoryOrderItemEntityClass],
 ] as [symbol, new () => object][];
 
 export const ResolvedEntitiesProviders = entities.map(([token, entity]) => ({
@@ -31,5 +45,6 @@ export const ResolvedEntitiesProviders = entities.map(([token, entity]) => ({
 @Module({
   imports: [TypeOrmModule.forFeature(entities.map(([_, entity]) => entity))],
   providers: ResolvedEntitiesProviders,
+  exports: [TypeOrmModule, ...ResolvedEntitiesProviders],
 })
 export class ModelsModule {}

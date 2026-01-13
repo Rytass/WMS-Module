@@ -61,7 +61,7 @@ export class ReceiveInventoryOrderItemEntityClass {
   @JoinColumn({ name: 'unitId', referencedColumnName: 'id' })
   unit!: MaterialUnitEntityClass;
 
-  @ManyToOne('batches')
+  @ManyToOne('batches', { createForeignKeyConstraints: false })
   @JoinColumn({ name: 'batchId', referencedColumnName: 'id' })
   batch!: BatchEntity;
 

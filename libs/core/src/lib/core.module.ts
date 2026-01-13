@@ -1,15 +1,17 @@
 import { Module } from '@nestjs/common';
-import { LoaderService } from './services/loader.service';
 import {
-  MaterialService,
-  StockService,
   WMSBaseModule,
   WMSBaseModuleAsyncOptions,
   WMSBaseModuleOptions,
 } from '@rytass/wms-base-nestjs-module';
-import { ReceiveInventoryOrderService } from './services/receive-inventory-order.service';
-import { ShipInventoryOrderService } from './services/ship-inventory-order.service';
 import { ModelsModule } from './models/models.module';
+import {
+  LoaderService,
+  MaterialService,
+  StockService,
+  ReceiveInventoryOrderService,
+  ShipInventoryOrderService,
+} from './services';
 
 const exportDependencies = [
   LoaderService,
@@ -19,21 +21,25 @@ const exportDependencies = [
   StockService,
 ];
 
-@Module({})
+@Module({
+  providers: exportDependencies,
+})
 export class WmsModuleCoreModule {
   static forRoot(options: WMSBaseModuleOptions) {
+    const coreModule = WMSBaseModule.forRoot(options);
     return {
       module: WmsModuleCoreModule,
-      imports: [WMSBaseModule.forRoot(options), ModelsModule],
-      exports: exportDependencies,
+      imports: [coreModule, ModelsModule],
+      exports: [...exportDependencies, coreModule, ModelsModule],
     };
   }
 
   static forRootAsync(options: WMSBaseModuleAsyncOptions) {
+    const coreModule = WMSBaseModule.forRootAsync(options);
     return {
       module: WmsModuleCoreModule,
-      imports: [WMSBaseModule.forRootAsync(options), ModelsModule],
-      exports: exportDependencies,
+      imports: [coreModule, ModelsModule],
+      exports: [...exportDependencies, coreModule, ModelsModule],
     };
   }
 }

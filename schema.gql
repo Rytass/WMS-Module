@@ -1,0 +1,217 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type LoaderTypeDto {
+  id: ID!
+  description: String!
+  serial: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type LoaderDto {
+  id: ID!
+  quantity: Int!
+  length: Float
+  width: Float
+  height: Float
+  sizeUnit: String
+  volume: Float
+  volumeUnit: String
+  note: String
+  isActive: Boolean!
+  createdAt: DateTime!
+}
+
+type Loaders {
+  id: ID!
+  items: [LoaderDto!]!
+  total: Int!
+}
+
+type MaterialDto {
+  id: ID!
+  description: String!
+  baseUnit: String!
+  isActive: Boolean!
+}
+
+type Materials {
+  id: ID!
+  items: [MaterialDto!]!
+  total: Int!
+}
+
+type MaterialUnitDto {
+  id: ID!
+  materialId: ID!
+  unit: String!
+  conversionFactor: Float!
+  isActive: Boolean!
+  createdAt: DateTime!
+}
+
+type StockDto {
+  id: ID!
+  loaderId: ID!
+  description: String!
+}
+
+type Stocks {
+  id: ID!
+  items: [StockDto!]!
+  total: Int!
+}
+
+type ReceiveInventoryOrderItemDto {
+  id: ID!
+  description: String!
+  unitId: ID!
+  targetReceivedQuantity: Float!
+  actualReceivedQuantity: Float!
+  orderId: ID!
+  materialId: ID!
+  batchId: ID!
+  stockId: ID
+  removedAt: DateTime
+}
+
+type ReceiveInventoryOrderDto {
+  id: ID!
+  description: String!
+  createdBy: String!
+  removedAt: DateTime
+  items: [ReceiveInventoryOrderItemDto!]!
+}
+
+type ReceiveInventoryOrders {
+  id: ID!
+  items: [ReceiveInventoryOrderDto!]!
+  total: Int!
+}
+
+type ShipInventoryOrderItemDto {
+  id: ID!
+  description: String!
+  unitId: ID!
+  targetShippedQuantity: Float!
+  actualShippedQuantity: Float!
+  orderId: ID!
+  materialId: ID!
+  batchId: ID!
+  stockId: ID
+  removedAt: DateTime
+}
+
+type ShipInventoryOrderDto {
+  id: ID!
+  description: String!
+  createdBy: String!
+  removedAt: DateTime
+  items: [ShipInventoryOrderItemDto!]!
+}
+
+type ShipInventoryOrders {
+  id: ID!
+  items: [ShipInventoryOrderDto!]!
+  total: Int!
+}
+
+type Query {
+  loader(id: ID!): LoaderDto!
+  loaders(offset: Int, limit: Int, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String): Loaders!
+  material(id: ID!): MaterialDto!
+  materials(offset: Int, limit: Int, materialId: ID, materialIds: [ID!], description: String): Materials!
+  stock(id: ID!): StockDto!
+  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Stocks!
+  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Materials!
+  receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
+  receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ReceiveInventoryOrders!
+  shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
+  shipInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ShipInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ShipInventoryOrders!
+}
+
+input DateRangeArgs {
+  from: DateTime!
+  to: DateTime!
+}
+
+enum ReceiveInventoryOrderStatus {
+  PENDING
+  RECEIVED
+  REMOVED
+  PARTIAL_RECEIVED
+}
+
+enum ShipInventoryOrderStatus {
+  PENDING
+  SHIPPED
+  REMOVED
+  PARTIAL_SHIPPED
+}
+
+type Mutation {
+  createLoader(typeId: ID!, serialId: String!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
+  createBatchLoader(typeId: ID!, serialId: String!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
+  updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!): LoaderDto!
+  createLoaderType(id: ID!, description: String!, serial: String!): LoaderTypeDto!
+  updateLoaderType(description: String, id: ID!): LoaderTypeDto!
+  createMaterial(id: ID!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
+  updateMaterial(description: String, isActive: Boolean, id: ID!, units: [CreateMaterialUnitArgs!]): MaterialDto!
+  createReceiveInventoryOrder(id: ID!, description: String!, items: [CreateReceiveInventoryOrderItemArgs!]!): ReceiveInventoryOrderDto!
+  updateReceiveInventoryOrder(description: String, id: ID!, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!
+  createShipInventoryOrder(id: ID!, description: String!, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
+  updateShipInventoryOrder(description: String, id: ID!, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
+}
+
+input CreateMaterialUnitArgs {
+  unit: String!
+  conversionFactor: Float!
+  isActive: Boolean
+}
+
+input CreateReceiveInventoryOrderItemArgs {
+  description: String!
+  unitId: ID!
+  batchId: ID!
+  materialId: ID!
+  targetReceivedQuantity: Float!
+  actualReceivedQuantity: Float!
+}
+
+input UpdateReceiveInventoryOrderItemArgs {
+  description: String
+  unitId: ID
+  batchId: ID
+  materialId: ID
+  targetReceivedQuantity: Float
+  actualReceivedQuantity: Float
+  id: ID
+  removedAt: DateTime
+}
+
+input CreateShipInventoryOrderItemArgs {
+  description: String!
+  unitId: ID!
+  batchId: ID!
+  materialId: ID!
+  targetShippedQuantity: Float!
+  actualShippedQuantity: Float!
+}
+
+input UpdateShipInventoryOrderItemArgs {
+  description: String
+  unitId: ID
+  batchId: ID
+  materialId: ID
+  targetShippedQuantity: Float
+  actualShippedQuantity: Float
+  id: ID
+  removedAt: DateTime
+}
