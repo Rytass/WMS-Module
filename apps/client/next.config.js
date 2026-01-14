@@ -11,16 +11,6 @@ const nextConfig = {
   // Use this to set Nx-specific options
   // See: https://nx.dev/recipes/next/next-config-setup
   nx: {},
-  webpack: (config) => {
-    config.resolve = config.resolve || {};
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      'react/jsx-runtime.js': 'react/jsx-runtime',
-      '~@mezzanine-ui': '@mezzanine-ui',
-    };
-
-    return config;
-  },
   transpilePackages: [
     '@mezzanine-ui/core',
     '@mezzanine-ui/system',
