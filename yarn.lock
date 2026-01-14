@@ -2781,6 +2781,44 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@floating-ui/core@npm:^1.7.3":
+  version: 1.7.3
+  resolution: "@floating-ui/core@npm:1.7.3"
+  dependencies:
+    "@floating-ui/utils": "npm:^0.2.10"
+  checksum: 10c0/edfc23800122d81df0df0fb780b7328ae6c5f00efbb55bd48ea340f4af8c5b3b121ceb4bb81220966ab0f87b443204d37105abdd93d94846468be3243984144c
+  languageName: node
+  linkType: hard
+
+"@floating-ui/dom@npm:^1.7.4":
+  version: 1.7.4
+  resolution: "@floating-ui/dom@npm:1.7.4"
+  dependencies:
+    "@floating-ui/core": "npm:^1.7.3"
+    "@floating-ui/utils": "npm:^0.2.10"
+  checksum: 10c0/da6166c25f9b0729caa9f498685a73a0e28251613b35d27db8de8014bc9d045158a23c092b405321a3d67c2064909b6e2a7e6c1c9cc0f62967dca5779f5aef30
+  languageName: node
+  linkType: hard
+
+"@floating-ui/react-dom@npm:^2.1.6":
+  version: 2.1.6
+  resolution: "@floating-ui/react-dom@npm:2.1.6"
+  dependencies:
+    "@floating-ui/dom": "npm:^1.7.4"
+  peerDependencies:
+    react: ">=16.8.0"
+    react-dom: ">=16.8.0"
+  checksum: 10c0/6654834a8e73ecbdbc6cad2ad8f7abc698ac7c1800ded4d61113525c591c03d2e3b59d3cf9205859221465ea38c87af4f9e6e204703c5b7a7e85332d1eef2e18
+  languageName: node
+  linkType: hard
+
+"@floating-ui/utils@npm:^0.2.10":
+  version: 0.2.10
+  resolution: "@floating-ui/utils@npm:0.2.10"
+  checksum: 10c0/e9bc2a1730ede1ee25843937e911ab6e846a733a4488623cd353f94721b05ec2c9ec6437613a2ac9379a94c2fd40c797a2ba6fa1df2716f5ce4aa6ddb1cf9ea4
+  languageName: node
+  linkType: hard
+
 "@graphql-codegen/add@npm:^3.2.1":
   version: 3.2.3
   resolution: "@graphql-codegen/add@npm:3.2.3"
@@ -4670,12 +4708,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/core@npm:^0.16.0":
-  version: 0.16.0
-  resolution: "@mezzanine-ui/core@npm:0.16.0"
+"@mezzanine-ui/core@npm:1.0.0-beta.2":
+  version: 1.0.0-beta.2
+  resolution: "@mezzanine-ui/core@npm:1.0.0-beta.2"
   dependencies:
-    "@mezzanine-ui/icons": "npm:^0.16.0"
-    "@mezzanine-ui/system": "npm:^0.16.0"
+    "@mezzanine-ui/icons": "npm:^1.0.0-beta.2"
+    "@mezzanine-ui/system": "npm:^1.0.0-beta.2"
     lodash: "npm:^4.17.21"
     tslib: "npm:^2.8.1"
   peerDependencies:
@@ -4690,46 +4728,88 @@ __metadata:
       optional: true
     moment:
       optional: true
-  checksum: 10c0/f37a7df7785db9de7baa8b17c6c07d50311c87944b7f7caed1e6c9d14132312fb0551f0b402cb40ac035053b6b7a496b94f56b1cebbc582e2cf62514837c62b3
+  checksum: 10c0/e7c20affec2ffa33a2ba8fe28a4ab73cbbc9c00225e9d53faa9948e5fa79c9696357c5a491ff55ad481481e049063d2c8cbdb6384a922d3f0d9ac0f489737bde
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/icons@npm:^0.16.0":
-  version: 0.16.0
-  resolution: "@mezzanine-ui/icons@npm:0.16.0"
-  checksum: 10c0/e06466d385f163f2a5bb4df6fdb3557a30488d8de040ab92d1c706a9d8f1ae1f5317aaf470f2d090c139895605f75995db01adad7783b87b2dc9ba882c6e254e
-  languageName: node
-  linkType: hard
-
-"@mezzanine-ui/react@npm:^0.16.0":
-  version: 0.16.0
-  resolution: "@mezzanine-ui/react@npm:0.16.0"
+"@mezzanine-ui/core@npm:^1.0.0-beta.2":
+  version: 1.0.0-canary.9
+  resolution: "@mezzanine-ui/core@npm:1.0.0-canary.9"
   dependencies:
+    "@mezzanine-ui/icons": "npm:^1.0.0-canary.9"
+    "@mezzanine-ui/system": "npm:^1.0.0-canary.9"
+    lodash: "npm:^4.17.21"
+    tslib: "npm:^2.8.1"
+  peerDependencies:
+    dayjs: ">=1"
+    lodash: ">=4"
+    luxon: ">=3"
+    moment: ">=2"
+  peerDependenciesMeta:
+    dayjs:
+      optional: true
+    luxon:
+      optional: true
+    moment:
+      optional: true
+  checksum: 10c0/0bd58938cd5f64e8445a26c54b016fac9f2f83d37b55bdcb6c5f0d0c39ca3ba3e602eb20c0970f09fccf4c55e2a0e57dd06404ece266168391a7e6f4c9525785
+  languageName: node
+  linkType: hard
+
+"@mezzanine-ui/icons@npm:1.0.0-beta.2":
+  version: 1.0.0-beta.2
+  resolution: "@mezzanine-ui/icons@npm:1.0.0-beta.2"
+  checksum: 10c0/1e9a1b55ca18f99dcef364e9f38e4d3420d8315aa29188d0f31c44f59a7a48549e2e93039ab4b7c19cc48c9f728010daee3d9dc526488ee0d80dffa31988e862
+  languageName: node
+  linkType: hard
+
+"@mezzanine-ui/icons@npm:^1.0.0-beta.2, @mezzanine-ui/icons@npm:^1.0.0-canary.9":
+  version: 1.0.0-canary.9
+  resolution: "@mezzanine-ui/icons@npm:1.0.0-canary.9"
+  checksum: 10c0/0252621adf820df4978b56d9c35b7d720c16f6e77e2243dd73fee3e7e99139e29c47898bf59019952b3d03bbf1f4f91f89f00ff1db6e3b2b9510fa460d6df4da
+  languageName: node
+  linkType: hard
+
+"@mezzanine-ui/react@npm:1.0.0-beta.2":
+  version: 1.0.0-beta.2
+  resolution: "@mezzanine-ui/react@npm:1.0.0-beta.2"
+  dependencies:
+    "@floating-ui/dom": "npm:^1.7.4"
+    "@floating-ui/react-dom": "npm:^2.1.6"
     "@hello-pangea/dnd": "npm:^18.0.1"
-    "@mezzanine-ui/core": "npm:^0.16.0"
-    "@mezzanine-ui/icons": "npm:^0.16.0"
-    "@mezzanine-ui/system": "npm:^0.16.0"
-    "@popperjs/core": "npm:^2.11.8"
+    "@mezzanine-ui/core": "npm:^1.0.0-beta.2"
+    "@mezzanine-ui/icons": "npm:^1.0.0-beta.2"
+    "@mezzanine-ui/system": "npm:^1.0.0-beta.2"
+    "@tanstack/react-virtual": "npm:^3.13.13"
     "@types/react-transition-group": "npm:^4.4.12"
     clsx: "npm:^2.1.1"
+    keycode: "npm:^2.2.1"
     lodash: "npm:^4.17.21"
-    react-popper: "npm:^2.3.0"
     react-transition-group: "npm:^4.4.5"
     tslib: "npm:^2.8.1"
   peerDependencies:
     lodash: ">=4"
     react: ">=18"
     react-dom: ">=18"
-  checksum: 10c0/9d4b490622a086293b2f090cc5786a22c32223ca91a664e466176a8dde076b15be9574b020c74fdd771af14e0c0f9941123988072a6ea24ff04bd6820dc183a9
+  checksum: 10c0/60142739e3320b917af109d92caf8d63d9ed079e60eb7f80d768305d4f35bc6332675a9687ad03082b3ebf21a00c06f665d0c0b68323bcfac24d4a1c4eadae26
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/system@npm:^0.16.0":
-  version: 0.16.0
-  resolution: "@mezzanine-ui/system@npm:0.16.0"
+"@mezzanine-ui/system@npm:1.0.0-beta.2":
+  version: 1.0.0-beta.2
+  resolution: "@mezzanine-ui/system@npm:1.0.0-beta.2"
   dependencies:
     tslib: "npm:^2.8.1"
-  checksum: 10c0/461705cfd9ecda58f65ff681217ec7ad573c4c6906ad7b39b252076360de6969aa711f031baf7b47f967b4fb619cb7391a6155c4551d1330dddf250decaae24d
+  checksum: 10c0/c5e725c4646e0cf95bc5a81e3e2769a539431759909aacf2df5953e1757a80bc3b70f25e9879a6c52d3cd1eb4d888d3b912ff51e2aebf4024b137af515faf646
+  languageName: node
+  linkType: hard
+
+"@mezzanine-ui/system@npm:^1.0.0-beta.2, @mezzanine-ui/system@npm:^1.0.0-canary.9":
+  version: 1.0.0-canary.9
+  resolution: "@mezzanine-ui/system@npm:1.0.0-canary.9"
+  dependencies:
+    tslib: "npm:^2.8.1"
+  checksum: 10c0/9397bcb7e493dcb843c8d6d0fb8912481c6d1db47bdf64b18e30dcd6cad5f3ad74867fc5f8ded561baaa0baae60a662e1659d348c2fdfc2ad0f40d5c2bd59d4f
   languageName: node
   linkType: hard
 
@@ -6452,13 +6532,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@popperjs/core@npm:^2.11.8":
-  version: 2.11.8
-  resolution: "@popperjs/core@npm:2.11.8"
-  checksum: 10c0/4681e682abc006d25eb380d0cf3efc7557043f53b6aea7a5057d0d1e7df849a00e281cd8ea79c902a35a414d7919621fc2ba293ecec05f413598e0b23d5a1e63
-  languageName: node
-  linkType: hard
-
 "@protobufjs/aspromise@npm:^1.1.1, @protobufjs/aspromise@npm:^1.1.2":
   version: 1.1.2
   resolution: "@protobufjs/aspromise@npm:1.1.2"
@@ -7454,6 +7527,25 @@ __metadata:
   dependencies:
     defer-to-connect: "npm:^2.0.1"
   checksum: 10c0/4629d2fbb2ea67c2e9dc03af235c0991c79ebdddcbc19aed5d5732fb29ce01c13331e9b1a491584b9069bd6ecde6581dcbf871f11b7eefdebbab34de6cf2197e
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-virtual@npm:^3.13.13":
+  version: 3.13.18
+  resolution: "@tanstack/react-virtual@npm:3.13.18"
+  dependencies:
+    "@tanstack/virtual-core": "npm:3.13.18"
+  peerDependencies:
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/600fabdf9fe077d609dad5114025c502aa1125d21bfd64ae4eeeab4743de1c76ca0d5c29ca4cba0c1220834a9dfedbe0c7304276b0e0e7f9048e2c8a5562fa26
+  languageName: node
+  linkType: hard
+
+"@tanstack/virtual-core@npm:3.13.18":
+  version: 3.13.18
+  resolution: "@tanstack/virtual-core@npm:3.13.18"
+  checksum: 10c0/f43a92bbe4e891242a6bb5274ee60b166534abfcd5115cbe7f92f833e745941ac3b8cb808dd0537cbf1e0c5004aacd2d2cab4a1ce738f7930ec723566e37ec11
   languageName: node
   linkType: hard
 
@@ -8485,10 +8577,10 @@ __metadata:
     "@hookform/devtools": "npm:^4.4.0"
     "@hookform/error-message": "npm:^2.0.1"
     "@hookform/resolvers": "npm:^5.2.2"
-    "@mezzanine-ui/core": "npm:^0.16.0"
-    "@mezzanine-ui/icons": "npm:^0.16.0"
-    "@mezzanine-ui/react": "npm:^0.16.0"
-    "@mezzanine-ui/system": "npm:^0.16.0"
+    "@mezzanine-ui/core": "npm:1.0.0-beta.2"
+    "@mezzanine-ui/icons": "npm:1.0.0-beta.2"
+    "@mezzanine-ui/react": "npm:1.0.0-beta.2"
+    "@mezzanine-ui/system": "npm:1.0.0-beta.2"
     "@nestjs/apollo": "npm:^13.2.3"
     "@nestjs/common": "npm:^11.0.0"
     "@nestjs/config": "npm:^4.0.2"
@@ -15215,6 +15307,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"keycode@npm:^2.2.1":
+  version: 2.2.1
+  resolution: "keycode@npm:2.2.1"
+  checksum: 10c0/e38ecbdc62f57e18ef9f7ad88aefded84e05b89115a40eea3081a7002d7c055765ddb5f5c3e2dd36ac2b2ab3901053c8286c9db082fd807b3abeb7e44034d96a
+  languageName: node
+  linkType: hard
+
 "keygrip@npm:~1.1.0":
   version: 1.1.0
   resolution: "keygrip@npm:1.1.0"
@@ -18314,13 +18413,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-fast-compare@npm:^3.0.1":
-  version: 3.2.2
-  resolution: "react-fast-compare@npm:3.2.2"
-  checksum: 10c0/0bbd2f3eb41ab2ff7380daaa55105db698d965c396df73e6874831dbafec8c4b5b08ba36ff09df01526caa3c61595247e3269558c284e37646241cba2b90a367
-  languageName: node
-  linkType: hard
-
 "react-hook-form@npm:^7.71.1":
   version: 7.71.1
   resolution: "react-hook-form@npm:7.71.1"
@@ -18341,20 +18433,6 @@ __metadata:
   version: 18.3.1
   resolution: "react-is@npm:18.3.1"
   checksum: 10c0/f2f1e60010c683479e74c63f96b09fb41603527cd131a9959e2aee1e5a8b0caf270b365e5ca77d4a6b18aae659b60a86150bb3979073528877029b35aecd2072
-  languageName: node
-  linkType: hard
-
-"react-popper@npm:^2.3.0":
-  version: 2.3.0
-  resolution: "react-popper@npm:2.3.0"
-  dependencies:
-    react-fast-compare: "npm:^3.0.1"
-    warning: "npm:^4.0.2"
-  peerDependencies:
-    "@popperjs/core": ^2.0.0
-    react: ^16.8.0 || ^17 || ^18
-    react-dom: ^16.8.0 || ^17 || ^18
-  checksum: 10c0/23f93540537ca4c035425bb8d5e51b11131fbc921d7ac1d041d0ae557feac8c877f3a012d36b94df8787803f52ed81e6df9257ac9e58719875f7805518d6db3f
   languageName: node
   linkType: hard
 
@@ -21537,15 +21615,6 @@ __metadata:
   dependencies:
     makeerror: "npm:1.0.12"
   checksum: 10c0/a17e037bccd3ca8a25a80cb850903facdfed0de4864bd8728f1782370715d679fa72e0a0f5da7c1c1379365159901e5935f35be531229da53bbfc0efdabdb48e
-  languageName: node
-  linkType: hard
-
-"warning@npm:^4.0.2":
-  version: 4.0.3
-  resolution: "warning@npm:4.0.3"
-  dependencies:
-    loose-envify: "npm:^1.0.0"
-  checksum: 10c0/aebab445129f3e104c271f1637fa38e55eb25f968593e3825bd2f7a12bd58dc3738bb70dc8ec85826621d80b4acfed5a29ebc9da17397c6125864d72301b937e
   languageName: node
   linkType: hard
 

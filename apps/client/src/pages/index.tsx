@@ -1,7 +1,11 @@
-import styles from './index.module.scss';
+import { Typography } from '@mezzanine-ui/react';
 
 export function Index() {
-  return <div className={styles.page}>Hello</div>;
+  return (
+    <div>
+      <Typography variant="h3">Hello</Typography>
+    </div>
+  );
 }
 
 export default Index;
