@@ -6,3 +6,7 @@ declare module '*.svg' {
 }
 
 declare module '*.scss';
+
+type FC<Props = unknown> = React.FunctionComponent<
+  Props & { children?: ReactNode }
+>;
