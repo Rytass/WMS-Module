@@ -2473,6 +2473,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@cl-live-server/logger@npm:^0.0.3":
+  version: 0.0.3
+  resolution: "@cl-live-server/logger@npm:0.0.3"
+  checksum: 10c0/a191725f12e60e68c18452d55785b128b9ab051ba699dcb6d6f57eaf9685618f8a36cde9ad2889983acab66239b385f77bb239888a33ba8743a126b3e5d67e88
+  languageName: node
+  linkType: hard
+
 "@discoveryjs/json-ext@npm:^0.5.0":
   version: 0.5.7
   resolution: "@discoveryjs/json-ext@npm:0.5.7"
@@ -8620,6 +8627,7 @@ __metadata:
     eslint-plugin-jsx-a11y: "npm:6.10.1"
     eslint-plugin-react: "npm:7.35.0"
     eslint-plugin-react-hooks: "npm:5.0.0"
+    generate-next-links: "npm:^3.1.0"
     graphql: "npm:^16.12.0"
     lodash: "npm:^4.17.21"
     next: "npm:15.5.7"
@@ -13102,6 +13110,18 @@ __metadata:
   version: 1.2.3
   resolution: "functions-have-names@npm:1.2.3"
   checksum: 10c0/33e77fd29bddc2d9bb78ab3eb854c165909201f88c75faa8272e35899e2d35a8a642a15e7420ef945e1f64a9670d6aa3ec744106b2aa42be68ca5114025954ca
+  languageName: node
+  linkType: hard
+
+"generate-next-links@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "generate-next-links@npm:3.1.0"
+  dependencies:
+    "@cl-live-server/logger": "npm:^0.0.3"
+    prettier: "npm:^2.3.2"
+  bin:
+    generate-next-links: index.js
+  checksum: 10c0/ba4b8388ae75593af72e3d70b6f65661a0f29c52fd894d6d8aeb7fa0faa4d68110c299bb63479084937ed2dbebcb2baa8202619d155f12622374eaf35254c914
   languageName: node
   linkType: hard
 
@@ -18206,6 +18226,15 @@ __metadata:
   version: 1.2.1
   resolution: "prelude-ls@npm:1.2.1"
   checksum: 10c0/b00d617431e7886c520a6f498a2e14c75ec58f6d93ba48c3b639cf241b54232d90daa05d83a9e9b9fef6baa63cb7e1e4602c2372fea5bc169668401eb127d0cd
+  languageName: node
+  linkType: hard
+
+"prettier@npm:^2.3.2":
+  version: 2.8.8
+  resolution: "prettier@npm:2.8.8"
+  bin:
+    prettier: bin-prettier.js
+  checksum: 10c0/463ea8f9a0946cd5b828d8cf27bd8b567345cf02f56562d5ecde198b91f47a76b7ac9eae0facd247ace70e927143af6135e8cf411986b8cb8478784a4d6d724a
   languageName: node
   linkType: hard
 

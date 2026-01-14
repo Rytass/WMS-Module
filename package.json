@@ -6,7 +6,8 @@
   "scripts": {
     "api": "nx serve api",
     "client": "nx serve client --port 7101",
-    "gql": "nx run client:graphql"
+    "gql": "nx run client:graphql",
+    "pages": "npx generate-next-links -P apps/client/src/ -O apps/client/src/utils/ -N NextPath -T"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
@@ -47,6 +48,7 @@
     "eslint-plugin-jsx-a11y": "6.10.1",
     "eslint-plugin-react": "7.35.0",
     "eslint-plugin-react-hooks": "5.0.0",
+    "generate-next-links": "^3.1.0",
     "nx": "22.3.3",
     "prettier": "~3.6.2",
     "sass": "1.62.1",
