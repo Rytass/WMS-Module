@@ -2,7 +2,9 @@ import { useForm } from 'react-hook-form';
 import PageWrapper from '../../PageWrapper';
 // import { FormWrapper } from '../../fields/FormWrapper';
 // import { InputField } from '../../fields/InputField';
-import { FormFieldSize } from '@mezzanine-ui/core/form';
+import { FormFieldSize, formFieldClasses } from '@mezzanine-ui/core/form';
+
+import { inputClasses } from '@mezzanine-ui/core/input';
 import Input from '@mezzanine-ui/react/Input';
 import FormField from '@mezzanine-ui/react/Form/FormField';
 
@@ -17,7 +19,7 @@ function ShipInventoryOrder() {
         name="username-h-base"
         size={FormFieldSize.VERTICAL}
       >
-        <Input placeholder="Enter username" />
+        <Input placeholder="Enter username" size="main" />
       </FormField>
     </PageWrapper>
   );

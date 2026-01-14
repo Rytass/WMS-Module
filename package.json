@@ -62,6 +62,11 @@
     "apps/*",
     "libs/*"
   ],
+  "resolutions": {
+    "@mezzanine-ui/core": "1.0.0-beta.2",
+    "@mezzanine-ui/icons": "1.0.0-beta.2",
+    "@mezzanine-ui/system": "1.0.0-beta.2"
+  },
   "packageManager": "yarn@4.12.0",
   "dependencies": {
     "@apollo/client": "^4.0.13",
