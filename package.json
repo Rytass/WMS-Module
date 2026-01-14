@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "api": "nx serve api",
-    "client": "nx serve client --port 7101"
+    "client": "nx serve client --port 7101",
+    "gql": "nx run client:graphql"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",

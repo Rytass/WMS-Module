@@ -1,0 +1,6 @@
+fragment Material on MaterialDto {
+  id
+  description
+  baseUnit
+  isActive
+}
