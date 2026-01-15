@@ -1,0 +1,15 @@
+.main {
+  display: flex;
+
+  .navigation {
+    position: sticky;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    height: 100vh;
+  }
+
+  .page {
+    flex: 1;
+  }
+}
