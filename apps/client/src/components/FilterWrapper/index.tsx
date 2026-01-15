@@ -5,8 +5,8 @@ import {
   SubmitHandler,
   FieldValues,
 } from 'react-hook-form';
-import { Button } from '@mezzanine-ui/react';
-import { ChevronDownIcon, ChevronUpIcon } from '@mezzanine-ui/icons';
+import { Button, cx } from '@mezzanine-ui/react';
+import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { FormWrapper } from '../fields/FormWrapper';
 import { FilterType, renderFilter } from './utils';
 import classes from './index.module.scss';
@@ -52,9 +52,12 @@ const FilterWrapper = <T extends FieldValues>({
             type="button"
             size="sub"
             variant="base-text-link"
+            className={cx(classes.expandButton, {
+              [classes.isExpanded]: isExpanded,
+            })}
             icon={{
               position: 'trailing',
-              src: isExpanded ? ChevronUpIcon : ChevronDownIcon,
+              src: ChevronDownIcon,
             }}
             onClick={() => {
               setIsExpanded((state) => !state);

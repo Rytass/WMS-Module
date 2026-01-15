@@ -1,4 +1,5 @@
 @use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/transition';
 
 .host {
   display: flex;
@@ -23,6 +24,18 @@
     align-items: flex-end;
     justify-content: space-between;
     align-self: stretch;
+
+    .expandButton {
+      & > i {
+        transition: transition.standard(transform, fast);
+      }
+
+      &.isExpanded {
+        & > i {
+          transform: rotate(180deg);
+        }
+      }
+    }
 
     .buttons {
       display: flex;
