@@ -1,6 +1,10 @@
 .main {
   display: flex;
 
+  .navigation {
+    height: 100vh;
+  }
+
   .page {
     flex: 1;
   }
