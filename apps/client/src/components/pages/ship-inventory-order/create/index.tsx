@@ -1,5 +1,6 @@
 import { NextPath } from '../../../../utils/nextpath';
 import PageWrapper from '../../../PageWrapper';
+import SectionWrapper from '../../../SectionWrapper';
 
 function CreateShipInventoryOrder() {
   return (
@@ -20,7 +21,8 @@ function CreateShipInventoryOrder() {
       title="建立出庫單"
       haveBack
     >
-      Create
+      <SectionWrapper title="單號資訊">section1</SectionWrapper>
+      <SectionWrapper title="待建立列表">section2</SectionWrapper>
     </PageWrapper>
   );
 }
