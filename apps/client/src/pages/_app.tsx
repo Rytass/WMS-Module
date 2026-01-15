@@ -4,6 +4,7 @@ import { AppProps } from 'next/app';
 import Head from 'next/head';
 import { ApolloProvider } from '@apollo/client/react';
 import CalendarConfigProviderDayjs from '@mezzanine-ui/react/Calendar/CalendarConfigProviderDayjs';
+import { NuqsAdapter } from 'nuqs/adapters/next/pages';
 import ApolloClient from '../apollo';
 import AuthGuard from '../auth/AuthGuard';
 
@@ -15,9 +16,11 @@ function CustomApp({ Component, pageProps }: AppProps) {
       </Head>
       <ApolloProvider client={ApolloClient}>
         <CalendarConfigProviderDayjs>
-          <AuthGuard>
-            <Component {...pageProps} />
-          </AuthGuard>
+          <NuqsAdapter>
+            <AuthGuard>
+              <Component {...pageProps} />
+            </AuthGuard>
+          </NuqsAdapter>
         </CalendarConfigProviderDayjs>
       </ApolloProvider>
     </>
