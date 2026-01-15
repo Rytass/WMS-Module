@@ -12,13 +12,19 @@ import { ReceiveInventoryOrderMutation } from './mutations/receive-inventory-ord
 import { ReceiveInventoryOrderQuery } from './queries/recieve-inventory-order.query';
 import { ShipInventoryOrderMutation } from './mutations/ship-inventory-order.mutation';
 import { ShipInventoryOrderQuery } from './queries/ship-inventory-order.query';
+import { LoaderResolver } from './resolvers/loader.resolver';
+import { MaterialResolver } from './resolvers/material.resolver';
+import { StockResolver } from './resolvers/stock.resolver';
 
 const exportDependencies = [
   LoaderMutation,
   LoaderQuery,
+  LoaderResolver,
   MaterialMutation,
   MaterialQuery,
+  MaterialResolver,
   StockQuery,
+  StockResolver,
   ReceiveInventoryOrderMutation,
   ReceiveInventoryOrderQuery,
   ShipInventoryOrderMutation,
@@ -30,7 +36,7 @@ const exportDependencies = [
 export class WmsModuleGraphqlModule {
   static forRootAsync(
     options: WMSBaseModuleAsyncOptions,
-    gqlOptions: GqlModuleAsyncOptions
+    gqlOptions: GqlModuleAsyncOptions,
   ) {
     const coreModule = WmsModuleCoreModule.forRootAsync(options);
 

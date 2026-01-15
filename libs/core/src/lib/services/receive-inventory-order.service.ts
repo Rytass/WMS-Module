@@ -33,7 +33,8 @@ import {
 @Injectable()
 export class ReceiveInventoryOrderService<
   T extends ReceiveInventoryOrderEntityClass = ReceiveInventoryOrderEntityClass,
-  K extends ReceiveInventoryOrderItemEntityClass = ReceiveInventoryOrderItemEntityClass
+  K extends
+    ReceiveInventoryOrderItemEntityClass = ReceiveInventoryOrderItemEntityClass,
 > {
   readonly receiveInventoryOrderRepository: Repository<T>;
   constructor(
@@ -41,10 +42,10 @@ export class ReceiveInventoryOrderService<
     @Inject(ReceiveInventoryOrderEntity)
     readonly receiveInventoryOrderEntity: EntityTarget<T>,
     @Inject(ReceiveInventoryOrderItemEntity)
-    readonly receiveInventoryOrderItemEntity: EntityTarget<K>
+    readonly receiveInventoryOrderItemEntity: EntityTarget<K>,
   ) {
     this.receiveInventoryOrderRepository = this.dataSource.getRepository<T>(
-      this.receiveInventoryOrderEntity
+      this.receiveInventoryOrderEntity,
     );
   }
 
@@ -57,19 +58,19 @@ export class ReceiveInventoryOrderService<
     const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
     const receiveInventoryOrderRepository =
       manager.getRepository<ReceiveInventoryOrderEntityClass>(
-        this.receiveInventoryOrderEntity
+        this.receiveInventoryOrderEntity,
       );
     const receiveInventoryOrderItemRepository =
       manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
-        this.receiveInventoryOrderItemEntity
+        this.receiveInventoryOrderItemEntity,
       );
 
     // create base order
-    await orderRepository.save(orderRepository.create({ id: options.id }));
+    const { id } = await orderRepository.save(orderRepository.create());
 
     // create receive inventory order
     const order = await receiveInventoryOrderRepository.save(
-      receiveInventoryOrderRepository.create(options)
+      receiveInventoryOrderRepository.create({ id, ...options }),
     );
 
     // create receive inventory order items
@@ -78,7 +79,7 @@ export class ReceiveInventoryOrderService<
         options.items.map((item) => ({
           ...item,
           orderId: order.id,
-        }))
+        })),
       );
       await receiveInventoryOrderItemRepository.save(items);
     }
@@ -99,11 +100,11 @@ export class ReceiveInventoryOrderService<
   }): Promise<T> {
     const receiveInventoryOrderRepository =
       manager.getRepository<ReceiveInventoryOrderEntityClass>(
-        this.receiveInventoryOrderEntity
+        this.receiveInventoryOrderEntity,
       );
     const receiveInventoryOrderItemRepository =
       manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
-        this.receiveInventoryOrderItemEntity
+        this.receiveInventoryOrderItemEntity,
       );
 
     const order = await receiveInventoryOrderRepository.findOneByOrFail({
@@ -114,7 +115,7 @@ export class ReceiveInventoryOrderService<
       receiveInventoryOrderRepository.create({
         ...order,
         ...options,
-      })
+      }),
     );
 
     if (options.items?.length) {
@@ -136,14 +137,14 @@ export class ReceiveInventoryOrderService<
       if (newItems.length)
         await receiveInventoryOrderItemRepository.save(
           receiveInventoryOrderItemRepository.create(
-            newItems.map((item) => ({ ...item, orderId: id }))
-          )
+            newItems.map((item) => ({ ...item, orderId: id })),
+          ),
         );
       if (existingItems.length)
         await Promise.all(
           existingItems.map(async (item) =>
-            receiveInventoryOrderItemRepository.update({ id: item.id }, item)
-          )
+            receiveInventoryOrderItemRepository.update({ id: item.id }, item),
+          ),
         );
     }
 
@@ -153,7 +154,7 @@ export class ReceiveInventoryOrderService<
   async removeReceiveInventoryOrder(id: string): Promise<boolean> {
     return this.dataSource
       .getRepository<ReceiveInventoryOrderEntityClass>(
-        this.receiveInventoryOrderEntity
+        this.receiveInventoryOrderEntity,
       )
       .update({ id }, { removedAt: new Date() })
       .then(({ affected }) => !!affected && affected > 0);
@@ -196,15 +197,15 @@ export class ReceiveInventoryOrderService<
                 .select('item."orderId"', 'orderId')
                 .addSelect(
                   'SUM(item."targetReceivedQuantity")',
-                  'totalTargetReceivedQuantity'
+                  'totalTargetReceivedQuantity',
                 )
                 .addSelect(
                   'SUM(item."actualReceivedQuantity")',
-                  'totalActualReceivedQuantity'
+                  'totalActualReceivedQuantity',
                 )
                 .groupBy('item."orderId"'),
             'summary',
-            'summary."orderId" = order.id AND summary."totalTargetReceivedQuantity" = summary."totalActualReceivedQuantity"'
+            'summary."orderId" = order.id AND summary."totalTargetReceivedQuantity" = summary."totalActualReceivedQuantity"',
           );
           break;
 
@@ -216,20 +217,20 @@ export class ReceiveInventoryOrderService<
                 .addSelect('item."orderId"', 'orderId')
                 .addSelect(
                   'SUM(item."targetReceivedQuantity")',
-                  'totalTargetReceivedQuantity'
+                  'totalTargetReceivedQuantity',
                 )
                 .addSelect(
                   'SUM(item."actualReceivedQuantity")',
-                  'totalActualReceivedQuantity'
+                  'totalActualReceivedQuantity',
                 )
                 .groupBy('item."orderId"'),
             'summary',
-            'summary."orderId" = order.id AND summary."totalActualReceivedQuantity" > 0 AND summary."totalActualReceivedQuantity" < summary."totalTargetReceivedQuantity"'
+            'summary."orderId" = order.id AND summary."totalActualReceivedQuantity" > 0 AND summary."totalActualReceivedQuantity" < summary."totalTargetReceivedQuantity"',
           );
 
           break;
 
-        case ReceiveInventoryOrderStatus.PARTIAL_RECEIVED:
+        case ReceiveInventoryOrderStatus.PENDING:
           queryBuilder.innerJoin(
             (qb) =>
               qb
@@ -237,11 +238,11 @@ export class ReceiveInventoryOrderService<
                 .addSelect('item."orderId"', 'orderId')
                 .addSelect(
                   'SUM(item."actualReceivedQuantity")',
-                  'totalActualReceivedQuantity'
+                  'totalActualReceivedQuantity',
                 )
                 .groupBy('item."orderId"'),
             'summary',
-            'summary."orderId" = order.id AND summary."totalActualReceivedQuantity" = 0'
+            'summary."orderId" = order.id AND summary."totalActualReceivedQuantity" = 0',
           );
 
           break;

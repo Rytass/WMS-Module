@@ -5,6 +5,7 @@
 type LoaderTypeDto {
   id: ID!
   description: String!
+  isActive: Boolean!
   serial: String!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -17,7 +18,6 @@ scalar DateTime
 
 type LoaderDto {
   id: ID!
-  quantity: Int!
   length: Float
   width: Float
   height: Float
@@ -27,6 +27,7 @@ type LoaderDto {
   note: String
   isActive: Boolean!
   createdAt: DateTime!
+  type: LoaderTypeDto!
 }
 
 type Loaders {
@@ -40,6 +41,7 @@ type MaterialDto {
   description: String!
   baseUnit: String!
   isActive: Boolean!
+  stocks: [StockDto!]!
 }
 
 type Materials {
@@ -61,6 +63,9 @@ type StockDto {
   id: ID!
   loaderId: ID!
   description: String!
+  material: MaterialDto!
+  location: LocationDto!
+  batch: BatchDto!
 }
 
 type Stocks {
@@ -71,14 +76,12 @@ type Stocks {
 
 type ReceiveInventoryOrderItemDto {
   id: ID!
-  description: String!
+  description: String
   unitId: ID!
   targetReceivedQuantity: Float!
-  actualReceivedQuantity: Float!
   orderId: ID!
   materialId: ID!
-  batchId: ID!
-  stockId: ID
+  batchId: ID
   removedAt: DateTime
 }
 
@@ -98,14 +101,12 @@ type ReceiveInventoryOrders {
 
 type ShipInventoryOrderItemDto {
   id: ID!
-  description: String!
+  description: String
   unitId: ID!
   targetShippedQuantity: Float!
-  actualShippedQuantity: Float!
   orderId: ID!
   materialId: ID!
-  batchId: ID!
-  stockId: ID
+  batchId: ID
   removedAt: DateTime
 }
 
@@ -121,6 +122,15 @@ type ShipInventoryOrders {
   id: ID!
   items: [ShipInventoryOrderDto!]!
   total: Int!
+}
+
+type LocationDto {
+  id: ID!
+  description: String!
+}
+
+type BatchDto {
+  id: ID!
 }
 
 type Query {
@@ -164,9 +174,9 @@ type Mutation {
   updateLoaderType(description: String, id: ID!): LoaderTypeDto!
   createMaterial(id: ID!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
   updateMaterial(description: String, isActive: Boolean, id: ID!, units: [CreateMaterialUnitArgs!]): MaterialDto!
-  createReceiveInventoryOrder(id: ID!, description: String!, items: [CreateReceiveInventoryOrderItemArgs!]!): ReceiveInventoryOrderDto!
+  createReceiveInventoryOrder(key: ID!, description: String!, items: [CreateReceiveInventoryOrderItemArgs!]!): ReceiveInventoryOrderDto!
   updateReceiveInventoryOrder(description: String, id: ID!, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!
-  createShipInventoryOrder(id: ID!, description: String!, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
+  createShipInventoryOrder(key: ID!, description: String!, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
   updateShipInventoryOrder(description: String, id: ID!, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
 }
 

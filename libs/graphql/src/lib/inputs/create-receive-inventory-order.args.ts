@@ -7,7 +7,7 @@ import {
 @ArgsType()
 export class CreateReceiveInventoryOrderArgs {
   @Field(() => ID)
-  id!: string;
+  key!: string;
 
   @Field(() => String)
   description!: string;
@@ -18,7 +18,7 @@ export class CreateReceiveInventoryOrderArgs {
 
 @ArgsType()
 export class UpdateReceiveInventoryOrderArgs extends PartialType(
-  OmitType(CreateReceiveInventoryOrderArgs, ['id', 'items'] as const)
+  OmitType(CreateReceiveInventoryOrderArgs, ['key', 'items'] as const),
 ) {
   @Field(() => ID)
   id!: string;

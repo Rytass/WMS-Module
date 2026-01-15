@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { StockEntity, StockEntityClass } from '../models/metadata/stock.entity';
 import {
+  Brackets,
   DataSource,
   ObjectLiteral,
   Repository,
@@ -16,20 +17,20 @@ import {
 @Injectable()
 export class StockService<
   T extends StockEntityClass = StockEntityClass,
-  K extends MaterialEntityClass = MaterialEntityClass
+  K extends MaterialEntityClass = MaterialEntityClass,
 > {
   readonly stockRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(StockEntity) private readonly stockEntity: EntityTarget<T>,
-    @Inject(MaterialEntity) private readonly materialEntity: EntityTarget<K>
+    @Inject(MaterialEntity) private readonly materialEntity: EntityTarget<K>,
   ) {
     this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
   }
 
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(
-    options: FindStockInput,
-    queryBuilder: SelectQueryBuilder<U>
+    options: FindStockInput<T>,
+    queryBuilder: SelectQueryBuilder<U>,
   ): SelectQueryBuilder<U> {
     if (options.materialId)
       queryBuilder.andWhere('stock."materialId" = :materialId', {
@@ -56,6 +57,20 @@ export class StockService<
         description: `%${options.description}%`,
       });
 
+    if (options.wildcard) {
+      const { keys, value } = options.wildcard;
+      if (keys.length > 0)
+        queryBuilder.andWhere(
+          new Brackets((qb) =>
+            keys.forEach((key, index) =>
+              qb.orWhere(`stock."${String(key)}" ILIKE :wildcard${index}`, {
+                [`wildcard${index}`]: `%${value}%`,
+              }),
+            ),
+          ),
+        );
+    }
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
@@ -65,24 +80,26 @@ export class StockService<
     return queryBuilder;
   }
 
-  findMany(options: FindStockInput): Promise<[T[], number]> {
+  findMany(options: FindStockInput<T>): Promise<[T[], number]> {
     const queryBuilder = this.pipeSelectOptionsToQueryBuilder(
       options,
       this.dataSource
         .getRepository<T>(this.stockEntity)
-        .createQueryBuilder('stock')
+        .createQueryBuilder('stock'),
     );
 
     return queryBuilder.getManyAndCount();
   }
 
-  findManyGroupedByMaterialId(options: FindStockInput): Promise<[K[], number]> {
+  findManyGroupedByMaterialId(
+    options: FindStockInput<T>,
+  ): Promise<[K[], number]> {
     const queryBuilder = this.pipeSelectOptionsToQueryBuilder(
       options,
       this.dataSource
         .getRepository<K>(this.materialEntity)
         .createQueryBuilder('material')
-        .leftJoinAndSelect('material.stocks', 'stock')
+        .leftJoinAndSelect('material.stocks', 'stock'),
     );
 
     return queryBuilder.getManyAndCount();

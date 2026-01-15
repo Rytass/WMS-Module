@@ -1,14 +1,13 @@
 export type CreateShipInventoryOrderItemInput = {
-  description: string;
+  description?: string;
   unitId: string;
-  batchId: string;
+  batchId?: string;
   materialId: string;
   targetShippedQuantity: number;
-  actualShippedQuantity: number;
 };
 
 export type CreateShipInventoryOrderInput = {
-  id: string;
+  key: string;
   description: string;
   items: CreateShipInventoryOrderItemInput[];
 };

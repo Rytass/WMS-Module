@@ -6,8 +6,8 @@ export class ReceiveInventoryOrderItemDto {
   @Field(() => ID)
   id!: string;
 
-  @Field(() => String)
-  description!: string;
+  @Field(() => String, { nullable: true })
+  description!: string | null;
 
   @Field(() => ID)
   unitId!: string;
@@ -15,20 +15,14 @@ export class ReceiveInventoryOrderItemDto {
   @Field(() => Float)
   targetReceivedQuantity!: number;
 
-  @Field(() => Float)
-  actualReceivedQuantity!: number;
-
   @Field(() => ID)
   orderId!: string;
 
   @Field(() => ID)
   materialId!: string;
 
-  @Field(() => ID)
-  batchId!: string;
-
   @Field(() => ID, { nullable: true })
-  stockId!: string | null;
+  batchId!: string | null;
 
   @Field(() => Date, { nullable: true })
   removedAt!: Date | null;
@@ -36,5 +30,5 @@ export class ReceiveInventoryOrderItemDto {
 
 @ObjectType()
 export class ReceiveInventoryOrderItems extends PaginatedResponse(
-  ReceiveInventoryOrderItemDto
+  ReceiveInventoryOrderItemDto,
 ) {}

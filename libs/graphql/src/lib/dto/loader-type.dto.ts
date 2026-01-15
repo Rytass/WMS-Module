@@ -8,6 +8,9 @@ export class LoaderTypeDto {
   @Field(() => String)
   description!: string;
 
+  @Field(() => Boolean)
+  isActive!: boolean;
+
   @Field(() => String)
   serial!: string;
 

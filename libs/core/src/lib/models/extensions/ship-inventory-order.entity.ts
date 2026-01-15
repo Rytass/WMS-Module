@@ -1,7 +1,9 @@
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   Column,
+  CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   OneToMany,
   OneToOne,
@@ -18,6 +20,10 @@ export class ShipInventoryOrderEntityClass {
   @PrimaryColumn('uuid')
   id!: string;
 
+  @Column({ type: 'varchar', unique: true })
+  @Index()
+  key!: string;
+
   @Column({ type: 'text' })
   description!: string;
 
@@ -27,13 +33,16 @@ export class ShipInventoryOrderEntityClass {
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
 
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt!: Date;
+
   @OneToOne('orders')
   @JoinColumn({ name: 'id', referencedColumnName: 'id' })
   order!: OrderEntity;
 
   @OneToMany(
     'ship_inventory_order_items',
-    (entity: ShipInventoryOrderItemEntityClass) => entity.order
+    (entity: ShipInventoryOrderItemEntityClass) => entity.order,
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ShipInventoryOrderItemEntityClass[];

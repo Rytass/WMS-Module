@@ -1,14 +1,13 @@
 export type CreateReceiveInventoryOrderItemInput = {
-  description: string;
+  description?: string;
   unitId: string;
-  batchId: string;
+  batchId?: string;
   materialId: string;
   targetReceivedQuantity: number;
-  actualReceivedQuantity: number;
 };
 
 export type CreateReceiveInventoryOrderInput = {
-  id: string;
+  key: string;
   description: string;
   items: CreateReceiveInventoryOrderItemInput[];
 };

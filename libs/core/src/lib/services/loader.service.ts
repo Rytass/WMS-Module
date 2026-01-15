@@ -33,7 +33,7 @@ import { FindLoaderInput } from '../typings/find-loader.input';
 @Injectable()
 export class LoaderService<
   T extends LoadersEntityClass = LoadersEntityClass,
-  K extends LoaderTypeEntityClass = LoaderTypeEntityClass
+  K extends LoaderTypeEntityClass = LoaderTypeEntityClass,
 > {
   readonly loaderRepository: Repository<T>;
   readonly loaderTypeRepository: Repository<K>;
@@ -41,11 +41,11 @@ export class LoaderService<
   constructor(
     private readonly dataSource: DataSource,
     @Inject(LoadersEntity) readonly loaderEntity: EntityTarget<T>,
-    @Inject(LoaderTypeEntity) readonly loaderTypeEntity: EntityTarget<K>
+    @Inject(LoaderTypeEntity) readonly loaderTypeEntity: EntityTarget<K>,
   ) {
     this.loaderRepository = this.dataSource.getRepository<T>(this.loaderEntity);
     this.loaderTypeRepository = this.dataSource.getRepository<K>(
-      this.loaderTypeEntity
+      this.loaderTypeEntity,
     );
   }
 
@@ -54,10 +54,10 @@ export class LoaderService<
     ...options
   }: CreateLoaderInput & { manager?: EntityManager }): Promise<T[]> {
     const loaderRepository = manager.getRepository<LoadersEntityClass>(
-      this.loaderEntity
+      this.loaderEntity,
     );
     const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
-      this.loaderTypeEntity
+      this.loaderTypeEntity,
     );
 
     const { serial } = await loaderTypeRepository.findOneByOrFail({
@@ -92,10 +92,10 @@ export class LoaderService<
     if (options.length === 0) return [];
 
     const loaderRepository = manager.getRepository<LoadersEntityClass>(
-      this.loaderEntity
+      this.loaderEntity,
     );
     const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
-      this.loaderTypeEntity
+      this.loaderTypeEntity,
     );
 
     const typeMap = await loaderTypeRepository
@@ -105,21 +105,23 @@ export class LoaderService<
     const loaders: LoadersEntityClass[] = [];
     await Promise.all(
       options.map(async (option) => {
-        const { serial } = typeMap.get(option.typeId)!;
-
-        const startSeq = await this.getSeq(serial, option.quantity, manager);
-        for (let i = 0; i < option.quantity; i++) {
-          const seqNum = startSeq + i;
-          const paddedSeq = seqNum
-            .toString()
-            .padStart(this.loaderSerialMaxDigits, '0');
-          const loader = loaderRepository.create({
-            ...option,
-            serialId: `${serial}${paddedSeq}`,
-          });
-          loaders.push(loader);
-        }
-      })
+        const loaderType = typeMap.get(option.typeId);
+        if (loaderType) {
+          const { serial } = loaderType;
+          const startSeq = await this.getSeq(serial, option.quantity, manager);
+          for (let i = 0; i < option.quantity; i++) {
+            const seqNum = startSeq + i;
+            const paddedSeq = seqNum
+              .toString()
+              .padStart(this.loaderSerialMaxDigits, '0');
+            const loader = loaderRepository.create({
+              ...option,
+              serialId: `${serial}${paddedSeq}`,
+            });
+            loaders.push(loader);
+          }
+        } else return;
+      }),
     );
 
     return loaderRepository.save(loaders, { chunk: 1000 }) as Promise<T[]>;
@@ -131,14 +133,14 @@ export class LoaderService<
     ...options
   }: UpdateLoaderInput & { manager?: EntityManager }): Promise<T> {
     const loadersRepository = manager.getRepository<LoadersEntityClass>(
-      this.loaderEntity
+      this.loaderEntity,
     );
     const loader = await loadersRepository.findOneByOrFail({ id });
     return loadersRepository.save(
       loadersRepository.create({
         ...loader,
         ...options,
-      })
+      }),
     ) as Promise<T>;
   }
 
@@ -147,7 +149,7 @@ export class LoaderService<
     ...options
   }: CreateLoaderTypeInput & { manager?: EntityManager }): Promise<K> {
     const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
-      this.loaderTypeEntity
+      this.loaderTypeEntity,
     );
     const loaderType = loaderTypeRepository.create(options);
     return loaderTypeRepository.save(loaderType) as Promise<K>;
@@ -159,14 +161,14 @@ export class LoaderService<
     ...options
   }: UpdateLoaderTypeInput & { manager?: EntityManager }): Promise<K> {
     const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
-      this.loaderTypeEntity
+      this.loaderTypeEntity,
     );
     const loaderType = await loaderTypeRepository.findOneByOrFail({ id });
     return loaderTypeRepository.save(
       loaderTypeRepository.create({
         ...loaderType,
         ...options,
-      })
+      }),
     ) as Promise<K>;
   }
 
@@ -174,7 +176,7 @@ export class LoaderService<
     prefix: string,
     count: number,
     manager = this.dataSource.manager,
-    maxDigits = this.loaderSerialMaxDigits
+    maxDigits = this.loaderSerialMaxDigits,
   ): Promise<number> {
     const seqName = `${prefix}_SEQ`;
     const maxValue = 10 ** maxDigits - 1;
@@ -183,7 +185,7 @@ export class LoaderService<
 
     try {
       const [{ val }] = await manager.query<[{ val: number }]>(
-        `SELECT CURRVAL('${seqName}') + 1 AS val`
+        `SELECT CURRVAL('${seqName}') + 1 AS val`,
       );
       startVal = val;
     } catch (ex) {
@@ -197,7 +199,7 @@ export class LoaderService<
 
       // Initialize with NEXTVAL
       const [{ nextval }] = await manager.query<[{ nextval: number }]>(
-        `SELECT NEXTVAL('${seqName}') AS nextval`
+        `SELECT NEXTVAL('${seqName}') AS nextval`,
       );
       startVal = nextval;
     }
@@ -205,7 +207,7 @@ export class LoaderService<
     const endVal = startVal + count - 1;
     if (endVal > maxValue) {
       throw new Error(
-        `SEQUENCE_OUT_OF_RANGE: ${prefix} exceeds ${maxDigits} digits (max: ${maxValue}, end: ${endVal})`
+        `SEQUENCE_OUT_OF_RANGE: ${prefix} exceeds ${maxDigits} digits (max: ${maxValue}, end: ${endVal})`,
       );
     }
 

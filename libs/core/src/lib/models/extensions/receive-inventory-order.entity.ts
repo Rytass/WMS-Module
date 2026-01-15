@@ -1,7 +1,9 @@
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   Column,
+  CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   OneToMany,
   OneToOne,
@@ -11,7 +13,7 @@ import {
 import { ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
 
 export const ReceiveInventoryOrderEntity = Symbol(
-  'ReceiveInventoryOrderEntity'
+  'ReceiveInventoryOrderEntity',
 );
 
 @Entity('receive_inventory_orders')
@@ -19,6 +21,10 @@ export const ReceiveInventoryOrderEntity = Symbol(
 export class ReceiveInventoryOrderEntityClass {
   @PrimaryColumn('uuid')
   id!: string;
+
+  @Column({ type: 'varchar', unique: true })
+  @Index()
+  key!: string;
 
   @Column({ type: 'text' })
   description!: string;
@@ -33,9 +39,12 @@ export class ReceiveInventoryOrderEntityClass {
   @JoinColumn({ name: 'id', referencedColumnName: 'id' })
   order!: OrderEntity;
 
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt!: Date;
+
   @OneToMany(
     'receive_inventory_order_items',
-    (entity: ReceiveInventoryOrderEntityClass) => entity.order
+    (entity: ReceiveInventoryOrderEntityClass) => entity.order,
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ReceiveInventoryOrderItemEntityClass[];

@@ -33,7 +33,8 @@ import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 @Injectable()
 export class ShipInventoryOrderService<
   T extends ShipInventoryOrderEntityClass = ShipInventoryOrderEntityClass,
-  K extends ShipInventoryOrderItemEntityClass = ShipInventoryOrderItemEntityClass
+  K extends
+    ShipInventoryOrderItemEntityClass = ShipInventoryOrderItemEntityClass,
 > {
   readonly shipInventoryOrderRepository: Repository<T>;
   constructor(
@@ -41,10 +42,10 @@ export class ShipInventoryOrderService<
     @Inject(ShipInventoryOrderEntity)
     readonly shipInventoryOrderEntity: EntityTarget<T>,
     @Inject(ShipInventoryOrderItemEntity)
-    readonly shipInventoryOrderItemEntity: EntityTarget<K>
+    readonly shipInventoryOrderItemEntity: EntityTarget<K>,
   ) {
     this.shipInventoryOrderRepository = this.dataSource.getRepository<T>(
-      this.shipInventoryOrderEntity
+      this.shipInventoryOrderEntity,
     );
   }
 
@@ -55,19 +56,19 @@ export class ShipInventoryOrderService<
     const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
     const shipInventoryOrderRepository =
       manager.getRepository<ShipInventoryOrderEntityClass>(
-        this.shipInventoryOrderEntity
+        this.shipInventoryOrderEntity,
       );
     const shipInventoryOrderItemRepository =
       manager.getRepository<ShipInventoryOrderItemEntityClass>(
-        this.shipInventoryOrderItemEntity
+        this.shipInventoryOrderItemEntity,
       );
 
     // create base order
-    await orderRepository.save(orderRepository.create({ id: options.id }));
+    const { id } = await orderRepository.save(orderRepository.create());
 
     // create ship inventory order
     const order = await shipInventoryOrderRepository.save(
-      shipInventoryOrderRepository.create(options)
+      shipInventoryOrderRepository.create({ id, ...options }),
     );
 
     // create ship inventory order items
@@ -76,7 +77,7 @@ export class ShipInventoryOrderService<
         options.items.map((item) => ({
           ...item,
           orderId: order.id,
-        }))
+        })),
       );
       await shipInventoryOrderItemRepository.save(items);
     }
@@ -95,11 +96,11 @@ export class ShipInventoryOrderService<
   }: UpdateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     const shipInventoryOrderRepository =
       manager.getRepository<ShipInventoryOrderEntityClass>(
-        this.shipInventoryOrderEntity
+        this.shipInventoryOrderEntity,
       );
     const shipInventoryOrderItemRepository =
       manager.getRepository<ShipInventoryOrderItemEntityClass>(
-        this.shipInventoryOrderItemEntity
+        this.shipInventoryOrderItemEntity,
       );
 
     const order = await shipInventoryOrderRepository.findOneByOrFail({
@@ -110,7 +111,7 @@ export class ShipInventoryOrderService<
       shipInventoryOrderRepository.create({
         ...order,
         ...options,
-      })
+      }),
     );
 
     if (options.items?.length) {
@@ -132,14 +133,14 @@ export class ShipInventoryOrderService<
       if (newItems.length)
         await shipInventoryOrderItemRepository.save(
           shipInventoryOrderItemRepository.create(
-            newItems.map((item) => ({ ...item, orderId: id }))
-          )
+            newItems.map((item) => ({ ...item, orderId: id })),
+          ),
         );
       if (existingItems.length)
         await Promise.all(
           existingItems.map(async (item) =>
-            shipInventoryOrderItemRepository.update({ id: item.id }, item)
-          )
+            shipInventoryOrderItemRepository.update({ id: item.id }, item),
+          ),
         );
     }
 
@@ -149,7 +150,7 @@ export class ShipInventoryOrderService<
   async removeShipInventoryOrder(id: string): Promise<boolean> {
     return this.dataSource
       .getRepository<ShipInventoryOrderEntityClass>(
-        this.shipInventoryOrderEntity
+        this.shipInventoryOrderEntity,
       )
       .update({ id }, { removedAt: new Date() })
       .then(({ affected }) => !!affected && affected > 0);
@@ -192,15 +193,15 @@ export class ShipInventoryOrderService<
                 .select('item."orderId"', 'orderId')
                 .addSelect(
                   'SUM(item."targetShippedQuantity")',
-                  'totalTargetShippedQuantity'
+                  'totalTargetShippedQuantity',
                 )
                 .addSelect(
                   'SUM(item."actualShippedQuantity")',
-                  'totalActualShippedQuantity'
+                  'totalActualShippedQuantity',
                 )
                 .groupBy('item."orderId"'),
             'summary',
-            'summary."orderId" = order.id AND summary."totalTargetShippedQuantity" = summary."totalActualShippedQuantity"'
+            'summary."orderId" = order.id AND summary."totalTargetShippedQuantity" = summary."totalActualShippedQuantity"',
           );
           break;
 
@@ -212,20 +213,20 @@ export class ShipInventoryOrderService<
                 .addSelect('item."orderId"', 'orderId')
                 .addSelect(
                   'SUM(item."targetShippedQuantity")',
-                  'totalTargetShippedQuantity'
+                  'totalTargetShippedQuantity',
                 )
                 .addSelect(
                   'SUM(item."actualShippedQuantity")',
-                  'totalActualShippedQuantity'
+                  'totalActualShippedQuantity',
                 )
                 .groupBy('item."orderId"'),
             'summary',
-            'summary."orderId" = order.id AND summary."totalActualShippedQuantity" > 0 AND summary."totalActualShippedQuantity" < summary."totalTargetShippedQuantity"'
+            'summary."orderId" = order.id AND summary."totalActualShippedQuantity" > 0 AND summary."totalActualShippedQuantity" < summary."totalTargetShippedQuantity"',
           );
 
           break;
 
-        case ShipInventoryOrderStatus.PARTIAL_SHIPPED:
+        case ShipInventoryOrderStatus.PENDING:
           queryBuilder.innerJoin(
             (qb) =>
               qb
@@ -233,11 +234,11 @@ export class ShipInventoryOrderService<
                 .addSelect('item."orderId"', 'orderId')
                 .addSelect(
                   'SUM(item."actualShippedQuantity")',
-                  'totalActualShippedQuantity'
+                  'totalActualShippedQuantity',
                 )
                 .groupBy('item."orderId"'),
             'summary',
-            'summary."orderId" = order.id AND summary."totalActualShippedQuantity" = 0'
+            'summary."orderId" = order.id AND summary."totalActualShippedQuantity" = 0',
           );
 
           break;

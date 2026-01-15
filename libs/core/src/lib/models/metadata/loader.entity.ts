@@ -31,9 +31,6 @@ export class LoadersEntityClass {
   @Index()
   locationId!: string;
 
-  @Column({ type: 'int' })
-  quantity!: number;
-
   @Column({ type: 'numeric', nullable: true })
   length!: number | null;
 

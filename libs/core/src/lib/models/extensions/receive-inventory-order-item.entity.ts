@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToOne,
@@ -12,43 +13,41 @@ import { MaterialUnitEntityClass } from '../metadata/material-unit.entity';
 import { BatchEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
 
 export const ReceiveInventoryOrderItemEntity = Symbol(
-  'ReceiveInventoryOrderItemEntity'
+  'ReceiveInventoryOrderItemEntity',
 );
 @Entity('receive_inventory_order_items')
 export class ReceiveInventoryOrderItemEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'text' })
-  description!: string;
+  @Column({ type: 'text', nullable: true })
+  description!: string | null;
 
   @Column({ type: 'varchar' })
+  @Index()
   unitId!: string;
 
   @Column({ type: 'numeric' })
   targetReceivedQuantity!: number;
 
-  @Column({ type: 'numeric' })
-  actualReceivedQuantity!: number;
-
   @Column({ type: 'varchar' })
+  @Index()
   orderId!: string;
 
   @Column({ type: 'varchar' })
+  @Index()
   materialId!: string;
 
-  @Column({ type: 'varchar' })
-  batchId!: string;
-
   @Column({ type: 'varchar', nullable: true })
-  stockId!: string | null;
+  @Index()
+  batchId!: string | null;
 
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
 
   @ManyToOne(
     'receive_inventory_orders',
-    (entity: ReceiveInventoryOrderEntityClass) => entity.items
+    (entity: ReceiveInventoryOrderEntityClass) => entity.items,
   )
   @JoinColumn({ name: 'orderId', referencedColumnName: 'id' })
   order!: ReceiveInventoryOrderEntityClass;

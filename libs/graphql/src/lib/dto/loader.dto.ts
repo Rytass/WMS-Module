@@ -1,13 +1,10 @@
-import { Field, Float, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, Float, ID, ObjectType } from '@nestjs/graphql';
 import { PaginatedResponse } from './pagination.dto';
 
 @ObjectType()
 export class LoaderDto {
   @Field(() => ID)
   id!: string;
-
-  @Field(() => Int)
-  quantity!: number;
 
   @Field(() => Float, { nullable: true })
   length!: number | null;

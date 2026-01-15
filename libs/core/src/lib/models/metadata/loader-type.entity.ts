@@ -19,6 +19,9 @@ export class LoaderTypeEntityClass {
   @Column({ type: 'varchar' })
   description!: string;
 
+  @Column({ type: 'bool', default: true })
+  isActive!: boolean;
+
   @Column({ type: 'varchar' })
   @Index()
   serial!: string;

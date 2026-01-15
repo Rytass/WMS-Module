@@ -1,9 +1,13 @@
 import { PaginationInput } from './paginations';
 
-export type FindStockInput = PaginationInput & {
+export type FindStockInput<U extends object> = PaginationInput & {
   materialId?: string;
   batchId?: string;
   locationId?: string;
   loaderId?: string;
   description?: string;
+  wildcard?: {
+    keys: (keyof U)[];
+    value: string;
+  };
 };
