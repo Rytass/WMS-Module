@@ -1,0 +1,51 @@
+@use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/transition';
+
+.host {
+  display: flex;
+  justify-content: flex-start;
+  gap: spacing.semantic-variable(gap, base);
+
+  .filters {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: spacing.semantic-variable(gap, base);
+
+    .baseFilters {
+      display: grid;
+      gap: spacing.semantic-variable(gap, base);
+    }
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    align-self: stretch;
+
+    .expandButton {
+      & > i {
+        transition: transition.standard(transform, fast);
+      }
+
+      &.isExpanded {
+        & > i {
+          transform: rotate(180deg);
+        }
+      }
+    }
+
+    .buttons {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: spacing.semantic-variable(gap, base);
+
+      .button {
+        width: 60px;
+      }
+    }
+  }
+}

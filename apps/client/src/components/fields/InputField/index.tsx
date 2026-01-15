@@ -16,6 +16,7 @@ export const InputField: FC<InputFieldProps> = ({
   required = false,
   disabled = false,
   placeholder,
+  size = 'sub',
 }) => {
   const { setValue } = useFormContext();
 
@@ -25,20 +26,21 @@ export const InputField: FC<InputFieldProps> = ({
 
   const onChange: ChangeEventHandler<HTMLInputElement> = useCallback(
     (e) => {
-      if (e.type === 'change') {
-        setValue(name, e.target.value, {
-          shouldDirty: true,
-        });
-      } else {
-        setValue(name, '', { shouldDirty: true });
-      }
+      setValue(name, e.target.value, {
+        shouldDirty: true,
+      });
     },
     [name, setValue],
   );
 
+  const onClear = useCallback(() => {
+    setValue(name, '', {
+      shouldDirty: true,
+    });
+  }, [name, setValue]);
+
   return (
     <BaseField
-      className={className}
       fieldClassName={fieldClassName}
       name={name}
       required={required}
@@ -48,10 +50,16 @@ export const InputField: FC<InputFieldProps> = ({
       fieldSize={fieldSize}
     >
       <Input
+        fullWidth
+        clearable
+        className={className}
         variant="base"
         value={watchValue}
         onChange={onChange}
+        onClear={onClear}
         placeholder={placeholder}
+        size={size}
+        disabled={disabled ? true : undefined}
       />
     </BaseField>
   );
