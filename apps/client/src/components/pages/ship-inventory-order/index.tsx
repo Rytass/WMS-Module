@@ -1,5 +1,6 @@
 import PageWrapper from '../../PageWrapper';
 import FilterWrapper from '../../FilterWrapper';
+import TableWrapper from '../../TableWrapper';
 import { FilterValues } from './typing';
 
 function ShipInventoryOrder() {
@@ -16,6 +17,13 @@ function ShipInventoryOrder() {
         }}
         onSubmit={(values) => {
           console.log('values', values);
+        }}
+      />
+      <TableWrapper
+        title="庫存項目"
+        createText="建立出庫單"
+        onCreate={() => {
+          console.log('建立出庫單');
         }}
       />
     </PageWrapper>
