@@ -20,7 +20,7 @@ function Navigation() {
     <div className={classes.navigation}>
       <MznNavigation onOptionClick={setActive} activatedPath={active}>
         <NavigationHeader title="Rytass">
-          <Image src={logo} alt="" width={36} height={36} />
+          <Image src={logo} alt="" width={28} height={28} />
         </NavigationHeader>
         <NavigationOption title="主檔管理" icon={SystemIcon}>
           <NavigationOption title="出庫單" />
