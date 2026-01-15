@@ -127,10 +127,56 @@ type ShipInventoryOrders {
 type LocationDto {
   id: ID!
   description: String!
+  mapData: MapDataDto
 }
 
 type BatchDto {
   id: ID!
+}
+
+type MapPolygonRangePointDto {
+  x: Float!
+  y: Float!
+}
+
+type MapBackgroundDto {
+  id: ID!
+  filename: String!
+  x: Float!
+  y: Float!
+  height: Float!
+  width: Float!
+}
+
+type MapDataDto {
+  id: ID!
+  backgrounds: [MapBackgroundDto!]!
+  ranges: [MapRange!]!
+}
+
+union MapRange = MapRectangleRangeDto | MapPolygonRangeDto
+
+type MapRectangleRangeDto {
+  id: ID!
+  type: MapRangeType!
+  color: String!
+  x: Float!
+  y: Float!
+  width: Float!
+  height: Float!
+}
+
+"""The type of map range"""
+enum MapRangeType {
+  RECTANGLE
+  POLYGON
+}
+
+type MapPolygonRangeDto {
+  id: ID!
+  type: MapRangeType!
+  color: String!
+  points: [MapPolygonRangePointDto!]!
 }
 
 type Query {
@@ -178,6 +224,7 @@ type Mutation {
   updateReceiveInventoryOrder(description: String, id: ID!, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!
   createShipInventoryOrder(key: ID!, description: String!, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
   updateShipInventoryOrder(description: String, id: ID!, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
+  updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
 }
 
 input CreateMaterialUnitArgs {
@@ -224,4 +271,29 @@ input UpdateShipInventoryOrderItemArgs {
   actualShippedQuantity: Float
   id: ID
   removedAt: DateTime
+}
+
+input MapBackgroundInput {
+  id: ID!
+  filename: String!
+  x: Float!
+  y: Float!
+  height: Float!
+  width: Float!
+}
+
+input MapRangeInput {
+  id: ID!
+  type: MapRangeType!
+  color: String!
+  x: Float!
+  y: Float!
+  width: Float!
+  height: Float!
+  points: [MapPolygonRangePointInput!]!
+}
+
+input MapPolygonRangePointInput {
+  x: Float!
+  y: Float!
 }
