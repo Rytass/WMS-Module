@@ -1,9 +1,13 @@
+import { TableDataSourceWithKey, TableColumn } from '@mezzanine-ui/react';
 import PageWrapper from '../../PageWrapper';
 import FilterWrapper from '../../FilterWrapper';
 import TableWrapper from '../../TableWrapper';
 import Table from '../../TableWrapper/Table';
+import {
+  useTablePageState,
+  useTablePageTotal,
+} from '../../../hooks/useTablePagination';
 import { FilterValues } from './typing';
-import { TableDataSourceWithKey, TableColumn } from '@mezzanine-ui/react';
 
 interface DataType extends TableDataSourceWithKey {
   age: number;
@@ -135,6 +139,15 @@ const baseData: DataType[] = [
 ];
 
 function ShipInventoryOrder() {
+  const { page, setPage, limit, setLimit, offset } = useTablePageState();
+
+  const { pageTotal } = useTablePageTotal({
+    page,
+    total: baseData.length,
+    setPage,
+    filterValues: [],
+  });
+
   return (
     <PageWrapper title="出庫單">
       <FilterWrapper<FilterValues>
@@ -157,7 +170,17 @@ function ShipInventoryOrder() {
           console.log('建立出庫單');
         }}
       >
-        <Table<DataType> columns={baseColumns} dataSource={baseData} />
+        <Table<DataType>
+          columns={baseColumns}
+          dataSource={baseData}
+          pagination={{
+            current: page,
+            onChange: (page) => setPage(page),
+            total: pageTotal,
+            pageSize: limit,
+            onChangePageSize: (size) => setLimit(size),
+          }}
+        />
       </TableWrapper>
     </PageWrapper>
   );
