@@ -36,7 +36,7 @@ function Navigation() {
                   <NavigationOption
                     key={subRoute.href}
                     title={subRoute.title}
-                    active={pathname === subRoute.href}
+                    active={pathname.startsWith(subRoute.href)}
                     onTriggerClick={() => {
                       push(subRoute.href);
                     }}
@@ -51,7 +51,7 @@ function Navigation() {
               key={route.title}
               title={route.title}
               icon={route.icon}
-              active={pathname === route.href}
+              active={pathname.startsWith(route.href)}
               onTriggerClick={() => {
                 push(route.href);
               }}
