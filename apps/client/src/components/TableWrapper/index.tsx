@@ -1,9 +1,11 @@
-import { Typography, Button } from '@mezzanine-ui/react';
+import { ReactElement } from 'react';
+import { Typography, Button, TableProps } from '@mezzanine-ui/react';
 import { PlusIcon } from '@mezzanine-ui/icons';
 import classes from './index.module.scss';
 
 interface TableWrapperBaseProps {
   title: string;
+  children: ReactElement<TableProps>;
 }
 
 interface TableWrapperWithCreate {
@@ -19,11 +21,12 @@ interface TableWrapperWithoutCreate {
 type TableWrapperProps = TableWrapperBaseProps &
   (TableWrapperWithCreate | TableWrapperWithoutCreate);
 
-const TableWrapper: FC<TableWrapperProps> = ({
+function TableWrapper({
   title,
+  children,
   createText,
   onCreate,
-}) => {
+}: TableWrapperProps) {
   return (
     <div className={classes.host}>
       <div className={classes.titleWrapper}>
@@ -44,9 +47,9 @@ const TableWrapper: FC<TableWrapperProps> = ({
           </Button>
         )}
       </div>
-      Table
+      {children}
     </div>
   );
-};
+}
 
 export default TableWrapper;
