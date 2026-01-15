@@ -17,34 +17,14 @@
       gap: spacing.semantic-variable(gap, base);
     }
   }
-
-  .actions {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: space-between;
-    align-self: stretch;
-
-    .expandButton {
-      & > i {
-        transition: transition.standard(transform, fast);
-      }
-
-      &.isExpanded {
-        & > i {
-          transform: rotate(180deg);
-        }
-      }
+  .expandButton {
+    & > i {
+      transition: transition.standard(transform, fast);
     }
 
-    .buttons {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: spacing.semantic-variable(gap, base);
-
-      .button {
-        width: 60px;
+    &.isExpanded {
+      & > i {
+        transform: rotate(180deg);
       }
     }
   }
