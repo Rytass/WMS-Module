@@ -1,12 +1,9 @@
 import PageWrapper from '../../PageWrapper';
 import FilterWrapper from '../../FilterWrapper';
 import TableWrapper from '../../TableWrapper';
+import Table from '../../TableWrapper/Table';
 import { FilterValues } from './typing';
-import {
-  Table,
-  TableDataSourceWithKey,
-  TableColumn,
-} from '@mezzanine-ui/react';
+import { TableDataSourceWithKey, TableColumn } from '@mezzanine-ui/react';
 
 interface DataType extends TableDataSourceWithKey {
   age: number;

@@ -5,7 +5,6 @@
   display: flex;
   flex-direction: column;
   gap: spacing.semantic-variable(gap, calm);
-  flex: 1;
   background-color: #fff;
   padding: spacing.semantic-variable(gap, comfort)
     spacing.semantic-variable(padding, horizontal, spacious);
