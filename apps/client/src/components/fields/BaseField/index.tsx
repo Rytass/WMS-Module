@@ -1,14 +1,9 @@
 import { ReactNode, useMemo } from 'react';
-import { get } from 'lodash';
-import cx from 'clsx';
 import { FormFieldSize } from '@mezzanine-ui/core/form';
-import { ErrorMessage } from '@hookform/error-message';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, get } from 'react-hook-form';
 import FormField from '@mezzanine-ui/react/Form/FormField';
-import classes from './index.module.scss';
 
 export interface BaseFieldProps {
-  className?: string;
   fieldClassName?: string;
   name: string;
   children: ReactNode;
@@ -20,7 +15,6 @@ export interface BaseFieldProps {
 }
 
 const BaseField: FC<BaseFieldProps> = ({
-  className,
   fieldClassName,
   name,
   children,
@@ -37,27 +31,18 @@ const BaseField: FC<BaseFieldProps> = ({
   );
 
   return (
-    <div className={cx(classes.host, className)}>
-      <FormField
-        className={fieldClassName}
-        label={label}
-        name={name}
-        size={fieldSize}
-        required={required}
-        disabled={disabled}
-        hintText={hint}
-        severity={isError ? 'error' : 'info'}
-      >
-        {children}
-      </FormField>
-      <ErrorMessage
-        errors={formState.errors}
-        name={name}
-        render={({ message }) => (
-          <div className={classes.errorMessage}>{message}</div>
-        )}
-      />
-    </div>
+    <FormField
+      className={fieldClassName}
+      label={label}
+      name={name}
+      size={fieldSize}
+      required={required}
+      disabled={disabled}
+      hintText={isError ? (isError?.message ?? '') : hint}
+      severity={isError ? 'error' : 'info'}
+    >
+      {children}
+    </FormField>
   );
 };
 
