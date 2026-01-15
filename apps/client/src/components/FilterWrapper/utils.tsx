@@ -7,12 +7,22 @@ export function renderFilter(filterType: FilterType) {
   switch (filterType) {
     case 'createdAt':
       return (
-        <DateField name="createdAt" label="建立日期" placeholder="建立日期" />
+        <DateField
+          key={filterType}
+          name="createdAt"
+          label="建立日期"
+          placeholder="建立日期"
+        />
       );
 
     case 'description':
       return (
-        <InputField name="description" label="備註" placeholder="輸入備註" />
+        <InputField
+          key={filterType}
+          name="description"
+          label="備註"
+          placeholder="輸入備註"
+        />
       );
 
     default:
