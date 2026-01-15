@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@mezzanine-ui/react';
 import { ChevronDownIcon, ChevronUpIcon } from '@mezzanine-ui/icons';
 import { FormWrapper } from '../fields/FormWrapper';
 import { InputField } from '../fields/InputField';
+import { DateField } from '../fields/DateField';
 import classes from './index.module.scss';
 
 interface FilterWrapperProps {
@@ -12,7 +13,16 @@ interface FilterWrapperProps {
 
 function FilterWrapper({ haveAdvancedFilters = false }: FilterWrapperProps) {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const methods = useForm();
+  const methods = useForm({
+    defaultValues: {
+      createdAt: undefined,
+      description: '',
+    },
+  });
+
+  const onReset = useCallback(() => {
+    methods.reset();
+  }, [methods]);
 
   return (
     <FormWrapper
@@ -27,6 +37,7 @@ function FilterWrapper({ haveAdvancedFilters = false }: FilterWrapperProps) {
           className={classes.baseFilters}
           style={{ gridTemplateColumns: '1fr 1fr' }}
         >
+          <DateField name="createdAt" label="建立日期" placeholder="建立日期" />
           <InputField name="description" label="備註" placeholder="輸入備註" />
         </div>
       </div>
@@ -55,6 +66,7 @@ function FilterWrapper({ haveAdvancedFilters = false }: FilterWrapperProps) {
             size="sub"
             variant="base-secondary"
             className={classes.button}
+            onClick={onReset}
           >
             重置
           </Button>
