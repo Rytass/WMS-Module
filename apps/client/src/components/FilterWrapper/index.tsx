@@ -1,23 +1,35 @@
 import { useState, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import {
+  useForm,
+  DefaultValues,
+  SubmitHandler,
+  FieldValues,
+} from 'react-hook-form';
 import { Button } from '@mezzanine-ui/react';
 import { ChevronDownIcon, ChevronUpIcon } from '@mezzanine-ui/icons';
 import { FormWrapper } from '../fields/FormWrapper';
-import { InputField } from '../fields/InputField';
-import { DateField } from '../fields/DateField';
+import { FilterType, renderFilter } from './utils';
 import classes from './index.module.scss';
 
-interface FilterWrapperProps {
+interface FilterWrapperProps<T extends FieldValues> {
   haveAdvancedFilters?: boolean;
+  defaultValues: DefaultValues<T>;
+  baseFilters: {
+    filters: FilterType[];
+    gridTemplateColumns: string;
+  };
+  onSubmit?: SubmitHandler<T>;
 }
 
-function FilterWrapper({ haveAdvancedFilters = false }: FilterWrapperProps) {
+const FilterWrapper = <T extends FieldValues>({
+  haveAdvancedFilters = false,
+  defaultValues,
+  baseFilters,
+  onSubmit,
+}: FilterWrapperProps<T>) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const methods = useForm({
-    defaultValues: {
-      createdAt: undefined,
-      description: '',
-    },
+  const methods = useForm<T>({
+    defaultValues,
   });
 
   const onReset = useCallback(() => {
@@ -25,20 +37,13 @@ function FilterWrapper({ haveAdvancedFilters = false }: FilterWrapperProps) {
   }, [methods]);
 
   return (
-    <FormWrapper
-      className={classes.host}
-      methods={methods}
-      onSubmit={(values) => {
-        console.log('values', values);
-      }}
-    >
+    <FormWrapper className={classes.host} methods={methods} onSubmit={onSubmit}>
       <div className={classes.filters}>
         <div
           className={classes.baseFilters}
-          style={{ gridTemplateColumns: '1fr 1fr' }}
+          style={{ gridTemplateColumns: baseFilters.gridTemplateColumns }}
         >
-          <DateField name="createdAt" label="建立日期" placeholder="建立日期" />
-          <InputField name="description" label="備註" placeholder="輸入備註" />
+          {baseFilters.filters.map(renderFilter)}
         </div>
       </div>
       <div className={classes.actions}>
@@ -77,6 +82,6 @@ function FilterWrapper({ haveAdvancedFilters = false }: FilterWrapperProps) {
       </div>
     </FormWrapper>
   );
-}
+};
 
 export default FilterWrapper;
