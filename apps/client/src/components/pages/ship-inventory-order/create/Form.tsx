@@ -2,8 +2,15 @@ import { NextPath } from '../../../../utils/nextpath';
 import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
 import InputField from '../../../fields/InputField';
+import { FormValues } from './typing';
 
-function CreateShipInventoryOrderForm() {
+interface CreateShipInventoryOrderFormProps {
+  onSubmit: (values: FormValues) => Promise<void>;
+}
+
+function CreateShipInventoryOrderForm({
+  onSubmit,
+}: CreateShipInventoryOrderFormProps) {
   return (
     <PageWrapper
       breadcrumb={[
@@ -25,7 +32,7 @@ function CreateShipInventoryOrderForm() {
       <SectionWrapper title="單號資訊">
         <InputField name="demo" label="demo" />
       </SectionWrapper>
-      <SectionWrapper title="待建立列表">section2</SectionWrapper>
+      <SectionWrapper title="待建立列表">section</SectionWrapper>
     </PageWrapper>
   );
 }

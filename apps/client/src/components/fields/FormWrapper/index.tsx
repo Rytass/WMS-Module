@@ -65,15 +65,15 @@ export const FormWrapper = <T extends FieldValues>({
         onSubmit={methods.handleSubmit(onSubmit)}
       >
         {children}
+        {havePageFooter && (
+          <FormFooter<T>
+            disableSubmitButton={disableSubmitButton}
+            disableCancelButton={disableCancelButton}
+            submitText={submitText}
+            cancelText={cancelText}
+          />
+        )}
       </form>
-      {havePageFooter && (
-        <FormFooter<T>
-          disableSubmitButton={disableSubmitButton}
-          disableCancelButton={disableCancelButton}
-          submitText={submitText}
-          cancelText={cancelText}
-        />
-      )}
     </FormProvider>
   );
 };
