@@ -10,6 +10,7 @@ interface PageWrapperProps {
   children: ReactNode;
   breadcrumb?: { label: string; href?: Url }[];
   haveBack?: boolean;
+  onBack?: (() => void) | (() => Promise<void>);
 }
 
 function PageWrapper({
@@ -17,6 +18,7 @@ function PageWrapper({
   children,
   breadcrumb,
   haveBack = false,
+  onBack,
 }: PageWrapperProps) {
   const { back, replace } = useRouter();
 
@@ -41,7 +43,13 @@ function PageWrapper({
             icon={{ position: 'icon-only', src: ChevronLeftIcon }}
             variant="base-tertiary"
             size="sub"
-            onClick={back}
+            onClick={
+              onBack
+                ? async () => {
+                    await onBack();
+                  }
+                : back
+            }
           />
         )}
         <Typography variant="h2" color="text-neutral-solid">
