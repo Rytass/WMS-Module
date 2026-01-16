@@ -35,7 +35,7 @@ export function useRoutes() {
     {
       title: '異動紀錄',
       icon: SearchHistoryIcon,
-      href: '/3',
+      href: NextPath.CHANGEHISTORY,
     },
     {
       title: '盤點',
