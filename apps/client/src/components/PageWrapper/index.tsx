@@ -36,6 +36,7 @@ function PageWrapper({
           <Breadcrumb
             items={breadcrumb.map((b) => ({
               label: b.label,
+              type: 'button',
               onClick: () => {
                 if (b.href) {
                   replace(b.href);
