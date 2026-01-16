@@ -2,8 +2,8 @@ import { ReactNode } from 'react';
 import { useRouter } from 'next/router';
 import { ChevronLeftIcon } from '@mezzanine-ui/icons';
 import {
+  PageHeader,
   Breadcrumb,
-  Typography,
   Button,
   PageFooter,
 } from '@mezzanine-ui/react';
@@ -32,20 +32,7 @@ function PageWrapper({
   return (
     <>
       <div className={classes.host}>
-        {breadcrumb && (
-          <Breadcrumb
-            items={breadcrumb.map((b) => ({
-              label: b.label,
-              type: 'button',
-              onClick: () => {
-                if (b.href) {
-                  replace(b.href);
-                }
-              },
-            }))}
-          />
-        )}
-        <div className={classes.titleWrapper}>
+        <PageHeader className={classes.pageHeader} title={title}>
           {haveBack && (
             <Button
               type="button"
@@ -61,10 +48,20 @@ function PageWrapper({
               }
             />
           )}
-          <Typography variant="h2" color="text-neutral-solid">
-            {title}
-          </Typography>
-        </div>
+          {breadcrumb && (
+            <Breadcrumb
+              items={breadcrumb.map((b) => ({
+                label: b.label,
+                type: 'button',
+                onClick: () => {
+                  if (b.href) {
+                    replace(b.href);
+                  }
+                },
+              }))}
+            />
+          )}
+        </PageHeader>
         {children}
       </div>
       {haveFooter && (
