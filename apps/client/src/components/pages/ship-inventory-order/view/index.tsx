@@ -25,6 +25,7 @@ function ViewShipInventoryOrder() {
       ]}
       title={`出庫單號：${id}`}
       haveBack
+      haveFooter
     >
       <SectionWrapper title="單號資訊">section1</SectionWrapper>
     </PageWrapper>

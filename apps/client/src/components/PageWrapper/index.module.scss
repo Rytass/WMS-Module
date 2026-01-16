@@ -16,3 +16,8 @@
     gap: spacing.semantic-variable(gap, tight);
   }
 }
+
+.pageFooter {
+  position: sticky;
+  bottom: 0;
+}
