@@ -5,7 +5,8 @@ import {
   SubmitHandler,
   UseFormReturn,
 } from 'react-hook-form';
-import { PageFooter, cx } from '@mezzanine-ui/react';
+import { cx } from '@mezzanine-ui/react';
+import { FormFooter } from './FormFooter';
 import classes from './index.module.scss';
 
 interface BaseFormWrapperProps<T extends FieldValues = FieldValues>
@@ -21,20 +22,24 @@ interface BaseFormWrapperProps<T extends FieldValues = FieldValues>
   onSubmit?: SubmitHandler<T>;
 }
 
-interface WithPageFooter {
+interface WithPageFooter<T extends FieldValues = FieldValues> {
   havePageFooter: true;
+  disableSubmitButton?: (values: T) => boolean;
+  disableCancelButton?: (values: T) => boolean;
   submitText: string;
   cancelText?: string;
 }
 
 interface WithoutPageFooter {
   havePageFooter?: false;
+  disableSubmitButton?: never;
+  disableCancelButton?: never;
   submitText?: never;
   cancelText?: never;
 }
 
 export type FormWrapperProps<T extends FieldValues = FieldValues> =
-  BaseFormWrapperProps<T> & (WithPageFooter | WithoutPageFooter);
+  BaseFormWrapperProps<T> & (WithPageFooter<T> | WithoutPageFooter);
 
 export const FormWrapper = <T extends FieldValues>({
   className,
@@ -43,7 +48,9 @@ export const FormWrapper = <T extends FieldValues>({
   onSubmit = (): void => {
     //
   },
-  havePageFooter = false,
+  havePageFooter,
+  disableSubmitButton,
+  disableCancelButton,
   submitText,
   cancelText = '取消',
   ...other
@@ -60,19 +67,11 @@ export const FormWrapper = <T extends FieldValues>({
         {children}
       </form>
       {havePageFooter && (
-        <PageFooter
-          className={classes.footer}
-          type="standard"
-          actions={{
-            primaryButton: {
-              children: submitText,
-              type: 'submit',
-            },
-            secondaryButton: {
-              children: cancelText,
-              type: 'button',
-            },
-          }}
+        <FormFooter<T>
+          disableSubmitButton={disableSubmitButton}
+          disableCancelButton={disableCancelButton}
+          submitText={submitText}
+          cancelText={cancelText}
         />
       )}
     </FormProvider>
