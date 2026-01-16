@@ -7,6 +7,7 @@ import CalendarConfigProviderDayjs from '@mezzanine-ui/react/Calendar/CalendarCo
 import { NuqsAdapter } from 'nuqs/adapters/next/pages';
 import ApolloClient from '../apollo';
 import AuthGuard from '../auth/AuthGuard';
+import DialogProvider from '../components/dialog/DialogProvider';
 
 function CustomApp({ Component, pageProps }: AppProps) {
   return (
@@ -17,9 +18,11 @@ function CustomApp({ Component, pageProps }: AppProps) {
       <ApolloProvider client={ApolloClient}>
         <CalendarConfigProviderDayjs>
           <NuqsAdapter>
-            <AuthGuard>
-              <Component {...pageProps} />
-            </AuthGuard>
+            <DialogProvider>
+              <AuthGuard>
+                <Component {...pageProps} />
+              </AuthGuard>
+            </DialogProvider>
           </NuqsAdapter>
         </CalendarConfigProviderDayjs>
       </ApolloProvider>

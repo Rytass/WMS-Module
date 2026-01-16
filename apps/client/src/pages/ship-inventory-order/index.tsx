@@ -4,4 +4,10 @@ function ShipInventoryOrderPage() {
   return <ShipInventoryOrder />;
 }
 
+export const getServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};
+
 export default ShipInventoryOrderPage;

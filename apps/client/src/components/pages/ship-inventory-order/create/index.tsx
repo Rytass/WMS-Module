@@ -1,29 +1,32 @@
-import { NextPath } from '../../../../utils/nextpath';
-import PageWrapper from '../../../PageWrapper';
-import SectionWrapper from '../../../SectionWrapper';
+import { useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { FormWrapper } from '../../../fields/FormWrapper';
+import CreateShipInventoryOrderForm from './Form';
+import { formSchema } from './schema';
+import { FormValues } from './typing';
 
 function CreateShipInventoryOrder() {
+  const methods = useForm<FormValues>({
+    resolver: yupResolver(formSchema),
+    defaultValues: {
+      demo: '',
+    },
+  });
+
+  const onSubmit = useCallback(async (values: FormValues) => {
+    console.log('values', values);
+  }, []);
+
   return (
-    <PageWrapper
-      breadcrumb={[
-        {
-          label: '主檔管理',
-          href: NextPath.SHIPINVENTORYORDER,
-        },
-        {
-          label: '出庫單',
-          href: NextPath.SHIPINVENTORYORDER,
-        },
-        {
-          label: '建立出庫單',
-        },
-      ]}
-      title="建立出庫單"
-      haveBack
+    <FormWrapper
+      methods={methods}
+      havePageFooter
+      submitText="建立"
+      onSubmit={onSubmit}
     >
-      <SectionWrapper title="單號資訊">section1</SectionWrapper>
-      <SectionWrapper title="待建立列表">section2</SectionWrapper>
-    </PageWrapper>
+      <CreateShipInventoryOrderForm onSubmit={onSubmit} />
+    </FormWrapper>
   );
 }
 
