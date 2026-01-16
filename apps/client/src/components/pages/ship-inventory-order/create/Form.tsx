@@ -2,6 +2,7 @@ import { NextPath } from '../../../../utils/nextpath';
 import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
 import InputField from '../../../fields/InputField';
+import { useFormCancel } from '../../../../hooks/useFormCancel';
 import { FormValues } from './typing';
 
 interface CreateShipInventoryOrderFormProps {
@@ -11,6 +12,10 @@ interface CreateShipInventoryOrderFormProps {
 function CreateShipInventoryOrderForm({
   onSubmit,
 }: CreateShipInventoryOrderFormProps) {
+  const onFormCancel = useFormCancel<FormValues>({
+    onSubmit,
+  });
+
   return (
     <PageWrapper
       breadcrumb={[
@@ -28,6 +33,7 @@ function CreateShipInventoryOrderForm({
       ]}
       title="建立出庫單"
       haveBack
+      onBack={onFormCancel}
     >
       <SectionWrapper title="單號資訊">
         <InputField name="demo" label="demo" />

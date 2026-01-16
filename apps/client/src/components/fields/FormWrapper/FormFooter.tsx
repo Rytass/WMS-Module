@@ -1,10 +1,16 @@
 import { ReactNode, useCallback, useMemo } from 'react';
-import { FieldValues, useFormState, useWatch } from 'react-hook-form';
+import {
+  SubmitHandler,
+  FieldValues,
+  useFormState,
+  useWatch,
+} from 'react-hook-form';
 import { PageFooter } from '@mezzanine-ui/react';
-import { useDialog } from '../../dialog/useDialog';
+import { useFormCancel } from '../../../hooks/useFormCancel';
 import classes from './index.module.scss';
 
 interface FormFooterProps<T extends FieldValues = FieldValues> {
+  onSubmit: SubmitHandler<T>;
   disableSubmitButton?: (values: T) => boolean;
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
@@ -12,12 +18,15 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
 }
 
 export const FormFooter = <T extends FieldValues>({
+  onSubmit,
   disableSubmitButton = () => false,
   disableCancelButton = () => false,
   submitText,
   cancelText = '取消',
 }: FormFooterProps<T>): ReactNode => {
-  const { openDialog } = useDialog();
+  const onFormCancel = useFormCancel<T>({
+    onSubmit,
+  });
   const { isSubmitting } = useFormState<T>();
   const watchValues = useWatch<T>();
 
@@ -26,19 +35,8 @@ export const FormFooter = <T extends FieldValues>({
   const loading = useMemo(() => isSubmitting, [isSubmitting]);
 
   const onCancel = useCallback(async () => {
-    const isConfirm = await openDialog({
-      title: '尚未儲存變更',
-      children: '您有尚未儲存的內容，確定要離開此頁嗎？',
-      cancelText: '放棄變更',
-      confirmText: '儲存變更',
-    });
-
-    if (isConfirm) {
-      console.log('good');
-    } else {
-      console.log('bad');
-    }
-  }, [openDialog]);
+    await onFormCancel();
+  }, [onFormCancel]);
 
   return (
     <PageFooter
