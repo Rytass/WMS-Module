@@ -1,4 +1,4 @@
-import { ReactElement } from 'react';
+import { ReactElement, ReactNode } from 'react';
 import { Typography, Button, TableProps } from '@mezzanine-ui/react';
 import { PlusIcon } from '@mezzanine-ui/icons';
 import classes from './index.module.scss';
@@ -6,6 +6,7 @@ import classes from './index.module.scss';
 interface TableWrapperBaseProps {
   title: string;
   children: ReactElement<TableProps>;
+  otherActions?: ReactNode;
 }
 
 interface TableWrapperWithCreate {
@@ -24,6 +25,7 @@ type TableWrapperProps = TableWrapperBaseProps &
 function TableWrapper({
   title,
   children,
+  otherActions,
   createText,
   onCreate,
 }: TableWrapperProps) {
@@ -33,19 +35,22 @@ function TableWrapper({
         <Typography variant="h3" color="text-neutral-solid">
           {title}
         </Typography>
-        {createText && onCreate && (
-          <Button
-            type="button"
-            onClick={onCreate}
-            size="sub"
-            icon={{
-              position: 'leading',
-              src: PlusIcon,
-            }}
-          >
-            {createText}
-          </Button>
-        )}
+        <div className={classes.actions}>
+          {otherActions}
+          {createText && onCreate && (
+            <Button
+              type="button"
+              onClick={onCreate}
+              size="sub"
+              icon={{
+                position: 'leading',
+                src: PlusIcon,
+              }}
+            >
+              {createText}
+            </Button>
+          )}
+        </div>
       </div>
       {children}
     </div>
