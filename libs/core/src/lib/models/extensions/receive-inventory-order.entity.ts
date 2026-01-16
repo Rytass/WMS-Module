@@ -1,4 +1,3 @@
-import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   Column,
   CreateDateColumn,
@@ -6,7 +5,6 @@ import {
   Index,
   JoinColumn,
   OneToMany,
-  OneToOne,
   PrimaryColumn,
   TableInheritance,
 } from 'typeorm';
@@ -35,16 +33,12 @@ export class ReceiveInventoryOrderEntityClass {
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
 
-  @OneToOne('orders')
-  @JoinColumn({ name: 'id', referencedColumnName: 'id' })
-  order!: OrderEntity;
-
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
   @OneToMany(
     'receive_inventory_order_items',
-    (entity: ReceiveInventoryOrderEntityClass) => entity.order,
+    (entity: ReceiveInventoryOrderItemEntityClass) => entity.order,
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ReceiveInventoryOrderItemEntityClass[];

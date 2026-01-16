@@ -9,6 +9,7 @@ import {
   LoaderService,
   MaterialService,
   StockService,
+  LocationService,
   ReceiveInventoryOrderService,
   ShipInventoryOrderService,
 } from './services';
@@ -19,6 +20,7 @@ const exportDependencies = [
   ReceiveInventoryOrderService,
   ShipInventoryOrderService,
   StockService,
+  LocationService,
 ];
 
 @Module({

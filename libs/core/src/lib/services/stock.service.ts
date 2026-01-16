@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { StockEntity, StockEntityClass } from '../models/metadata/stock.entity';
 import {
-  Brackets,
   DataSource,
   ObjectLiteral,
   Repository,
@@ -58,17 +57,10 @@ export class StockService<
       });
 
     if (options.wildcard) {
-      const { keys, value } = options.wildcard;
-      if (keys.length > 0)
-        queryBuilder.andWhere(
-          new Brackets((qb) =>
-            keys.forEach((key, index) =>
-              qb.orWhere(`stock."${String(key)}" ILIKE :wildcard${index}`, {
-                [`wildcard${index}`]: `%${value}%`,
-              }),
-            ),
-          ),
-        );
+      const { key, value } = options.wildcard;
+      queryBuilder.andWhere(`location."${String(key)}" ILIKE :value`, {
+        value: `%${value}%`,
+      });
     }
 
     if (options.offset !== undefined && options.offset >= 0)

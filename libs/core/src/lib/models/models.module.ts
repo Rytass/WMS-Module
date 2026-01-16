@@ -15,6 +15,10 @@ import {
 } from './metadata/material.entity';
 import { StockEntity, StockEntityClass } from './metadata/stock.entity';
 import {
+  LocationEntity,
+  LocationEntityClass,
+} from './metadata/location.entity';
+import {
   ReceiveInventoryOrderEntity,
   ReceiveInventoryOrderEntityClass,
   ReceiveInventoryOrderItemEntity,
@@ -31,6 +35,7 @@ const entities = [
   [LoadersEntity, LoadersEntityClass],
   [LoaderTypeEntity, LoaderTypeEntityClass],
   [StockEntity, StockEntityClass],
+  [LocationEntity, LocationEntityClass],
   [ReceiveInventoryOrderEntity, ReceiveInventoryOrderEntityClass],
   [ReceiveInventoryOrderItemEntity, ReceiveInventoryOrderItemEntityClass],
   [ShipInventoryOrderEntity, ShipInventoryOrderEntityClass],

@@ -7,7 +7,7 @@ export type FindStockInput<U extends object> = PaginationInput & {
   loaderId?: string;
   description?: string;
   wildcard?: {
-    keys: (keyof U)[];
+    key: keyof U;
     value: string;
   };
 };
