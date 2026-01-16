@@ -9,11 +9,8 @@
   padding: spacing.semantic-variable(padding, vertical, spacious)
     spacing.semantic-variable(padding, horizontal, comfort-fixed);
 
-  .titleWrapper {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: spacing.semantic-variable(gap, tight);
+  .pageHeader {
+    padding: 0;
   }
 }
 
