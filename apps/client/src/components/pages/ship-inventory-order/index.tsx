@@ -1,4 +1,5 @@
 import { TableDataSourceWithKey, TableColumn } from '@mezzanine-ui/react';
+import { useQuery } from '@apollo/client/react';
 import PageWrapper from '../../PageWrapper';
 import FilterWrapper from '../../FilterWrapper';
 import { FilterType } from '../../FilterWrapper/typing';
@@ -8,7 +9,7 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
-import { useShipInventoryOrdersQuery } from '../../../graphql/generated/.graphql';
+import { ShipInventoryOrdersDocument } from '../../../graphql/generated/.graphql';
 import { FilterValues } from './typing';
 
 interface DataType extends TableDataSourceWithKey {
@@ -142,6 +143,13 @@ const baseData: DataType[] = [
 
 function ShipInventoryOrder() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+
+  const { data } = useQuery(ShipInventoryOrdersDocument, {
+    variables: {},
+    fetchPolicy: 'cache-and-network',
+  });
+
+  console.log('data', data);
 
   const { pageTotal } = useTablePageTotal({
     page,
