@@ -1,4 +1,6 @@
-import { TableDataSourceWithKey, TableColumn } from '@mezzanine-ui/react';
+import { useMemo } from 'react';
+import { TableColumn } from '@mezzanine-ui/react';
+import { useQuery } from '@apollo/client/react';
 import PageWrapper from '../../PageWrapper';
 import FilterWrapper from '../../FilterWrapper';
 import { FilterType } from '../../FilterWrapper/typing';
@@ -8,6 +10,10 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
+import {
+  MaterialsDocument,
+  MaterialFragment,
+} from '../../../graphql/generated/.graphql';
 import { FilterValues } from './typing';
 
 function MaterialsManagement() {
