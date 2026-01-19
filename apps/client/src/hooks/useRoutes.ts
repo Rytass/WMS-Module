@@ -48,7 +48,7 @@ export function useRoutes() {
       children: [
         {
           title: '載具管理',
-          href: '/5-1',
+          href: NextPath.LOADERSMANAGEMENT,
         },
         {
           title: '庫位管理',
