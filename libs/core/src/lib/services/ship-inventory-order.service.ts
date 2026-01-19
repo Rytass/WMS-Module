@@ -2,14 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   ShipInventoryOrderEntity,
   ShipInventoryOrderEntityClass,
-} from '../models/extensions/ship-inventory-order.entity';
+} from '../models/extensions/ship-inventory-order/ship-inventory-order.entity';
 import {
   ShipInventoryOrderItemEntity,
   ShipInventoryOrderItemEntityClass,
-} from '../models/extensions/ship-inventory-order-item.entity';
+} from '../models/extensions/ship-inventory-order/ship-inventory-order-item.entity';
 import {
   DataSource,
   EntityManager,
+  In,
   IsNull,
   Repository,
   type EntityTarget,
@@ -22,7 +23,8 @@ import {
   FindShipInventoryOrderInput,
   ShipInventoryOrderStatus,
 } from '../typings/find-ship-inventory-order.input';
-import { OrderEntity } from '@rytass/wms-base-nestjs-module';
+import { OrderEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
+import { ShipInventoryOrderChangeEntityClass } from '../models';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -252,5 +254,67 @@ export class ShipInventoryOrderService<
       queryBuilder.take(options.limit);
 
     return queryBuilder.getManyAndCount();
+  }
+
+  ship(options: { itemId: string; quantity: number }[]): Promise<boolean> {
+    return this.dataSource.transaction(async (manager) => {
+      const changeRepository =
+        manager.getRepository<ShipInventoryOrderChangeEntityClass>(
+          ShipInventoryOrderChangeEntityClass,
+        );
+      const itemRepository =
+        manager.getRepository<ShipInventoryOrderItemEntityClass>(
+          this.shipInventoryOrderItemEntity,
+        );
+
+      const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+      const stockRepository = manager.getRepository<StockEntity>(StockEntity);
+
+      const items = await itemRepository.find({
+        where: { id: In(options.map((option) => option.itemId)) },
+        relations: ['order'],
+      });
+      const itemMap = new Map(items.map((item) => [item.id, item]));
+      await Promise.all(
+        options.map(async (option) => {
+          const item = itemMap.get(option.itemId);
+          if (!item) return;
+
+          const totalChanged = item.changes.reduce(
+            (sum, change) => sum + Number(change.quantityChanged),
+            0,
+          );
+
+          if (totalChanged + option.quantity > item.targetShippedQuantity) {
+            throw new Error(
+              `Shipped quantity exceeds target for item ${option.itemId}`,
+            );
+          }
+
+          if (!item.batchId)
+            throw new Error(`Item ${option.itemId} has no batch assigned`);
+
+          const newOrder = await orderRepository.save(orderRepository.create());
+
+          await Promise.all([
+            changeRepository.save(
+              changeRepository.create({
+                itemId: option.itemId,
+                quantityChanged: option.quantity,
+                id: newOrder.id,
+              }),
+            ),
+            stockRepository.save(
+              stockRepository.create({
+                batchId: item.batchId,
+                materialId: item.materialId,
+                quantity: option.quantity,
+                orderId: newOrder.id,
+              }),
+            ),
+          ]);
+        }),
+      );
+    });
   }
 }

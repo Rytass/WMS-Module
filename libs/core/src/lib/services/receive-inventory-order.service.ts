@@ -2,14 +2,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import {
   ReceiveInventoryOrderEntity,
   ReceiveInventoryOrderEntityClass,
-} from '../models/extensions/receive-inventory-order.entity';
+} from '../models/extensions/receive-inventory-order/receive-inventory-order.entity';
 import {
   ReceiveInventoryOrderItemEntity,
   ReceiveInventoryOrderItemEntityClass,
-} from '../models/extensions/receive-inventory-order-item.entity';
+} from '../models/extensions/receive-inventory-order/receive-inventory-order-item.entity';
 import {
   DataSource,
   EntityManager,
+  In,
   IsNull,
   Repository,
   type EntityTarget,
@@ -18,11 +19,12 @@ import {
   CreateReceiveInventoryOrderInput,
   UpdateReceiveInventoryOrderInput,
 } from '../typings/create-receive-inventory-order.input';
-import { OrderEntity } from '@rytass/wms-base-nestjs-module';
+import { OrderEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
 import {
   FindReceiveInventoryOrderInput,
   ReceiveInventoryOrderStatus,
 } from '../typings/find-receive-inventory-order.input';
+import { ReceiveInventoryOrderChangeEntityClass } from '../models';
 
 /**
  * Service for managing receive inventory orders and their items
@@ -256,5 +258,68 @@ export class ReceiveInventoryOrderService<
       queryBuilder.take(options.limit);
 
     return queryBuilder.getManyAndCount();
+  }
+
+  receive(
+    options: { itemId: string; batchId: string; quantity: number }[],
+  ): Promise<boolean> {
+    return this.dataSource.transaction(async (manager) => {
+      const changeRepository =
+        manager.getRepository<ReceiveInventoryOrderChangeEntityClass>(
+          ReceiveInventoryOrderChangeEntityClass,
+        );
+      const itemRepository =
+        manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
+          this.receiveInventoryOrderItemEntity,
+        );
+      const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+      const stockRepository = manager.getRepository<StockEntity>(StockEntity);
+
+      const items = await itemRepository.find({
+        where: { id: In(options.map((o) => o.itemId)) },
+        relations: ['changes'],
+      });
+      const itemMap = new Map(items.map((i) => [i.id, i]));
+
+      await Promise.all(
+        options.map(async (option) => {
+          const item = itemMap.get(option.itemId);
+          if (!item) return;
+
+          const totalChanged = item.changes.reduce(
+            (sum, change) => sum + Number(change.quantityChanged),
+            0,
+          );
+
+          if (totalChanged + option.quantity > item.targetReceivedQuantity) {
+            throw new Error(
+              `Receiving quantity exceeds target for item ${option.itemId}`,
+            );
+          }
+
+          const newOrder = await orderRepository.save(orderRepository.create());
+
+          await Promise.all([
+            changeRepository.save(
+              changeRepository.create({
+                itemId: option.itemId,
+                quantityChanged: option.quantity,
+                id: newOrder.id,
+              }),
+            ),
+            stockRepository.save(
+              stockRepository.create({
+                batchId: option.batchId ?? item.batchId,
+                materialId: item.materialId,
+                quantity: option.quantity,
+                orderId: newOrder.id,
+              }),
+            ),
+          ]);
+        }),
+      );
+
+      return true;
+    });
   }
 }

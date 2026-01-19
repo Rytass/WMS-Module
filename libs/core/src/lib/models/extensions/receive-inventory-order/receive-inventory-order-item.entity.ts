@@ -4,13 +4,14 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
-  OneToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ReceiveInventoryOrderEntityClass } from './receive-inventory-order.entity';
-import { MaterialEntityClass } from '../metadata/material.entity';
-import { MaterialUnitEntityClass } from '../metadata/material-unit.entity';
-import { BatchEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
+import { MaterialEntityClass } from '../../metadata/material.entity';
+import { MaterialUnitEntityClass } from '../../metadata/material-unit.entity';
+import { BatchEntity } from '@rytass/wms-base-nestjs-module';
+import { ReceiveInventoryOrderChangeEntityClass } from './receive-inventory-order-change.entity';
 
 export const ReceiveInventoryOrderItemEntity = Symbol(
   'ReceiveInventoryOrderItemEntity',
@@ -42,6 +43,14 @@ export class ReceiveInventoryOrderItemEntityClass {
   @Index()
   batchId!: string | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  @Index()
+  locationId!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  @Index()
+  loaderId!: string | null;
+
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
 
@@ -64,7 +73,10 @@ export class ReceiveInventoryOrderItemEntityClass {
   @JoinColumn({ name: 'batchId', referencedColumnName: 'id' })
   batch!: BatchEntity;
 
-  @OneToOne('stocks', { nullable: true })
-  @JoinColumn({ name: 'stockId', referencedColumnName: 'id' })
-  stock!: StockEntity | null;
+  @OneToMany(
+    () => ReceiveInventoryOrderChangeEntityClass,
+    (change) => change.item,
+  )
+  @JoinColumn({ name: 'id', referencedColumnName: 'itemId' })
+  changes!: ReceiveInventoryOrderChangeEntityClass[];
 }
