@@ -8,6 +8,7 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
+import { useShipInventoryOrdersQuery } from '../../../graphql/generated/.graphql';
 import { FilterValues } from './typing';
 
 interface DataType extends TableDataSourceWithKey {
