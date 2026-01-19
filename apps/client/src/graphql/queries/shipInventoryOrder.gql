@@ -1,0 +1,31 @@
+query ShipInventoryOrder($shipInventoryOrderId: ID!) {
+  shipInventoryOrder(id: $shipInventoryOrderId) {
+    ...ShipInventoryOrder
+  }
+}
+
+query ShipInventoryOrders(
+  $offset: Int
+  $limit: Int
+  $shipInventoryOrdersId: ID
+  $createdBy: String
+  $status: ShipInventoryOrderStatus
+  $dateRange: DateRangeArgs
+  $description: String
+) {
+  shipInventoryOrders(
+    offset: $offset
+    limit: $limit
+    id: $shipInventoryOrdersId
+    createdBy: $createdBy
+    status: $status
+    dateRange: $dateRange
+    description: $description
+  ) {
+    id
+    items {
+      ...ShipInventoryOrder
+    }
+    total
+  }
+}

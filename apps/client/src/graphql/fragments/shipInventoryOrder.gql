@@ -1,0 +1,20 @@
+fragment ShipInventoryOrderItem on ShipInventoryOrderItemDto {
+  id
+  description
+  unitId
+  targetShippedQuantity
+  orderId
+  materialId
+  batchId
+  removedAt
+}
+
+fragment ShipInventoryOrder on ShipInventoryOrderDto {
+  id
+  description
+  createdBy
+  removedAt
+  items {
+    ...ShipInventoryOrderItem
+  }
+}

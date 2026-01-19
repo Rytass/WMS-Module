@@ -9,7 +9,8 @@ import { Button, cx } from '@mezzanine-ui/react';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { FormWrapper } from '../fields/FormWrapper';
 import FormActionButtons from '../FormActionButtons';
-import { FilterType, renderFilter } from './utils';
+import { renderFilter } from './utils';
+import { FilterType } from './typing';
 import classes from './index.module.scss';
 
 interface FilterWrapperProps<T extends FieldValues> {

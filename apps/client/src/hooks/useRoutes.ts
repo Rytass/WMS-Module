@@ -56,7 +56,7 @@ export function useRoutes() {
         },
         {
           title: '料號管理',
-          href: '/5-3',
+          href: NextPath.MATERIALSMANAGEMENT,
         },
         {
           title: '出庫單',

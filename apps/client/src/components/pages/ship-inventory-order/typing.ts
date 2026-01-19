@@ -1,6 +1,9 @@
-import { DateType } from '@mezzanine-ui/core/calendar';
+import {
+  FilterValues as GeneralFilterValues,
+  FilterType,
+} from '../../FilterWrapper/typing';
 
-export type FilterValues = {
-  createdAt: DateType | undefined;
-  description: string;
-};
+export type FilterValues = Pick<
+  GeneralFilterValues,
+  FilterType.createdAt | FilterType.description
+>;

@@ -18,7 +18,6 @@
     "@graphql-codegen/typed-document-node": "^6.1.5",
     "@graphql-codegen/typescript": "^5.0.7",
     "@graphql-codegen/typescript-operations": "^5.0.7",
-    "@graphql-codegen/typescript-react-apollo": "^4.4.0",
     "@hookform/devtools": "^4.4.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",

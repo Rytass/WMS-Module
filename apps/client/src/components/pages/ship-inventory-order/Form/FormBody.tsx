@@ -5,13 +5,17 @@ import InputField from '../../../fields/InputField';
 import { useFormCancel } from '../../../../hooks/useFormCancel';
 import { FormValues } from './typing';
 
-interface CreateShipInventoryOrderFormProps {
+interface ShipInventoryOrderFormBodyProps {
   onSubmit: (values: FormValues) => Promise<void>;
+  title: string;
+  breadcrumbTitle: string;
 }
 
-function CreateShipInventoryOrderForm({
+function ShipInventoryOrderFormBody({
   onSubmit,
-}: CreateShipInventoryOrderFormProps) {
+  title,
+  breadcrumbTitle,
+}: ShipInventoryOrderFormBodyProps) {
   const onFormCancel = useFormCancel<FormValues>({
     onSubmit,
   });
@@ -28,10 +32,10 @@ function CreateShipInventoryOrderForm({
           href: NextPath.SHIPINVENTORYORDER,
         },
         {
-          label: '建立出庫單',
+          label: breadcrumbTitle,
         },
       ]}
-      title="建立出庫單"
+      title={title}
       haveBack
       onBack={onFormCancel}
     >
@@ -43,4 +47,4 @@ function CreateShipInventoryOrderForm({
   );
 }
 
-export default CreateShipInventoryOrderForm;
+export default ShipInventoryOrderFormBody;
