@@ -8,6 +8,9 @@ const Table = <T extends TableDataSource>(props: TableProps<T>) => {
   return (
     <MznTable<T>
       {...props}
+      emptyProps={{
+        title: '查無資料',
+      }}
       pagination={{
         showPageSizeOptions: true,
         pageSizeLabel: '每頁顯示：',
