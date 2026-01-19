@@ -17,6 +17,33 @@ import {
 import { FilterValues } from './typing';
 
 function MaterialsManagement() {
+  const { page, setPage, limit, setLimit, offset } = useTablePageState();
+
+  const { data } = useQuery(MaterialsDocument, {
+    variables: {},
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const { pageTotal } = useTablePageTotal({
+    page,
+    total: data?.materials.total,
+    setPage,
+    filterValues: [],
+  });
+
+  const dataSource = useMemo(
+    (): MaterialFragment[] => data?.materials.items ?? [],
+    [data?.materials.items],
+  );
+
+  const columns: TableColumn<MaterialFragment>[] = [
+    {
+      key: 'description',
+      title: '物料說明',
+      render: (source) => source.description,
+    },
+  ];
+
   return (
     <PageWrapper title="料號管理">
       <FilterWrapper<FilterValues>
@@ -31,6 +58,25 @@ function MaterialsManagement() {
           console.log('values', values);
         }}
       />
+      <TableWrapper
+        title="類別項目"
+        createText="新增料號"
+        onCreate={() => {
+          console.log('新增料號');
+        }}
+      >
+        <Table<MaterialFragment>
+          columns={columns}
+          dataSource={dataSource}
+          pagination={{
+            current: page,
+            onChange: (page) => setPage(page),
+            total: pageTotal,
+            pageSize: limit,
+            onChangePageSize: (size) => setLimit(size),
+          }}
+        />
+      </TableWrapper>
     </PageWrapper>
   );
 }

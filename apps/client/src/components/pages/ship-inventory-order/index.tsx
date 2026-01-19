@@ -24,17 +24,17 @@ function ShipInventoryOrder() {
     fetchPolicy: 'cache-and-network',
   });
 
-  const dataSource = useMemo(
-    (): ShipInventoryOrderFragment[] => data?.shipInventoryOrders.items ?? [],
-    [data?.shipInventoryOrders.items],
-  );
-
   const { pageTotal } = useTablePageTotal({
     page,
     total: data?.shipInventoryOrders.total,
     setPage,
     filterValues: [],
   });
+
+  const dataSource = useMemo(
+    (): ShipInventoryOrderFragment[] => data?.shipInventoryOrders.items ?? [],
+    [data?.shipInventoryOrders.items],
+  );
 
   const columns: TableColumn<ShipInventoryOrderFragment>[] = [
     {
