@@ -1,6 +1,7 @@
 import { TableDataSourceWithKey, TableColumn } from '@mezzanine-ui/react';
 import PageWrapper from '../../PageWrapper';
 import FilterWrapper from '../../FilterWrapper';
+import { FilterType } from '../../FilterWrapper/typing';
 import TableWrapper from '../../TableWrapper';
 import Table from '../../TableWrapper/Table';
 import {
@@ -156,7 +157,7 @@ function ShipInventoryOrder() {
           description: '',
         }}
         baseFilters={{
-          filters: ['createdAt', 'description'],
+          filters: [FilterType.createdAt, FilterType.description],
           gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
         }}
         onSubmit={(values) => {

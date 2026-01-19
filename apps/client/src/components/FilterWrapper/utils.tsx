@@ -1,25 +1,24 @@
 import { InputField } from '../fields/InputField';
 import { DateField } from '../fields/DateField';
-
-export type FilterType = 'createdAt' | 'description';
+import { FilterType } from './typing';
 
 export function renderFilter(filterType: FilterType) {
   switch (filterType) {
-    case 'createdAt':
+    case FilterType.createdAt:
       return (
         <DateField
           key={filterType}
-          name="createdAt"
+          name={FilterType.createdAt}
           label="建立日期"
           placeholder="建立日期"
         />
       );
 
-    case 'description':
+    case FilterType.description:
       return (
         <InputField
           key={filterType}
-          name="description"
+          name={FilterType.description}
           label="備註"
           placeholder="輸入備註"
         />
