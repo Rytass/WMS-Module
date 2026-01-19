@@ -315,6 +315,8 @@ export class ShipInventoryOrderService<
           ]);
         }),
       );
+
+      return true;
     });
   }
 }
