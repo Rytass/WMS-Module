@@ -1,0 +1,7 @@
+fragment Location on LocationDto {
+  id
+  description
+  mapData {
+    ...MapData
+  }
+}
