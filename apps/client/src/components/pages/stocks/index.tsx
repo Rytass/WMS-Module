@@ -3,6 +3,7 @@ import {
   TableDataSourceWithKey,
   TableColumn,
   Table as MznTable,
+  useTableRowSelection,
 } from '@mezzanine-ui/react';
 import { useQuery } from '@apollo/client/react';
 import PageWrapper from '../../PageWrapper';
@@ -151,12 +152,32 @@ const baseData: DataType[] = [
 ];
 
 function Stocks() {
-  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
-  const [selectedSubRowKeys, setSelectedSubRowKeys] = useState<string[]>([]);
+  const {
+    parentSelectedKeys,
+    parentOnChange,
+    parentGetCheckboxProps,
+    getChildSelectedRowKeys,
+    getChildOnChange,
+    totalSelectionCount,
+  } = useTableRowSelection<DataType>({
+    getSubData: (record) => record.subData,
+  });
+
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
 
-  console.log('selectedRowKeys', selectedRowKeys, selectedSubRowKeys);
-  console.log('expandedRowKeys', expandedRowKeys);
+  console.log(
+    'selectedRowKeys',
+    parentSelectedKeys,
+    parentSelectedKeys.map((k) => {
+      const item = baseData.find((d) => d.key === k);
+
+      if (item) {
+        return getChildSelectedRowKeys(item);
+      }
+
+      return null;
+    }),
+  );
 
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
@@ -181,8 +202,9 @@ function Stocks() {
                 dataSource={record.subData || []}
                 rowSelection={{
                   mode: 'checkbox',
-                  onChange: (keys) => setSelectedSubRowKeys(keys),
-                  selectedRowKeys: selectedSubRowKeys,
+                  onChange: getChildOnChange(record),
+                  selectedRowKeys: getChildSelectedRowKeys(record),
+                  fixed: true,
                 }}
               />
             ),
@@ -194,8 +216,10 @@ function Stocks() {
           }}
           rowSelection={{
             mode: 'checkbox',
-            onChange: (keys) => setSelectedRowKeys(keys),
-            selectedRowKeys,
+            onChange: parentOnChange,
+            selectedRowKeys: parentSelectedKeys,
+            getCheckboxProps: parentGetCheckboxProps,
+            fixed: true,
           }}
           pagination={{
             current: page,
