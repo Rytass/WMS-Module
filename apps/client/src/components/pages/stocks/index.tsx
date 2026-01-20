@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   TableDataSourceWithKey,
   TableColumn,
@@ -151,6 +151,13 @@ const baseData: DataType[] = [
 ];
 
 function Stocks() {
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [selectedSubRowKeys, setSelectedSubRowKeys] = useState<string[]>([]);
+  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
+
+  console.log('selectedRowKeys', selectedRowKeys, selectedSubRowKeys);
+  console.log('expandedRowKeys', expandedRowKeys);
+
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { pageTotal } = useTablePageTotal({
@@ -172,9 +179,23 @@ function Stocks() {
                 fullWidth
                 columns={baseColumns}
                 dataSource={record.subData || []}
+                rowSelection={{
+                  mode: 'checkbox',
+                  onChange: (keys) => setSelectedSubRowKeys(keys),
+                  selectedRowKeys: selectedSubRowKeys,
+                }}
               />
             ),
             rowExpandable: (record) => !!record.subData?.length,
+            onExpandedRowsChange: (keys) => {
+              setExpandedRowKeys(keys);
+            },
+            expandedRowKeys,
+          }}
+          rowSelection={{
+            mode: 'checkbox',
+            onChange: (keys) => setSelectedRowKeys(keys),
+            selectedRowKeys,
           }}
           pagination={{
             current: page,
