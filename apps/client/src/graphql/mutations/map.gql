@@ -1,0 +1,13 @@
+mutation UpdateWarehouseMap(
+  $locationId: ID!
+  $backgrounds: [MapBackgroundInput!]!
+  $ranges: [MapRangeInput!]!
+) {
+  updateWarehouseMap(
+    locationId: $locationId
+    backgrounds: $backgrounds
+    ranges: $ranges
+  ) {
+    ...MapData
+  }
+}
