@@ -15,6 +15,7 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
   cancelText?: string;
+  haveCancelButton: boolean;
 }
 
 export const FormFooter = <T extends FieldValues>({
@@ -23,6 +24,7 @@ export const FormFooter = <T extends FieldValues>({
   disableCancelButton = () => false,
   submitText,
   cancelText = '取消',
+  haveCancelButton,
 }: FormFooterProps<T>): ReactNode => {
   const onFormCancel = useFormCancel<T>({
     onSubmit,
@@ -48,14 +50,16 @@ export const FormFooter = <T extends FieldValues>({
           type: 'submit',
           disabled: disableSubmitButton(values) || loading,
         },
-        secondaryButton: {
-          children: cancelText,
-          type: 'button',
-          disabled: disableCancelButton(values) || loading,
-          onClick: async () => {
-            await onCancel();
-          },
-        },
+        secondaryButton: haveCancelButton
+          ? {
+              children: cancelText,
+              type: 'button',
+              disabled: disableCancelButton(values) || loading,
+              onClick: async () => {
+                await onCancel();
+              },
+            }
+          : undefined,
       }}
     />
   );
