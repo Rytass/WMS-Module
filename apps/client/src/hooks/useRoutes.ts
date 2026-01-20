@@ -19,7 +19,7 @@ export function useRoutes() {
         },
         {
           title: '地圖清單',
-          href: '/1-2',
+          href: NextPath.MAPS,
         },
         {
           title: '標籤查詢',
@@ -60,11 +60,11 @@ export function useRoutes() {
         },
         {
           title: '出庫單',
-          href: NextPath.SHIPINVENTORYORDER,
+          href: NextPath.SHIPINVENTORYORDERS,
         },
         {
           title: '入庫單',
-          href: NextPath.RECEIVEINVENTORYORDER,
+          href: NextPath.RECEIVEINVENTORYORDERS,
         },
       ],
     },

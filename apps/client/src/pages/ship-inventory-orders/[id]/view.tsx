@@ -1,4 +1,4 @@
-import ViewShipInventoryOrder from '../../../components/pages/ship-inventory-order/view';
+import ViewShipInventoryOrder from '../../../components/pages/ship-inventory-orders/view';
 
 function ShipInventoryOrderViewPage() {
   return <ViewShipInventoryOrder />;

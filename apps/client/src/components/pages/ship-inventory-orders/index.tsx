@@ -16,7 +16,7 @@ import {
 } from '../../../graphql/generated/.graphql';
 import { FilterValues } from './typing';
 
-function ShipInventoryOrder() {
+function ShipInventoryOrders() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data } = useQuery(ShipInventoryOrdersDocument, {
@@ -82,4 +82,4 @@ function ShipInventoryOrder() {
   );
 }
 
-export default ShipInventoryOrder;
+export default ShipInventoryOrders;
