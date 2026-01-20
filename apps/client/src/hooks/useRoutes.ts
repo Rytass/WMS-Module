@@ -40,7 +40,7 @@ export function useRoutes() {
     {
       title: '盤點',
       icon: FileSearchIcon,
-      href: '/4',
+      href: NextPath.STOCKTAKING,
     },
     {
       title: '主檔管理',
