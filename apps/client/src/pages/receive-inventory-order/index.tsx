@@ -4,4 +4,10 @@ function ReceiveInventoryOrderPage() {
   return <ReceiveInventoryOrder />;
 }
 
+export const getServerSideProps = async () => {
+  return {
+    props: {},
+  };
+};
+
 export default ReceiveInventoryOrderPage;
