@@ -1,19 +1,25 @@
-import { useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useModal } from '../../../modal/useModal';
-import { FormWrapper } from '../../../fields/FormWrapper';
+import { FormModalWrapper } from '../../../fields/FormModalWrapper';
 import InputField from '../../../fields/InputField';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 
-export function useMaterialsManagementForm({
-  onSubmit,
-}: {
+interface MaterialsManagementFormProps {
+  title: string;
   onSubmit: (values: FormValues) => Promise<void>;
-}) {
-  const { openModal } = useModal();
+  submitText: string;
+  closeModal: VoidFunction;
+  open: boolean;
+}
 
+function MaterialsManagementForm({
+  title,
+  onSubmit,
+  submitText,
+  closeModal,
+  open,
+}: MaterialsManagementFormProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
     defaultValues: {
@@ -21,24 +27,18 @@ export function useMaterialsManagementForm({
     },
   });
 
-  const formBody = useMemo(
-    () => (
-      <>
-        <InputField name="demo" label="demo" />
-      </>
-    ),
-    [],
+  return (
+    <FormModalWrapper<FormValues>
+      methods={methods}
+      title={title}
+      confirmText={submitText}
+      onSubmit={onSubmit}
+      closeModal={closeModal}
+      open={open}
+    >
+      <InputField name="demo" label="demo" />
+    </FormModalWrapper>
   );
-
-  const onCreate = useCallback(() => {
-    openModal<FormValues>({
-      title: '新增料號',
-      confirmText: '新增',
-      children: formBody,
-      methods,
-      onSubmit,
-    });
-  }, [formBody, methods, onSubmit, openModal]);
-
-  return { onCreate };
 }
+
+export default MaterialsManagementForm;

@@ -10,7 +10,7 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
-import { useMaterialsManagementForm } from './Form';
+import MaterialsManagementForm from './Form';
 import {
   MaterialsDocument,
   MaterialFragment,
@@ -18,12 +18,6 @@ import {
 import { FilterValues } from './typing';
 
 function MaterialsManagement() {
-  const { onCreate } = useMaterialsManagementForm({
-    onSubmit: async (values) => {
-      console.log('values', values);
-    },
-  });
-
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data } = useQuery(MaterialsDocument, {
@@ -52,33 +46,50 @@ function MaterialsManagement() {
   ];
 
   return (
-    <PageWrapper title="料號管理">
-      <FilterWrapper<FilterValues>
-        defaultValues={{
-          description: '',
-        }}
-        baseFilters={{
-          filters: [FilterType.description],
-          gridTemplateColumns: '1fr',
-        }}
-        onSubmit={(values) => {
-          console.log('values', values);
-        }}
-      />
-      <TableWrapper title="類別項目" createText="新增料號" onCreate={onCreate}>
-        <Table<MaterialFragment>
-          columns={columns}
-          dataSource={dataSource}
-          pagination={{
-            current: page,
-            onChange: (page) => setPage(page),
-            total: pageTotal,
-            pageSize: limit,
-            onChangePageSize: (size) => setLimit(size),
+    <>
+      <PageWrapper title="料號管理">
+        <FilterWrapper<FilterValues>
+          defaultValues={{
+            description: '',
+          }}
+          baseFilters={{
+            filters: [FilterType.description],
+            gridTemplateColumns: '1fr',
+          }}
+          onSubmit={(values) => {
+            console.log('values', values);
           }}
         />
-      </TableWrapper>
-    </PageWrapper>
+        <TableWrapper
+          title="類別項目"
+          createText="新增料號"
+          onCreate={() => {
+            console.log('新增料號');
+          }}
+        >
+          <Table<MaterialFragment>
+            columns={columns}
+            dataSource={dataSource}
+            pagination={{
+              current: page,
+              onChange: (page) => setPage(page),
+              total: pageTotal,
+              pageSize: limit,
+              onChangePageSize: (size) => setLimit(size),
+            }}
+          />
+        </TableWrapper>
+      </PageWrapper>
+      {/* <MaterialsManagementForm
+        title="建立料號"
+        onSubmit={async (values) => {
+          console.log('values', values);
+        }}
+        submitText="建立"
+        closeModal={() => {}}
+        open
+      /> */}
+    </>
   );
 }
 
