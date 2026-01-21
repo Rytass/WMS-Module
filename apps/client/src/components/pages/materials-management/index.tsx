@@ -10,6 +10,7 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
+import { useMaterialsManagementForm } from './Form';
 import {
   MaterialsDocument,
   MaterialFragment,
@@ -17,6 +18,12 @@ import {
 import { FilterValues } from './typing';
 
 function MaterialsManagement() {
+  const { onCreate } = useMaterialsManagementForm({
+    onSubmit: async (values) => {
+      console.log('values', values);
+    },
+  });
+
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data } = useQuery(MaterialsDocument, {
@@ -58,13 +65,7 @@ function MaterialsManagement() {
           console.log('values', values);
         }}
       />
-      <TableWrapper
-        title="類別項目"
-        createText="新增料號"
-        onCreate={() => {
-          console.log('新增料號');
-        }}
-      >
+      <TableWrapper title="類別項目" createText="新增料號" onCreate={onCreate}>
         <Table<MaterialFragment>
           columns={columns}
           dataSource={dataSource}
