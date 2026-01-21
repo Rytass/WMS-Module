@@ -19,7 +19,7 @@ export function useFormCancel<T extends FieldValues>({
   const onFormCancel = useCallback(async () => {
     const isConfirm = await openDialog({
       title: '尚未儲存變更',
-      children: '您有尚未儲存的內容，確定要離開此頁嗎？',
+      supportingText: '您有尚未儲存的內容，確定要離開此頁嗎？',
       cancelText: '放棄變更',
       confirmText: '儲存變更',
     });

@@ -1,5 +1,6 @@
 import { useContext } from 'react';
 import { DialogContext, DialogContextValues } from './DialogContext';
+import { DialogConfigType } from './typing';
 
 export const useDialog = (): DialogContextValues => {
   const {
@@ -8,7 +9,7 @@ export const useDialog = (): DialogContextValues => {
     resolve,
   } = useContext(DialogContext);
 
-  const openDialog = ({ ...options }) =>
+  const openDialog = ({ ...options }: DialogConfigType) =>
     new Promise<boolean>((resolver) => {
       configOpenDialog({
         resolve: resolver,

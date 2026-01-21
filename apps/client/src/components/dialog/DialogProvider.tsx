@@ -1,15 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { useState, memo } from 'react';
-import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalActions,
-  cx,
-} from '@mezzanine-ui/react';
+import { Modal } from '@mezzanine-ui/react';
 import { DialogContextProvider } from './DialogContext';
 import { DialogConfigType } from './typing';
-import classes from './index.module.scss';
 
 const DialogProvider: FC = ({ children }) => {
   const [open, setOpen] = useState<boolean>(false);
@@ -19,15 +12,14 @@ const DialogProvider: FC = ({ children }) => {
   const {
     className,
     resolve = () => {},
-    titleLarge,
     title,
     children: dialogChildren,
-    disableActions,
+    supportingText,
+    modalStatusType = 'warning',
     cancelButtonProps,
     cancelText = '取消',
     confirmButtonProps,
     confirmText = '確認',
-    ...rest
   } = dialogConfig;
 
   const openDialog = (config: DialogConfigType) => {
@@ -62,53 +54,38 @@ const DialogProvider: FC = ({ children }) => {
       <>
         {children}
         <Modal
-          {...rest}
-          disableCloseOnBackdropClick={false}
-          hideCloseIcon={false}
+          className={className}
+          modalType="standard"
+          size="narrow"
+          supportingText={supportingText}
+          cancelText={cancelText}
+          confirmText={confirmText}
+          onCancel={() => {
+            handleResolveActions(false);
+          }}
+          onConfirm={() => {
+            handleResolveActions(true);
+          }}
+          cancelButtonProps={{
+            type: 'button',
+            ...cancelButtonProps,
+          }}
+          confirmButtonProps={{
+            type: 'button',
+            ...confirmButtonProps,
+          }}
+          showStatusTypeIcon
+          statusTypeIconLayout="horizontal"
+          title={title ?? ''}
+          modalStatusType={modalStatusType}
           onClose={() => {
             handleCloseDialog();
           }}
           open={open}
-          className={cx(classes.host, className)}
+          showModalFooter
+          showModalHeader
         >
-          <ModalHeader
-            showSeverityIcon={false}
-            titleLarge={titleLarge}
-            className={classes.modalHeader}
-          >
-            {title}
-          </ModalHeader>
-          <ModalBody>
-            <div className={classes.warningWrapper}>{dialogChildren}</div>
-          </ModalBody>
-          {!disableActions && (
-            <ModalActions
-              cancelText={cancelText}
-              confirmText={confirmText}
-              cancelButtonProps={{
-                type: 'button',
-                size: 'sub',
-                style: {
-                  width: 120,
-                },
-                ...cancelButtonProps,
-              }}
-              confirmButtonProps={{
-                type: 'button',
-                size: 'sub',
-                style: {
-                  width: 120,
-                },
-                ...confirmButtonProps,
-              }}
-              onCancel={() => {
-                handleResolveActions(false);
-              }}
-              onConfirm={() => {
-                handleResolveActions(true);
-              }}
-            />
-          )}
+          {dialogChildren}
         </Modal>
       </>
     </DialogContextProvider>
