@@ -8,6 +8,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/pages';
 import ApolloClient from '../apollo';
 import AuthGuard from '../auth/AuthGuard';
 import DialogProvider from '../components/dialog/DialogProvider';
+import ModalProvider from '../components/modal/ModalProvider';
 
 function CustomApp({ Component, pageProps }: AppProps) {
   return (
@@ -19,9 +20,11 @@ function CustomApp({ Component, pageProps }: AppProps) {
         <CalendarConfigProviderDayjs>
           <NuqsAdapter>
             <DialogProvider>
-              <AuthGuard>
-                <Component {...pageProps} />
-              </AuthGuard>
+              <ModalProvider>
+                <AuthGuard>
+                  <Component {...pageProps} />
+                </AuthGuard>
+              </ModalProvider>
             </DialogProvider>
           </NuqsAdapter>
         </CalendarConfigProviderDayjs>

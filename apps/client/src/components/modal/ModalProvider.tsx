@@ -9,7 +9,18 @@ const ModalProvider: FC = ({ children }) => {
 
   const [modalConfig, setModalConfig] = useState<ModalConfigType>({});
 
-  const { size = 'regular', children: modalChildren } = modalConfig;
+  const {
+    className,
+    title,
+    size = 'regular',
+    cancelButtonProps,
+    confirmButtonProps,
+    cancelText = '取消',
+    confirmText = '確認',
+    onCancel,
+    onConfirm,
+    children: modalChildren,
+  } = modalConfig;
 
   const openModal = useCallback((config: ModalConfigType) => {
     setOpen(true);
@@ -33,7 +44,42 @@ const ModalProvider: FC = ({ children }) => {
         openModal,
       }}
     >
-      <>{children}</>
+      <>
+        {children}
+        <Modal
+          className={className}
+          onClose={() => {
+            closeModal();
+          }}
+          showDismissButton
+          modalType="standard"
+          size={size}
+          cancelText={cancelText}
+          confirmText={confirmText}
+          onCancel={(e) => {
+            closeModal();
+            onCancel?.(e);
+          }}
+          onConfirm={onConfirm}
+          cancelButtonProps={{
+            type: 'button',
+            ...cancelButtonProps,
+          }}
+          confirmButtonProps={{
+            type: 'button',
+            ...confirmButtonProps,
+          }}
+          showStatusTypeIcon={false}
+          statusTypeIconLayout="horizontal"
+          title={title ?? ''}
+          titleAlign="center"
+          open={open}
+          showModalFooter
+          showModalHeader
+        >
+          {modalChildren}
+        </Modal>
+      </>
     </ModalContextProvider>
   );
 };

@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
-import { ModalSize } from '@mezzanine-ui/react';
+import { ModalProps, ModalSize } from '@mezzanine-ui/react';
 
-export interface ModalConfigType {
+export type ModalConfigType = Omit<ModalProps, 'modalType'> & {
   size?: ModalSize;
   children?: ReactNode;
-}
+};
