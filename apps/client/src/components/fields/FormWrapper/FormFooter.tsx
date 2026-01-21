@@ -1,16 +1,10 @@
 import { ReactNode, useCallback, useMemo } from 'react';
-import {
-  SubmitHandler,
-  FieldValues,
-  useFormState,
-  useWatch,
-} from 'react-hook-form';
+import { FieldValues, useFormState, useWatch } from 'react-hook-form';
 import { PageFooter } from '@mezzanine-ui/react';
 import { useFormCancel } from '../../../hooks/useFormCancel';
 import classes from './index.module.scss';
 
 interface FormFooterProps<T extends FieldValues = FieldValues> {
-  onSubmit: SubmitHandler<T>;
   disableSubmitButton?: (values: T) => boolean;
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
@@ -19,16 +13,13 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
 }
 
 export const FormFooter = <T extends FieldValues>({
-  onSubmit,
   disableSubmitButton = () => false,
   disableCancelButton = () => false,
   submitText,
   cancelText = '取消',
   haveCancelButton,
 }: FormFooterProps<T>): ReactNode => {
-  const onFormCancel = useFormCancel<T>({
-    onSubmit,
-  });
+  const onFormCancel = useFormCancel({});
   const { isSubmitting } = useFormState<T>();
   const watchValues = useWatch<T>();
 

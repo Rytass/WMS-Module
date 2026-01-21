@@ -33,7 +33,6 @@ function ShipInventoryOrderForm({
       onSubmit={onSubmit}
     >
       <ShipInventoryOrderFormBody
-        onSubmit={onSubmit}
         title={title}
         breadcrumbTitle={breadcrumbTitle}
       />
