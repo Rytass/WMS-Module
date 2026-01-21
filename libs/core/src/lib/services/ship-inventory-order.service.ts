@@ -292,71 +292,10 @@ export class ShipInventoryOrderService<
         to: options.dateRange.to,
       });
 
-    if (options.status) {
-      switch (options.status) {
-        case ShipInventoryOrderStatus.REMOVED:
-          queryBuilder.andWhere('order."removedAt" IS NOT NULL');
-          break;
-
-        case ShipInventoryOrderStatus.SHIPPED:
-          queryBuilder.innerJoin(
-            (qb) =>
-              qb
-                .from(ShipInventoryOrderItemEntityClass, 'item')
-                .select('item."orderId"', 'orderId')
-                .addSelect(
-                  'SUM(item."targetShippedQuantity")',
-                  'totalTargetShippedQuantity',
-                )
-                .addSelect(
-                  'SUM(item."actualShippedQuantity")',
-                  'totalActualShippedQuantity',
-                )
-                .groupBy('item."orderId"'),
-            'summary',
-            'summary."orderId" = order.id AND summary."totalTargetShippedQuantity" = summary."totalActualShippedQuantity"',
-          );
-          break;
-
-        case ShipInventoryOrderStatus.PARTIAL_SHIPPED:
-          queryBuilder.innerJoin(
-            (qb) =>
-              qb
-                .from(ShipInventoryOrderItemEntityClass, 'item')
-                .addSelect('item."orderId"', 'orderId')
-                .addSelect(
-                  'SUM(item."targetShippedQuantity")',
-                  'totalTargetShippedQuantity',
-                )
-                .addSelect(
-                  'SUM(item."actualShippedQuantity")',
-                  'totalActualShippedQuantity',
-                )
-                .groupBy('item."orderId"'),
-            'summary',
-            'summary."orderId" = order.id AND summary."totalActualShippedQuantity" > 0 AND summary."totalActualShippedQuantity" < summary."totalTargetShippedQuantity"',
-          );
-
-          break;
-
-        case ShipInventoryOrderStatus.PENDING:
-          queryBuilder.innerJoin(
-            (qb) =>
-              qb
-                .from(ShipInventoryOrderItemEntityClass, 'item')
-                .addSelect('item."orderId"', 'orderId')
-                .addSelect(
-                  'SUM(item."actualShippedQuantity")',
-                  'totalActualShippedQuantity',
-                )
-                .groupBy('item."orderId"'),
-            'summary',
-            'summary."orderId" = order.id AND summary."totalActualShippedQuantity" = 0',
-          );
-
-          break;
-      }
-    }
+    if (options.status)
+      queryBuilder.andWhere('order.status = :status', {
+        status: options.status,
+      });
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);

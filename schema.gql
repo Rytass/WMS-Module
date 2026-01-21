@@ -250,7 +250,6 @@ input CreateReceiveInventoryOrderItemArgs {
   batchId: ID!
   materialId: ID!
   targetReceivedQuantity: Float!
-  actualReceivedQuantity: Float!
 }
 
 input UpdateReceiveInventoryOrderItemArgs {
@@ -259,7 +258,6 @@ input UpdateReceiveInventoryOrderItemArgs {
   batchId: ID
   materialId: ID
   targetReceivedQuantity: Float
-  actualReceivedQuantity: Float
   id: ID
   removedAt: DateTime
 }
@@ -270,7 +268,6 @@ input CreateShipInventoryOrderItemArgs {
   batchId: ID!
   materialId: ID!
   targetShippedQuantity: Float!
-  actualShippedQuantity: Float!
 }
 
 input UpdateShipInventoryOrderItemArgs {
@@ -279,7 +276,6 @@ input UpdateShipInventoryOrderItemArgs {
   batchId: ID
   materialId: ID
   targetShippedQuantity: Float
-  actualShippedQuantity: Float
   id: ID
   removedAt: DateTime
 }

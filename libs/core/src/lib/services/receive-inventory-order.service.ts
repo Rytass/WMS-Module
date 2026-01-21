@@ -300,71 +300,10 @@ export class ReceiveInventoryOrderService<
         to: options.dateRange.to,
       });
 
-    if (options.status) {
-      switch (options.status) {
-        case ReceiveInventoryOrderStatus.REMOVED:
-          queryBuilder.andWhere('order."removedAt" IS NOT NULL');
-          break;
-
-        case ReceiveInventoryOrderStatus.RECEIVED:
-          queryBuilder.innerJoin(
-            (qb) =>
-              qb
-                .from(ReceiveInventoryOrderItemEntityClass, 'item')
-                .select('item."orderId"', 'orderId')
-                .addSelect(
-                  'SUM(item."targetReceivedQuantity")',
-                  'totalTargetReceivedQuantity',
-                )
-                .addSelect(
-                  'SUM(item."actualReceivedQuantity")',
-                  'totalActualReceivedQuantity',
-                )
-                .groupBy('item."orderId"'),
-            'summary',
-            'summary."orderId" = order.id AND summary."totalTargetReceivedQuantity" = summary."totalActualReceivedQuantity"',
-          );
-          break;
-
-        case ReceiveInventoryOrderStatus.PARTIAL_RECEIVED:
-          queryBuilder.innerJoin(
-            (qb) =>
-              qb
-                .from(ReceiveInventoryOrderItemEntityClass, 'item')
-                .addSelect('item."orderId"', 'orderId')
-                .addSelect(
-                  'SUM(item."targetReceivedQuantity")',
-                  'totalTargetReceivedQuantity',
-                )
-                .addSelect(
-                  'SUM(item."actualReceivedQuantity")',
-                  'totalActualReceivedQuantity',
-                )
-                .groupBy('item."orderId"'),
-            'summary',
-            'summary."orderId" = order.id AND summary."totalActualReceivedQuantity" > 0 AND summary."totalActualReceivedQuantity" < summary."totalTargetReceivedQuantity"',
-          );
-
-          break;
-
-        case ReceiveInventoryOrderStatus.PENDING:
-          queryBuilder.innerJoin(
-            (qb) =>
-              qb
-                .from(ReceiveInventoryOrderItemEntityClass, 'item')
-                .addSelect('item."orderId"', 'orderId')
-                .addSelect(
-                  'SUM(item."actualReceivedQuantity")',
-                  'totalActualReceivedQuantity',
-                )
-                .groupBy('item."orderId"'),
-            'summary',
-            'summary."orderId" = order.id AND summary."totalActualReceivedQuantity" = 0',
-          );
-
-          break;
-      }
-    }
+    if (options.status)
+      queryBuilder.andWhere('order.status = :status', {
+        status: options.status,
+      });
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
