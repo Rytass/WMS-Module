@@ -73,6 +73,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
         className={className}
         size={size}
         placeholder={placeholder}
+        fullWidth
         mode="single"
         onChange={onChange}
         onClear={onClear}

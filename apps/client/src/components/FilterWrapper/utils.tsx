@@ -1,5 +1,6 @@
 import { InputField } from '../fields/InputField';
 import { DateField } from '../fields/DateField';
+import { SingleAutoCompleteField } from '../fields/SingleAutoCompleteField';
 import { FilterType } from './typing';
 
 export function renderFilter(filterType: FilterType) {
@@ -21,6 +22,21 @@ export function renderFilter(filterType: FilterType) {
           name={FilterType.description}
           label="備註"
           placeholder="輸入備註"
+        />
+      );
+
+    case FilterType.materials:
+      return (
+        <SingleAutoCompleteField
+          key={filterType}
+          name={FilterType.materials}
+          label="料號"
+          placeholder="輸入料號"
+          options={[
+            { id: '1234', name: '1234' },
+            { id: '2234', name: '2234' },
+            { id: '3234', name: '3234' },
+          ]}
         />
       );
 

@@ -10,10 +10,11 @@ function MaterialsManagement() {
       <FilterWrapper<FilterValues>
         defaultValues={{
           description: '',
+          materials: '',
         }}
         baseFilters={{
-          filters: [FilterType.description],
-          gridTemplateColumns: '1fr',
+          filters: [FilterType.materials, FilterType.description],
+          gridTemplateColumns: '1fr 2fr',
         }}
         onSubmit={(values) => {
           console.log('values', values);
