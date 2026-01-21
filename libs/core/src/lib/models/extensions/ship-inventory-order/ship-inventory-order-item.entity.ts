@@ -24,6 +24,9 @@ export class ShipInventoryOrderItemEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ type: 'int' })
+  serial: number;
+
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
@@ -33,9 +36,6 @@ export class ShipInventoryOrderItemEntityClass {
 
   @Column({ type: 'numeric' })
   targetShippedQuantity!: number;
-
-  @Column({ type: 'numeric' })
-  actualShippedQuantity!: number;
 
   @Column({ type: 'varchar' })
   @Index()

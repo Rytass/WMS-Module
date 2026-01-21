@@ -1,4 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import {
   ReceiveInventoryOrderEntity,
   ReceiveInventoryOrderEntityClass,
@@ -25,6 +30,7 @@ import {
   ReceiveInventoryOrderStatus,
 } from '../typings/find-receive-inventory-order.input';
 import { ReceiveInventoryOrderChangeEntityClass } from '../models';
+import { ReceiveInventoryOrderInput } from '../typings/receive-inventory-order.input';
 
 /**
  * Service for managing receive inventory orders and their items
@@ -37,7 +43,8 @@ export class ReceiveInventoryOrderService<
   T extends ReceiveInventoryOrderEntityClass = ReceiveInventoryOrderEntityClass,
   K extends
     ReceiveInventoryOrderItemEntityClass = ReceiveInventoryOrderItemEntityClass,
-> {
+> implements OnApplicationBootstrap
+{
   readonly receiveInventoryOrderRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
@@ -49,6 +56,114 @@ export class ReceiveInventoryOrderService<
     this.receiveInventoryOrderRepository = this.dataSource.getRepository<T>(
       this.receiveInventoryOrderEntity,
     );
+  }
+
+  async onApplicationBootstrap() {
+    await this.createReceiveInventoryOrderTriggers();
+  }
+
+  private async createReceiveInventoryOrderTriggers() {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    try {
+      await queryRunner.connect();
+      await queryRunner.query(`
+        DROP TRIGGER IF EXISTS receive_inventory_order_changes_insert ON receive_inventory_order_changes;
+        DROP TRIGGER IF EXISTS receive_inventory_order_changes_update ON receive_inventory_order_changes;
+        DROP TRIGGER IF EXISTS receive_inventory_order_changes_delete ON receive_inventory_order_changes;
+        DROP TRIGGER IF EXISTS receive_inventory_order_removed ON receive_inventory_orders;
+        DROP FUNCTION IF EXISTS update_receive_inventory_order_status();
+      `);
+
+      await queryRunner.query(`
+        CREATE OR REPLACE FUNCTION update_receive_inventory_order_status()
+        RETURNS TRIGGER AS $$
+        DECLARE
+          v_removed_at TIMESTAMPTZ;
+          v_total_received NUMERIC;
+          v_total_target NUMERIC;
+          v_new_status VARCHAR;
+        BEGIN
+          SELECT "removedAt" INTO v_removed_at
+          FROM receive_inventory_orders
+          WHERE id = COALESCE(NEW."orderId", OLD."orderId");
+
+          IF v_removed_at IS NOT NULL THEN
+            v_new_status := 'REMOVED';
+          ELSE
+            SELECT COALESCE(SUM(c.quantity), 0)
+            INTO v_total_received
+            FROM receive_inventory_order_changes c
+            JOIN receive_inventory_order_items i ON c."itemId" = i.id
+            WHERE i."orderId" = COALESCE(NEW."orderId", OLD."orderId");
+
+            SELECT COALESCE("targetReceivedQuantity", 0)
+            INTO v_total_target
+            FROM receive_inventory_orders
+            WHERE id = COALESCE(NEW."orderId", OLD."orderId");
+
+            IF v_total_received = v_total_target AND v_total_target > 0 THEN
+              v_new_status := 'SHIPPED';
+            ELSIF v_total_received > 0 AND v_total_received < v_total_target THEN
+              v_new_status := 'PARTIAL_SHIPPED';
+            ELSE
+              v_new_status := 'PENDING';
+            END IF;
+          END IF;
+
+          UPDATE receive_inventory_orders
+          SET status = v_new_status
+          WHERE id = COALESCE(NEW."orderId", OLD."orderId");
+
+          RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+      `);
+
+      // Pratically, only when change is created will have the status updated,
+      // but keep all for manual database changes possibility
+      await queryRunner.query(`
+        CREATE TRIGGER receive_inventory_order_changes_insert
+        AFTER INSERT ON receive_inventory_order_changes
+        FOR EACH ROW
+        EXECUTE FUNCTION update_receive_inventory_order_status();
+      `);
+
+      await queryRunner.query(`
+        CREATE TRIGGER receive_inventory_order_changes_update
+        AFTER UPDATE ON receive_inventory_order_changes
+        FOR EACH ROW
+        EXECUTE FUNCTION update_receive_inventory_order_status();
+      `);
+
+      await queryRunner.query(`
+        CREATE TRIGGER receive_inventory_order_changes_delete
+        AFTER DELETE ON receive_inventory_order_changes
+        FOR EACH ROW
+        EXECUTE FUNCTION update_receive_inventory_order_status();
+      `);
+
+      await queryRunner.query(`
+        CREATE TRIGGER receive_inventory_order_removed
+        AFTER UPDATE OF "removedAt" ON receive_inventory_orders
+        FOR EACH ROW
+        EXECUTE FUNCTION update_receive_inventory_order_status();
+      `);
+
+      Logger.log(
+        '✅ Receive inventory order status triggers created successfully',
+        'PostgreSQL',
+      );
+    } catch (error) {
+      Logger.error(
+        `❌ Failed to create receive inventory order triggers: ${error}`,
+        'PostgreSQL',
+        error,
+      );
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async createReceiveInventoryOrder({
@@ -127,7 +242,7 @@ export class ReceiveInventoryOrderService<
       await receiveInventoryOrderItemRepository
         .find({ where: { orderId: id } })
         .then((items) => {
-          const itemSet = new Set(items!.map((i) => i.id));
+          const itemSet = new Set(items.map((i) => i.id));
           options.items?.forEach((item) => {
             if (item.removedAt) return;
 
@@ -261,8 +376,10 @@ export class ReceiveInventoryOrderService<
   }
 
   receive(
-    options: { itemId: string; batchId: string; quantity: number }[],
+    options: ReceiveInventoryOrderInput[] | ReceiveInventoryOrderInput,
   ): Promise<boolean> {
+    if (!Array.isArray(options)) options = [options];
+
     return this.dataSource.transaction(async (manager) => {
       const changeRepository =
         manager.getRepository<ReceiveInventoryOrderChangeEntityClass>(

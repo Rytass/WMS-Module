@@ -7,7 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { ShipInventoryOrderItemEntityClass } from './ship-inventory-order-item.entity';
+import { type ShipInventoryOrderItemEntityClass } from './ship-inventory-order-item.entity';
 
 export const ShipInventoryOrderChangeEntity = Symbol(
   'ShipInventoryOrderChangeEntity',
@@ -27,7 +27,10 @@ export class ShipInventoryOrderChangeEntityClass {
   @JoinColumn({ name: 'id', referencedColumnName: 'id' })
   order!: OrderEntity;
 
-  @ManyToOne(() => ShipInventoryOrderItemEntityClass)
+  @ManyToOne(
+    'ship_inventory_order_items',
+    (item: ShipInventoryOrderItemEntityClass) => item.changes,
+  )
   @JoinColumn({ name: 'itemId', referencedColumnName: 'id' })
   item!: ShipInventoryOrderItemEntityClass;
 }

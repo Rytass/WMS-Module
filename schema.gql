@@ -194,24 +194,19 @@ type Query {
   material(id: ID!): MaterialDto!
   materials(offset: Int, limit: Int, materialId: ID, materialIds: [ID!], description: String): Materials!
   stock(id: ID!): StockDto!
-  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String, wildcard: WildcardArgs): Stocks!
-  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String, wildcard: WildcardArgs): Materials!
+  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Stocks!
+  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Materials!
   receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
   shipInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ShipInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ShipInventoryOrders!
   location(id: ID!): LocationDto!
-  locations(offset: Int, limit: Int, description: String, wildcard: WildcardArgs): Locations!
+  locations(offset: Int, limit: Int, description: String): Locations!
 }
 
 input DateRangeArgs {
   from: DateTime!
   to: DateTime!
-}
-
-input WildcardArgs {
-  key: String!
-  value: String!
 }
 
 enum ReceiveInventoryOrderStatus {

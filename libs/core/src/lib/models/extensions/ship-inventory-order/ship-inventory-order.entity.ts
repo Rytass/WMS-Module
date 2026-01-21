@@ -9,6 +9,7 @@ import {
   TableInheritance,
 } from 'typeorm';
 import { ShipInventoryOrderItemEntityClass } from './ship-inventory-order-item.entity';
+import { ShipInventoryOrderStatus } from '../../../typings';
 
 export const ShipInventoryOrderEntity = Symbol('ShipInventoryOrderEntity');
 
@@ -40,4 +41,10 @@ export class ShipInventoryOrderEntityClass {
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ShipInventoryOrderItemEntityClass[];
+
+  @Column({
+    type: 'varchar',
+    default: ShipInventoryOrderStatus.PENDING,
+  })
+  status!: ShipInventoryOrderStatus;
 }

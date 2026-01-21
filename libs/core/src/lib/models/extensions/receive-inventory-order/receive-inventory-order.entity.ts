@@ -9,6 +9,7 @@ import {
   TableInheritance,
 } from 'typeorm';
 import { ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
+import { ReceiveInventoryOrderStatus } from '../../../typings';
 
 export const ReceiveInventoryOrderEntity = Symbol(
   'ReceiveInventoryOrderEntity',
@@ -30,6 +31,9 @@ export class ReceiveInventoryOrderEntityClass {
   @Column({ type: 'varchar' })
   createdBy!: string;
 
+  @Column({ type: 'numeric' })
+  targetReceivedQuantity!: number;
+
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
 
@@ -42,4 +46,10 @@ export class ReceiveInventoryOrderEntityClass {
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ReceiveInventoryOrderItemEntityClass[];
+
+  @Column({
+    type: 'varchar',
+    default: ReceiveInventoryOrderStatus.PENDING,
+  })
+  status!: ReceiveInventoryOrderStatus;
 }

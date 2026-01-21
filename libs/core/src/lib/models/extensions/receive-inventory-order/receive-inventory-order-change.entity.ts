@@ -7,7 +7,8 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
+import { type ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
+import { ShipInventoryOrderStatus } from '../../../typings';
 
 export const ReceiveInventoryOrderChangeEntity = Symbol(
   'ReceiveInventoryOrderChangeEntity',
@@ -27,7 +28,16 @@ export class ReceiveInventoryOrderChangeEntityClass {
   @JoinColumn({ name: 'id', referencedColumnName: 'id' })
   order!: OrderEntity;
 
-  @ManyToOne(() => ReceiveInventoryOrderItemEntityClass)
+  @ManyToOne(
+    'receive_inventory_order_items',
+    (item: ReceiveInventoryOrderItemEntityClass) => item.changes,
+  )
   @JoinColumn({ name: 'itemId', referencedColumnName: 'id' })
   item!: ReceiveInventoryOrderItemEntityClass;
+
+  @Column({
+    type: 'varchar',
+    default: ShipInventoryOrderStatus.PENDING,
+  })
+  status!: ShipInventoryOrderStatus;
 }

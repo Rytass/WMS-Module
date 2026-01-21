@@ -21,6 +21,9 @@ export class ReceiveInventoryOrderItemEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ type: 'int' })
+  serial: number;
+
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 

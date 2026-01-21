@@ -1,4 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import {
   ShipInventoryOrderEntity,
   ShipInventoryOrderEntityClass,
@@ -25,6 +30,7 @@ import {
 } from '../typings/find-ship-inventory-order.input';
 import { OrderEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
 import { ShipInventoryOrderChangeEntityClass } from '../models';
+import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -37,7 +43,8 @@ export class ShipInventoryOrderService<
   T extends ShipInventoryOrderEntityClass = ShipInventoryOrderEntityClass,
   K extends
     ShipInventoryOrderItemEntityClass = ShipInventoryOrderItemEntityClass,
-> {
+> implements OnApplicationBootstrap
+{
   readonly shipInventoryOrderRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
@@ -49,6 +56,110 @@ export class ShipInventoryOrderService<
     this.shipInventoryOrderRepository = this.dataSource.getRepository<T>(
       this.shipInventoryOrderEntity,
     );
+  }
+
+  async onApplicationBootstrap() {
+    await this.createTrigger();
+  }
+
+  async createTrigger(): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+
+    try {
+      await queryRunner.connect();
+      await queryRunner.query(`
+        DROP TRIGGER IF EXISTS ship_inventory_order_changes_insert ON ship_inventory_order_changes;
+        DROP TRIGGER IF EXISTS ship_inventory_order_changes_update ON ship_inventory_order_changes;
+        DROP TRIGGER IF EXISTS ship_inventory_order_changes_delete ON ship_inventory_order_changes;
+        DROP TRIGGER IF EXISTS ship_inventory_order_removed ON ship_inventory_orders;
+        DROP FUNCTION IF EXISTS update_ship_inventory_order_status();
+      `);
+
+      await queryRunner.query(`
+        CREATE OR REPLACE FUNCTION update_ship_inventory_order_status()
+        RETURNS TRIGGER AS $$
+        DECLARE
+          v_removed_at TIMESTAMPTZ;
+          v_total_shipped NUMERIC;
+          v_total_target NUMERIC;
+          v_new_status VARCHAR;
+        BEGIN
+          SELECT "removedAt" INTO v_removed_at
+          FROM ship_inventory_orders
+          WHERE id = COALESCE(NEW."orderId", OLD."orderId");
+
+          IF v_removed_at IS NOT NULL THEN
+            v_new_status := 'REMOVED';
+          ELSE
+            SELECT COALESCE(SUM(c.quantity), 0)
+            INTO v_total_shipped
+            FROM ship_inventory_order_changes c
+            JOIN ship_inventory_order_items i ON c."itemId" = i.id
+            WHERE i."orderId" = COALESCE(NEW."orderId", OLD."orderId");
+
+            SELECT COALESCE(SUM("targetShippedQuantity"), 0)
+            INTO v_total_target
+            FROM ship_inventory_order_items
+            WHERE "orderId" = COALESCE(NEW."orderId", OLD."orderId");
+
+            IF v_total_shipped = v_total_target AND v_total_target > 0 THEN
+              v_new_status := 'SHIPPED';
+            ELSIF v_total_shipped > 0 AND v_total_shipped < v_total_target THEN
+              v_new_status := 'PARTIAL_SHIPPED';
+            ELSE
+              v_new_status := 'PENDING';
+            END IF;
+          END IF;
+
+          UPDATE ship_inventory_orders
+          SET status = v_new_status
+          WHERE id = COALESCE(NEW."orderId", OLD."orderId");
+
+          RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+      `);
+      await queryRunner.query(`
+        CREATE TRIGGER ship_inventory_order_changes_insert
+        AFTER INSERT ON ship_inventory_order_changes
+        FOR EACH ROW
+        EXECUTE FUNCTION update_ship_inventory_order_status();
+      `);
+
+      await queryRunner.query(`
+        CREATE TRIGGER ship_inventory_order_changes_update
+        AFTER UPDATE ON ship_inventory_order_changes
+        FOR EACH ROW
+        EXECUTE FUNCTION update_ship_inventory_order_status();
+      `);
+
+      await queryRunner.query(`
+        CREATE TRIGGER ship_inventory_order_changes_delete
+        AFTER DELETE ON ship_inventory_order_changes
+        FOR EACH ROW
+        EXECUTE FUNCTION update_ship_inventory_order_status();
+      `);
+
+      await queryRunner.query(`
+        CREATE TRIGGER ship_inventory_order_removed
+        AFTER UPDATE OF "removedAt" ON ship_inventory_orders
+        FOR EACH ROW
+        EXECUTE FUNCTION update_ship_inventory_order_status();
+      `);
+
+      Logger.log(
+        '✅ Ship inventory order status triggers created successfully',
+        'PostgreSQL',
+      );
+    } catch (error) {
+      Logger.error(
+        `❌ Failed to create ship inventory order triggers: ${error}`,
+        'PostgreSQL',
+      );
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async createShipInventoryOrder({
@@ -123,7 +234,7 @@ export class ShipInventoryOrderService<
       await shipInventoryOrderItemRepository
         .find({ where: { orderId: id } })
         .then((items) => {
-          const itemSet = new Set(items!.map((i) => i.id));
+          const itemSet = new Set(items.map((i) => i.id));
           options.items?.forEach((item) => {
             if (item.removedAt) return;
 
@@ -256,7 +367,10 @@ export class ShipInventoryOrderService<
     return queryBuilder.getManyAndCount();
   }
 
-  ship(options: { itemId: string; quantity: number }[]): Promise<boolean> {
+  ship(
+    options: ShipInventoryOrderInput[] | ShipInventoryOrderInput,
+  ): Promise<boolean> {
+    if (!Array.isArray(options)) options = [options];
     return this.dataSource.transaction(async (manager) => {
       const changeRepository =
         manager.getRepository<ShipInventoryOrderChangeEntityClass>(
