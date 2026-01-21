@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
-import { useState, memo } from 'react';
+import { useCallback, useState, memo } from 'react';
 import { Modal } from '@mezzanine-ui/react';
 import { DialogContextProvider } from './DialogContext';
 import { DialogConfigType } from './typing';
@@ -22,31 +22,32 @@ const DialogProvider: FC = ({ children }) => {
     confirmText = '確認',
   } = dialogConfig;
 
-  const openDialog = (config: DialogConfigType) => {
+  const openDialog = useCallback((config: DialogConfigType) => {
     setOpen(true);
     setDialogConfig(config);
-  };
+  }, []);
 
-  const handleCloseDialog = async () => {
+  const handleCloseDialog = useCallback(async () => {
     setOpen(false);
 
     // Wait animation end then reset
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 250));
 
     setDialogConfig({});
-  };
+  }, []);
 
-  const handleResolveActions = (status: boolean) => {
-    handleCloseDialog();
-    resolve?.(status);
-  };
+  const handleResolveActions = useCallback(
+    (status: boolean) => {
+      handleCloseDialog();
+      resolve?.(status);
+    },
+    [handleCloseDialog, resolve],
+  );
 
   return (
     <DialogContextProvider
       value={{
-        closeDialog: () => {
-          handleCloseDialog();
-        },
+        closeDialog: handleCloseDialog,
         openDialog,
         resolve,
       }}
@@ -55,6 +56,10 @@ const DialogProvider: FC = ({ children }) => {
         {children}
         <Modal
           className={className}
+          onClose={() => {
+            handleCloseDialog();
+          }}
+          showDismissButton
           modalType="standard"
           size="narrow"
           supportingText={supportingText}
@@ -78,9 +83,6 @@ const DialogProvider: FC = ({ children }) => {
           statusTypeIconLayout="horizontal"
           title={title ?? ''}
           modalStatusType={modalStatusType}
-          onClose={() => {
-            handleCloseDialog();
-          }}
           open={open}
           showModalFooter
           showModalHeader
