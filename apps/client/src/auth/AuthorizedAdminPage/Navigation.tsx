@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { Navigation as MznNavigation } from '@mezzanine-ui/react';
@@ -8,6 +9,7 @@ import {
   NavigationOption,
   NavigationUserMenu,
   NavigationIconButton,
+  NavigationChild,
 } from '@mezzanine-ui/react/Navigation';
 import { useRoutes } from '../../hooks/useRoutes';
 // eslint-disable-next-line @nx/enforce-module-boundaries
@@ -18,12 +20,9 @@ function Navigation() {
   const { pathname, push } = useRouter();
   const routes = useRoutes();
 
-  return (
-    <div className={classes.navigation}>
-      <MznNavigation>
-        <NavigationHeader title="Rytass">
-          <Image src={logo} alt="" width={28} height={28} />
-        </NavigationHeader>
+  const renderOptions = useCallback(
+    (): NavigationChild => (
+      <>
         {routes.map((route) => {
           if (route.children) {
             return (
@@ -58,6 +57,18 @@ function Navigation() {
             />
           );
         })}
+      </>
+    ),
+    [pathname, push, routes],
+  );
+
+  return (
+    <div className={classes.navigation}>
+      <MznNavigation>
+        <NavigationHeader title="Rytass">
+          <Image src={logo} alt="" width={28} height={28} />
+        </NavigationHeader>
+        {renderOptions()}
         <NavigationFooter>
           <NavigationUserMenu imgSrc="1">User Name</NavigationUserMenu>
           <NavigationIconButton icon={LogoutIcon} />

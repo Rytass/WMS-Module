@@ -3,33 +3,28 @@ import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
 import InputField from '../../../fields/InputField';
 import { useFormCancel } from '../../../../hooks/useFormCancel';
-import { FormValues } from './typing';
 
 interface ShipInventoryOrderFormBodyProps {
-  onSubmit: (values: FormValues) => Promise<void>;
   title: string;
   breadcrumbTitle: string;
 }
 
 function ShipInventoryOrderFormBody({
-  onSubmit,
   title,
   breadcrumbTitle,
 }: ShipInventoryOrderFormBodyProps) {
-  const onFormCancel = useFormCancel<FormValues>({
-    onSubmit,
-  });
+  const onFormCancel = useFormCancel({});
 
   return (
     <PageWrapper
       breadcrumb={[
         {
           label: '主檔管理',
-          href: NextPath.SHIPINVENTORYORDER,
+          href: NextPath.SHIPINVENTORYORDERS,
         },
         {
           label: '出庫單',
-          href: NextPath.SHIPINVENTORYORDER,
+          href: NextPath.SHIPINVENTORYORDERS,
         },
         {
           label: breadcrumbTitle,

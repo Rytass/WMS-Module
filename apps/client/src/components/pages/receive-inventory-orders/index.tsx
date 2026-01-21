@@ -1,7 +1,7 @@
 import PageWrapper from '../../PageWrapper';
 
-function ReceiveInventoryOrder() {
+function ReceiveInventoryOrders() {
   return <PageWrapper title="入庫單">入庫單</PageWrapper>;
 }
 
-export default ReceiveInventoryOrder;
+export default ReceiveInventoryOrders;

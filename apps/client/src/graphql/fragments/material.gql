@@ -3,4 +3,14 @@ fragment Material on MaterialDto {
   description
   baseUnit
   isActive
+  stocks {
+    ...SimpleStock
+  }
+}
+
+fragment SimpleMaterial on MaterialDto {
+  id
+  description
+  baseUnit
+  isActive
 }

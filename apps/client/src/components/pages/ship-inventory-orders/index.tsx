@@ -16,7 +16,7 @@ import {
 } from '../../../graphql/generated/.graphql';
 import { FilterValues } from './typing';
 
-function ShipInventoryOrder() {
+function ShipInventoryOrders() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data } = useQuery(ShipInventoryOrdersDocument, {
@@ -24,17 +24,17 @@ function ShipInventoryOrder() {
     fetchPolicy: 'cache-and-network',
   });
 
-  const dataSource = useMemo(
-    (): ShipInventoryOrderFragment[] => data?.shipInventoryOrders.items ?? [],
-    [data?.shipInventoryOrders.items],
-  );
-
   const { pageTotal } = useTablePageTotal({
     page,
     total: data?.shipInventoryOrders.total,
     setPage,
     filterValues: [],
   });
+
+  const dataSource = useMemo(
+    (): ShipInventoryOrderFragment[] => data?.shipInventoryOrders.items ?? [],
+    [data?.shipInventoryOrders.items],
+  );
 
   const columns: TableColumn<ShipInventoryOrderFragment>[] = [
     {
@@ -82,4 +82,4 @@ function ShipInventoryOrder() {
   );
 }
 
-export default ShipInventoryOrder;
+export default ShipInventoryOrders;

@@ -30,6 +30,8 @@ const BaseField: FC<BaseFieldProps> = ({
     [formState.errors, name],
   );
 
+  console.log('formState', formState.errors);
+
   return (
     <FormField
       className={fieldClassName}

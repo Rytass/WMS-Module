@@ -60,10 +60,8 @@ const FilterWrapper = <T extends FieldValues>({
               className={cx(classes.expandButton, {
                 [classes.isExpanded]: isExpanded,
               })}
-              icon={{
-                position: 'trailing',
-                src: ChevronDownIcon,
-              }}
+              icon={ChevronDownIcon}
+              iconType="trailing"
               onClick={() => {
                 setIsExpanded((state) => !state);
               }}

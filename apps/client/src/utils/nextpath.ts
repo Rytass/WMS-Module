@@ -1,8 +1,12 @@
 export enum NextPath {
     CHANGEHISTORY = "/change-history",
+    LOADERSMANAGEMENT = "/loaders-management",
+    MAPS = "/maps",
     MATERIALSMANAGEMENT = "/materials-management",
-    RECEIVEINVENTORYORDER = "/receive-inventory-order",
-    SHIPINVENTORYORDER = "/ship-inventory-order",
-    SHIPINVENTORYORDER_CREATE = "/ship-inventory-order/create",
-    SHIPINVENTORYORDER_ID_VIEW = "/ship-inventory-order/[id]/view",
+    RECEIVEINVENTORYORDERS = "/receive-inventory-orders",
+    SHIPINVENTORYORDERS = "/ship-inventory-orders",
+    SHIPINVENTORYORDERS_CREATE = "/ship-inventory-orders/create",
+    SHIPINVENTORYORDERS_ID_VIEW = "/ship-inventory-orders/[id]/view",
+    STOCKS = "/stocks",
+    STOCKTAKING = "/stocktaking",
 }

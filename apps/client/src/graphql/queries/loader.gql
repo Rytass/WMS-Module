@@ -1,0 +1,39 @@
+query Loader($loaderId: ID!) {
+  loader(id: $loaderId) {
+    ...Loader
+  }
+}
+
+query Loaders(
+  $offset: Int
+  $limit: Int
+  $typeId: ID
+  $typeIds: [ID!]
+  $locationId: ID
+  $locationIds: [ID!]
+  $serialId: String
+  $serialIds: [String!]
+  $isActive: Boolean
+  $dateRange: DateRangeArgs
+  $note: String
+) {
+  loaders(
+    offset: $offset
+    limit: $limit
+    typeId: $typeId
+    typeIds: $typeIds
+    locationId: $locationId
+    locationIds: $locationIds
+    serialId: $serialId
+    serialIds: $serialIds
+    isActive: $isActive
+    dateRange: $dateRange
+    note: $note
+  ) {
+    id
+    items {
+      ...Loader
+    }
+    total
+  }
+}

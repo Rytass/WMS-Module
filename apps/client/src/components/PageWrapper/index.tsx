@@ -36,7 +36,8 @@ function PageWrapper({
           {haveBack && (
             <Button
               type="button"
-              icon={{ position: 'icon-only', src: ChevronLeftIcon }}
+              icon={ChevronLeftIcon}
+              iconType="icon-only"
               variant="base-tertiary"
               size="sub"
               onClick={

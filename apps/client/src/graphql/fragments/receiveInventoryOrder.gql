@@ -1,0 +1,20 @@
+fragment ReceiveInventoryOrderItem on ReceiveInventoryOrderItemDto {
+  id
+  description
+  unitId
+  targetReceivedQuantity
+  orderId
+  materialId
+  batchId
+  removedAt
+}
+
+fragment ReceiveInventoryOrder on ReceiveInventoryOrderDto {
+  id
+  description
+  createdBy
+  removedAt
+  items {
+    ...ReceiveInventoryOrderItem
+  }
+}

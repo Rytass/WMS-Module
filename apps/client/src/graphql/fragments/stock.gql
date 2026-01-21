@@ -2,4 +2,19 @@ fragment Stock on StockDto {
   id
   loaderId
   description
+  material {
+    ...SimpleMaterial
+  }
+  location {
+    ...Location
+  }
+  batch {
+    id
+  }
+}
+
+fragment SimpleStock on StockDto {
+  id
+  loaderId
+  description
 }

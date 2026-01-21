@@ -1,0 +1,27 @@
+mutation CreateReceiveInventoryOrder(
+  $key: ID!
+  $description: String!
+  $items: [CreateReceiveInventoryOrderItemArgs!]!
+) {
+  createReceiveInventoryOrder(
+    key: $key
+    description: $description
+    items: $items
+  ) {
+    ...ReceiveInventoryOrder
+  }
+}
+
+mutation UpdateReceiveInventoryOrder(
+  $updateReceiveInventoryOrderId: ID!
+  $description: String
+  $items: [UpdateReceiveInventoryOrderItemArgs!]
+) {
+  updateReceiveInventoryOrder(
+    id: $updateReceiveInventoryOrderId
+    description: $description
+    items: $items
+  ) {
+    ...ReceiveInventoryOrder
+  }
+}

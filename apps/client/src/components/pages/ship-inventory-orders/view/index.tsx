@@ -13,11 +13,11 @@ function ViewShipInventoryOrder() {
       breadcrumb={[
         {
           label: '主檔管理',
-          href: NextPath.SHIPINVENTORYORDER,
+          href: NextPath.SHIPINVENTORYORDERS,
         },
         {
           label: '出庫單',
-          href: NextPath.SHIPINVENTORYORDER,
+          href: NextPath.SHIPINVENTORYORDERS,
         },
         {
           label: id,

@@ -1,4 +1,4 @@
-import CreateShipInventoryOrder from '../../components/pages/ship-inventory-order/create';
+import CreateShipInventoryOrder from '../../components/pages/ship-inventory-orders/create';
 
 function ShipInventoryOrderCreatePage() {
   return <CreateShipInventoryOrder />;
