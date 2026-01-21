@@ -42,10 +42,8 @@ function TableWrapper({
               type="button"
               onClick={onCreate}
               size="sub"
-              icon={{
-                position: 'leading',
-                src: PlusIcon,
-              }}
+              icon={PlusIcon}
+              iconType="leading"
             >
               {createText}
             </Button>
