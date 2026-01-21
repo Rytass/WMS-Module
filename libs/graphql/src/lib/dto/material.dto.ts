@@ -7,6 +7,9 @@ export class MaterialDto {
   id!: string;
 
   @Field(() => String)
+  key!: string;
+
+  @Field(() => String)
   description!: string;
 
   @Field(() => String)

@@ -1,4 +1,3 @@
-import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   Column,
   CreateDateColumn,
@@ -6,11 +5,11 @@ import {
   Index,
   JoinColumn,
   OneToMany,
-  OneToOne,
   PrimaryColumn,
   TableInheritance,
 } from 'typeorm';
 import { ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
+import { ReceiveInventoryOrderStatus } from '../../../typings';
 
 export const ReceiveInventoryOrderEntity = Symbol(
   'ReceiveInventoryOrderEntity',
@@ -32,20 +31,25 @@ export class ReceiveInventoryOrderEntityClass {
   @Column({ type: 'varchar' })
   createdBy!: string;
 
+  @Column({ type: 'numeric' })
+  targetReceivedQuantity!: number;
+
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
-
-  @OneToOne('orders')
-  @JoinColumn({ name: 'id', referencedColumnName: 'id' })
-  order!: OrderEntity;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
   @OneToMany(
     'receive_inventory_order_items',
-    (entity: ReceiveInventoryOrderEntityClass) => entity.order,
+    (entity: ReceiveInventoryOrderItemEntityClass) => entity.order,
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ReceiveInventoryOrderItemEntityClass[];
+
+  @Column({
+    type: 'varchar',
+    default: ReceiveInventoryOrderStatus.PENDING,
+  })
+  status!: ReceiveInventoryOrderStatus;
 }

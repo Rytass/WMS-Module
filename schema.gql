@@ -38,6 +38,7 @@ type Loaders {
 
 type MaterialDto {
   id: ID!
+  key: String!
   description: String!
   baseUnit: String!
   isActive: Boolean!
@@ -126,12 +127,20 @@ type ShipInventoryOrders {
 
 type LocationDto {
   id: ID!
+  key: String!
   description: String!
   mapData: MapDataDto
 }
 
+type Locations {
+  id: ID!
+  items: [LocationDto!]!
+  total: Int!
+}
+
 type BatchDto {
   id: ID!
+  key: String!
 }
 
 type MapPolygonRangePointDto {
@@ -191,6 +200,8 @@ type Query {
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
   shipInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ShipInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ShipInventoryOrders!
+  location(id: ID!): LocationDto!
+  locations(offset: Int, limit: Int, description: String): Locations!
 }
 
 input DateRangeArgs {
@@ -239,7 +250,6 @@ input CreateReceiveInventoryOrderItemArgs {
   batchId: ID!
   materialId: ID!
   targetReceivedQuantity: Float!
-  actualReceivedQuantity: Float!
 }
 
 input UpdateReceiveInventoryOrderItemArgs {
@@ -248,7 +258,6 @@ input UpdateReceiveInventoryOrderItemArgs {
   batchId: ID
   materialId: ID
   targetReceivedQuantity: Float
-  actualReceivedQuantity: Float
   id: ID
   removedAt: DateTime
 }
@@ -259,7 +268,6 @@ input CreateShipInventoryOrderItemArgs {
   batchId: ID!
   materialId: ID!
   targetShippedQuantity: Float!
-  actualShippedQuantity: Float!
 }
 
 input UpdateShipInventoryOrderItemArgs {
@@ -268,7 +276,6 @@ input UpdateShipInventoryOrderItemArgs {
   batchId: ID
   materialId: ID
   targetShippedQuantity: Float
-  actualShippedQuantity: Float
   id: ID
   removedAt: DateTime
 }

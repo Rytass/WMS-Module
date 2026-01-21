@@ -1,4 +1,3 @@
-import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   Column,
   CreateDateColumn,
@@ -6,11 +5,11 @@ import {
   Index,
   JoinColumn,
   OneToMany,
-  OneToOne,
   PrimaryColumn,
   TableInheritance,
 } from 'typeorm';
 import { ShipInventoryOrderItemEntityClass } from './ship-inventory-order-item.entity';
+import { ShipInventoryOrderStatus } from '../../../typings';
 
 export const ShipInventoryOrderEntity = Symbol('ShipInventoryOrderEntity');
 
@@ -36,14 +35,16 @@ export class ShipInventoryOrderEntityClass {
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @OneToOne('orders')
-  @JoinColumn({ name: 'id', referencedColumnName: 'id' })
-  order!: OrderEntity;
-
   @OneToMany(
     'ship_inventory_order_items',
     (entity: ShipInventoryOrderItemEntityClass) => entity.order,
   )
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ShipInventoryOrderItemEntityClass[];
+
+  @Column({
+    type: 'varchar',
+    default: ShipInventoryOrderStatus.PENDING,
+  })
+  status!: ShipInventoryOrderStatus;
 }

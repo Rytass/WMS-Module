@@ -16,14 +16,11 @@ export class CreateShipInventoryOrderItemArgs {
 
   @Field(() => Number)
   targetShippedQuantity!: number;
-
-  @Field(() => Number)
-  actualShippedQuantity!: number;
 }
 
 @InputType()
 export class UpdateShipInventoryOrderItemArgs extends PartialType(
-  CreateShipInventoryOrderItemArgs
+  CreateShipInventoryOrderItemArgs,
 ) {
   @Field(() => ID, { nullable: true })
   id?: string;

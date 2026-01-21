@@ -15,6 +15,12 @@ import {
 } from './metadata/material.entity';
 import { StockEntity, StockEntityClass } from './metadata/stock.entity';
 import {
+  LocationEntity,
+  LocationEntityClass,
+} from './metadata/location.entity';
+import {
+  ReceiveInventoryOrderChangeEntity,
+  ReceiveInventoryOrderChangeEntityClass,
   ReceiveInventoryOrderEntity,
   ReceiveInventoryOrderEntityClass,
   ReceiveInventoryOrderItemEntity,
@@ -23,6 +29,8 @@ import {
   ShipInventoryOrderEntityClass,
   ShipInventoryOrderItemEntity,
   ShipInventoryOrderItemEntityClass,
+  ShipInventoryOrderChangeEntity,
+  ShipInventoryOrderChangeEntityClass,
 } from './extensions';
 
 const entities = [
@@ -31,10 +39,13 @@ const entities = [
   [LoadersEntity, LoadersEntityClass],
   [LoaderTypeEntity, LoaderTypeEntityClass],
   [StockEntity, StockEntityClass],
+  [LocationEntity, LocationEntityClass],
   [ReceiveInventoryOrderEntity, ReceiveInventoryOrderEntityClass],
   [ReceiveInventoryOrderItemEntity, ReceiveInventoryOrderItemEntityClass],
+  [ReceiveInventoryOrderChangeEntity, ReceiveInventoryOrderChangeEntityClass],
   [ShipInventoryOrderEntity, ShipInventoryOrderEntityClass],
   [ShipInventoryOrderItemEntity, ShipInventoryOrderItemEntityClass],
+  [ShipInventoryOrderChangeEntity, ShipInventoryOrderChangeEntityClass],
 ] as [symbol, new () => object][];
 
 export const ResolvedEntitiesProviders = entities.map(([token, entity]) => ({

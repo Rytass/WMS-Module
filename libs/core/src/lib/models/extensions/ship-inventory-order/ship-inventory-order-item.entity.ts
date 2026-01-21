@@ -4,14 +4,15 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
-  OneToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   TableInheritance,
 } from 'typeorm';
 import { ShipInventoryOrderEntityClass } from './ship-inventory-order.entity';
-import { MaterialEntityClass } from '../metadata/material.entity';
-import { MaterialUnitEntityClass } from '../metadata/material-unit.entity';
-import { BatchEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
+import { MaterialEntityClass } from '../../metadata/material.entity';
+import { MaterialUnitEntityClass } from '../../metadata/material-unit.entity';
+import { BatchEntity } from '@rytass/wms-base-nestjs-module';
+import { ShipInventoryOrderChangeEntityClass } from './ship-inventory-order-change.entity';
 
 export const ShipInventoryOrderItemEntity = Symbol(
   'ShipInventoryOrderItemEntity',
@@ -23,6 +24,9 @@ export class ShipInventoryOrderItemEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ type: 'int' })
+  serial: number;
+
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
@@ -32,9 +36,6 @@ export class ShipInventoryOrderItemEntityClass {
 
   @Column({ type: 'numeric' })
   targetShippedQuantity!: number;
-
-  @Column({ type: 'numeric' })
-  actualShippedQuantity!: number;
 
   @Column({ type: 'varchar' })
   @Index()
@@ -47,6 +48,14 @@ export class ShipInventoryOrderItemEntityClass {
   @Column({ type: 'varchar', nullable: true })
   @Index()
   batchId!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  @Index()
+  locationId!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  @Index()
+  loaderId!: string | null;
 
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
@@ -70,7 +79,7 @@ export class ShipInventoryOrderItemEntityClass {
   @JoinColumn({ name: 'batchId', referencedColumnName: 'id' })
   batch!: BatchEntity;
 
-  @OneToOne('stocks', { nullable: true })
-  @JoinColumn({ name: 'stockId', referencedColumnName: 'id' })
-  stock!: StockEntity | null;
+  @OneToMany(() => ShipInventoryOrderChangeEntityClass, (change) => change.item)
+  @JoinColumn({ name: 'id', referencedColumnName: 'itemId' })
+  changes!: ShipInventoryOrderChangeEntityClass[];
 }

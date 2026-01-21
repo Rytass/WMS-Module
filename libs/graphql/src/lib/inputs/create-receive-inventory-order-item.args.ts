@@ -16,14 +16,11 @@ export class CreateReceiveInventoryOrderItemArgs {
 
   @Field(() => Number)
   targetReceivedQuantity!: number;
-
-  @Field(() => Number)
-  actualReceivedQuantity!: number;
 }
 
 @InputType()
 export class UpdateReceiveInventoryOrderItemArgs extends PartialType(
-  CreateReceiveInventoryOrderItemArgs
+  CreateReceiveInventoryOrderItemArgs,
 ) {
   @Field(() => ID, { nullable: true })
   id?: string;

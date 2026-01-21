@@ -17,6 +17,7 @@ import { MaterialResolver } from './resolvers/material.resolver';
 import { StockResolver } from './resolvers/stock.resolver';
 import { WarehouseMapMutation } from './mutations/warehouse-map.mutation';
 import { LocationResolver } from './resolvers/location.resolver';
+import { LocationQuery } from './queries/location.query';
 
 const exportDependencies = [
   LoaderMutation,
@@ -32,6 +33,7 @@ const exportDependencies = [
   ShipInventoryOrderMutation,
   ShipInventoryOrderQuery,
   WarehouseMapMutation,
+  LocationQuery,
   LocationResolver,
 ];
 @Module({
