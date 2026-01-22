@@ -14,7 +14,7 @@ query Materials(
   ) {
     id
     items {
-      ...Material
+      ...SimpleMaterial
     }
     total
   }

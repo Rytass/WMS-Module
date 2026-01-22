@@ -10,7 +10,7 @@ import {
 import MaterialsManagementForm from '../Form';
 import {
   MaterialsDocument,
-  MaterialFragment,
+  SimpleMaterialFragment,
 } from '../../../../graphql/generated/.graphql';
 
 function MaterialsManagementTable() {
@@ -30,11 +30,11 @@ function MaterialsManagementTable() {
   });
 
   const dataSource = useMemo(
-    (): MaterialFragment[] => data?.materials.items ?? [],
+    (): SimpleMaterialFragment[] => data?.materials.items ?? [],
     [data?.materials.items],
   );
 
-  const columns: TableColumn<MaterialFragment>[] = [
+  const columns: TableColumn<SimpleMaterialFragment>[] = [
     {
       key: 'description',
       title: '物料說明',
@@ -51,7 +51,7 @@ function MaterialsManagementTable() {
           setCreateModalOpened(true);
         }}
       >
-        <Table<MaterialFragment>
+        <Table<SimpleMaterialFragment>
           columns={columns}
           dataSource={dataSource}
           pagination={{

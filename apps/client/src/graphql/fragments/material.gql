@@ -1,5 +1,6 @@
 fragment Material on MaterialDto {
   id
+  key
   description
   baseUnit
   isActive
@@ -10,6 +11,7 @@ fragment Material on MaterialDto {
 
 fragment SimpleMaterial on MaterialDto {
   id
+  key
   description
   baseUnit
   isActive
