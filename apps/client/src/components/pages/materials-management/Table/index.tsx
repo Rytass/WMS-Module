@@ -8,6 +8,7 @@ import {
   useTablePageTotal,
 } from '../../../../hooks/useTablePagination';
 import MaterialsManagementForm from '../Form';
+import Actions from './Actions';
 import {
   MaterialsDocument,
   SimpleMaterialFragment,
@@ -38,6 +39,12 @@ function MaterialsManagementTable() {
   );
 
   const columns: TableColumn<SimpleMaterialFragment>[] = [
+    {
+      key: 'actions',
+      title: '操作',
+      width: 140,
+      render: (source) => <Actions source={source} />,
+    },
     {
       key: 'isActive',
       title: '狀態',
