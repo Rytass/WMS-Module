@@ -1,3 +1,4 @@
 export type FormValues = {
-  demo: string;
+  materialNumber: string;
+  description: string;
 };
