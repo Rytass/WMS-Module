@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnApplicationBootstrap,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   ShipInventoryOrderEntity,
   ShipInventoryOrderEntityClass,
@@ -17,7 +12,7 @@ import {
   EntityManager,
   In,
   IsNull,
-  Repository,
+  SelectQueryBuilder,
   type EntityTarget,
 } from 'typeorm';
 import {
@@ -43,9 +38,9 @@ export class ShipInventoryOrderService<
   T extends ShipInventoryOrderEntityClass = ShipInventoryOrderEntityClass,
   K extends
     ShipInventoryOrderItemEntityClass = ShipInventoryOrderItemEntityClass,
-> implements OnApplicationBootstrap
-{
-  readonly shipInventoryOrderRepository: Repository<T>;
+> {
+  readonly selectQueryBuilder: (alias: string) => SelectQueryBuilder<T>;
+
   constructor(
     private readonly dataSource: DataSource,
     @Inject(ShipInventoryOrderEntity)
@@ -53,113 +48,44 @@ export class ShipInventoryOrderService<
     @Inject(ShipInventoryOrderItemEntity)
     readonly shipInventoryOrderItemEntity: EntityTarget<K>,
   ) {
-    this.shipInventoryOrderRepository = this.dataSource.getRepository<T>(
-      this.shipInventoryOrderEntity,
-    );
-  }
-
-  async onApplicationBootstrap() {
-    await this.createTrigger();
-  }
-
-  async createTrigger(): Promise<void> {
-    const queryRunner = this.dataSource.createQueryRunner();
-
-    try {
-      await queryRunner.connect();
-      await queryRunner.query(`
-        DROP TRIGGER IF EXISTS ship_inventory_order_changes_insert ON ship_inventory_order_changes;
-        DROP TRIGGER IF EXISTS ship_inventory_order_changes_update ON ship_inventory_order_changes;
-        DROP TRIGGER IF EXISTS ship_inventory_order_changes_delete ON ship_inventory_order_changes;
-        DROP TRIGGER IF EXISTS ship_inventory_order_removed ON ship_inventory_orders;
-        DROP FUNCTION IF EXISTS update_ship_inventory_order_status();
-      `);
-
-      await queryRunner.query(`
-        CREATE OR REPLACE FUNCTION update_ship_inventory_order_status()
-        RETURNS TRIGGER AS $$
-        DECLARE
-          v_removed_at TIMESTAMPTZ;
-          v_total_shipped NUMERIC;
-          v_total_target NUMERIC;
-          v_new_status VARCHAR;
-        BEGIN
-          SELECT "removedAt" INTO v_removed_at
-          FROM ship_inventory_orders
-          WHERE id = COALESCE(NEW."orderId", OLD."orderId");
-
-          IF v_removed_at IS NOT NULL THEN
-            v_new_status := 'REMOVED';
-          ELSE
-            SELECT COALESCE(SUM(c.quantity), 0)
-            INTO v_total_shipped
-            FROM ship_inventory_order_changes c
-            JOIN ship_inventory_order_items i ON c."itemId" = i.id
-            WHERE i."orderId" = COALESCE(NEW."orderId", OLD."orderId");
-
-            SELECT COALESCE(SUM("targetShippedQuantity"), 0)
-            INTO v_total_target
-            FROM ship_inventory_order_items
-            WHERE "orderId" = COALESCE(NEW."orderId", OLD."orderId");
-
-            IF v_total_shipped = v_total_target AND v_total_target > 0 THEN
-              v_new_status := 'SHIPPED';
-            ELSIF v_total_shipped > 0 AND v_total_shipped < v_total_target THEN
-              v_new_status := 'PARTIAL_SHIPPED';
-            ELSE
-              v_new_status := 'PENDING';
-            END IF;
-          END IF;
-
-          UPDATE ship_inventory_orders
-          SET status = v_new_status
-          WHERE id = COALESCE(NEW."orderId", OLD."orderId");
-
-          RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-      `);
-      await queryRunner.query(`
-        CREATE TRIGGER ship_inventory_order_changes_insert
-        AFTER INSERT ON ship_inventory_order_changes
-        FOR EACH ROW
-        EXECUTE FUNCTION update_ship_inventory_order_status();
-      `);
-
-      await queryRunner.query(`
-        CREATE TRIGGER ship_inventory_order_changes_update
-        AFTER UPDATE ON ship_inventory_order_changes
-        FOR EACH ROW
-        EXECUTE FUNCTION update_ship_inventory_order_status();
-      `);
-
-      await queryRunner.query(`
-        CREATE TRIGGER ship_inventory_order_changes_delete
-        AFTER DELETE ON ship_inventory_order_changes
-        FOR EACH ROW
-        EXECUTE FUNCTION update_ship_inventory_order_status();
-      `);
-
-      await queryRunner.query(`
-        CREATE TRIGGER ship_inventory_order_removed
-        AFTER UPDATE OF "removedAt" ON ship_inventory_orders
-        FOR EACH ROW
-        EXECUTE FUNCTION update_ship_inventory_order_status();
-      `);
-
-      Logger.log(
-        '✅ Ship inventory order status triggers created successfully',
-        'PostgreSQL',
-      );
-    } catch (error) {
-      Logger.error(
-        `❌ Failed to create ship inventory order triggers: ${error}`,
-        'PostgreSQL',
-      );
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
+    this.selectQueryBuilder = (alias: string) => {
+      return this.dataSource
+        .getRepository<T>(this.shipInventoryOrderEntity)
+        .createQueryBuilder(alias)
+        .leftJoin(
+          (subQuery) =>
+            subQuery
+              .select(
+                `CASE
+                  WHEN o."removedAt" IS NOT NULL THEN '${ShipInventoryOrderStatus.PENDING}'
+                  WHEN COALESCE((
+                    SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
+                    FROM ship_inventory_order_changes c
+                    JOIN ship_inventory_order_items i ON c."itemId" = i.id
+                    WHERE i."orderId" = o.id
+                  ), 0) = o."targetShippedQuantity" AND o."targetShippedQuantity" > 0 THEN '${ShipInventoryOrderStatus.SHIPPED}'
+                  WHEN COALESCE((
+                    SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
+                    FROM ship_inventory_order_changes c
+                    JOIN ship_inventory_order_items i ON c."itemId" = i.id
+                    WHERE i."orderId" = o.id
+                  ), 0) > 0 AND COALESCE((
+                    SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
+                    FROM ship_inventory_order_changes c
+                    JOIN ship_inventory_order_items i ON c."itemId" = i.id
+                    WHERE i."orderId" = o.id
+                  ), 0) < o."targetShippedQuantity" THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
+                  ELSE '${ShipInventoryOrderStatus.PENDING}'
+                END`,
+                'status',
+              )
+              .addSelect('o.id', 'orderId')
+              .from('ship_inventory_orders', 'o'),
+          'order_status',
+          `${alias}.id = order_status."orderId"`,
+        )
+        .addSelect('order_status.status', `status`);
+    };
   }
 
   async createShipInventoryOrder({
@@ -270,30 +196,29 @@ export class ShipInventoryOrderService<
   }
 
   findMany(options: FindShipInventoryOrderInput): Promise<[T[], number]> {
-    const queryBuilder = this.dataSource
-      .getRepository<T>(this.shipInventoryOrderEntity)
-      .createQueryBuilder('order');
+    const queryBuilder = this.selectQueryBuilder('orders');
 
-    if (options.id) queryBuilder.andWhere('order.id = :id', { id: options.id });
+    if (options.id)
+      queryBuilder.andWhere('orders.id = :id', { id: options.id });
 
     if (options.createdBy)
-      queryBuilder.andWhere('order."createdBy" ILIKE :createdBy', {
+      queryBuilder.andWhere('orders."createdBy" ILIKE :createdBy', {
         createdBy: `%${options.createdBy}%`,
       });
 
     if (options.description)
-      queryBuilder.andWhere('order.description ILIKE :description', {
+      queryBuilder.andWhere('orders.description ILIKE :description', {
         description: `%${options.description}%`,
       });
 
     if (options.dateRange)
-      queryBuilder.andWhere('order."createdAt" BETWEEN :from AND :to', {
+      queryBuilder.andWhere('orders."createdAt" BETWEEN :from AND :to', {
         from: options.dateRange.from,
         to: options.dateRange.to,
       });
 
     if (options.status)
-      queryBuilder.andWhere('order.status = :status', {
+      queryBuilder.andWhere(`status = :status`, {
         status: options.status,
       });
 

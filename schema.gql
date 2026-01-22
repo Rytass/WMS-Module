@@ -43,6 +43,7 @@ type MaterialDto {
   baseUnit: String!
   isActive: Boolean!
   stocks: [StockDto!]!
+  materialUnits: [MaterialUnitDto!]!
 }
 
 type Materials {

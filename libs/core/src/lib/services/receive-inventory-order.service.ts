@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  OnApplicationBootstrap,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   ReceiveInventoryOrderEntity,
   ReceiveInventoryOrderEntityClass,
@@ -17,7 +12,7 @@ import {
   EntityManager,
   In,
   IsNull,
-  Repository,
+  SelectQueryBuilder,
   type EntityTarget,
 } from 'typeorm';
 import {
@@ -43,9 +38,8 @@ export class ReceiveInventoryOrderService<
   T extends ReceiveInventoryOrderEntityClass = ReceiveInventoryOrderEntityClass,
   K extends
     ReceiveInventoryOrderItemEntityClass = ReceiveInventoryOrderItemEntityClass,
-> implements OnApplicationBootstrap
-{
-  readonly receiveInventoryOrderRepository: Repository<T>;
+> {
+  readonly selectQueryBuilder: (alias: string) => SelectQueryBuilder<T>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(ReceiveInventoryOrderEntity)
@@ -53,117 +47,44 @@ export class ReceiveInventoryOrderService<
     @Inject(ReceiveInventoryOrderItemEntity)
     readonly receiveInventoryOrderItemEntity: EntityTarget<K>,
   ) {
-    this.receiveInventoryOrderRepository = this.dataSource.getRepository<T>(
-      this.receiveInventoryOrderEntity,
-    );
-  }
-
-  async onApplicationBootstrap() {
-    await this.createReceiveInventoryOrderTriggers();
-  }
-
-  private async createReceiveInventoryOrderTriggers() {
-    const queryRunner = this.dataSource.createQueryRunner();
-
-    try {
-      await queryRunner.connect();
-      await queryRunner.query(`
-        DROP TRIGGER IF EXISTS receive_inventory_order_changes_insert ON receive_inventory_order_changes;
-        DROP TRIGGER IF EXISTS receive_inventory_order_changes_update ON receive_inventory_order_changes;
-        DROP TRIGGER IF EXISTS receive_inventory_order_changes_delete ON receive_inventory_order_changes;
-        DROP TRIGGER IF EXISTS receive_inventory_order_removed ON receive_inventory_orders;
-        DROP FUNCTION IF EXISTS update_receive_inventory_order_status();
-      `);
-
-      await queryRunner.query(`
-        CREATE OR REPLACE FUNCTION update_receive_inventory_order_status()
-        RETURNS TRIGGER AS $$
-        DECLARE
-          v_removed_at TIMESTAMPTZ;
-          v_total_received NUMERIC;
-          v_total_target NUMERIC;
-          v_new_status VARCHAR;
-        BEGIN
-          SELECT "removedAt" INTO v_removed_at
-          FROM receive_inventory_orders
-          WHERE id = COALESCE(NEW."orderId", OLD."orderId");
-
-          IF v_removed_at IS NOT NULL THEN
-            v_new_status := 'REMOVED';
-          ELSE
-            SELECT COALESCE(SUM(c.quantity), 0)
-            INTO v_total_received
-            FROM receive_inventory_order_changes c
-            JOIN receive_inventory_order_items i ON c."itemId" = i.id
-            WHERE i."orderId" = COALESCE(NEW."orderId", OLD."orderId");
-
-            SELECT COALESCE("targetReceivedQuantity", 0)
-            INTO v_total_target
-            FROM receive_inventory_orders
-            WHERE id = COALESCE(NEW."orderId", OLD."orderId");
-
-            IF v_total_received = v_total_target AND v_total_target > 0 THEN
-              v_new_status := 'SHIPPED';
-            ELSIF v_total_received > 0 AND v_total_received < v_total_target THEN
-              v_new_status := 'PARTIAL_SHIPPED';
-            ELSE
-              v_new_status := 'PENDING';
-            END IF;
-          END IF;
-
-          UPDATE receive_inventory_orders
-          SET status = v_new_status
-          WHERE id = COALESCE(NEW."orderId", OLD."orderId");
-
-          RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-      `);
-
-      // Pratically, only when change is created will have the status updated,
-      // but keep all for manual database changes possibility
-      await queryRunner.query(`
-        CREATE TRIGGER receive_inventory_order_changes_insert
-        AFTER INSERT ON receive_inventory_order_changes
-        FOR EACH ROW
-        EXECUTE FUNCTION update_receive_inventory_order_status();
-      `);
-
-      await queryRunner.query(`
-        CREATE TRIGGER receive_inventory_order_changes_update
-        AFTER UPDATE ON receive_inventory_order_changes
-        FOR EACH ROW
-        EXECUTE FUNCTION update_receive_inventory_order_status();
-      `);
-
-      await queryRunner.query(`
-        CREATE TRIGGER receive_inventory_order_changes_delete
-        AFTER DELETE ON receive_inventory_order_changes
-        FOR EACH ROW
-        EXECUTE FUNCTION update_receive_inventory_order_status();
-      `);
-
-      await queryRunner.query(`
-        CREATE TRIGGER receive_inventory_order_removed
-        AFTER UPDATE OF "removedAt" ON receive_inventory_orders
-        FOR EACH ROW
-        EXECUTE FUNCTION update_receive_inventory_order_status();
-      `);
-
-      Logger.log(
-        '✅ Receive inventory order status triggers created successfully',
-        'PostgreSQL',
-      );
-    } catch (error) {
-      Logger.error(
-        `❌ Failed to create receive inventory order triggers: ${error}`,
-        'PostgreSQL',
-        error,
-      );
-      throw error;
-    } finally {
-      await queryRunner.release();
-    }
+    this.selectQueryBuilder = (alias: string) => {
+      return this.dataSource
+        .getRepository<T>(this.receiveInventoryOrderEntity)
+        .createQueryBuilder(alias)
+        .leftJoin(
+          (subQuery) =>
+            subQuery
+              .select(
+                `CASE
+                  WHEN o."removedAt" IS NOT NULL THEN '${ReceiveInventoryOrderStatus.PENDING}'
+                  WHEN COALESCE((
+                    SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
+                    FROM receive_inventory_order_changes c
+                    JOIN receive_inventory_order_items i ON c."itemId" = i.id
+                    WHERE i."orderId" = o.id
+                  ), 0) = o."targetReceivedQuantity" AND o."targetReceivedQuantity" > 0 THEN '${ReceiveInventoryOrderStatus.RECEIVED}'
+                  WHEN COALESCE((
+                    SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
+                    FROM receive_inventory_order_changes c
+                    JOIN receive_inventory_order_items i ON c."itemId" = i.id
+                    WHERE i."orderId" = o.id
+                  ), 0) > 0 AND COALESCE((
+                    SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
+                    FROM receive_inventory_order_changes c
+                    JOIN receive_inventory_order_items i ON c."itemId" = i.id
+                    WHERE i."orderId" = o.id
+                  ), 0) < o."targetReceivedQuantity" THEN '${ReceiveInventoryOrderStatus.PARTIAL_RECEIVED}'
+                  ELSE '${ReceiveInventoryOrderStatus.PENDING}'
+                END`,
+                'status',
+              )
+              .addSelect('o.id', 'orderId')
+              .from('receive_inventory_orders', 'o'),
+          'order_status',
+          `${alias}.id = order_status."orderId"`,
+        )
+        .addSelect('order_status.status', `status`);
+    };
   }
 
   async createReceiveInventoryOrder({
@@ -278,30 +199,29 @@ export class ReceiveInventoryOrderService<
   }
 
   findMany(options: FindReceiveInventoryOrderInput): Promise<[T[], number]> {
-    const queryBuilder = this.dataSource
-      .getRepository<T>(this.receiveInventoryOrderEntity)
-      .createQueryBuilder('order');
+    const queryBuilder = this.selectQueryBuilder('orders');
 
-    if (options.id) queryBuilder.andWhere('order.id = :id', { id: options.id });
+    if (options.id)
+      queryBuilder.andWhere('orders.id = :id', { id: options.id });
 
     if (options.createdBy)
-      queryBuilder.andWhere('order."createdBy" ILIKE :createdBy', {
+      queryBuilder.andWhere('orders."createdBy" ILIKE :createdBy', {
         createdBy: `%${options.createdBy}%`,
       });
 
     if (options.description)
-      queryBuilder.andWhere('order.description ILIKE :description', {
+      queryBuilder.andWhere('orders.description ILIKE :description', {
         description: `%${options.description}%`,
       });
 
     if (options.dateRange)
-      queryBuilder.andWhere('order."createdAt" BETWEEN :from AND :to', {
+      queryBuilder.andWhere('orders."createdAt" BETWEEN :from AND :to', {
         from: options.dateRange.from,
         to: options.dateRange.to,
       });
 
     if (options.status)
-      queryBuilder.andWhere('order.status = :status', {
+      queryBuilder.andWhere(`status = :status`, {
         status: options.status,
       });
 
