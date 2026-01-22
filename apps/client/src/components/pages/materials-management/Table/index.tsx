@@ -17,8 +17,11 @@ function MaterialsManagementTable() {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
-  const { data } = useQuery(MaterialsDocument, {
-    variables: {},
+  const { data, loading } = useQuery(MaterialsDocument, {
+    variables: {
+      offset,
+      limit,
+    },
     fetchPolicy: 'cache-and-network',
   });
 
@@ -54,6 +57,7 @@ function MaterialsManagementTable() {
         <Table<SimpleMaterialFragment>
           columns={columns}
           dataSource={dataSource}
+          loading={loading}
           pagination={{
             current: page,
             onChange: (page) => setPage(page),
