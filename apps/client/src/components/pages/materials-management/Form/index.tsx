@@ -3,6 +3,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { Typography, Button } from '@mezzanine-ui/react';
 import { FormModalWrapper } from '../../../fields/FormModalWrapper';
 import InputField from '../../../fields/InputField';
+import UnitsFieldArray from './UnitsFieldArray';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import classes from './index.module.scss';
@@ -26,6 +27,11 @@ function MaterialsManagementForm({
     resolver: yupResolver(formSchema),
     defaultValues: {
       materialNumber: '',
+      units: [
+        {
+          unit: '',
+        },
+      ],
     },
   });
 
@@ -62,6 +68,7 @@ function MaterialsManagementForm({
               新增項目
             </Button>
           </div>
+          <UnitsFieldArray />
         </div>
       </div>
     </FormModalWrapper>
