@@ -5,7 +5,9 @@ import type { AutoCompleteSingleProps } from '@mezzanine-ui/react/AutoComplete';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
 export type SingleAutoCompleteFieldProps = AutoCompleteSingleProps &
-  Omit<BaseFieldProps, 'children'>;
+  Omit<BaseFieldProps, 'children'> & {
+    fuzzySearch?: boolean;
+  };
 
 export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   className,
@@ -19,6 +21,8 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   placeholder,
   size = 'sub',
   options,
+  onSearch: onSearchProps,
+  fuzzySearch = false,
   ...rest
 }) => {
   const {
@@ -52,6 +56,19 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
     }
   };
 
+  const onSearch = useCallback(
+    (input: string) => {
+      onSearchProps?.(input);
+
+      if (fuzzySearch) {
+        setValue(`${name}-search`, input, {
+          shouldDirty: true,
+        });
+      }
+    },
+    [fuzzySearch, name, onSearchProps, setValue],
+  );
+
   const onClear = useCallback(() => {
     setValue(name, '', {
       shouldDirty: true,
@@ -75,6 +92,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
         placeholder={placeholder}
         fullWidth
         mode="single"
+        onSearch={onSearch}
         onChange={onChange}
         onClear={onClear}
         value={watchValueInOptions}
