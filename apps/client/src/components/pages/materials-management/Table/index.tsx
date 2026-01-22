@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { TableColumn } from '@mezzanine-ui/react';
+import { TableColumn, Badge } from '@mezzanine-ui/react';
 import { useQuery } from '@apollo/client/react';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
@@ -39,9 +39,39 @@ function MaterialsManagementTable() {
 
   const columns: TableColumn<SimpleMaterialFragment>[] = [
     {
+      key: 'isActive',
+      title: '狀態',
+      width: 100,
+      render: (source) =>
+        source.isActive ? (
+          <Badge variant="dot-success" text="啟用中" />
+        ) : (
+          <Badge variant="dot-inactive" text="已停用" />
+        ),
+    },
+    {
+      key: 'key',
+      title: '料號',
+      width: 160,
+      render: (source) => source.key,
+    },
+    {
       key: 'description',
       title: '物料說明',
+      width: 120,
       render: (source) => source.description,
+    },
+    {
+      key: 'baseUnit',
+      title: '基礎計量單位',
+      width: 96,
+      align: 'center',
+      render: (source) => source.baseUnit,
+    },
+    {
+      key: 'ttt',
+      title: '單位轉換',
+      render: (source) => '',
     },
   ];
 
