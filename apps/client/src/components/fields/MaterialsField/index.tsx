@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useCallback, useEffect, useState } from 'react';
+import { useLazyQuery } from '@apollo/client/react';
+import { SelectValue } from '@mezzanine-ui/react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import { MaterialOptionsDocument } from '../../../graphql/generated/.graphql';
 
@@ -8,20 +9,47 @@ interface MaterialsFieldProps {
 }
 
 const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
-  const { data } = useQuery(MaterialOptionsDocument, {
-    variables: {
-      limit: 10,
-    },
-  });
+  const [page, setPage] = useState<number>(0);
+  const [currentOptions, setOptions] = useState<SelectValue[]>([]);
+  const [fetchMaterials] = useLazyQuery(MaterialOptionsDocument);
 
-  const options = useMemo(() => {
-    return (data?.materials.items ?? []).map((item) => ({
-      id: item.id,
-      name: item.key,
-    }));
-  }, [data?.materials.items]);
+  const fetch = useCallback(async () => {
+    const { data } = await fetchMaterials({
+      variables: {
+        limit: 10,
+        offset: (page - 1) * 10,
+      },
+    });
 
-  console.log('data', data);
+    const source = data?.materials.items ?? [];
+
+    if (source.length > 0) {
+      setPage((p) => p + 1);
+    }
+
+    const newOptions =
+      source.map((s) => ({
+        id: s.id,
+        name: s.key,
+      })) ?? [];
+
+    setOptions((op) => [...op, ...newOptions]);
+  }, [fetchMaterials, page]);
+
+  useEffect(() => {
+    if (page) {
+      fetch();
+    }
+  }, [fetch, page]);
+
+  const onVisibilityChange = useCallback((open: boolean) => {
+    if (open) {
+      setPage(1);
+    } else {
+      setPage(0);
+      setOptions([]);
+    }
+  }, []);
 
   return (
     <SingleAutoCompleteField
@@ -29,7 +57,8 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
       label="料號"
       placeholder="輸入料號"
       fuzzySearch
-      options={options}
+      options={currentOptions}
+      onVisibilityChange={onVisibilityChange}
     />
   );
 };
