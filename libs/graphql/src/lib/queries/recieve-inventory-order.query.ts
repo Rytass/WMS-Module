@@ -7,25 +7,25 @@ import { FindReceiveInventoryOrderArgs } from '../inputs/find-receive-inventory-
 @Injectable()
 export class ReceiveInventoryOrderQuery {
   constructor(
-    private readonly receiveInventoryOrderService: ReceiveInventoryOrderService
+    private readonly receiveInventoryOrderService: ReceiveInventoryOrderService,
   ) {}
 
   @Query(() => ReceiveInventoryOrderDto)
   async receiveInventoryOrder(
-    @Args('id', { type: () => ID }) id: string
+    @Args('id', { type: () => ID }) id: string,
   ): Promise<ReceiveInventoryOrderDto> {
-    return this.receiveInventoryOrderService.receiveInventoryOrderRepository.findOneByOrFail(
-      { id }
-    );
+    return this.receiveInventoryOrderService
+      .selectQueryBuilder('orders')
+      .setFindOptions({ where: { id } })
+      .getOneOrFail();
   }
 
   @Query(() => ReceiveInventoryOrders)
   async receiveInventoryOrders(
-    @Args() args: FindReceiveInventoryOrderArgs
+    @Args() args: FindReceiveInventoryOrderArgs,
   ): Promise<ReceiveInventoryOrders> {
-    const [items, total] = await this.receiveInventoryOrderService.findMany(
-      args
-    );
+    const [items, total] =
+      await this.receiveInventoryOrderService.findMany(args);
     return { items, total };
   }
 }

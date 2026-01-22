@@ -56,16 +56,26 @@ export class WmsModuleGraphqlModule {
           imports: [HelperModule, ...(gqlOptions.imports || [])],
           inject: [LoaderService, ...(gqlOptions.inject || [])],
           useFactory: async (loaderService: LoaderService, ...args) => {
+            const loaders = {
+              batchSingle: loaderService.batchEntity(),
+              batchMany: loaderService.batchEntities(),
+              batchManyWithPagination:
+                loaderService.batchEntitiesWithPagination(),
+            };
             const originalFactory = gqlOptions.useFactory
               ? await gqlOptions.useFactory(...args)
               : {};
             return {
               ...originalFactory,
-              loaders: {
-                batchSingle: loaderService.batchEntity(),
-                batchMany: loaderService.batchEntities(),
-                batchManyWithPagination:
-                  loaderService.batchEntitiesWithPagination(),
+              context: async (contextArg: any) => {
+                const context =
+                  typeof gqlOptions.useFactory === 'function'
+                    ? {
+                        loaders,
+                        ...(typeof contextArg === 'object' ? contextArg : {}),
+                      }
+                    : { loaders, ...contextArg };
+                return context;
               },
             };
           },

@@ -7,21 +7,22 @@ import { FindShipInventoryOrderArgs } from '../inputs/find-ship-inventory-order.
 @Injectable()
 export class ShipInventoryOrderQuery {
   constructor(
-    private readonly shipInventoryOrderService: ShipInventoryOrderService
+    private readonly shipInventoryOrderService: ShipInventoryOrderService,
   ) {}
 
   @Query(() => ShipInventoryOrderDto)
   async shipInventoryOrder(
-    @Args('id', { type: () => ID }) id: string
+    @Args('id', { type: () => ID }) id: string,
   ): Promise<ShipInventoryOrderDto> {
-    return this.shipInventoryOrderService.shipInventoryOrderRepository.findOneByOrFail(
-      { id }
-    );
+    return this.shipInventoryOrderService
+      .selectQueryBuilder('orders')
+      .setFindOptions({ where: { id } })
+      .getOneOrFail();
   }
 
   @Query(() => ShipInventoryOrders)
   async shipInventoryOrders(
-    @Args() args: FindShipInventoryOrderArgs
+    @Args() args: FindShipInventoryOrderArgs,
   ): Promise<ShipInventoryOrders> {
     const [items, total] = await this.shipInventoryOrderService.findMany(args);
     return { items, total };

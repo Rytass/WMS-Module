@@ -5,7 +5,7 @@ import {
   Index,
   JoinColumn,
   OneToMany,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   TableInheritance,
 } from 'typeorm';
 import { ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
@@ -18,7 +18,7 @@ export const ReceiveInventoryOrderEntity = Symbol(
 @Entity('receive_inventory_orders')
 @TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
 export class ReceiveInventoryOrderEntityClass {
-  @PrimaryColumn('uuid')
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column({ type: 'varchar', unique: true })
@@ -47,9 +47,5 @@ export class ReceiveInventoryOrderEntityClass {
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ReceiveInventoryOrderItemEntityClass[];
 
-  @Column({
-    type: 'varchar',
-    default: ReceiveInventoryOrderStatus.PENDING,
-  })
   status!: ReceiveInventoryOrderStatus;
 }

@@ -5,7 +5,7 @@ import {
   Index,
   JoinColumn,
   OneToMany,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   TableInheritance,
 } from 'typeorm';
 import { ShipInventoryOrderItemEntityClass } from './ship-inventory-order-item.entity';
@@ -16,7 +16,7 @@ export const ShipInventoryOrderEntity = Symbol('ShipInventoryOrderEntity');
 @Entity('ship_inventory_orders')
 @TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
 export class ShipInventoryOrderEntityClass {
-  @PrimaryColumn('uuid')
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column({ type: 'varchar', unique: true })
@@ -42,9 +42,5 @@ export class ShipInventoryOrderEntityClass {
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ShipInventoryOrderItemEntityClass[];
 
-  @Column({
-    type: 'varchar',
-    default: ShipInventoryOrderStatus.PENDING,
-  })
   status!: ShipInventoryOrderStatus;
 }
