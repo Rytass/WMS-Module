@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
 import { useQuery } from '@apollo/client/react';
+import { useDialog } from '../../../../components/dialog/useDialog';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
 import {
@@ -16,6 +17,8 @@ import {
 
 function MaterialsManagementTable() {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
+  const { openDialog } = useDialog();
+
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(MaterialsDocument, {
@@ -108,7 +111,18 @@ function MaterialsManagementTable() {
       <MaterialsManagementForm
         title="新增料號"
         onSubmit={async (values) => {
-          console.log('values', values);
+          const isConfirm = await openDialog({
+            modalStatusType: 'info',
+            title: '確認新增資料',
+            supportingText:
+              '您即將進入新增流程，完成後系統將自動應用相關變更。請確認是否要繼續，以便順利完成操作。',
+            cancelText: '取消',
+            confirmText: '確認新增',
+          });
+
+          if (isConfirm) {
+            console.log('values', values);
+          }
         }}
         submitText="新增"
         closeModal={() => {

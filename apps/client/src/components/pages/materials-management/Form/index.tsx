@@ -27,6 +27,7 @@ function MaterialsManagementForm({
     resolver: yupResolver(formSchema),
     defaultValues: {
       materialNumber: '',
+      description: '',
       units: [
         {
           unit: '',

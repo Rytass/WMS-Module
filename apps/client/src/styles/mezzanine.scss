@@ -7,3 +7,12 @@
 }
 
 @include mzn-core.styles();
+
+// 魔改區，可能需要回 mzn 設定
+.mzn-backdrop.mzn-backdrop--open.mzn-modal__overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+}
