@@ -73,7 +73,13 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
     setValue(name, '', {
       shouldDirty: true,
     });
-  }, [name, setValue]);
+
+    if (fuzzySearch) {
+      setValue(`${name}-search`, '', {
+        shouldDirty: true,
+      });
+    }
+  }, [name, setValue, fuzzySearch]);
 
   return (
     <BaseField
