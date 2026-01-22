@@ -1,0 +1,4 @@
+fragment Batch on BatchDto {
+  id
+  key
+}

@@ -14,7 +14,18 @@ query Materials(
   ) {
     id
     items {
-      ...Material
+      ...SimpleMaterial
+    }
+    total
+  }
+}
+
+query MaterialOptions($offset: Int, $limit: Int) {
+  materials(offset: $offset, limit: $limit) {
+    id
+    items {
+      id
+      key
     }
     total
   }

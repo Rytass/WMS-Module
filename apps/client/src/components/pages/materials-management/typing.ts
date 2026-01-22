@@ -3,4 +3,7 @@ import {
   FilterType,
 } from '../../FilterWrapper/typing';
 
-export type FilterValues = Pick<GeneralFilterValues, FilterType.description>;
+export type FilterValues = Pick<
+  GeneralFilterValues,
+  FilterType.materials | 'materials-search' | FilterType.description
+>;

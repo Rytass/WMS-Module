@@ -1,5 +1,6 @@
 fragment Location on LocationDto {
   id
+  key
   description
   mapData {
     ...MapData

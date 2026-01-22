@@ -1,5 +1,6 @@
 import { InputField } from '../fields/InputField';
 import { DateField } from '../fields/DateField';
+import MaterialsField from '../fields/MaterialsField';
 import { FilterType } from './typing';
 
 export function renderFilter(filterType: FilterType) {
@@ -23,6 +24,9 @@ export function renderFilter(filterType: FilterType) {
           placeholder="輸入備註"
         />
       );
+
+    case FilterType.materials:
+      return <MaterialsField key={filterType} name={FilterType.materials} />;
 
     default:
       return null;
