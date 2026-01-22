@@ -9,11 +9,11 @@ function MaterialsManagement() {
     <PageWrapper title="料號管理">
       <FilterWrapper<FilterValues>
         defaultValues={{
-          description: '',
           materials: '',
+          materialDescription: '',
         }}
         baseFilters={{
-          filters: [FilterType.materials, FilterType.description],
+          filters: [FilterType.materials, FilterType.materialDescription],
           gridTemplateColumns: '1fr 2fr',
         }}
         onSubmit={(values) => {

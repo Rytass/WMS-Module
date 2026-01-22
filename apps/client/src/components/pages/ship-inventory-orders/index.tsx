@@ -48,7 +48,6 @@ function ShipInventoryOrders() {
     <PageWrapper title="出庫單">
       <FilterWrapper<FilterValues>
         defaultValues={{
-          createdAt: undefined,
           description: '',
         }}
         baseFilters={{
