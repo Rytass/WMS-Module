@@ -5,6 +5,7 @@ import {
   TableColumn,
   TableDataSourceWithId,
   Button,
+  Input,
 } from '@mezzanine-ui/react';
 import InputField from '../../../fields/InputField';
 import NumberInputField from '../../../fields/NumberInputField';
@@ -12,11 +13,17 @@ import { UnitFieldItem, FormValues } from './typing';
 import classes from './index.module.scss';
 
 const UnitsFieldArray: FC = () => {
-  const { fields, remove } = useFieldArray<FormValues, 'units'>({
+  const { fields, append, remove } = useFieldArray<FormValues, 'units'>({
     name: 'units',
   });
 
   const columns: TableColumn<UnitFieldItem & TableDataSourceWithId>[] = [
+    {
+      key: 'one',
+      title: '換算計量',
+      align: 'end',
+      render: () => <Input variant="unit" value="1" size="sub" disabled />,
+    },
     {
       key: 'unit',
       title: '換算單位',
@@ -66,12 +73,29 @@ const UnitsFieldArray: FC = () => {
   return (
     <div className={classes.section}>
       <div className={classes.fieldsArrayTitleWrapper}>
-        <Typography variant="label-primary">單位轉換 (1)</Typography>
-        <Button type="button" variant="base-secondary" size="minor">
+        <Typography variant="label-primary">
+          單位轉換 ({fields.length})
+        </Typography>
+        <Button
+          type="button"
+          variant="base-secondary"
+          size="minor"
+          onClick={() => {
+            append({
+              unit: '',
+            });
+          }}
+        >
           新增項目
         </Button>
       </div>
-      <Table columns={columns} dataSource={fields} />
+      <Table
+        columns={columns}
+        dataSource={fields}
+        emptyProps={{
+          title: '無資料',
+        }}
+      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 export type UnitFieldItem = {
   unit: string;
-  conversionFactor: number;
+  conversionFactor?: number;
 };
 
 export type FormValues = {
