@@ -42,14 +42,14 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
     }
   }, [fetch, page]);
 
-  const onVisibilityChange = useCallback((open: boolean) => {
-    if (open) {
-      setPage(1);
-    } else {
-      setPage(0);
-      setOptions([]);
-    }
-  }, []);
+  const onVisibilityChange = useCallback(
+    (open: boolean) => {
+      if (open && page === 0) {
+        setPage(1);
+      }
+    },
+    [page],
+  );
 
   return (
     <SingleAutoCompleteField

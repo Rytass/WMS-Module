@@ -10,4 +10,5 @@ export type FilterValues = {
   [FilterType.createdAt]: DateType | undefined;
   [FilterType.description]: string;
   [FilterType.materials]: string;
+  'materials-search'?: string;
 };
