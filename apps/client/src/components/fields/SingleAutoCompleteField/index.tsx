@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { useFormContext, useWatch, get } from 'react-hook-form';
 import { AutoComplete, SelectValue } from '@mezzanine-ui/react';
 import type { AutoCompleteSingleProps } from '@mezzanine-ui/react/AutoComplete';
 import BaseField, { BaseFieldProps } from '../BaseField';
@@ -30,6 +30,8 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
     formState: { errors },
     setValue,
   } = useFormContext();
+
+  const isError = useMemo(() => get(errors, name), [errors, name]);
 
   const watchValue = useWatch({
     name,
@@ -93,6 +95,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
     >
       <AutoComplete
         {...rest}
+        error={isError}
         className={className}
         size={size}
         placeholder={placeholder}

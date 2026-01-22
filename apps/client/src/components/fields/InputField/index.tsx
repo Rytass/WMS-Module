@@ -1,5 +1,5 @@
-import { ChangeEventHandler, useCallback } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { ChangeEventHandler, useCallback, useMemo } from 'react';
+import { useFormContext, useWatch, get } from 'react-hook-form';
 import Input from '@mezzanine-ui/react/Input';
 import type { BaseInputProps } from '@mezzanine-ui/react/Input';
 import BaseField, { BaseFieldProps } from '../BaseField';
@@ -18,7 +18,12 @@ export const InputField: FC<InputFieldProps> = ({
   placeholder,
   size = 'sub',
 }) => {
-  const { setValue } = useFormContext();
+  const { setValue, formState } = useFormContext();
+
+  const isError = useMemo(
+    () => get(formState.errors, name),
+    [formState.errors, name],
+  );
 
   const watchValue = useWatch({
     name,
@@ -52,6 +57,7 @@ export const InputField: FC<InputFieldProps> = ({
       <Input
         fullWidth
         clearable
+        error={isError}
         className={className}
         variant="base"
         value={watchValue}

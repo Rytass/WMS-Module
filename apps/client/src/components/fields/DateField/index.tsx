@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { useCallback, useMemo } from 'react';
+import { useFormContext, useWatch, get } from 'react-hook-form';
 import { DatePicker, DatePickerProps } from '@mezzanine-ui/react';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
@@ -17,7 +17,12 @@ export const DateField: FC<DateFieldProps> = ({
   placeholder,
   size = 'sub',
 }) => {
-  const { setValue } = useFormContext();
+  const { setValue, formState } = useFormContext();
+
+  const isError = useMemo(
+    () => get(formState.errors, name),
+    [formState.errors, name],
+  );
 
   const watchValue = useWatch({
     name,
@@ -44,6 +49,7 @@ export const DateField: FC<DateFieldProps> = ({
     >
       <DatePicker
         clearable
+        error={isError}
         className={className}
         size={size}
         placeholder={placeholder}

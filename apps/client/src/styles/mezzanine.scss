@@ -1,5 +1,6 @@
 @use '@mezzanine-ui/core' as mzn-core;
 @use '@mezzanine-ui/system' as mzn-system;
+@use '@mezzanine-ui/system/spacing';
 
 :root {
   @include mzn-system.common-variables('default');
@@ -15,4 +16,9 @@
   right: 0;
   left: 0;
   bottom: 0;
+}
+
+td.mzn-table__cell {
+  padding-top: spacing.semantic-variable(padding, vertical, calm);
+  padding-bottom: spacing.semantic-variable(padding, vertical, calm);
 }

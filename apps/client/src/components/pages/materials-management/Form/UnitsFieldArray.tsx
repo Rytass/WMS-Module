@@ -1,20 +1,29 @@
 import { useFieldArray } from 'react-hook-form';
 import {
+  Typography,
   Table,
   TableColumn,
   TableDataSourceWithId,
   Button,
 } from '@mezzanine-ui/react';
+import InputField from '../../../fields/InputField';
+import NumberInputField from '../../../fields/NumberInputField';
 import { UnitFieldItem, FormValues } from './typing';
+import classes from './index.module.scss';
 
 const UnitsFieldArray: FC = () => {
-  const { fields } = useFieldArray<FormValues, 'units'>({
+  const { fields, remove } = useFieldArray<FormValues, 'units'>({
     name: 'units',
   });
 
-  console.log('fields', fields);
-
   const columns: TableColumn<UnitFieldItem & TableDataSourceWithId>[] = [
+    {
+      key: 'unit',
+      title: '換算單位',
+      render: (source, index) => (
+        <InputField name={`units.${index}.unit`} label="" placeholder="單位" />
+      ),
+    },
     {
       key: 'equal',
       title: '等於',
@@ -26,22 +35,45 @@ const UnitsFieldArray: FC = () => {
       key: 'conversionFactor',
       title: '基礎計量',
       align: 'end',
-      render: () => '1',
+      render: (source, index) => (
+        <NumberInputField
+          name={`units.${index}.conversionFactor`}
+          label=""
+          placeholder="數量"
+        />
+      ),
     },
     {
       key: 'action',
       title: '操作',
       width: 80,
       align: 'center',
-      render: () => (
-        <Button type="button" variant="destructive-ghost" size="sub">
+      render: (source, index) => (
+        <Button
+          type="button"
+          variant="destructive-ghost"
+          size="sub"
+          onClick={() => {
+            remove(index);
+          }}
+        >
           刪除
         </Button>
       ),
     },
   ];
 
-  return <Table columns={columns} dataSource={fields} />;
+  return (
+    <div className={classes.section}>
+      <div className={classes.fieldsArrayTitleWrapper}>
+        <Typography variant="label-primary">單位轉換 (1)</Typography>
+        <Button type="button" variant="base-secondary" size="minor">
+          新增項目
+        </Button>
+      </div>
+      <Table columns={columns} dataSource={fields} />
+    </div>
+  );
 };
 
 export default UnitsFieldArray;

@@ -1,0 +1,8 @@
+.host {
+  // 魔改區，可能需要回 mzn 設定
+  &.noLabel {
+    & > label {
+      display: none;
+    }
+  }
+}

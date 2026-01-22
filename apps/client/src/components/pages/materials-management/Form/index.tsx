@@ -1,6 +1,5 @@
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { Typography, Button } from '@mezzanine-ui/react';
 import { FormModalWrapper } from '../../../fields/FormModalWrapper';
 import InputField from '../../../fields/InputField';
 import UnitsFieldArray from './UnitsFieldArray';
@@ -62,15 +61,7 @@ function MaterialsManagementForm({
             required
           />
         </div>
-        <div className={classes.section}>
-          <div className={classes.fieldsArrayTitleWrapper}>
-            <Typography variant="label-primary">單位轉換 (1)</Typography>
-            <Button type="button" variant="base-secondary" size="minor">
-              新增項目
-            </Button>
-          </div>
-          <UnitsFieldArray />
-        </div>
+        <UnitsFieldArray />
       </div>
     </FormModalWrapper>
   );

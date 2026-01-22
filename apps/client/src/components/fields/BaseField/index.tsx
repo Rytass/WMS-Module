@@ -1,7 +1,9 @@
 import { ReactNode, useMemo } from 'react';
 import { FormFieldSize } from '@mezzanine-ui/core/form';
 import { useFormContext, get } from 'react-hook-form';
+import { cx } from '@mezzanine-ui/react';
 import FormField from '@mezzanine-ui/react/Form/FormField';
+import classes from './index.module.scss';
 
 export interface BaseFieldProps {
   fieldClassName?: string;
@@ -32,7 +34,13 @@ const BaseField: FC<BaseFieldProps> = ({
 
   return (
     <FormField
-      className={fieldClassName}
+      className={cx(
+        classes.host,
+        {
+          [classes.noLabel]: !label,
+        },
+        fieldClassName,
+      )}
       label={label}
       name={name}
       size={fieldSize}
