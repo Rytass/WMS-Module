@@ -31,9 +31,6 @@ export class ReceiveInventoryOrderEntityClass {
   @Column({ type: 'varchar' })
   createdBy!: string;
 
-  @Column({ type: 'numeric' })
-  targetReceivedQuantity!: number;
-
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
 
