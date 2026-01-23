@@ -1,11 +1,12 @@
 import { LockIcon, UnlockIcon, LinkIcon, TrashIcon } from '@mezzanine-ui/icons';
-import { SplitIcon, MergeIcon } from '../icons';
+import { SplitIcon, MergeIcon, UnlinkIcon } from '../icons';
 import { DropdownOption } from '@mezzanine-ui/react';
 
 export enum InventoryActions {
   HoldInventory = 'HoldInventory',
   ReleaseInventoryHold = 'ReleaseInventoryHold',
   AllocateInventory = 'AllocateInventory',
+  DeallocateInventory = 'DeallocateInventory',
   SplitBatch = 'SplitBatch',
   MergeBatch = 'MergeBatch',
   ScrapInventory = 'ScrapInventory',
@@ -31,6 +32,12 @@ export function inventoryActionsSpec(
       return {
         name: '綁定銷售訂單',
         icon: LinkIcon,
+      };
+
+    case InventoryActions.DeallocateInventory:
+      return {
+        name: '解除綁定銷售訂單',
+        icon: UnlinkIcon,
       };
 
     case InventoryActions.SplitBatch:
@@ -61,6 +68,7 @@ export const inventoryActionOptions: DropdownOption[] = [
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   InventoryActions.AllocateInventory,
+  InventoryActions.DeallocateInventory,
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   InventoryActions.ScrapInventory,
