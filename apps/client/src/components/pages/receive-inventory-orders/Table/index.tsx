@@ -9,7 +9,7 @@ import {
 } from '../../../../hooks/useTablePagination';
 import {
   ReceiveInventoryOrdersDocument,
-  ReceiveInventoryOrderFragment,
+  SimpleReceiveInventoryOrderFragment,
 } from '../../../../graphql/generated/.graphql';
 // import { FilterValues } from '../typing';
 
@@ -32,12 +32,18 @@ function ReceiveInventoryOrdersTable() {
   });
 
   const dataSource = useMemo(
-    (): ReceiveInventoryOrderFragment[] =>
+    (): SimpleReceiveInventoryOrderFragment[] =>
       data?.receiveInventoryOrders.items ?? [],
     [data?.receiveInventoryOrders.items],
   );
 
-  const columns: TableColumn<ReceiveInventoryOrderFragment>[] = [
+  const columns: TableColumn<SimpleReceiveInventoryOrderFragment>[] = [
+    {
+      key: 'createdBy',
+      title: '建立者',
+      width: 165,
+      render: (source) => source.createdBy,
+    },
     {
       key: 'description',
       title: '備註',
@@ -53,7 +59,7 @@ function ReceiveInventoryOrdersTable() {
         console.log('建立入庫單');
       }}
     >
-      <Table<ReceiveInventoryOrderFragment>
+      <Table<SimpleReceiveInventoryOrderFragment>
         columns={columns}
         dataSource={dataSource}
         pagination={{

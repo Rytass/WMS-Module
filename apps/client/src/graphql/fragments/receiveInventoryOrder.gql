@@ -14,7 +14,16 @@ fragment ReceiveInventoryOrder on ReceiveInventoryOrderDto {
   description
   createdBy
   removedAt
+  status
   items {
     ...ReceiveInventoryOrderItem
   }
+}
+
+fragment SimpleReceiveInventoryOrder on ReceiveInventoryOrderDto {
+  id
+  description
+  createdBy
+  removedAt
+  status
 }
