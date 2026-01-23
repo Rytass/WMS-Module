@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/router';
 import PageWrapper from '../../PageWrapper';
 import PageTabs from '../../PageTabs';
+import LoadersManagementList from './List';
+import LoadersManagementTypes from './Types';
 import { PageTab } from './typing';
 
 function LoadersManagement() {
@@ -22,6 +24,8 @@ function LoadersManagement() {
           },
         ]}
       />
+      {(tab === PageTab.list || !tab) && <LoadersManagementList />}
+      {tab === PageTab.type && <LoadersManagementTypes />}
     </PageWrapper>
   );
 }
