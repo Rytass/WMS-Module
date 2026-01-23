@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { ChevronDownIcon, LinkIcon } from '@mezzanine-ui/icons';
 import { Radio, RadioGroup, Dropdown, Button } from '@mezzanine-ui/react';
 import TableWrapper from '../../../TableWrapper';
-import StocksGroupTable from './GroupTable';
-import StocksListTable from './ListTable';
+import InventoryGroupTable from './GroupTable';
+import InventoryListTable from './ListTable';
 import classes from './index.module.scss';
 
 enum Mode {
@@ -11,16 +11,16 @@ enum Mode {
   list = 'list',
 }
 
-function StocksTable() {
+function InventoryTable() {
   const [mode, setMode] = useState<Mode>(Mode.group);
 
   const tableComponent = useMemo(() => {
     switch (mode) {
       case Mode.group:
-        return <StocksGroupTable />;
+        return <InventoryGroupTable />;
 
       case Mode.list:
-        return <StocksListTable />;
+        return <InventoryListTable />;
 
       default:
         return undefined;
@@ -76,4 +76,4 @@ function StocksTable() {
   );
 }
 
-export default StocksTable;
+export default InventoryTable;

@@ -24,7 +24,7 @@ interface DataType extends TableDataSourceWithKey {
   subData?: DataType[];
 }
 
-function StocksGroupTable() {
+function InventoryGroupTable() {
   const {
     parentSelectedKeys,
     parentOnChange,
@@ -306,4 +306,4 @@ function StocksGroupTable() {
   );
 }
 
-export default StocksGroupTable;
+export default InventoryGroupTable;

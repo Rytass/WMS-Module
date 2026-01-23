@@ -1,14 +1,14 @@
 import PageWrapper from '../../PageWrapper';
 // import FilterWrapper from '../../FilterWrapper';
 // import { FilterType } from '../../FilterWrapper/typing';
-import StocksTable from './Table';
+import InventoryTable from './Table';
 
-function Stocks() {
+function Inventory() {
   return (
     <PageWrapper title="庫存清單">
-      <StocksTable />
+      <InventoryTable />
     </PageWrapper>
   );
 }
 
-export default Stocks;
+export default Inventory;

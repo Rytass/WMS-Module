@@ -1,7 +1,7 @@
 import PageWrapper from '../../PageWrapper';
 
-function StockMovement() {
+function InventoryMovement() {
   return <PageWrapper title="庫存異動">庫存異動</PageWrapper>;
 }
 
-export default StockMovement;
+export default InventoryMovement;

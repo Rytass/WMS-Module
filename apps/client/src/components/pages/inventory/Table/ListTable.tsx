@@ -11,7 +11,7 @@ import {
   StockFragment,
 } from '../../../../graphql/generated/.graphql';
 
-function StocksListTable() {
+function InventoryListTable() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data } = useQuery(StocksDocument, {
@@ -57,4 +57,4 @@ function StocksListTable() {
   );
 }
 
-export default StocksListTable;
+export default InventoryListTable;

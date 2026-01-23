@@ -15,7 +15,7 @@ export function useRoutes() {
       children: [
         {
           title: '庫存清單',
-          href: NextPath.STOCKS,
+          href: NextPath.INVENTORY,
         },
         {
           title: '地圖清單',
@@ -30,7 +30,7 @@ export function useRoutes() {
     {
       title: '庫存異動',
       icon: FolderMoveIcon,
-      href: NextPath.STOCKMOVEMENT,
+      href: NextPath.INVENTORYMOVEMENT,
     },
     {
       title: '異動紀錄',
@@ -40,7 +40,7 @@ export function useRoutes() {
     {
       title: '盤點',
       icon: FileSearchIcon,
-      href: NextPath.STOCKTAKING,
+      href: NextPath.INVENTORYCOUNT,
     },
     {
       title: '主檔管理',
