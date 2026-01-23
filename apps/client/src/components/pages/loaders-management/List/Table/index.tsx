@@ -4,6 +4,7 @@ import { TableColumn, Badge } from '@mezzanine-ui/react';
 import { useQuery } from '@apollo/client/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
+import Actions from './Actions';
 import {
   useTablePageState,
   useTablePageTotal,
@@ -14,7 +15,7 @@ import {
 } from '../../../../../graphql/generated/.graphql';
 // import { FilterValues } from '../typing';
 
-function LoadersManagementTable() {
+function LoadersManagementListTable() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(LoadersDocument, {
@@ -39,6 +40,12 @@ function LoadersManagementTable() {
 
   const columns: TableColumn<LoaderFragment>[] = [
     {
+      key: 'actions',
+      title: '操作',
+      width: 160,
+      render: (source) => <Actions source={source} />,
+    },
+    {
       key: 'isActive',
       title: '狀態',
       width: 100,
@@ -54,6 +61,18 @@ function LoadersManagementTable() {
       title: '載具類型',
       width: 120,
       render: (source) => source.type?.description,
+    },
+    {
+      key: '載具編碼',
+      title: '載具編碼',
+      width: 100,
+      render: (source) => '載具編碼',
+    },
+    {
+      key: '儲存位置',
+      title: '儲存位置',
+      width: 100,
+      render: (source) => '儲存位置',
     },
     {
       key: 'length',
@@ -129,4 +148,4 @@ function LoadersManagementTable() {
   );
 }
 
-export default LoadersManagementTable;
+export default LoadersManagementListTable;

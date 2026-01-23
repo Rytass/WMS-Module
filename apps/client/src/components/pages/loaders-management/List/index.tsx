@@ -1,9 +1,9 @@
-import LoadersManagementTable from './Table';
+import LoadersManagementListTable from './Table';
 
 function LoadersManagementList() {
   return (
     <>
-      <LoadersManagementTable />
+      <LoadersManagementListTable />
     </>
   );
 }
