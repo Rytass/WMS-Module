@@ -9,6 +9,7 @@ type LoaderTypeDto {
   serial: String!
   createdAt: DateTime!
   updatedAt: DateTime!
+  referencedQuantity: Int!
 }
 
 """
