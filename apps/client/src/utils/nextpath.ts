@@ -9,6 +9,5 @@ export enum NextPath {
     MATERIALSMANAGEMENT = "/materials-management",
     RECEIVEINVENTORYORDERS = "/receive-inventory-orders",
     SHIPINVENTORYORDERS = "/ship-inventory-orders",
-    SHIPINVENTORYORDERS_CREATE = "/ship-inventory-orders/create",
     SHIPINVENTORYORDERS_ID_VIEW = "/ship-inventory-orders/[id]/view",
 }
