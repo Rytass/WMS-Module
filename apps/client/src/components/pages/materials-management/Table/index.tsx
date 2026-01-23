@@ -89,9 +89,12 @@ function MaterialsManagementTable({
       render: (source) => source.baseUnit,
     },
     {
-      key: 'ttt',
+      key: 'units',
       title: '單位轉換',
-      render: (source) => '',
+      render: (source) =>
+        source.materialUnits
+          ?.map((u) => `1 ${u.unit} = ${u.conversionFactor} ${source.baseUnit}`)
+          .join('、'),
     },
   ];
 

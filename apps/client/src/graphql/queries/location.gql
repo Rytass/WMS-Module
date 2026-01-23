@@ -1,0 +1,15 @@
+query Location($locationId: ID!) {
+  location(id: $locationId) {
+    ...Location
+  }
+}
+
+query Locations($offset: Int, $limit: Int, $description: String) {
+  locations(offset: $offset, limit: $limit, description: $description) {
+    id
+    items {
+      ...Location
+    }
+    total
+  }
+}
