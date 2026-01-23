@@ -4,13 +4,13 @@ export enum FilterType {
   createdAt = 'createdAt',
   description = 'description',
   materialDescription = 'materialDescription',
-  materials = 'materials',
+  material = 'material',
 }
 
 export type FilterValues = {
   [FilterType.createdAt]?: DateType;
   [FilterType.description]?: string;
   [FilterType.materialDescription]?: string;
-  [FilterType.materials]?: string;
-  'materials-search'?: string;
+  [FilterType.material]?: string;
+  'material-search'?: string;
 };

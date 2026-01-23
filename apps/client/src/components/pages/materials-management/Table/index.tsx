@@ -14,8 +14,16 @@ import {
   MaterialsDocument,
   SimpleMaterialFragment,
 } from '../../../../graphql/generated/.graphql';
+import { FilterType } from '../../../FilterWrapper/typing';
+import { FilterValues } from '../typing';
 
-function MaterialsManagementTable() {
+interface MaterialsManagementTableProps {
+  currentFilter?: FilterValues;
+}
+
+function MaterialsManagementTable({
+  currentFilter,
+}: MaterialsManagementTableProps) {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
   const { openDialog } = useDialog();
 
@@ -25,6 +33,8 @@ function MaterialsManagementTable() {
     variables: {
       offset,
       limit,
+      materialId: currentFilter?.[FilterType.material],
+      description: currentFilter?.[FilterType.materialDescription],
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -33,7 +43,7 @@ function MaterialsManagementTable() {
     page,
     total: data?.materials.total,
     setPage,
-    filterValues: [],
+    filterValues: [currentFilter],
   });
 
   const dataSource = useMemo(

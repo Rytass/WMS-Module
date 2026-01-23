@@ -5,5 +5,5 @@ import {
 
 export type FilterValues = Pick<
   GeneralFilterValues,
-  FilterType.materials | 'materials-search' | FilterType.materialDescription
+  FilterType.material | 'material-search' | FilterType.materialDescription
 >;

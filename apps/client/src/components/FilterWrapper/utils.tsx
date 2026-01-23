@@ -35,8 +35,8 @@ export function renderFilter(filterType: FilterType) {
         />
       );
 
-    case FilterType.materials:
-      return <MaterialsField key={filterType} name={FilterType.materials} />;
+    case FilterType.material:
+      return <MaterialsField key={filterType} name={FilterType.material} />;
 
     default:
       return null;

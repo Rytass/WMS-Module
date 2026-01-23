@@ -14,26 +14,30 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
   const [fetchMaterials] = useLazyQuery(MaterialOptionsDocument);
 
   const fetch = useCallback(async () => {
-    const { data } = await fetchMaterials({
-      variables: {
-        limit: 10,
-        offset: (page - 1) * 10,
-      },
-    });
+    try {
+      const { data } = await fetchMaterials({
+        variables: {
+          limit: 10,
+          offset: (page - 1) * 10,
+        },
+      });
 
-    const source = data?.materials.items ?? [];
+      const source = data?.materials.items ?? [];
 
-    if (source.length > 0) {
-      setPage((p) => p + 1);
+      if (source.length > 0) {
+        setPage((p) => p + 1);
+      }
+
+      const newOptions =
+        source.map((s) => ({
+          id: s.id,
+          name: s.key,
+        })) ?? [];
+
+      setOptions((op) => [...op, ...newOptions]);
+    } catch (error) {
+      console.error('error', error);
     }
-
-    const newOptions =
-      source.map((s) => ({
-        id: s.id,
-        name: s.key,
-      })) ?? [];
-
-    setOptions((op) => [...op, ...newOptions]);
   }, [fetchMaterials, page]);
 
   useEffect(() => {
