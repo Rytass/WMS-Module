@@ -25,6 +25,7 @@ const Table = <T extends TableDataSource>(props: TableProps<T>) => {
     <MznTable<T>
       {...props}
       // dataSource={dataSource}
+      fullWidth
       emptyProps={{
         title: '查無資料',
       }}

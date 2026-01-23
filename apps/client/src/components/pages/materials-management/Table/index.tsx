@@ -84,7 +84,7 @@ function MaterialsManagementTable({
     {
       key: 'baseUnit',
       title: '基礎計量單位',
-      width: 96,
+      width: 108,
       align: 'center',
       render: (source) => source.baseUnit,
     },
