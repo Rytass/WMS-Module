@@ -16,6 +16,12 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type LoaderTypes {
+  id: ID!
+  items: [LoaderTypeDto!]!
+  total: Int!
+}
+
 type LoaderDto {
   id: ID!
   length: Float
@@ -208,6 +214,8 @@ type MapPolygonRangeDto {
 type Query {
   loader(id: ID!): LoaderDto!
   loaders(offset: Int, limit: Int, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String): Loaders!
+  loaderType(id: ID!): LoaderTypeDto!
+  loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, serial: String): LoaderTypes!
   material(id: ID!): MaterialDto!
   materials(offset: Int, limit: Int, materialId: ID, materialIds: [ID!], description: String): Materials!
   stock(id: ID!): StockDto!

@@ -7,7 +7,6 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   TableInheritance,
-  ViewColumn,
 } from 'typeorm';
 import { ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
 import { ReceiveInventoryOrderStatus } from '../../../typings';

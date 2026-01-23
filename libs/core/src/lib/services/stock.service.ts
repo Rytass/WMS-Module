@@ -33,16 +33,18 @@ export class StockService<
     this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
   }
 
-  private aggregatedQueryBuilder(alias: string): SelectQueryBuilder<T> {
-    return this.dataSource
-      .getRepository<T>(this.stockEntity)
-      .createQueryBuilder(alias);
-  }
-
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(
     options: FindStockInput<T>,
     queryBuilder: SelectQueryBuilder<U>,
   ): SelectQueryBuilder<U> {
+    // status select
+    // queryBuilder.leftJoin(
+    //   (subQuery) =>
+    //     subQuery.select().from('stocks', 's').addSelect('s.id', 'id'),
+    //   'stock_status',
+    //   'stock_status.id = stock.id',
+    // );
+
     if (options.materialId)
       queryBuilder.andWhere('stock."materialId" = :materialId', {
         materialId: options.materialId,

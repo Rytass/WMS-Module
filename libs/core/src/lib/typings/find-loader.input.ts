@@ -14,3 +14,16 @@ export type FindLoaderInput = PaginationInput & {
   };
   note?: string;
 };
+
+export type FindLoaderTypeInput<U> = PaginationInput & {
+  description?: string;
+  isActive?: boolean;
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+  wildcard?: {
+    key: keyof U;
+    value: string;
+  };
+};

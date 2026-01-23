@@ -22,7 +22,10 @@ import {
   CreateLoaderTypeInput,
   UpdateLoaderTypeInput,
 } from '../typings/create-loader-type.input';
-import { FindLoaderInput } from '../typings/find-loader.input';
+import {
+  FindLoaderInput,
+  FindLoaderTypeInput,
+} from '../typings/find-loader.input';
 
 /**
  * Service for managing loaders and their types
@@ -215,7 +218,7 @@ export class LoaderService<
     return startVal;
   }
 
-  findMany(options: FindLoaderInput): Promise<[T[], number]> {
+  findManyLoaders(options: FindLoaderInput): Promise<[T[], number]> {
     const queryBuilder = this.dataSource
       .getRepository<T>(this.loaderEntity)
       .createQueryBuilder('loader');
@@ -265,6 +268,43 @@ export class LoaderService<
       queryBuilder.andWhere('loader.note LIKE :note', {
         note: `%${options.note}%`,
       });
+
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
+
+    return queryBuilder.getManyAndCount();
+  }
+
+  findManyLoaderTypes(options: FindLoaderTypeInput<K>): Promise<[K[], number]> {
+    const queryBuilder = this.dataSource
+      .getRepository<K>(this.loaderTypeEntity)
+      .createQueryBuilder('loader_type');
+
+    if (options.description)
+      queryBuilder.andWhere('loader_type.description ILIKE :description', {
+        description: `%${options.description}%`,
+      });
+
+    if (options.isActive !== undefined)
+      queryBuilder.andWhere('loader_type."isActive" = :isActive', {
+        isActive: options.isActive,
+      });
+
+    if (options.dateRange)
+      queryBuilder.andWhere('loader_type."createdAt" BETWEEN :from AND :to', {
+        from: options.dateRange.from,
+        to: options.dateRange.to,
+      });
+
+    if (options.wildcard) {
+      const { key, value } = options.wildcard;
+      queryBuilder.andWhere(`loader_type."${String(key)}" ILIKE :value`, {
+        value: `%${value}%`,
+      });
+    }
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);

@@ -1,4 +1,5 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { PaginatedResponse } from './pagination.dto';
 
 @ObjectType()
 export class LoaderTypeDto {
@@ -20,3 +21,6 @@ export class LoaderTypeDto {
   @Field(() => Date)
   updatedAt!: Date;
 }
+
+@ObjectType()
+export class LoaderTypes extends PaginatedResponse(LoaderTypeDto) {}
