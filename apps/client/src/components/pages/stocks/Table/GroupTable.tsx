@@ -1,15 +1,20 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   TableDataSourceWithKey,
   TableColumn,
   Table as MznTable,
   useTableRowSelection,
+  Typography,
+  Button,
+  cx,
 } from '@mezzanine-ui/react';
+import { CaretDownIcon } from '@mezzanine-ui/icons';
 import Table from '../../../TableWrapper/Table';
 import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../../hooks/useTablePagination';
+import classes from './group-table.module.scss';
 
 interface DataType extends TableDataSourceWithKey {
   age: number;
@@ -26,12 +31,45 @@ function StocksGroupTable() {
     parentGetCheckboxProps,
     getChildSelectedRowKeys,
     getChildOnChange,
-    totalSelectionCount,
   } = useTableRowSelection<DataType>({
     getSubData: (record) => record.subData,
   });
 
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
+
+  const renderExpandButton = useCallback(
+    (source: DataType) => {
+      const isExpanded = expandedRowKeys.includes(source.key);
+
+      return (
+        <Button
+          type="button"
+          className={cx(classes.expandButton, {
+            [classes.isExpanded]: isExpanded,
+          })}
+          icon={CaretDownIcon}
+          iconType="icon-only"
+          size="minor"
+          variant="base-tertiary"
+          onClick={() => {
+            if (isExpanded) {
+              setExpandedRowKeys((keys) => {
+                const targetIndex = keys.findIndex((k) => k === source.key);
+
+                return [
+                  ...keys.slice(0, targetIndex),
+                  ...keys.slice(targetIndex + 1),
+                ];
+              });
+            } else {
+              setExpandedRowKeys((keys) => [...keys, source.key]);
+            }
+          }}
+        />
+      );
+    },
+    [expandedRowKeys],
+  );
 
   console.log(
     'selectedRowKeys',
@@ -66,15 +104,57 @@ function StocksGroupTable() {
       minWidth: 100,
     },
     {
+      key: 'tags',
+      title: 'Tags',
+      width: 120,
+      render: (source) => {
+        if (source.subData?.length) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {source.tags?.join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return source.tags?.join(',');
+      },
+    },
+    {
       dataIndex: 'address',
       key: 'address',
       title: 'Address',
-      width: 200,
+    },
+  ];
+
+  const subColumns: TableColumn<DataType>[] = [
+    {
+      dataIndex: 'name',
+      key: 'name',
+      title: 'Name',
+      width: 150,
+      minWidth: 150,
+    },
+    {
+      dataIndex: 'age',
+      key: 'age',
+      title: 'Age',
+      align: 'center',
+      width: 100,
+      minWidth: 100,
     },
     {
       key: 'tags',
       title: 'Tags',
+      width: 150,
       render: (source) => source.tags?.join(','),
+    },
+    {
+      dataIndex: 'address',
+      key: 'address',
+      title: 'Address',
     },
   ];
 
@@ -191,7 +271,7 @@ function StocksGroupTable() {
         expandedRowRender: (record) => (
           <MznTable<DataType>
             fullWidth
-            columns={baseColumns}
+            columns={subColumns}
             dataSource={record.subData || []}
             rowSelection={{
               mode: 'checkbox',

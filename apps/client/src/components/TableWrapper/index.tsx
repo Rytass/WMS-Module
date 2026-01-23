@@ -5,7 +5,7 @@ import classes from './index.module.scss';
 
 interface TableWrapperBaseProps {
   title: string;
-  children: ReactElement<TableProps>;
+  children?: ReactElement<TableProps>;
   otherActions?: ReactNode;
 }
 

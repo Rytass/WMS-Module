@@ -1,0 +1,20 @@
+@use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/transition';
+
+.columnWithExpandButton {
+  display: flex;
+  align-items: center;
+  gap: spacing.semantic-variable(gap, tight);
+}
+
+.expandButton {
+  & > i {
+    transition: transition.standard(transform, fast);
+  }
+
+  &.isExpanded {
+    & > i {
+      transform: rotate(180deg);
+    }
+  }
+}

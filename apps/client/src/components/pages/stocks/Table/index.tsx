@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Radio, RadioGroup } from '@mezzanine-ui/react';
 import TableWrapper from '../../../TableWrapper';
 import StocksGroupTable from './GroupTable';
+import StocksListTable from './ListTable';
 
 enum Mode {
   group = 'group',
@@ -10,6 +11,19 @@ enum Mode {
 
 function StocksTable() {
   const [mode, setMode] = useState<Mode>(Mode.group);
+
+  const tableComponent = useMemo(() => {
+    switch (mode) {
+      case Mode.group:
+        return <StocksGroupTable />;
+
+      case Mode.list:
+        return <StocksListTable />;
+
+      default:
+        return undefined;
+    }
+  }, [mode]);
 
   return (
     <TableWrapper
@@ -34,7 +48,7 @@ function StocksTable() {
         </div>
       }
     >
-      <StocksGroupTable />
+      {tableComponent}
     </TableWrapper>
   );
 }
