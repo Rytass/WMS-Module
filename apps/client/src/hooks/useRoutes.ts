@@ -30,7 +30,7 @@ export function useRoutes() {
     {
       title: '庫存異動',
       icon: FolderMoveIcon,
-      href: '/2',
+      href: NextPath.STOCKMOVEMENT,
     },
     {
       title: '異動紀錄',
@@ -52,7 +52,7 @@ export function useRoutes() {
         },
         {
           title: '庫位管理',
-          href: '/5-2',
+          href: NextPath.LOCATIONSMANAGEMENT,
         },
         {
           title: '料號管理',
