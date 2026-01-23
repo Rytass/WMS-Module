@@ -19,11 +19,13 @@ import { WarehouseMapMutation } from './mutations/warehouse-map.mutation';
 import { LocationResolver } from './resolvers/location.resolver';
 import { LocationQuery } from './queries/location.query';
 import { LocationMutation } from './mutations/location.mutation';
+import { LoaderTypeResolver } from './resolvers/loader-type.resolver';
 
 const exportDependencies = [
   LoaderMutation,
   LoaderQuery,
   LoaderResolver,
+  LoaderTypeResolver,
   MaterialMutation,
   MaterialQuery,
   MaterialResolver,

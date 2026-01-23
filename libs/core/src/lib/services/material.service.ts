@@ -28,16 +28,16 @@ import { FindMaterialInput } from '../typings/find-material.input';
 @Injectable()
 export class MaterialService<
   T extends MaterialEntityClass = MaterialEntityClass,
-  K extends MaterialUnitEntityClass = MaterialUnitEntityClass
+  K extends MaterialUnitEntityClass = MaterialUnitEntityClass,
 > {
   readonly materialRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(MaterialEntity) readonly materialEntity: EntityTarget<T>,
-    @Inject(MaterialUnitEntity) readonly materialUnitEntity: EntityTarget<K>
+    @Inject(MaterialUnitEntity) readonly materialUnitEntity: EntityTarget<K>,
   ) {
     this.materialRepository = this.dataSource.getRepository<T>(
-      this.materialEntity
+      this.materialEntity,
     );
   }
 
@@ -46,7 +46,7 @@ export class MaterialService<
     ...options
   }: CreateMaterialInput & { manager?: EntityManager }): Promise<T> {
     const materialRepository = manager.getRepository<MaterialEntityClass>(
-      this.materialEntity
+      this.materialEntity,
     );
     const materialUnitRepository =
       manager.getRepository<MaterialUnitEntityClass>(this.materialUnitEntity);
@@ -59,7 +59,7 @@ export class MaterialService<
         options.units.map((unit) => ({
           ...unit,
           materialId: options.id,
-        }))
+        })),
       );
       await materialUnitRepository.save(units);
     }
@@ -72,7 +72,7 @@ export class MaterialService<
     ...options
   }: UpdateMaterialInput & { manager?: EntityManager }): Promise<T> {
     const materialRepository = manager.getRepository<MaterialEntityClass>(
-      this.materialEntity
+      this.materialEntity,
     );
     const materialUnitRepository =
       manager.getRepository<MaterialUnitEntityClass>(this.materialUnitEntity);
@@ -84,7 +84,7 @@ export class MaterialService<
       materialRepository.create({
         ...material,
         ...options,
-      })
+      }),
     );
 
     if (options.units?.length) {
@@ -94,7 +94,7 @@ export class MaterialService<
       await materialUnitRepository
         .find({ where: { materialId: options.id } })
         .then((units) => {
-          const unitSet = new Set(units!.map((u) => u.unit));
+          const unitSet = new Set(units.map((u) => u.unit));
           options.units?.forEach((unit) => {
             if (unitSet.has(unit.unit)) existingUnits.push(unit);
             else newUnits.push(unit);
@@ -104,17 +104,17 @@ export class MaterialService<
       if (newUnits.length)
         await materialUnitRepository.save(
           materialUnitRepository.create(
-            newUnits.map((unit) => ({ ...unit, materialId: options.id }))
-          )
+            newUnits.map((unit) => ({ ...unit, materialId: options.id })),
+          ),
         );
       if (existingUnits.length)
         await Promise.all(
           existingUnits.map((unit) =>
             materialUnitRepository.update(
               { materialId: unit.materialId, unit: unit.unit },
-              unit
-            )
-          )
+              unit,
+            ),
+          ),
         );
     }
 
