@@ -1,6 +1,7 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { ShipInventoryOrderItemDto } from './ship-inventory-order-item.dto';
 import { PaginatedResponse } from './pagination.dto';
+import { ShipInventoryOrderStatus } from '@wms-module/core';
 
 @ObjectType()
 export class ShipInventoryOrderDto {
@@ -18,9 +19,12 @@ export class ShipInventoryOrderDto {
 
   @Field(() => [ShipInventoryOrderItemDto])
   items!: ShipInventoryOrderItemDto[];
+
+  @Field(() => ShipInventoryOrderStatus)
+  status!: ShipInventoryOrderStatus;
 }
 
 @ObjectType()
 export class ShipInventoryOrders extends PaginatedResponse(
-  ShipInventoryOrderDto
+  ShipInventoryOrderDto,
 ) {}

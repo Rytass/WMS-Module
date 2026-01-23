@@ -19,12 +19,24 @@ export class StockService<
   K extends MaterialEntityClass = MaterialEntityClass,
 > {
   readonly stockRepository: Repository<T>;
+  readonly aggregateKeys: string[] = [
+    'materialId',
+    'batchId',
+    'locationId',
+    'loaderId',
+  ];
   constructor(
     private readonly dataSource: DataSource,
     @Inject(StockEntity) private readonly stockEntity: EntityTarget<T>,
     @Inject(MaterialEntity) private readonly materialEntity: EntityTarget<K>,
   ) {
     this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
+  }
+
+  private aggregatedQueryBuilder(alias: string): SelectQueryBuilder<T> {
+    return this.dataSource
+      .getRepository<T>(this.stockEntity)
+      .createQueryBuilder(alias);
   }
 
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(

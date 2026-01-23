@@ -93,6 +93,14 @@ type ReceiveInventoryOrderDto {
   createdBy: String!
   removedAt: DateTime
   items: [ReceiveInventoryOrderItemDto!]!
+  status: ReceiveInventoryOrderStatus!
+}
+
+enum ReceiveInventoryOrderStatus {
+  PENDING
+  RECEIVED
+  REMOVED
+  PARTIAL_RECEIVED
 }
 
 type ReceiveInventoryOrders {
@@ -118,6 +126,14 @@ type ShipInventoryOrderDto {
   createdBy: String!
   removedAt: DateTime
   items: [ShipInventoryOrderItemDto!]!
+  status: ShipInventoryOrderStatus!
+}
+
+enum ShipInventoryOrderStatus {
+  PENDING
+  SHIPPED
+  REMOVED
+  PARTIAL_SHIPPED
 }
 
 type ShipInventoryOrders {
@@ -208,20 +224,6 @@ type Query {
 input DateRangeArgs {
   from: DateTime!
   to: DateTime!
-}
-
-enum ReceiveInventoryOrderStatus {
-  PENDING
-  RECEIVED
-  REMOVED
-  PARTIAL_RECEIVED
-}
-
-enum ShipInventoryOrderStatus {
-  PENDING
-  SHIPPED
-  REMOVED
-  PARTIAL_SHIPPED
 }
 
 type Mutation {
