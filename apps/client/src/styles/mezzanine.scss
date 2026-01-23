@@ -1,5 +1,6 @@
 @use '@mezzanine-ui/core' as mzn-core;
 @use '@mezzanine-ui/system' as mzn-system;
+@use '@mezzanine-ui/system/spacing';
 
 :root {
   @include mzn-system.common-variables('default');
@@ -7,3 +8,12 @@
 }
 
 @include mzn-core.styles();
+
+// 魔改區，可能需要回 mzn 設定
+.mzn-backdrop.mzn-backdrop--open.mzn-modal__overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+}

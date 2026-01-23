@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
 import { useQuery } from '@apollo/client/react';
+import { useDialog } from '../../../../components/dialog/useDialog';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
 import {
@@ -8,19 +9,32 @@ import {
   useTablePageTotal,
 } from '../../../../hooks/useTablePagination';
 import MaterialsManagementForm from '../Form';
+import Actions from './Actions';
 import {
   MaterialsDocument,
   SimpleMaterialFragment,
 } from '../../../../graphql/generated/.graphql';
+import { FilterType } from '../../../FilterWrapper/typing';
+import { FilterValues } from '../typing';
 
-function MaterialsManagementTable() {
+interface MaterialsManagementTableProps {
+  currentFilter?: FilterValues;
+}
+
+function MaterialsManagementTable({
+  currentFilter,
+}: MaterialsManagementTableProps) {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
+  const { openDialog } = useDialog();
+
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(MaterialsDocument, {
     variables: {
       offset,
       limit,
+      materialId: currentFilter?.[FilterType.material],
+      description: currentFilter?.[FilterType.materialDescription],
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -29,7 +43,7 @@ function MaterialsManagementTable() {
     page,
     total: data?.materials.total,
     setPage,
-    filterValues: [],
+    filterValues: [currentFilter],
   });
 
   const dataSource = useMemo(
@@ -38,6 +52,12 @@ function MaterialsManagementTable() {
   );
 
   const columns: TableColumn<SimpleMaterialFragment>[] = [
+    {
+      key: 'actions',
+      title: '操作',
+      width: 140,
+      render: (source) => <Actions source={source} />,
+    },
     {
       key: 'isActive',
       title: '狀態',
@@ -64,14 +84,17 @@ function MaterialsManagementTable() {
     {
       key: 'baseUnit',
       title: '基礎計量單位',
-      width: 96,
+      width: 108,
       align: 'center',
       render: (source) => source.baseUnit,
     },
     {
-      key: 'ttt',
+      key: 'units',
       title: '單位轉換',
-      render: (source) => '',
+      render: (source) =>
+        source.materialUnits
+          ?.map((u) => `1 ${u.unit} = ${u.conversionFactor} ${source.baseUnit}`)
+          .join('、'),
     },
   ];
 
@@ -101,7 +124,18 @@ function MaterialsManagementTable() {
       <MaterialsManagementForm
         title="新增料號"
         onSubmit={async (values) => {
-          console.log('values', values);
+          const isConfirm = await openDialog({
+            modalStatusType: 'info',
+            title: '確認新增資料',
+            supportingText:
+              '您即將進入新增流程，完成後系統將自動應用相關變更。請確認是否要繼續，以便順利完成操作。',
+            cancelText: '取消',
+            confirmText: '確認新增',
+          });
+
+          if (isConfirm) {
+            console.log('values', values);
+          }
         }}
         submitText="新增"
         closeModal={() => {

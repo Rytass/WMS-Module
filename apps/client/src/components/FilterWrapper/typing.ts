@@ -3,12 +3,14 @@ import { DateType } from '@mezzanine-ui/core/calendar';
 export enum FilterType {
   createdAt = 'createdAt',
   description = 'description',
-  materials = 'materials',
+  materialDescription = 'materialDescription',
+  material = 'material',
 }
 
 export type FilterValues = {
-  [FilterType.createdAt]: DateType | undefined;
-  [FilterType.description]: string;
-  [FilterType.materials]: string;
-  'materials-search'?: string;
+  [FilterType.createdAt]?: DateType;
+  [FilterType.description]?: string;
+  [FilterType.materialDescription]?: string;
+  [FilterType.material]?: string;
+  'material-search'?: string;
 };

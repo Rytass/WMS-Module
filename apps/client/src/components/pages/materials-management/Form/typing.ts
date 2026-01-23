@@ -1,3 +1,10 @@
+export type UnitFieldItem = {
+  unit: string;
+  conversionFactor?: number;
+};
+
 export type FormValues = {
-  demo: string;
+  materialNumber: string;
+  description: string;
+  units: UnitFieldItem[];
 };

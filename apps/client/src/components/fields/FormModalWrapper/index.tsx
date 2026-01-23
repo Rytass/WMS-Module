@@ -31,41 +31,39 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
   open,
 }: FormModalWrapperProps<T>) => {
   return (
-    <FormWrapper methods={methods}>
-      <Modal
-        className={className}
-        onClose={() => {
-          closeModal();
-        }}
-        showDismissButton
-        modalType="standard"
-        size={size}
-        cancelText={cancelText}
-        confirmText={confirmText}
-        onCancel={(e) => {
-          closeModal();
-          onCancel?.(e);
-        }}
-        onConfirm={methods.handleSubmit(onSubmit)}
-        cancelButtonProps={{
-          type: 'button',
-          ...cancelButtonProps,
-        }}
-        confirmButtonProps={{
-          type: 'button',
-          ...confirmButtonProps,
-        }}
-        showStatusTypeIcon={false}
-        statusTypeIconLayout="horizontal"
-        title={title ?? ''}
-        titleAlign="center"
-        open={open}
-        showModalFooter
-        showModalHeader
-      >
-        {modalChildren}
-      </Modal>
-    </FormWrapper>
+    <Modal
+      className={className}
+      onClose={() => {
+        closeModal();
+      }}
+      showDismissButton
+      modalType="standard"
+      size={size}
+      cancelText={cancelText}
+      confirmText={confirmText}
+      onCancel={(e) => {
+        closeModal();
+        onCancel?.(e);
+      }}
+      onConfirm={methods.handleSubmit(onSubmit)}
+      cancelButtonProps={{
+        type: 'button',
+        ...cancelButtonProps,
+      }}
+      confirmButtonProps={{
+        type: 'button',
+        ...confirmButtonProps,
+      }}
+      showStatusTypeIcon={false}
+      statusTypeIconLayout="horizontal"
+      title={title ?? ''}
+      titleAlign="center"
+      open={open}
+      showModalFooter
+      showModalHeader
+    >
+      <FormWrapper methods={methods}>{modalChildren}</FormWrapper>
+    </Modal>
   );
 };
 

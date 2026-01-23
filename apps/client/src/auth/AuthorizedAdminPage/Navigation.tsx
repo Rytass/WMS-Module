@@ -30,6 +30,9 @@ function Navigation() {
                 key={route.title}
                 title={route.title}
                 icon={route.icon}
+                active={route.children.some((subRoute) =>
+                  pathname.startsWith(subRoute.href),
+                )}
               >
                 {route.children.map((subRoute) => (
                   <NavigationOption

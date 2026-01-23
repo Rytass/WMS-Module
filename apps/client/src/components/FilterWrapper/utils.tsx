@@ -25,8 +25,18 @@ export function renderFilter(filterType: FilterType) {
         />
       );
 
-    case FilterType.materials:
-      return <MaterialsField key={filterType} name={FilterType.materials} />;
+    case FilterType.materialDescription:
+      return (
+        <InputField
+          key={filterType}
+          name={FilterType.materialDescription}
+          label="物料說明"
+          placeholder="輸入物料說明"
+        />
+      );
+
+    case FilterType.material:
+      return <MaterialsField key={filterType} name={FilterType.material} />;
 
     default:
       return null;
