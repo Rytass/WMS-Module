@@ -1,7 +1,7 @@
 import { IconDefinition } from '@mezzanine-ui/icons';
 
-export const BindIcon: IconDefinition = {
-  name: 'bind',
+export const MergeIcon: IconDefinition = {
+  name: 'merge',
   definition: {
     svg: {
       viewBox: '0 0 16 16',

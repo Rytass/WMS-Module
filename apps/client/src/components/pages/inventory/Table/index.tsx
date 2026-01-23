@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { ChevronDownIcon, LinkIcon } from '@mezzanine-ui/icons';
+import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { Radio, RadioGroup, Dropdown, Button } from '@mezzanine-ui/react';
 import TableWrapper from '../../../TableWrapper';
 import InventoryGroupTable from './GroupTable';
 import InventoryListTable from './ListTable';
+import { inventoryActionOptions } from '../../../../utils/inventoryActions';
 import classes from './index.module.scss';
 
 enum Mode {
@@ -48,13 +49,7 @@ function InventoryTable() {
             </Radio>
           </RadioGroup>
           <Dropdown
-            options={[
-              {
-                icon: LinkIcon,
-                id: '綁定銷售訂單',
-                name: '綁定銷售訂單',
-              },
-            ]}
+            options={inventoryActionOptions}
             placement="bottom-end"
             customWidth={240}
             zIndex={4}
