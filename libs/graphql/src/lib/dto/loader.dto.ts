@@ -6,6 +6,9 @@ export class LoaderDto {
   @Field(() => ID)
   id!: string;
 
+  @Field(() => String, { description: '編碼' })
+  serialId!: string;
+
   @Field(() => Float, { nullable: true })
   length!: number | null;
 

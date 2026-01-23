@@ -6,6 +6,8 @@ type LoaderTypeDto {
   id: ID!
   description: String!
   isActive: Boolean!
+
+  """類型代碼"""
   serial: String!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -216,7 +218,7 @@ type Query {
   loader(id: ID!): LoaderDto!
   loaders(offset: Int, limit: Int, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String): Loaders!
   loaderType(id: ID!): LoaderTypeDto!
-  loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, code: String): LoaderTypes!
+  loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, serial: String): LoaderTypes!
   material(id: ID!): MaterialDto!
   materials(offset: Int, limit: Int, materialId: ID, materialIds: [ID!], description: String): Materials!
   stock(id: ID!): StockDto!
