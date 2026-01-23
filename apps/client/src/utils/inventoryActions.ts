@@ -11,7 +11,9 @@ export enum InventoryActions {
   ScrapInventory = 'ScrapInventory',
 }
 
-export function inventoryActionsSpec(action: InventoryActions) {
+export function inventoryActionsSpec(
+  action: InventoryActions,
+): Omit<DropdownOption, 'id'> | null {
   switch (action) {
     case InventoryActions.HoldInventory:
       return {
@@ -66,4 +68,5 @@ export const inventoryActionOptions: DropdownOption[] = [
   id: action,
   name: inventoryActionsSpec(action)?.name ?? '',
   icon: inventoryActionsSpec(action)?.icon,
+  validate: inventoryActionsSpec(action)?.validate,
 }));
