@@ -42,5 +42,6 @@ export class ShipInventoryOrderEntityClass {
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ShipInventoryOrderItemEntityClass[];
 
+  @JoinColumn()
   status!: ShipInventoryOrderStatus;
 }

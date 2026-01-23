@@ -62,7 +62,7 @@ export class ReceiveInventoryOrderService<
                     FROM receive_inventory_order_changes c
                     JOIN receive_inventory_order_items i ON c."itemId" = i.id
                     WHERE i."orderId" = o.id
-                  ), 0) = o."targetReceivedQuantity" AND o."targetReceivedQuantity" > 0 THEN '${ReceiveInventoryOrderStatus.RECEIVED}'
+                  ), 0) = COALESCE(target_sum."targetSum", 0) AND COALESCE(target_sum."targetSum", 0) > 0 THEN '${ReceiveInventoryOrderStatus.RECEIVED}'
                   WHEN COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
                     FROM receive_inventory_order_changes c
@@ -73,13 +73,26 @@ export class ReceiveInventoryOrderService<
                     FROM receive_inventory_order_changes c
                     JOIN receive_inventory_order_items i ON c."itemId" = i.id
                     WHERE i."orderId" = o.id
-                  ), 0) < o."targetReceivedQuantity" THEN '${ReceiveInventoryOrderStatus.PARTIAL_RECEIVED}'
+                  ), 0) < COALESCE(target_sum."targetSum", 0) THEN '${ReceiveInventoryOrderStatus.PARTIAL_RECEIVED}'
                   ELSE '${ReceiveInventoryOrderStatus.PENDING}'
                 END`,
                 'status',
               )
               .addSelect('o.id', 'orderId')
-              .from('receive_inventory_orders', 'o'),
+              .from('receive_inventory_orders', 'o')
+              .leftJoin(
+                (sumQuery) =>
+                  sumQuery
+                    .select('i."orderId"', 'orderId')
+                    .addSelect(
+                      'SUM(CAST(i."targetReceivedQuantity" AS NUMERIC))',
+                      'targetSum',
+                    )
+                    .from('receive_inventory_order_items', 'i')
+                    .groupBy('i."orderId"'),
+                'target_sum',
+                'target_sum."orderId" = o.id',
+              ),
           'order_status',
           `${alias}.id = order_status."orderId"`,
         )
@@ -231,7 +244,15 @@ export class ReceiveInventoryOrderService<
     if (options.limit !== undefined && options.limit > 0)
       queryBuilder.take(options.limit);
 
-    return queryBuilder.getManyAndCount();
+    return queryBuilder
+      .getRawAndEntities()
+      .then(({ entities, raw }) => [
+        entities.map((entity, index) => ({
+          ...entity,
+          status: raw[index]?.status,
+        })),
+        raw.length,
+      ] as [T[], number]);
   }
 
   receive(

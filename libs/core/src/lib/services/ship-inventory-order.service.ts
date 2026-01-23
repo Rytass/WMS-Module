@@ -63,7 +63,7 @@ export class ShipInventoryOrderService<
                     FROM ship_inventory_order_changes c
                     JOIN ship_inventory_order_items i ON c."itemId" = i.id
                     WHERE i."orderId" = o.id
-                  ), 0) = o."targetShippedQuantity" AND o."targetShippedQuantity" > 0 THEN '${ShipInventoryOrderStatus.SHIPPED}'
+                  ), 0) = COALESCE(target_sum."targetSum", 0) AND COALESCE(target_sum."targetSum", 0) > 0 THEN '${ShipInventoryOrderStatus.SHIPPED}'
                   WHEN COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
                     FROM ship_inventory_order_changes c
@@ -74,13 +74,26 @@ export class ShipInventoryOrderService<
                     FROM ship_inventory_order_changes c
                     JOIN ship_inventory_order_items i ON c."itemId" = i.id
                     WHERE i."orderId" = o.id
-                  ), 0) < o."targetShippedQuantity" THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
+                  ), 0) < COALESCE(target_sum."targetSum", 0) THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
                   ELSE '${ShipInventoryOrderStatus.PENDING}'
                 END`,
                 'status',
               )
               .addSelect('o.id', 'orderId')
-              .from('ship_inventory_orders', 'o'),
+              .from('ship_inventory_orders', 'o')
+              .leftJoin(
+                (sumQuery) =>
+                  sumQuery
+                    .select('i."orderId"', 'orderId')
+                    .addSelect(
+                      'SUM(CAST(i."targetShippedQuantity" AS NUMERIC))',
+                      'targetSum',
+                    )
+                    .from('ship_inventory_order_items', 'i')
+                    .groupBy('i."orderId"'),
+                'target_sum',
+                'target_sum."orderId" = o.id',
+              ),
           'order_status',
           `${alias}.id = order_status."orderId"`,
         )
@@ -228,7 +241,15 @@ export class ShipInventoryOrderService<
     if (options.limit !== undefined && options.limit > 0)
       queryBuilder.take(options.limit);
 
-    return queryBuilder.getManyAndCount();
+    return queryBuilder
+      .getRawAndEntities()
+      .then(({ entities, raw }) => [
+        entities.map((entity, index) => ({
+          ...entity,
+          status: raw[index]?.status,
+        })),
+        raw.length,
+      ] as [T[], number]);
   }
 
   ship(

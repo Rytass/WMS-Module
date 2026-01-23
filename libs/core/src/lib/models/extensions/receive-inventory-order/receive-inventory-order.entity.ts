@@ -7,6 +7,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   TableInheritance,
+  ViewColumn,
 } from 'typeorm';
 import { ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
 import { ReceiveInventoryOrderStatus } from '../../../typings';
@@ -44,5 +45,7 @@ export class ReceiveInventoryOrderEntityClass {
   @JoinColumn({ name: 'id', referencedColumnName: 'orderId' })
   items!: ReceiveInventoryOrderItemEntityClass[];
 
+  // Virtual column to keep the field in the entity
+  @JoinColumn()
   status!: ReceiveInventoryOrderStatus;
 }

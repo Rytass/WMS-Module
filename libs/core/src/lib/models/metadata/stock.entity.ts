@@ -11,4 +11,7 @@ export class StockEntityClass extends BaseStockEntity {
   @Column({ type: 'varchar' })
   @Index()
   description!: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  rollbackedAt!: Date | null;
 }
