@@ -1,5 +1,5 @@
 export type CreateLocationInput = {
   key: string;
-  descriptioin: string;
+  description: string;
   parentId?: string;
 };

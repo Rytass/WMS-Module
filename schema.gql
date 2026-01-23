@@ -237,6 +237,7 @@ type Mutation {
   createShipInventoryOrder(key: ID!, description: String!, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
   updateShipInventoryOrder(description: String, id: ID!, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
+  createLocation(key: String!, description: String!, parentId: ID): LocationDto!
 }
 
 input CreateMaterialUnitArgs {

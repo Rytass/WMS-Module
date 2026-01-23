@@ -18,6 +18,7 @@ import { StockResolver } from './resolvers/stock.resolver';
 import { WarehouseMapMutation } from './mutations/warehouse-map.mutation';
 import { LocationResolver } from './resolvers/location.resolver';
 import { LocationQuery } from './queries/location.query';
+import { LocationMutation } from './mutations/location.mutation';
 
 const exportDependencies = [
   LoaderMutation,
@@ -33,6 +34,7 @@ const exportDependencies = [
   ShipInventoryOrderMutation,
   ShipInventoryOrderQuery,
   WarehouseMapMutation,
+  LocationMutation,
   LocationQuery,
   LocationResolver,
 ];
