@@ -1,5 +1,11 @@
+import LoadersManagementTypesTable from './Table';
+
 function LoadersManagementTypes() {
-  return <>LoadersManagementTypes</>;
+  return (
+    <>
+      <LoadersManagementTypesTable />
+    </>
+  );
 }
 
 export default LoadersManagementTypes;
