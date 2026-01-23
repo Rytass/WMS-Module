@@ -299,6 +299,12 @@ export class LoaderService<
         to: options.dateRange.to,
       });
 
+    if (options.code)
+      queryBuilder.andWhere(
+        'CONCAT(loader_type.id, loader_type.serial) ILIKE :code',
+        { code: `%${options.code}%` },
+      );
+
     if (options.wildcard) {
       const { key, value } = options.wildcard;
       queryBuilder.andWhere(`loader_type."${String(key)}" ILIKE :value`, {
