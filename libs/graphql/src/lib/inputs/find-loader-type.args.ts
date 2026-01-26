@@ -14,5 +14,5 @@ export class FindLoaderTypeArgs extends PaginationArgs {
   createdAt?: DateRangeArgs;
 
   @Field(() => String, { nullable: true })
-  code?: string;
+  serial?: string;
 }

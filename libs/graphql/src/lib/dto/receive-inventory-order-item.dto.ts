@@ -9,8 +9,8 @@ export class ReceiveInventoryOrderItemDto {
   @Field(() => String, { nullable: true })
   description!: string | null;
 
-  @Field(() => ID)
-  unitId!: string;
+  @Field(() => ID, { nullable: true })
+  unitId!: string | null;
 
   @Field(() => Float)
   targetReceivedQuantity!: number;

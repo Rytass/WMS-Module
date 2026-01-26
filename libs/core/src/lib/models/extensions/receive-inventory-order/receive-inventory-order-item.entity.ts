@@ -27,9 +27,8 @@ export class ReceiveInventoryOrderItemEntityClass {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @Column({ type: 'varchar' })
-  @Index()
-  unitId!: string;
+  @Column({ type: 'varchar', nullable: true })
+  unitId!: string | null;
 
   @Column({ type: 'numeric' })
   targetReceivedQuantity!: number;

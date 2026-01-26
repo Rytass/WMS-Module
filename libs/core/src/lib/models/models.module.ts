@@ -32,8 +32,10 @@ import {
   ShipInventoryOrderChangeEntity,
   ShipInventoryOrderChangeEntityClass,
 } from './extensions';
+import { UnitEntity, UnitEntityClass } from './metadata';
 
 const entities = [
+  [UnitEntity, UnitEntityClass],
   [MaterialEntity, MaterialEntityClass],
   [MaterialUnitEntity, MaterialUnitEntityClass],
   [LoadersEntity, LoadersEntityClass],

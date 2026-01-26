@@ -6,6 +6,8 @@ type LoaderTypeDto {
   id: ID!
   description: String!
   isActive: Boolean!
+
+  """類型代碼"""
   serial: String!
   createdAt: DateTime!
   updatedAt: DateTime!
@@ -25,6 +27,9 @@ type LoaderTypes {
 
 type LoaderDto {
   id: ID!
+
+  """編碼"""
+  serialId: String!
   length: Float
   width: Float
   height: Float
@@ -86,7 +91,7 @@ type Stocks {
 type ReceiveInventoryOrderItemDto {
   id: ID!
   description: String
-  unitId: ID!
+  unitId: ID
   targetReceivedQuantity: Float!
   orderId: ID!
   materialId: ID!
@@ -119,7 +124,7 @@ type ReceiveInventoryOrders {
 type ShipInventoryOrderItemDto {
   id: ID!
   description: String
-  unitId: ID!
+  unitId: ID
   targetShippedQuantity: Float!
   orderId: ID!
   materialId: ID!
@@ -212,11 +217,17 @@ type MapPolygonRangeDto {
   points: [MapPolygonRangePointDto!]!
 }
 
+type UnitDto {
+  id: ID!
+  key: String!
+}
+
 type Query {
+  units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
   loaders(offset: Int, limit: Int, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String): Loaders!
   loaderType(id: ID!): LoaderTypeDto!
-  loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, code: String): LoaderTypes!
+  loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, serial: String): LoaderTypes!
   material(id: ID!): MaterialDto!
   materials(offset: Int, limit: Int, materialId: ID, materialIds: [ID!], description: String): Materials!
   stock(id: ID!): StockDto!

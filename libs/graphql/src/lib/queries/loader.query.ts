@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Args, ArgsType, ID, Query } from '@nestjs/graphql';
+import { Args, ID, Query } from '@nestjs/graphql';
 import { LoaderService } from '@wms-module/core';
 import { LoaderDto, Loaders, LoaderTypeDto, LoaderTypes } from '../dto';
 import { FindLoaderArgs } from '../inputs/find-loader.args';
@@ -29,7 +29,10 @@ export class LoaderQuery {
 
   @Query(() => LoaderTypes)
   async loaderTypes(@Args() args: FindLoaderTypeArgs): Promise<LoaderTypes> {
-    const [items, total] = await this.loaderService.findManyLoaderTypes(args);
+    const [items, total] = await this.loaderService.findManyLoaderTypes({
+      ...args,
+      wildcard: args.serial ? { key: 'serial', value: args.serial } : undefined,
+    });
     return { items, total };
   }
 }
