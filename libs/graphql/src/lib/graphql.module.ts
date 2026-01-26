@@ -20,8 +20,10 @@ import { LocationResolver } from './resolvers/location.resolver';
 import { LocationQuery } from './queries/location.query';
 import { LocationMutation } from './mutations/location.mutation';
 import { LoaderTypeResolver } from './resolvers/loader-type.resolver';
+import { UnitQuery } from './queries/unit.query';
 
 const exportDependencies = [
+  UnitQuery,
   LoaderMutation,
   LoaderQuery,
   LoaderResolver,
