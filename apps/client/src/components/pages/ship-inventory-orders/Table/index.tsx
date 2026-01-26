@@ -9,7 +9,7 @@ import {
 } from '../../../../hooks/useTablePagination';
 import {
   ShipInventoryOrdersDocument,
-  ShipInventoryOrderFragment,
+  SimpleShipInventoryOrderFragment,
 } from '../../../../graphql/generated/.graphql';
 // import { FilterValues } from '../typing';
 
@@ -32,11 +32,12 @@ function ShipInventoryOrdersTable() {
   });
 
   const dataSource = useMemo(
-    (): ShipInventoryOrderFragment[] => data?.shipInventoryOrders.items ?? [],
+    (): SimpleShipInventoryOrderFragment[] =>
+      data?.shipInventoryOrders.items ?? [],
     [data?.shipInventoryOrders.items],
   );
 
-  const columns: TableColumn<ShipInventoryOrderFragment>[] = [
+  const columns: TableColumn<SimpleShipInventoryOrderFragment>[] = [
     {
       key: 'description',
       title: '備註',
@@ -52,7 +53,7 @@ function ShipInventoryOrdersTable() {
         console.log('建立出庫單');
       }}
     >
-      <Table<ShipInventoryOrderFragment>
+      <Table<SimpleShipInventoryOrderFragment>
         columns={columns}
         dataSource={dataSource}
         pagination={{

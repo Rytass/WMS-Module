@@ -71,20 +71,6 @@ function InventoryGroupTable() {
     [expandedRowKeys],
   );
 
-  console.log(
-    'selectedRowKeys',
-    parentSelectedKeys,
-    parentSelectedKeys.map((k) => {
-      const item = baseData.find((d) => d.key === k);
-
-      if (item) {
-        return getChildSelectedRowKeys(item);
-      }
-
-      return null;
-    }),
-  );
-
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const baseColumns: TableColumn<DataType>[] = [
@@ -262,6 +248,20 @@ function InventoryGroupTable() {
     setPage,
     filterValues: [],
   });
+
+  console.log(
+    'selectedRowKeys',
+    parentSelectedKeys,
+    parentSelectedKeys.map((k) => {
+      const item = baseData.find((d) => d.key === k);
+
+      if (item) {
+        return getChildSelectedRowKeys(item);
+      }
+
+      return null;
+    }),
+  );
 
   return (
     <Table<DataType>

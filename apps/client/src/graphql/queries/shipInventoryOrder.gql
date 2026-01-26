@@ -24,7 +24,7 @@ query ShipInventoryOrders(
   ) {
     id
     items {
-      ...ShipInventoryOrder
+      ...SimpleShipInventoryOrder
     }
     total
   }

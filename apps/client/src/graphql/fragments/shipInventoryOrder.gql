@@ -14,7 +14,16 @@ fragment ShipInventoryOrder on ShipInventoryOrderDto {
   description
   createdBy
   removedAt
+  status
   items {
     ...ShipInventoryOrderItem
   }
+}
+
+fragment SimpleShipInventoryOrder on ShipInventoryOrderDto {
+  id
+  description
+  createdBy
+  removedAt
+  status
 }
