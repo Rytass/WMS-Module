@@ -27,6 +27,9 @@ type LoaderTypes {
 
 type LoaderDto {
   id: ID!
+
+  """編碼"""
+  serialId: String!
   length: Float
   width: Float
   height: Float
@@ -88,7 +91,7 @@ type Stocks {
 type ReceiveInventoryOrderItemDto {
   id: ID!
   description: String
-  unitId: ID!
+  unitId: ID
   targetReceivedQuantity: Float!
   orderId: ID!
   materialId: ID!
@@ -121,7 +124,7 @@ type ReceiveInventoryOrders {
 type ShipInventoryOrderItemDto {
   id: ID!
   description: String
-  unitId: ID!
+  unitId: ID
   targetShippedQuantity: Float!
   orderId: ID!
   materialId: ID!

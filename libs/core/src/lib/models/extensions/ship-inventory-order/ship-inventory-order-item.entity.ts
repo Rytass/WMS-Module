@@ -30,9 +30,8 @@ export class ShipInventoryOrderItemEntityClass {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @Column({ type: 'varchar' })
-  @Index()
-  unitId!: string;
+  @Column({ type: 'varchar', nullable: true })
+  unitId!: string | null;
 
   @Column({ type: 'numeric' })
   targetShippedQuantity!: number;
