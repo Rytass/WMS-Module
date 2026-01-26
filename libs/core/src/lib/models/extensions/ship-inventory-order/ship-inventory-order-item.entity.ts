@@ -30,29 +30,29 @@ export class ShipInventoryOrderItemEntityClass {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   unitId!: string | null;
 
   @Column({ type: 'numeric' })
   targetShippedQuantity!: number;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'uuid' })
   @Index()
   orderId!: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'uuid' })
   @Index()
   materialId!: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   @Index()
   batchId!: string | null;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   @Index()
   locationId!: string | null;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'uuid', nullable: true })
   @Index()
   loaderId!: string | null;
 
