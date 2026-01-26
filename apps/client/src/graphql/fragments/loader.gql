@@ -3,6 +3,7 @@ fragment LoaderType on LoaderTypeDto {
   description
   isActive
   serial
+  referencedQuantity
   createdAt
   updatedAt
 }
