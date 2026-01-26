@@ -4,7 +4,6 @@ import { Button, ButtonGroup } from '@mezzanine-ui/react';
 import { useDialog } from '../../../../components/dialog/useDialog';
 import {
   SimpleMaterialFragment,
-  MaterialsDocument,
   UpdateMaterialDocument,
 } from '../../../../graphql/generated/.graphql';
 import MaterialsManagementForm from '../Form';
@@ -17,14 +16,20 @@ const Actions: FC<ActionsProps> = ({ source }) => {
   const [editModalOpened, setEditModalOpened] = useState<boolean>(false);
   const { openDialog } = useDialog();
 
-  const [updateMaterial] = useMutation(UpdateMaterialDocument, {
-    refetchQueries: [MaterialsDocument],
+  const [updateMaterial, { loading }] = useMutation(UpdateMaterialDocument, {
+    refetchQueries: [],
   });
 
   return (
     <>
       <ButtonGroup>
-        <Button type="button" size="sub">
+        <Button
+          type="button"
+          size="sub"
+          onClick={() => {
+            setEditModalOpened(true);
+          }}
+        >
           編輯
         </Button>
         {source.isActive ? (
@@ -32,14 +37,17 @@ const Actions: FC<ActionsProps> = ({ source }) => {
             type="button"
             size="sub"
             variant="destructive-secondary"
+            loading={loading}
             onClick={async () => {
               try {
-                await updateMaterial({
-                  variables: {
-                    updateMaterialId: source.id,
-                    isActive: false,
-                  },
-                });
+                if (!loading) {
+                  await updateMaterial({
+                    variables: {
+                      updateMaterialId: source.id,
+                      isActive: false,
+                    },
+                  });
+                }
               } catch (error) {
                 console.error(error);
               }
@@ -52,14 +60,17 @@ const Actions: FC<ActionsProps> = ({ source }) => {
             type="button"
             size="sub"
             variant="base-secondary"
+            loading={loading}
             onClick={async () => {
               try {
-                await updateMaterial({
-                  variables: {
-                    updateMaterialId: source.id,
-                    isActive: true,
-                  },
-                });
+                if (!loading) {
+                  await updateMaterial({
+                    variables: {
+                      updateMaterialId: source.id,
+                      isActive: true,
+                    },
+                  });
+                }
               } catch (error) {
                 console.error(error);
               }
