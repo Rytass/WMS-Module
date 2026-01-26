@@ -50,7 +50,7 @@ query LoaderTypes(
   $description: String
   $isActive: Boolean
   $createdAt: DateRangeArgs
-  $code: String
+  $serial: String
 ) {
   loaderTypes(
     offset: $offset
@@ -58,7 +58,7 @@ query LoaderTypes(
     description: $description
     isActive: $isActive
     createdAt: $createdAt
-    code: $code
+    serial: $serial
   ) {
     id
     items {
