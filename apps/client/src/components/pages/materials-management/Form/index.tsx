@@ -46,6 +46,8 @@ function MaterialsManagementForm({
       closeModal={closeModal}
       open={open}
       mode={mode}
+      submitWithConfirm
+      cancelWithConfirm={methods.formState.isDirty}
     >
       <div className={classes.host}>
         <div className={classes.section}>

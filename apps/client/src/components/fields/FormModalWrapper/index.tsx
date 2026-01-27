@@ -1,4 +1,4 @@
-import { ReactNode, useCallback } from 'react';
+import { ReactNode, useCallback, useEffect } from 'react';
 import { ModalProps, ModalSize, Modal } from '@mezzanine-ui/react';
 import { UseFormReturn, SubmitHandler, FieldValues } from 'react-hook-form';
 import { FormWrapper } from '../FormWrapper';
@@ -37,6 +37,12 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
   cancelWithConfirm = false,
 }: FormModalWrapperProps<T>) => {
   const { openDialog } = useDialog();
+
+  useEffect(() => {
+    if (!open) {
+      methods.reset();
+    }
+  }, [methods, open]);
 
   const closeModal = useCallback(async () => {
     if (cancelWithConfirm) {
@@ -104,11 +110,13 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
 
       if (isConfirm) {
         methods.handleSubmit(onSubmit)();
+        closeModalProps();
       }
     } else {
       methods.handleSubmit(onSubmit)();
+      closeModalProps();
     }
-  }, [methods, mode, onSubmit, openDialog, submitWithConfirm]);
+  }, [methods, mode, onSubmit, openDialog, submitWithConfirm, closeModalProps]);
 
   return (
     <Modal
