@@ -11,7 +11,6 @@ import {
   ShipInventoryOrdersDocument,
   SimpleShipInventoryOrderFragment,
 } from '../../../../graphql/generated/.graphql';
-// import { FilterValues } from '../typing';
 
 function ShipInventoryOrdersTable() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();

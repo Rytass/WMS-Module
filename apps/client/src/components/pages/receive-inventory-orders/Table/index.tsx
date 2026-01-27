@@ -11,7 +11,6 @@ import {
   ReceiveInventoryOrdersDocument,
   SimpleReceiveInventoryOrderFragment,
 } from '../../../../graphql/generated/.graphql';
-// import { FilterValues } from '../typing';
 
 function ReceiveInventoryOrdersTable() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
