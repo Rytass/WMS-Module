@@ -21,6 +21,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   disabled = false,
   placeholder,
   size = 'sub',
+  menuMaxHeight = 300,
   options,
   onSearch: onSearchProps,
   fuzzySearch = false,
@@ -114,7 +115,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
         onClear={onClear}
         value={watchValueInOptions}
         options={options}
-        menuMaxHeight={300}
+        menuMaxHeight={menuMaxHeight}
         keepSearchTextOnBlur
         dropdownZIndex={1004}
       />

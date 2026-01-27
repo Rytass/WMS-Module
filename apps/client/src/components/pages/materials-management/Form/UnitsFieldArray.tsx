@@ -30,7 +30,12 @@ const UnitsFieldArray: FC = () => {
       key: 'unit',
       title: '換算單位',
       render: (source, index) => (
-        <UnitsField name={`units.${index}.unit`} label="" placeholder="單位" />
+        <UnitsField
+          name={`units.${index}.unit`}
+          label=""
+          placeholder="單位"
+          menuMaxHeight={200}
+        />
       ),
     },
     {
