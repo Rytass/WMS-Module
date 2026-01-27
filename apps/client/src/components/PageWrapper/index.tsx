@@ -52,7 +52,7 @@ function PageWrapper({
           {breadcrumb && (
             <Breadcrumb
               items={breadcrumb.map((b) => ({
-                label: b.label,
+                name: b.label,
                 type: 'button',
                 onClick: () => {
                   if (b.href) {

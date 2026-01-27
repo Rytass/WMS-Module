@@ -22,7 +22,15 @@ const UnitsFieldArray: FC = () => {
       key: 'one',
       title: '換算計量',
       align: 'end',
-      render: () => <Input variant="unit" value="1" size="sub" disabled />,
+      render: () => (
+        <Input
+          variant="currency"
+          inputType="number"
+          value="1"
+          size="sub"
+          disabled
+        />
+      ),
     },
     {
       key: 'unit',
