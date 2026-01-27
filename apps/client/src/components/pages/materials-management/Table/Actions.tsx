@@ -1,11 +1,8 @@
 import { useState } from 'react';
-import { useMutation } from '@apollo/client/react';
 import { Button, ButtonGroup } from '@mezzanine-ui/react';
 import { useDialog } from '../../../../components/dialog/useDialog';
-import {
-  SimpleMaterialFragment,
-  UpdateMaterialDocument,
-} from '../../../../graphql/generated/.graphql';
+import { SimpleMaterialFragment } from '../../../../graphql/generated/.graphql';
+import { useUpdateMaterial } from '../useApi';
 import MaterialsManagementForm from '../Form';
 
 interface ActionsProps {
@@ -16,9 +13,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
   const [editModalOpened, setEditModalOpened] = useState<boolean>(false);
   const { openDialog } = useDialog();
 
-  const [updateMaterial, { loading }] = useMutation(UpdateMaterialDocument, {
-    refetchQueries: [],
-  });
+  const { updateMaterial, loading } = useUpdateMaterial();
 
   return (
     <>
