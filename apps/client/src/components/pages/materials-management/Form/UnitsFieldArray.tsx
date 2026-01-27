@@ -15,9 +15,11 @@ import classes from './index.module.scss';
 const UnitsFieldArray: FC = () => {
   const baseUnit = useWatch<FormValues, 'baseUnit'>({ name: 'baseUnit' });
 
-  const { fields, append, remove } = useFieldArray<FormValues, 'units'>({
-    name: 'units',
-  });
+  const { fields, append, update, remove } = useFieldArray<FormValues, 'units'>(
+    {
+      name: 'units',
+    },
+  );
 
   const columns: TableColumn<UnitFieldItem & TableDataSourceWithId>[] = [
     {
@@ -78,18 +80,49 @@ const UnitsFieldArray: FC = () => {
       title: '操作',
       width: 80,
       align: 'center',
-      render: (source, index) => (
-        <Button
-          type="button"
-          variant="destructive-ghost"
-          size="sub"
-          onClick={() => {
-            remove(index);
-          }}
-        >
-          刪除
-        </Button>
-      ),
+      render: (source, index) =>
+        source.isExisted ? (
+          source.isActive ? (
+            <Button
+              type="button"
+              variant="destructive-ghost"
+              size="sub"
+              onClick={() => {
+                update(index, {
+                  ...source,
+                  isActive: false,
+                });
+              }}
+            >
+              停用
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="base-ghost"
+              size="sub"
+              onClick={() => {
+                update(index, {
+                  ...source,
+                  isActive: true,
+                });
+              }}
+            >
+              啟用
+            </Button>
+          )
+        ) : (
+          <Button
+            type="button"
+            variant="destructive-ghost"
+            size="sub"
+            onClick={() => {
+              remove(index);
+            }}
+          >
+            刪除
+          </Button>
+        ),
     },
   ];
 

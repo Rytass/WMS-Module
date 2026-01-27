@@ -32,11 +32,16 @@ function MaterialsManagementForm({
     defaultValues,
   });
 
+  const units = methods.getValues('units');
+
   return (
     <FormModalWrapper<FormValues>
       methods={methods}
       title={title}
       confirmText={submitText}
+      confirmButtonProps={{
+        disabled: units.length === 0,
+      }}
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}
