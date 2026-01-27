@@ -7,6 +7,7 @@ import BaseField, { BaseFieldProps } from '../BaseField';
 export type SingleAutoCompleteFieldProps = AutoCompleteSingleProps &
   Omit<BaseFieldProps, 'children'> & {
     fuzzySearch?: boolean;
+    useNameToValue?: boolean;
   };
 
 export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
@@ -23,6 +24,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   options,
   onSearch: onSearchProps,
   fuzzySearch = false,
+  useNameToValue = false,
   ...rest
 }) => {
   const {
@@ -38,25 +40,31 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   });
 
   const watchValueInOptions = useMemo(
-    () => options?.find((o) => o.id === watchValue) ?? null,
-    [options, watchValue],
+    () =>
+      options?.find((o) =>
+        useNameToValue ? o.name === watchValue : o.id === watchValue,
+      ) ?? null,
+    [options, watchValue, useNameToValue],
   );
 
-  const onChange = (newValue: SelectValue) => {
-    if (errors?.[name]) {
-      clearErrors(name);
-    }
+  const onChange = useCallback(
+    (newValue: SelectValue) => {
+      if (errors?.[name]) {
+        clearErrors(name);
+      }
 
-    if (newValue) {
-      setValue(name, newValue.id, {
-        shouldDirty: true,
-      });
-    } else {
-      setValue(name, '', {
-        shouldDirty: true,
-      });
-    }
-  };
+      if (newValue) {
+        setValue(name, useNameToValue ? newValue.name : newValue.id, {
+          shouldDirty: true,
+        });
+      } else {
+        setValue(name, '', {
+          shouldDirty: true,
+        });
+      }
+    },
+    [clearErrors, errors, name, setValue, useNameToValue],
+  );
 
   const onSearch = useCallback(
     (input: string) => {
@@ -106,7 +114,8 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
         onClear={onClear}
         value={watchValueInOptions}
         options={options}
-        menuMaxHeight={370}
+        menuMaxHeight={315}
+        keepSearchTextOnBlur
       />
     </BaseField>
   );

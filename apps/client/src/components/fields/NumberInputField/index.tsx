@@ -1,13 +1,13 @@
 import { ChangeEventHandler, useCallback, useMemo } from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
 import Input from '@mezzanine-ui/react/Input';
-import type { UnitInputProps } from '@mezzanine-ui/react/Input';
+import type { CurrencyInputProps } from '@mezzanine-ui/react/Input';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
-export type InputFieldProps = Omit<UnitInputProps, 'variant'> &
+export type NumberInputFieldProps = Omit<CurrencyInputProps, 'variant'> &
   Omit<BaseFieldProps, 'children'>;
 
-export const InputField: FC<InputFieldProps> = ({
+export const NumberInputField: FC<NumberInputFieldProps> = ({
   className,
   fieldClassName,
   name,
@@ -53,8 +53,7 @@ export const InputField: FC<InputFieldProps> = ({
         fullWidth
         error={isError}
         className={className}
-        variant="unit"
-        inputType="number"
+        variant="currency"
         value={`${watchValue}`}
         onChange={onChange}
         placeholder={placeholder}
@@ -65,4 +64,4 @@ export const InputField: FC<InputFieldProps> = ({
   );
 };
 
-export default InputField;
+export default NumberInputField;

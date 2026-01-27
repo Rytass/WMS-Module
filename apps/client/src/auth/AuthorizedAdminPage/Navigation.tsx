@@ -73,7 +73,9 @@ function Navigation() {
         </NavigationHeader>
         {renderOptions()}
         <NavigationFooter>
-          <NavigationUserMenu imgSrc="1">User Name</NavigationUserMenu>
+          <NavigationUserMenu imgSrc="1" options={[]}>
+            User Name
+          </NavigationUserMenu>
           <NavigationIconButton icon={LogoutIcon} />
         </NavigationFooter>
       </MznNavigation>

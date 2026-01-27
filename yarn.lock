@@ -4070,12 +4070,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/core@npm:1.0.0-beta.3":
-  version: 1.0.0-beta.3
-  resolution: "@mezzanine-ui/core@npm:1.0.0-beta.3"
+"@mezzanine-ui/core@npm:1.0.0-beta.4":
+  version: 1.0.0-beta.4
+  resolution: "@mezzanine-ui/core@npm:1.0.0-beta.4"
   dependencies:
-    "@mezzanine-ui/icons": "npm:1.0.0-beta.3"
-    "@mezzanine-ui/system": "npm:1.0.0-beta.3"
+    "@mezzanine-ui/icons": "npm:1.0.0-beta.4"
+    "@mezzanine-ui/system": "npm:1.0.0-beta.4"
     lodash: "npm:^4.17.21"
     tslib: "npm:^2.8.1"
   peerDependencies:
@@ -4090,48 +4090,50 @@ __metadata:
       optional: true
     moment:
       optional: true
-  checksum: 10c0/4a1e37d89e91d891c481662882553eef082b1f1e10ac107e47f2275dbd1dd9bbbe943923504d67b2377542ac89406d0390d182f15290bf5a5faa1d028a5b63c6
+  checksum: 10c0/a8afdf832f804ca27a17068b5ee987723ca234ab4304a2968a5678cdfd104ca34dbdfcb8012cb0c29aafa44632e5172427c5fe4049ecdd043eb2101e3a22ba85
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/icons@npm:1.0.0-beta.3":
-  version: 1.0.0-beta.3
-  resolution: "@mezzanine-ui/icons@npm:1.0.0-beta.3"
-  checksum: 10c0/68efc669269ab1f5294e7e7dea97bcf12369f920f4c21e9590c6618e350bc019683a856f6ab2e11eabe69cde05ef6e5af9e800458e897c0bb4a1ce97980a34b2
+"@mezzanine-ui/icons@npm:1.0.0-beta.4":
+  version: 1.0.0-beta.4
+  resolution: "@mezzanine-ui/icons@npm:1.0.0-beta.4"
+  checksum: 10c0/ca2af908a01a3fe36f2871c98f041c570c9773f2ac3c321ba253721d6811d673f466990d7f9afc6e82990f503a1d579dabd68c37456b86cd45b412aebbb8e676
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/react@npm:1.0.0-beta.3":
-  version: 1.0.0-beta.3
-  resolution: "@mezzanine-ui/react@npm:1.0.0-beta.3"
+"@mezzanine-ui/react@npm:1.0.0-beta.4":
+  version: 1.0.0-beta.4
+  resolution: "@mezzanine-ui/react@npm:1.0.0-beta.4"
   dependencies:
     "@floating-ui/dom": "npm:^1.7.4"
     "@floating-ui/react-dom": "npm:^2.1.6"
     "@hello-pangea/dnd": "npm:^18.0.1"
-    "@mezzanine-ui/core": "npm:1.0.0-beta.3"
-    "@mezzanine-ui/icons": "npm:1.0.0-beta.3"
-    "@mezzanine-ui/system": "npm:1.0.0-beta.3"
+    "@mezzanine-ui/core": "npm:1.0.0-beta.4"
+    "@mezzanine-ui/icons": "npm:1.0.0-beta.4"
+    "@mezzanine-ui/system": "npm:1.0.0-beta.4"
     "@tanstack/react-virtual": "npm:^3.13.13"
     "@types/react-transition-group": "npm:^4.4.12"
     clsx: "npm:^2.1.1"
     keycode: "npm:^2.2.1"
     lodash: "npm:^4.17.21"
+    overlayscrollbars: "npm:^2.13.0"
+    overlayscrollbars-react: "npm:^0.5.6"
     react-transition-group: "npm:^4.4.5"
     tslib: "npm:^2.8.1"
   peerDependencies:
     lodash: ">=4"
     react: ">=18"
     react-dom: ">=18"
-  checksum: 10c0/516380e1b0b34611528db857eb3f25f1ffd9bc0cf4bc80fb9d0f7f6cec9dc1a0af4db5f06dad5bde61273a95e56558f598be23de432326e30513731a9a0b1ab9
+  checksum: 10c0/1f21590e1363f98766c75031fa23e0288178a0a51bb2630e347cd142cf779624d45911a463667ad858f4b7fe4c31d9077ec810717fa6a0a032ec6204c8dc3725
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/system@npm:1.0.0-beta.3":
-  version: 1.0.0-beta.3
-  resolution: "@mezzanine-ui/system@npm:1.0.0-beta.3"
+"@mezzanine-ui/system@npm:1.0.0-beta.4":
+  version: 1.0.0-beta.4
+  resolution: "@mezzanine-ui/system@npm:1.0.0-beta.4"
   dependencies:
     tslib: "npm:^2.8.1"
-  checksum: 10c0/dda02eb896fa86d06e55f488edf4946978666fe1a538f9848837221494e1f853a9f601c3c931154f86f4823635339a1a08ee5359877c2b5b1b885d527cb775bf
+  checksum: 10c0/3d08d570c923204463e8f188847be024c20fee69b6c1a004a1635ad5be35443fee628d03fd245852429f83bd84ee8e05c6505c97574b4e6eff92b684f2b49eba
   languageName: node
   linkType: hard
 
@@ -8048,10 +8050,10 @@ __metadata:
     "@hookform/devtools": "npm:^4.4.0"
     "@hookform/error-message": "npm:^2.0.1"
     "@hookform/resolvers": "npm:^5.2.2"
-    "@mezzanine-ui/core": "npm:1.0.0-beta.3"
-    "@mezzanine-ui/icons": "npm:1.0.0-beta.3"
-    "@mezzanine-ui/react": "npm:1.0.0-beta.3"
-    "@mezzanine-ui/system": "npm:1.0.0-beta.3"
+    "@mezzanine-ui/core": "npm:1.0.0-beta.4"
+    "@mezzanine-ui/icons": "npm:1.0.0-beta.4"
+    "@mezzanine-ui/react": "npm:1.0.0-beta.4"
+    "@mezzanine-ui/system": "npm:1.0.0-beta.4"
     "@nestjs/apollo": "npm:^13.2.3"
     "@nestjs/common": "npm:^11.0.0"
     "@nestjs/config": "npm:^4.0.2"
@@ -16401,6 +16403,23 @@ __metadata:
     strip-ansi: "npm:^6.0.0"
     wcwidth: "npm:^1.0.1"
   checksum: 10c0/10ff14aace236d0e2f044193362b22edce4784add08b779eccc8f8ef97195cae1248db8ec1ec5f5ff076f91acbe573f5f42a98c19b78dba8c54eefff983cae85
+  languageName: node
+  linkType: hard
+
+"overlayscrollbars-react@npm:^0.5.6":
+  version: 0.5.6
+  resolution: "overlayscrollbars-react@npm:0.5.6"
+  peerDependencies:
+    overlayscrollbars: ^2.0.0
+    react: ">=16.8.0"
+  checksum: 10c0/59a2aad3664d81dc4dee5e747b72bb2645047e0e6d300d9583244167d1e4b19c4cc263932e4b112d5c24358430f78d15d34ea389beb8845e3b5319ccc57db8d8
+  languageName: node
+  linkType: hard
+
+"overlayscrollbars@npm:^2.13.0":
+  version: 2.13.0
+  resolution: "overlayscrollbars@npm:2.13.0"
+  checksum: 10c0/6a2731c417d926932bb20dd6cb93df78ee2ecac9068959b9d7bdf35180c513324530eea8d9252eef6c9640c99c5c054a5a514f0c1427310a73b764a6fa17740a
   languageName: node
   linkType: hard
 

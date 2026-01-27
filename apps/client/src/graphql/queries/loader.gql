@@ -37,3 +37,33 @@ query Loaders(
     total
   }
 }
+
+query LoaderType($loaderTypeId: ID!) {
+  loaderType(id: $loaderTypeId) {
+    ...LoaderType
+  }
+}
+
+query LoaderTypes(
+  $offset: Int
+  $limit: Int
+  $description: String
+  $isActive: Boolean
+  $createdAt: DateRangeArgs
+  $serial: String
+) {
+  loaderTypes(
+    offset: $offset
+    limit: $limit
+    description: $description
+    isActive: $isActive
+    createdAt: $createdAt
+    serial: $serial
+  ) {
+    id
+    items {
+      ...LoaderType
+    }
+    total
+  }
+}

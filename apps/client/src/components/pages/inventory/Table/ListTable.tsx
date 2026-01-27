@@ -1,33 +1,12 @@
 import { useMemo } from 'react';
 import { TableColumn } from '@mezzanine-ui/react';
-import { useQuery } from '@apollo/client/react';
 import Table from '../../../TableWrapper/Table';
-import {
-  useTablePageState,
-  useTablePageTotal,
-} from '../../../../hooks/useTablePagination';
-import {
-  StocksDocument,
-  StockFragment,
-} from '../../../../graphql/generated/.graphql';
+import { StockFragment } from '../../../../graphql/generated/.graphql';
+import { useQueryStocks } from '../useApi';
 
 function InventoryListTable() {
-  const { page, setPage, limit, setLimit, offset } = useTablePageState();
-
-  const { data } = useQuery(StocksDocument, {
-    variables: {
-      limit,
-      offset,
-    },
-    fetchPolicy: 'cache-and-network',
-  });
-
-  const { pageTotal } = useTablePageTotal({
-    page,
-    total: data?.stocks.total,
-    setPage,
-    filterValues: [],
-  });
+  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
+    useQueryStocks();
 
   const dataSource = useMemo(
     (): StockFragment[] => data?.stocks.items ?? [],
@@ -46,6 +25,7 @@ function InventoryListTable() {
     <Table<StockFragment>
       columns={columns}
       dataSource={dataSource}
+      loading={loading}
       pagination={{
         current: page,
         onChange: (page) => setPage(page),

@@ -12,7 +12,6 @@ import {
   LoadersDocument,
   LoaderFragment,
 } from '../../../../../graphql/generated/.graphql';
-// import { FilterValues } from '../typing';
 
 function LoadersManagementTypesTable() {
   return (

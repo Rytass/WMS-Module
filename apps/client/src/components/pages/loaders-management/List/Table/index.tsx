@@ -1,37 +1,15 @@
 import { useMemo } from 'react';
 import dayjs from 'dayjs';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
-import { useQuery } from '@apollo/client/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
 import Actions from './Actions';
-import {
-  useTablePageState,
-  useTablePageTotal,
-} from '../../../../../hooks/useTablePagination';
-import {
-  LoadersDocument,
-  LoaderFragment,
-} from '../../../../../graphql/generated/.graphql';
-// import { FilterValues } from '../typing';
+import { LoaderFragment } from '../../../../../graphql/generated/.graphql';
+import { useQueryLoaders } from '../../useApi';
 
 function LoadersManagementListTable() {
-  const { page, setPage, limit, setLimit, offset } = useTablePageState();
-
-  const { data, loading } = useQuery(LoadersDocument, {
-    variables: {
-      limit,
-      offset,
-    },
-    fetchPolicy: 'cache-and-network',
-  });
-
-  const { pageTotal } = useTablePageTotal({
-    page,
-    total: data?.loaders.total,
-    setPage,
-    filterValues: [],
-  });
+  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
+    useQueryLoaders();
 
   const dataSource = useMemo(
     (): LoaderFragment[] => data?.loaders.items ?? [],

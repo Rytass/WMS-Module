@@ -1,35 +1,13 @@
 import { useMemo } from 'react';
 import { TableColumn } from '@mezzanine-ui/react';
-import { useQuery } from '@apollo/client/react';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
-import {
-  useTablePageState,
-  useTablePageTotal,
-} from '../../../../hooks/useTablePagination';
-import {
-  ShipInventoryOrdersDocument,
-  SimpleShipInventoryOrderFragment,
-} from '../../../../graphql/generated/.graphql';
-// import { FilterValues } from '../typing';
+import { SimpleShipInventoryOrderFragment } from '../../../../graphql/generated/.graphql';
+import { useQueryShipInventoryOrders } from '../useApi';
 
 function ShipInventoryOrdersTable() {
-  const { page, setPage, limit, setLimit, offset } = useTablePageState();
-
-  const { data } = useQuery(ShipInventoryOrdersDocument, {
-    variables: {
-      limit,
-      offset,
-    },
-    fetchPolicy: 'cache-and-network',
-  });
-
-  const { pageTotal } = useTablePageTotal({
-    page,
-    total: data?.shipInventoryOrders.total,
-    setPage,
-    filterValues: [],
-  });
+  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
+    useQueryShipInventoryOrders();
 
   const dataSource = useMemo(
     (): SimpleShipInventoryOrderFragment[] =>
@@ -56,6 +34,7 @@ function ShipInventoryOrdersTable() {
       <Table<SimpleShipInventoryOrderFragment>
         columns={columns}
         dataSource={dataSource}
+        loading={loading}
         pagination={{
           current: page,
           onChange: (page) => setPage(page),

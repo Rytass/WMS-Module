@@ -1,35 +1,13 @@
 import { useMemo } from 'react';
 import { TableColumn } from '@mezzanine-ui/react';
-import { useQuery } from '@apollo/client/react';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
-import {
-  useTablePageState,
-  useTablePageTotal,
-} from '../../../../hooks/useTablePagination';
-import {
-  ReceiveInventoryOrdersDocument,
-  SimpleReceiveInventoryOrderFragment,
-} from '../../../../graphql/generated/.graphql';
-// import { FilterValues } from '../typing';
+import { SimpleReceiveInventoryOrderFragment } from '../../../../graphql/generated/.graphql';
+import { useQueryReceiveInventoryOrders } from '../useApi';
 
 function ReceiveInventoryOrdersTable() {
-  const { page, setPage, limit, setLimit, offset } = useTablePageState();
-
-  const { data } = useQuery(ReceiveInventoryOrdersDocument, {
-    variables: {
-      limit,
-      offset,
-    },
-    fetchPolicy: 'cache-and-network',
-  });
-
-  const { pageTotal } = useTablePageTotal({
-    page,
-    total: data?.receiveInventoryOrders.total,
-    setPage,
-    filterValues: [],
-  });
+  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
+    useQueryReceiveInventoryOrders();
 
   const dataSource = useMemo(
     (): SimpleReceiveInventoryOrderFragment[] =>
@@ -62,6 +40,7 @@ function ReceiveInventoryOrdersTable() {
       <Table<SimpleReceiveInventoryOrderFragment>
         columns={columns}
         dataSource={dataSource}
+        loading={loading}
         pagination={{
           current: page,
           onChange: (page) => setPage(page),
