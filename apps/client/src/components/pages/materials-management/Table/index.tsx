@@ -1,21 +1,13 @@
 import { useMemo, useState } from 'react';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
-import { useQuery } from '@apollo/client/react';
 import { useDialog } from '../../../../components/dialog/useDialog';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
-import {
-  useTablePageState,
-  useTablePageTotal,
-} from '../../../../hooks/useTablePagination';
 import MaterialsManagementForm from '../Form';
 import Actions from './Actions';
-import {
-  MaterialsDocument,
-  SimpleMaterialFragment,
-} from '../../../../graphql/generated/.graphql';
-import { FilterType } from '../../../FilterWrapper/typing';
+import { SimpleMaterialFragment } from '../../../../graphql/generated/.graphql';
 import { FilterValues } from '../typing';
+import { useQueryMaterials } from '../useApi';
 
 interface MaterialsManagementTableProps {
   currentFilter?: FilterValues;
@@ -27,24 +19,8 @@ function MaterialsManagementTable({
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
   const { openDialog } = useDialog();
 
-  const { page, setPage, limit, setLimit, offset } = useTablePageState();
-
-  const { data, loading } = useQuery(MaterialsDocument, {
-    variables: {
-      offset,
-      limit,
-      materialId: currentFilter?.[FilterType.material],
-      description: currentFilter?.[FilterType.materialDescription],
-    },
-    fetchPolicy: 'cache-and-network',
-  });
-
-  const { pageTotal } = useTablePageTotal({
-    page,
-    total: data?.materials.total,
-    setPage,
-    filterValues: [currentFilter],
-  });
+  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
+    useQueryMaterials(currentFilter);
 
   const dataSource = useMemo(
     (): SimpleMaterialFragment[] => data?.materials.items ?? [],
