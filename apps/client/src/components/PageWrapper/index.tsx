@@ -7,6 +7,7 @@ import {
   Button,
   PageFooter,
 } from '@mezzanine-ui/react';
+import ContentHeader from '@mezzanine-ui/react/ContentHeader';
 import { Url } from 'next/dist/shared/lib/router/router';
 import classes from './index.module.scss';
 
@@ -32,23 +33,7 @@ function PageWrapper({
   return (
     <>
       <div className={classes.host}>
-        <PageHeader className={classes.pageHeader} title={title}>
-          {haveBack && (
-            <Button
-              type="button"
-              icon={ChevronLeftIcon}
-              iconType="icon-only"
-              variant="base-tertiary"
-              size="sub"
-              onClick={
-                onBack
-                  ? async () => {
-                      await onBack();
-                    }
-                  : back
-              }
-            />
-          )}
+        <PageHeader className={classes.pageHeader}>
           {breadcrumb && (
             <Breadcrumb
               items={breadcrumb.map((b) => ({
@@ -62,6 +47,24 @@ function PageWrapper({
               }))}
             />
           )}
+          <ContentHeader title={title}>
+            {haveBack && (
+              <Button
+                type="button"
+                icon={ChevronLeftIcon}
+                iconType="icon-only"
+                variant="base-tertiary"
+                size="sub"
+                onClick={
+                  onBack
+                    ? async () => {
+                        await onBack();
+                      }
+                    : back
+                }
+              />
+            )}
+          </ContentHeader>
         </PageHeader>
         {children}
       </div>
