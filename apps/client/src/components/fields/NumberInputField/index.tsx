@@ -54,7 +54,6 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
         error={isError}
         className={className}
         variant="currency"
-        inputType="number"
         value={`${watchValue}`}
         onChange={onChange}
         placeholder={placeholder}
