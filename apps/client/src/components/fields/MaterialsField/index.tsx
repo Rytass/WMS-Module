@@ -1,18 +1,15 @@
-import { useLazyQuery } from '@apollo/client/react';
-import SingleAutoCompleteField from '../SingleAutoCompleteField';
-import {
-  MaterialOptionsDocument,
-  MaterialOptionsQuery,
-} from '../../../graphql/generated/.graphql';
-import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
 import { useCallback } from 'react';
+import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import { MaterialOptionsQuery } from '../../../graphql/generated/.graphql';
+import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
+import { useFetchMaterials } from './useApi';
 
 interface MaterialsFieldProps {
   name: string;
 }
 
 const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
-  const [fetchMaterials] = useLazyQuery(MaterialOptionsDocument);
+  const { fetchMaterials } = useFetchMaterials();
 
   const getNewOptions = useCallback(
     (data: MaterialOptionsQuery | undefined) =>
