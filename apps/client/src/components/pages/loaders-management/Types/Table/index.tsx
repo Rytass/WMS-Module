@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
+import Actions from './Actions';
 import { LoaderTypeFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryLoaderTypes } from '../../useApi';
 
@@ -16,6 +17,13 @@ function LoadersManagementTypesTable() {
   );
 
   const columns: TableColumn<LoaderTypeFragment>[] = [
+    {
+      key: 'actions',
+      title: '操作',
+      align: 'center',
+      width: 74,
+      render: (source) => <Actions source={source} />,
+    },
     {
       key: 'isActive',
       title: '狀態',
