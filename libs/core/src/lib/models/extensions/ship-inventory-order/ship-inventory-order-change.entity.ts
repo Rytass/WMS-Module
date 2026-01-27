@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { type ShipInventoryOrderItemEntityClass } from './ship-inventory-order-item.entity';
+import { ShipInventoryOrderStatus } from '../../../typings';
 
 export const ShipInventoryOrderChangeEntity = Symbol(
   'ShipInventoryOrderChangeEntity',
@@ -33,4 +34,7 @@ export class ShipInventoryOrderChangeEntityClass {
   )
   @JoinColumn({ name: 'itemId', referencedColumnName: 'id' })
   item!: ShipInventoryOrderItemEntityClass;
+
+  @JoinColumn()
+  status!: ShipInventoryOrderStatus;
 }

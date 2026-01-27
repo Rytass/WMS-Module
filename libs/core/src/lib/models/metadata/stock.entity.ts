@@ -1,6 +1,6 @@
 import { StockEntity as BaseStockEntity } from '@rytass/wms-base-nestjs-module';
 import { ChildEntity, Column, Index, JoinColumn } from 'typeorm';
-import { OrderStatus } from '../../constants/order-status';
+import { StockStatus } from '../../constants/stock-status';
 
 export const StockEntity = Symbol('StockEntity');
 @ChildEntity()
@@ -9,13 +9,9 @@ export class StockEntityClass extends BaseStockEntity {
   @Index()
   loaderId!: string;
 
-  @Column({ type: 'varchar' })
-  @Index()
-  description!: string;
-
   @Column({ type: 'timestamptz', nullable: true })
   rollbackedAt!: Date | null;
 
   @JoinColumn()
-  status!: OrderStatus | null;
+  status!: StockStatus;
 }

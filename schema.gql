@@ -54,7 +54,7 @@ type MaterialDto {
   description: String!
   baseUnit: String!
   isActive: Boolean!
-  stocks: [StockDto!]!
+  aggregatedStock: [AggregatedStockDto!]!
   materialUnits: [MaterialUnitDto!]!
 }
 
@@ -76,7 +76,6 @@ type MaterialUnitDto {
 type StockDto {
   id: ID!
   loaderId: ID!
-  description: String!
   material: MaterialDto!
   location: LocationDto!
   batch: BatchDto!
@@ -86,6 +85,27 @@ type Stocks {
   id: ID!
   items: [StockDto!]!
   total: Int!
+}
+
+type AggregatedStockDto {
+  quantity: Int!
+  status: StockStatus!
+  materialId: ID!
+  batchId: ID!
+  locationId: ID!
+  loaderId: ID!
+}
+
+"""The status of the stock"""
+enum StockStatus {
+  PENDING_INSPECTION
+  INSPECTION_FAILED
+  HELD
+  IN_TRANSFER
+  ALLOCATED
+  VENDOR_INVENTORY
+  CUSTOMER_INVENTORY
+  FREE
 }
 
 type ReceiveInventoryOrderItemDto {

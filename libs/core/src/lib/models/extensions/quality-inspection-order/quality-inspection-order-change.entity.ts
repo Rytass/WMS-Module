@@ -9,7 +9,9 @@ import {
 } from 'typeorm';
 import { QualityInspectionOrderItemEntityClass } from './quality-inspection-order-item.entity';
 
-export const QualityInspectionOrderChangeEntity = Symbol('QualityInspectionOrderChangeEntity');
+export const QualityInspectionOrderChangeEntity = Symbol(
+  'QualityInspectionOrderChangeEntity',
+);
 @Entity('quality_inspection_order_changes')
 export class QualityInspectionOrderChangeEntityClass {
   @PrimaryGeneratedColumn('uuid')
@@ -20,6 +22,9 @@ export class QualityInspectionOrderChangeEntityClass {
 
   @Column({ type: 'numeric' })
   quantityChanged!: number;
+
+  @Column({ type: 'boolean', nullable: true })
+  result!: boolean | null;
 
   @OneToOne('orders')
   @JoinColumn({ name: 'id', referencedColumnName: 'id' })

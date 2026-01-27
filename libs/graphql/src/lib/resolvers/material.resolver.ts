@@ -1,23 +1,33 @@
 import { Context, Parent, ResolveField, Resolver } from '@nestjs/graphql';
-import { MaterialDto, MaterialUnitDto, StockDto } from '../dto';
+import {
+  AggregatedStockDto,
+  MaterialDto,
+  MaterialUnitDto,
+  StockDto,
+} from '../dto';
 import {
   MaterialEntityClass,
   MaterialUnitEntityClass,
   StockEntityClass,
+  StockService,
 } from '@wms-module/core';
 import { type LoaderType } from '../helpers';
 
 @Resolver(() => MaterialDto)
 export class MaterialResolver {
-  @ResolveField(() => [StockDto])
-  stocks(
+  constructor(private readonly stockService: StockService) {}
+
+  @ResolveField(() => [AggregatedStockDto])
+  async aggregatedStock(
     @Parent() { id }: MaterialEntityClass,
     @Context() { loaders }: LoaderType<StockEntityClass>,
-  ) {
-    return loaders.batchMany.load({
+  ): Promise<AggregatedStockDto[]> {
+    const stocks = await loaders.batchMany.load({
       __entity: StockEntityClass,
       __from: { materialId: id },
     });
+
+    return this.stockService.aggregateStocks(stocks);
   }
 
   @ResolveField(() => [MaterialUnitDto])
