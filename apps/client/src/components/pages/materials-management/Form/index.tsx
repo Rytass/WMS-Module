@@ -13,6 +13,7 @@ interface MaterialsManagementFormProps {
   submitText: string;
   closeModal: VoidFunction;
   open: boolean;
+  mode: 'create' | 'edit';
 }
 
 function MaterialsManagementForm({
@@ -21,6 +22,7 @@ function MaterialsManagementForm({
   submitText,
   closeModal,
   open,
+  mode,
 }: MaterialsManagementFormProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
@@ -43,6 +45,7 @@ function MaterialsManagementForm({
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}
+      mode={mode}
     >
       <div className={classes.host}>
         <div className={classes.section}>

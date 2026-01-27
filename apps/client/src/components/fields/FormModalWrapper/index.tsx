@@ -13,6 +13,9 @@ type FormModalWrapperProps<T extends FieldValues = FieldValues> = Omit<
   children: ReactNode;
   closeModal: VoidFunction;
   open: boolean;
+  mode: 'create' | 'edit';
+  submitWithConfirm?: boolean;
+  cancelWithConfirm?: boolean;
 };
 
 export const FormModalWrapper = <T extends FieldValues = FieldValues>({
@@ -24,11 +27,13 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
   confirmButtonProps,
   cancelText = '取消',
   confirmText = '確認',
-  onCancel,
   onSubmit,
   children: modalChildren,
   closeModal,
   open,
+  mode,
+  submitWithConfirm = false,
+  cancelWithConfirm = false,
 }: FormModalWrapperProps<T>) => {
   return (
     <Modal
@@ -41,9 +46,8 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
       size={size}
       cancelText={cancelText}
       confirmText={confirmText}
-      onCancel={(e) => {
+      onCancel={() => {
         closeModal();
-        onCancel?.(e);
       }}
       onConfirm={methods.handleSubmit(onSubmit)}
       cancelButtonProps={{

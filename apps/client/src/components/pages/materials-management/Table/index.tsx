@@ -99,6 +99,7 @@ function MaterialsManagementTable({
 
       <MaterialsManagementForm
         title="新增料號"
+        mode="create"
         onSubmit={async (values) => {
           const isConfirm = await openDialog({
             modalStatusType: 'info',

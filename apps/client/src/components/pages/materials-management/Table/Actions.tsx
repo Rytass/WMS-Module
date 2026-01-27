@@ -77,6 +77,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
       </ButtonGroup>
       <MaterialsManagementForm
         title="編輯料號"
+        mode="edit"
         onSubmit={async (values) => {
           const isConfirm = await openDialog({
             modalStatusType: 'info',

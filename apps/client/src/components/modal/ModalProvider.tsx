@@ -16,7 +16,6 @@ const ModalProvider: FC = ({ children }) => {
     confirmButtonProps,
     cancelText = '取消',
     confirmText = '確認',
-    onCancel,
     onConfirm,
     children: modalChildren,
   } = modalConfig;
@@ -55,9 +54,8 @@ const ModalProvider: FC = ({ children }) => {
           size={size}
           cancelText={cancelText}
           confirmText={confirmText}
-          onCancel={(e) => {
+          onCancel={() => {
             closeModal();
-            onCancel?.(e);
           }}
           onConfirm={onConfirm}
           cancelButtonProps={{
