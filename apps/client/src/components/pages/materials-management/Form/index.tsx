@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormModalWrapper } from '../../../fields/FormModalWrapper';
 import InputField from '../../../fields/InputField';
+import UnitsField from '../../../fields/UnitsField';
 import UnitsFieldArray from './UnitsFieldArray';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
@@ -29,6 +30,7 @@ function MaterialsManagementForm({
     defaultValues: {
       materialNumber: '',
       description: '',
+      baseUnit: '',
       units: [
         {
           unit: '',
@@ -63,6 +65,12 @@ function MaterialsManagementForm({
             label="物料說明"
             placeholder="輸入物料說明"
             size="main"
+            required
+          />
+          <UnitsField
+            name="baseUnit"
+            label="基礎計量單位"
+            placeholder="輸入基礎計量單位"
             required
           />
         </div>
