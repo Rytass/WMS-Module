@@ -1,7 +1,8 @@
-import { ReactNode } from 'react';
+import { ReactNode, useCallback } from 'react';
 import { ModalProps, ModalSize, Modal } from '@mezzanine-ui/react';
 import { UseFormReturn, SubmitHandler, FieldValues } from 'react-hook-form';
 import { FormWrapper } from '../FormWrapper';
+import { useDialog } from '../../dialog/useDialog';
 
 type FormModalWrapperProps<T extends FieldValues = FieldValues> = Omit<
   ModalProps,
@@ -29,26 +30,45 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
   confirmText = '確認',
   onSubmit,
   children: modalChildren,
-  closeModal,
+  closeModal: closeModalProps,
   open,
   mode,
   submitWithConfirm = false,
   cancelWithConfirm = false,
 }: FormModalWrapperProps<T>) => {
+  const { openDialog } = useDialog();
+
+  const closeModal = useCallback(async () => {
+    if (cancelWithConfirm) {
+      const isConfirm = await openDialog({
+        modalStatusType: 'warning',
+        title: '尚未儲存變更',
+        supportingText: '您有尚未儲存的內容，確定要離開此頁嗎？',
+        cancelText: '返回',
+        confirmText: '放棄變更',
+        confirmButtonProps: {
+          variant: 'destructive-primary',
+        },
+      });
+
+      if (isConfirm) {
+        closeModalProps();
+      }
+    } else {
+      closeModalProps();
+    }
+  }, [cancelWithConfirm, closeModalProps, openDialog]);
+
   return (
     <Modal
       className={className}
-      onClose={() => {
-        closeModal();
-      }}
+      onClose={closeModal}
       showDismissButton
       modalType="standard"
       size={size}
       cancelText={cancelText}
       confirmText={confirmText}
-      onCancel={() => {
-        closeModal();
-      }}
+      onCancel={closeModal}
       onConfirm={methods.handleSubmit(onSubmit)}
       cancelButtonProps={{
         type: 'button',
