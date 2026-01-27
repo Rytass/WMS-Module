@@ -1,4 +1,4 @@
-import { useFieldArray } from 'react-hook-form';
+import { useFieldArray, useWatch } from 'react-hook-form';
 import {
   Typography,
   Table,
@@ -7,29 +7,46 @@ import {
   Button,
   Input,
 } from '@mezzanine-ui/react';
-import InputField from '../../../fields/InputField';
+import UnitsField from '../../../fields/UnitsField';
 import NumberInputField from '../../../fields/NumberInputField';
 import { UnitFieldItem, FormValues } from './typing';
 import classes from './index.module.scss';
 
 const UnitsFieldArray: FC = () => {
-  const { fields, append, remove } = useFieldArray<FormValues, 'units'>({
-    name: 'units',
-  });
+  const baseUnit = useWatch<FormValues, 'baseUnit'>({ name: 'baseUnit' });
+
+  const { fields, append, update, remove } = useFieldArray<FormValues, 'units'>(
+    {
+      name: 'units',
+    },
+  );
 
   const columns: TableColumn<UnitFieldItem & TableDataSourceWithId>[] = [
     {
       key: 'one',
       title: '換算計量',
       align: 'end',
-      render: () => <Input variant="currency" value="1" size="sub" disabled />,
+      render: (source) =>
+        source.isExisted ? (
+          '1'
+        ) : (
+          <Input variant="currency" value="1" size="sub" disabled />
+        ),
     },
     {
       key: 'unit',
       title: '換算單位',
-      render: (source, index) => (
-        <InputField name={`units.${index}.unit`} label="" placeholder="單位" />
-      ),
+      render: (source, index) =>
+        source.isExisted ? (
+          source.unit
+        ) : (
+          <UnitsField
+            name={`units.${index}.unit`}
+            label=""
+            placeholder="單位"
+            menuMaxHeight={200}
+          />
+        ),
     },
     {
       key: 'equal',
@@ -42,31 +59,70 @@ const UnitsFieldArray: FC = () => {
       key: 'conversionFactor',
       title: '基礎計量',
       align: 'end',
-      render: (source, index) => (
-        <NumberInputField
-          name={`units.${index}.conversionFactor`}
-          label=""
-          placeholder="數量"
-        />
-      ),
+      render: (source, index) =>
+        source.isExisted ? (
+          source.conversionFactor
+        ) : (
+          <NumberInputField
+            name={`units.${index}.conversionFactor`}
+            label=""
+            placeholder="數量"
+          />
+        ),
+    },
+    {
+      key: 'baseUnit',
+      title: '基礎計量單位',
+      render: () => baseUnit,
     },
     {
       key: 'action',
       title: '操作',
       width: 80,
       align: 'center',
-      render: (source, index) => (
-        <Button
-          type="button"
-          variant="destructive-ghost"
-          size="sub"
-          onClick={() => {
-            remove(index);
-          }}
-        >
-          刪除
-        </Button>
-      ),
+      render: (source, index) =>
+        source.isExisted ? (
+          source.isActive ? (
+            <Button
+              type="button"
+              variant="destructive-ghost"
+              size="sub"
+              onClick={() => {
+                update(index, {
+                  ...source,
+                  isActive: false,
+                });
+              }}
+            >
+              停用
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="base-ghost"
+              size="sub"
+              onClick={() => {
+                update(index, {
+                  ...source,
+                  isActive: true,
+                });
+              }}
+            >
+              啟用
+            </Button>
+          )
+        ) : (
+          <Button
+            type="button"
+            variant="destructive-ghost"
+            size="sub"
+            onClick={() => {
+              remove(index);
+            }}
+          >
+            刪除
+          </Button>
+        ),
     },
   ];
 
@@ -83,6 +139,8 @@ const UnitsFieldArray: FC = () => {
           onClick={() => {
             append({
               unit: '',
+              isExisted: false,
+              isActive: true,
             });
           }}
         >

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Button, ButtonGroup } from '@mezzanine-ui/react';
-import { useDialog } from '../../../../components/dialog/useDialog';
 import { SimpleMaterialFragment } from '../../../../graphql/generated/.graphql';
 import { useUpdateMaterial } from '../useApi';
 import MaterialsManagementForm from '../Form';
@@ -11,7 +10,6 @@ interface ActionsProps {
 
 const Actions: FC<ActionsProps> = ({ source }) => {
   const [editModalOpened, setEditModalOpened] = useState<boolean>(false);
-  const { openDialog } = useDialog();
 
   const { updateMaterial, loading } = useUpdateMaterial();
 
@@ -77,19 +75,20 @@ const Actions: FC<ActionsProps> = ({ source }) => {
       </ButtonGroup>
       <MaterialsManagementForm
         title="編輯料號"
+        mode="edit"
+        defaultValues={{
+          materialNumber: source.key,
+          description: source.description,
+          baseUnit: source.baseUnit,
+          units: source.materialUnits.map((unit) => ({
+            unit: unit.unit,
+            conversionFactor: unit.conversionFactor,
+            isExisted: true,
+            isActive: unit.isActive,
+          })),
+        }}
         onSubmit={async (values) => {
-          const isConfirm = await openDialog({
-            modalStatusType: 'info',
-            title: '確認儲存變更',
-            supportingText:
-              '您即將編輯設定流程，完成後系統將自動應用相關變更。請確認是否要繼續，以便順利完成操作。',
-            cancelText: '取消',
-            confirmText: '套用變更',
-          });
-
-          if (isConfirm) {
-            console.log('values', values);
-          }
+          console.log('values', values);
         }}
         submitText="儲存"
         closeModal={() => {
