@@ -105,6 +105,8 @@ function MaterialsManagementTable({
           units: [
             {
               unit: '',
+              isExisted: false,
+              isActive: true,
             },
           ],
         }}

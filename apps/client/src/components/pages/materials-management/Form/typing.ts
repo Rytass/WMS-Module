@@ -1,6 +1,8 @@
 export type UnitFieldItem = {
   unit: string;
   conversionFactor?: number;
+  isExisted: boolean;
+  isActive: boolean;
 };
 
 export type FormValues = {

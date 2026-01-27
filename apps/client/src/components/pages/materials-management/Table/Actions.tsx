@@ -83,6 +83,8 @@ const Actions: FC<ActionsProps> = ({ source }) => {
           units: source.materialUnits.map((unit) => ({
             unit: unit.unit,
             conversionFactor: unit.conversionFactor,
+            isExisted: true,
+            isActive: unit.isActive,
           })),
         }}
         onSubmit={async (values) => {

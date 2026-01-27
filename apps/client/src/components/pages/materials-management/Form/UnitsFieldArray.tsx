@@ -24,19 +24,27 @@ const UnitsFieldArray: FC = () => {
       key: 'one',
       title: '換算計量',
       align: 'end',
-      render: () => <Input variant="currency" value="1" size="sub" disabled />,
+      render: (source) =>
+        source.isExisted ? (
+          '1'
+        ) : (
+          <Input variant="currency" value="1" size="sub" disabled />
+        ),
     },
     {
       key: 'unit',
       title: '換算單位',
-      render: (source, index) => (
-        <UnitsField
-          name={`units.${index}.unit`}
-          label=""
-          placeholder="單位"
-          menuMaxHeight={200}
-        />
-      ),
+      render: (source, index) =>
+        source.isExisted ? (
+          source.unit
+        ) : (
+          <UnitsField
+            name={`units.${index}.unit`}
+            label=""
+            placeholder="單位"
+            menuMaxHeight={200}
+          />
+        ),
     },
     {
       key: 'equal',
@@ -49,13 +57,16 @@ const UnitsFieldArray: FC = () => {
       key: 'conversionFactor',
       title: '基礎計量',
       align: 'end',
-      render: (source, index) => (
-        <NumberInputField
-          name={`units.${index}.conversionFactor`}
-          label=""
-          placeholder="數量"
-        />
-      ),
+      render: (source, index) =>
+        source.isExisted ? (
+          source.conversionFactor
+        ) : (
+          <NumberInputField
+            name={`units.${index}.conversionFactor`}
+            label=""
+            placeholder="數量"
+          />
+        ),
     },
     {
       key: 'baseUnit',
@@ -95,6 +106,8 @@ const UnitsFieldArray: FC = () => {
           onClick={() => {
             append({
               unit: '',
+              isExisted: false,
+              isActive: true,
             });
           }}
         >
