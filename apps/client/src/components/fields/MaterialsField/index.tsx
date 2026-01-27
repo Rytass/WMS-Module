@@ -37,6 +37,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
       fuzzySearch
       options={currentOptions}
       onVisibilityChange={onVisibilityChange}
+      useNameToValue
     />
   );
 };
