@@ -2,14 +2,14 @@ import { useCallback } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import { MaterialOptionsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
-import { useFetchMaterials } from './useApi';
+import { useLazyQueryMaterials } from './useApi';
 
 interface MaterialsFieldProps {
   name: string;
 }
 
 const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
-  const { fetchMaterials } = useFetchMaterials();
+  const { fetchMaterials } = useLazyQueryMaterials();
 
   const getNewOptions = useCallback(
     (data: MaterialOptionsQuery | undefined) =>
