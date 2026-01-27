@@ -6,9 +6,10 @@ import { useLazyQueryMaterials } from './useApi';
 
 interface MaterialsFieldProps {
   name: string;
+  required?: boolean;
 }
 
-const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
+const MaterialsField: FC<MaterialsFieldProps> = ({ name, required }) => {
   const { fetchMaterials } = useLazyQueryMaterials();
 
   const getNewOptions = useCallback(
@@ -33,6 +34,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
       placeholder="輸入料號"
       fuzzySearch
       options={currentOptions}
+      required={required}
       onVisibilityChange={onVisibilityChange}
       useNameToValue
       onReachBottom={onReachBottom}
