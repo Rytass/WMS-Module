@@ -11,6 +11,7 @@ import classes from './index.module.scss';
 interface MaterialsManagementFormProps {
   title: string;
   onSubmit: (values: FormValues) => Promise<void>;
+  defaultValues: FormValues;
   submitText: string;
   closeModal: VoidFunction;
   open: boolean;
@@ -20,6 +21,7 @@ interface MaterialsManagementFormProps {
 function MaterialsManagementForm({
   title,
   onSubmit,
+  defaultValues,
   submitText,
   closeModal,
   open,
@@ -27,16 +29,7 @@ function MaterialsManagementForm({
 }: MaterialsManagementFormProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      materialNumber: '',
-      description: '',
-      baseUnit: '',
-      units: [
-        {
-          unit: '',
-        },
-      ],
-    },
+    defaultValues,
   });
 
   return (
@@ -59,6 +52,7 @@ function MaterialsManagementForm({
             placeholder="輸入料號"
             size="main"
             required
+            disabled={mode === 'edit' || undefined}
           />
           <InputField
             name="description"
@@ -72,6 +66,7 @@ function MaterialsManagementForm({
             label="基礎計量單位"
             placeholder="輸入基礎計量單位"
             required
+            disabled={mode === 'edit'}
           />
         </div>
         <UnitsFieldArray />

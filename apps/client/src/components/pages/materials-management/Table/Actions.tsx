@@ -76,6 +76,15 @@ const Actions: FC<ActionsProps> = ({ source }) => {
       <MaterialsManagementForm
         title="編輯料號"
         mode="edit"
+        defaultValues={{
+          materialNumber: source.key,
+          description: source.description,
+          baseUnit: source.baseUnit,
+          units: source.materialUnits.map((unit) => ({
+            unit: unit.unit,
+            conversionFactor: unit.conversionFactor,
+          })),
+        }}
         onSubmit={async (values) => {
           console.log('values', values);
         }}

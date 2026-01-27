@@ -9,6 +9,7 @@ interface UnitsFieldProps {
   placeholder?: string;
   menuMaxHeight?: number;
   required?: boolean;
+  disabled?: boolean;
 }
 
 const UnitsField: FC<UnitsFieldProps> = ({
@@ -16,7 +17,8 @@ const UnitsField: FC<UnitsFieldProps> = ({
   label = '',
   placeholder,
   menuMaxHeight,
-  required,
+  required = false,
+  disabled = false,
 }) => {
   const { currentOptions, setCurrentOptions } = useQueryUnits();
 
@@ -45,6 +47,7 @@ const UnitsField: FC<UnitsFieldProps> = ({
       options={currentOptions}
       onInsert={handleInsert}
       required={required}
+      disabled={disabled}
       useNameToValue
     />
   );

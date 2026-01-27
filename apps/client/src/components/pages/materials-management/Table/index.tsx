@@ -98,6 +98,16 @@ function MaterialsManagementTable({
       <MaterialsManagementForm
         title="新增料號"
         mode="create"
+        defaultValues={{
+          materialNumber: '',
+          description: '',
+          baseUnit: '',
+          units: [
+            {
+              unit: '',
+            },
+          ],
+        }}
         onSubmit={async (values) => {
           console.log('values', values);
         }}
