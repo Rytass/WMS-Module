@@ -4,7 +4,7 @@ import {
   MaterialOptionsDocument,
   MaterialOptionsQuery,
 } from '../../../graphql/generated/.graphql';
-import { useFetchAllOptions } from '../../../hooks/useFetchOptions';
+import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
 import { useCallback } from 'react';
 
 interface MaterialsFieldProps {
@@ -23,8 +23,8 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
     [],
   );
 
-  const { currentOptions, onVisibilityChange } =
-    useFetchAllOptions<MaterialOptionsQuery>({
+  const { currentOptions, onVisibilityChange, onReachBottom } =
+    useFetchMoreOptions<MaterialOptionsQuery>({
       fetchData: fetchMaterials,
       getNewOptions,
     });
@@ -38,9 +38,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name }) => {
       options={currentOptions}
       onVisibilityChange={onVisibilityChange}
       useNameToValue
-      onReachBottom={() => {
-        console.log('cool');
-      }}
+      onReachBottom={onReachBottom}
     />
   );
 };

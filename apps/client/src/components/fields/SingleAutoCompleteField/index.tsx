@@ -114,7 +114,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
         onClear={onClear}
         value={watchValueInOptions}
         options={options}
-        menuMaxHeight={370}
+        menuMaxHeight={315}
         keepSearchTextOnBlur
       />
     </BaseField>
