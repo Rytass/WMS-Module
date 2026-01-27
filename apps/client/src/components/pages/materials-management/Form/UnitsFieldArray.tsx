@@ -1,4 +1,4 @@
-import { useFieldArray } from 'react-hook-form';
+import { useFieldArray, useWatch } from 'react-hook-form';
 import {
   Typography,
   Table,
@@ -7,12 +7,14 @@ import {
   Button,
   Input,
 } from '@mezzanine-ui/react';
-import InputField from '../../../fields/InputField';
+import UnitsField from '../../../fields/UnitsField';
 import NumberInputField from '../../../fields/NumberInputField';
 import { UnitFieldItem, FormValues } from './typing';
 import classes from './index.module.scss';
 
 const UnitsFieldArray: FC = () => {
+  const baseUnit = useWatch<FormValues, 'baseUnit'>({ name: 'baseUnit' });
+
   const { fields, append, remove } = useFieldArray<FormValues, 'units'>({
     name: 'units',
   });
@@ -28,7 +30,7 @@ const UnitsFieldArray: FC = () => {
       key: 'unit',
       title: '換算單位',
       render: (source, index) => (
-        <InputField name={`units.${index}.unit`} label="" placeholder="單位" />
+        <UnitsField name={`units.${index}.unit`} label="" placeholder="單位" />
       ),
     },
     {
@@ -49,6 +51,11 @@ const UnitsFieldArray: FC = () => {
           placeholder="數量"
         />
       ),
+    },
+    {
+      key: 'baseUnit',
+      title: '基礎計量單位',
+      render: () => baseUnit,
     },
     {
       key: 'action',
