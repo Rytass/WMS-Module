@@ -3,7 +3,7 @@ import PageWrapper from '../../PageWrapper';
 // import { FilterType } from '../../FilterWrapper/typing';
 import InventoryTable from './Table';
 
-function Inventory() {
+function InventoryList() {
   return (
     <PageWrapper title="庫存清單">
       <InventoryTable />
@@ -11,4 +11,4 @@ function Inventory() {
   );
 }
 
-export default Inventory;
+export default InventoryList;
