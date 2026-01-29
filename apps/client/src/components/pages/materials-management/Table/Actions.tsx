@@ -1,8 +1,12 @@
-import { useState } from 'react';
-import { Button, ButtonGroup } from '@mezzanine-ui/react';
-import { SimpleMaterialFragment } from '../../../../graphql/generated/.graphql';
+import { useState, useCallback } from 'react';
+import { Button, ButtonGroup, Message } from '@mezzanine-ui/react';
+import {
+  SimpleMaterialFragment,
+  MaterialsDocument,
+} from '../../../../graphql/generated/.graphql';
 import { useUpdateMaterial } from '../useApi';
 import MaterialsManagementForm from '../Form';
+import { FormValues } from '../Form/typing';
 
 interface ActionsProps {
   source: SimpleMaterialFragment;
@@ -12,6 +16,34 @@ const Actions: FC<ActionsProps> = ({ source }) => {
   const [editModalOpened, setEditModalOpened] = useState<boolean>(false);
 
   const { updateMaterial, loading } = useUpdateMaterial();
+
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await updateMaterial({
+          variables: {
+            updateMaterialId: source.id,
+            description: values.description,
+            units: values.units.map((u) => ({
+              unit: u.unit,
+              conversionFactor: u.conversionFactor ?? 0,
+              isActive: u.isActive,
+            })),
+            isActive: true,
+          },
+          refetchQueries: [MaterialsDocument],
+        });
+
+        if (data?.updateMaterial.id) {
+          Message.success('儲存成功');
+          setEditModalOpened(false);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [source.id, updateMaterial],
+  );
 
   return (
     <>
@@ -87,9 +119,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
             isActive: unit.isActive,
           })),
         }}
-        onSubmit={async (values) => {
-          console.log('values', values);
-        }}
+        onSubmit={onSubmit}
         submitText="儲存"
         closeModal={() => {
           setEditModalOpened(false);

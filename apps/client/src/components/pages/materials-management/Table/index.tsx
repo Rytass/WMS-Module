@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react';
-import { TableColumn, Badge } from '@mezzanine-ui/react';
+import { useCallback, useMemo, useState } from 'react';
+import { TableColumn, Badge, Message } from '@mezzanine-ui/react';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
 import MaterialsManagementForm from '../Form';
+import { FormValues } from '../Form/typing';
 import Actions from './Actions';
 import { SimpleMaterialFragment } from '../../../../graphql/generated/.graphql';
 import { FilterValues } from '../typing';
-import { useQueryMaterials } from '../useApi';
+import { useQueryMaterials, useCreateMaterial } from '../useApi';
 
 interface MaterialsManagementTableProps {
   currentFilter?: FilterValues;
@@ -19,6 +20,36 @@ function MaterialsManagementTable({
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryMaterials(currentFilter);
+
+  const { createMaterial } = useCreateMaterial();
+
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await createMaterial({
+          variables: {
+            createMaterialId: values.materialNumber,
+            description: values.description,
+            baseUnit: values.baseUnit,
+            units: values.units.map((u) => ({
+              unit: u.unit,
+              conversionFactor: u.conversionFactor ?? 0,
+              isActive: u.isActive,
+            })),
+            isActive: true,
+          },
+        });
+
+        if (data?.createMaterial.id) {
+          Message.success('已成功新增項目');
+          setCreateModalOpened(false);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [createMaterial],
+  );
 
   const dataSource = useMemo(
     (): SimpleMaterialFragment[] => data?.materials.items ?? [],
@@ -110,9 +141,7 @@ function MaterialsManagementTable({
             },
           ],
         }}
-        onSubmit={async (values) => {
-          console.log('values', values);
-        }}
+        onSubmit={onSubmit}
         submitText="新增"
         closeModal={() => {
           setCreateModalOpened(false);

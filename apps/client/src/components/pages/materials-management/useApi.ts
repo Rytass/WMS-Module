@@ -5,15 +5,25 @@ import {
 } from '../../../hooks/useTablePagination';
 import {
   UpdateMaterialDocument,
+  CreateMaterialDocument,
   MaterialsDocument,
 } from '../../../graphql/generated/.graphql';
 import { FilterType } from '../../FilterWrapper/typing';
 import { FilterValues } from './typing';
 
-export function useUpdateMaterial() {
-  const [updateMaterial, { loading }] = useMutation(UpdateMaterialDocument, {
-    refetchQueries: [],
+export function useCreateMaterial() {
+  const [createMaterial, { loading }] = useMutation(CreateMaterialDocument, {
+    refetchQueries: [MaterialsDocument],
   });
+
+  return {
+    createMaterial,
+    loading,
+  };
+}
+
+export function useUpdateMaterial() {
+  const [updateMaterial, { loading }] = useMutation(UpdateMaterialDocument);
 
   return {
     updateMaterial,

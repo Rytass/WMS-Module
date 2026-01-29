@@ -70,6 +70,7 @@ function MaterialsManagementForm({
             name="baseUnit"
             label="基礎計量單位"
             placeholder="輸入基礎計量單位"
+            size="main"
             required
             disabled={mode === 'edit'}
           />

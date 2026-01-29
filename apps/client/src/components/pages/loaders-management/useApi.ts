@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import {
   useTablePageState,
   useTablePageTotal,
@@ -6,6 +6,8 @@ import {
 import {
   LoadersDocument,
   LoaderTypesDocument,
+  CreateLoaderTypeDocument,
+  UpdateLoaderTypeDocument,
 } from '../../../graphql/generated/.graphql';
 
 export function useQueryLoaders() {
@@ -63,5 +65,25 @@ export function useQueryLoaderTypes() {
     setPage,
     limit,
     setLimit,
+  };
+}
+
+export function useCreateLoaderType() {
+  const [createLoaderType] = useMutation(CreateLoaderTypeDocument, {
+    refetchQueries: [LoaderTypesDocument],
+  });
+
+  return {
+    createLoaderType,
+  };
+}
+
+export function useUpdateLoaderType() {
+  const [updateLoaderType] = useMutation(UpdateLoaderTypeDocument, {
+    refetchQueries: [LoaderTypesDocument],
+  });
+
+  return {
+    updateLoaderType,
   };
 }

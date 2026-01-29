@@ -15,7 +15,7 @@ export function useRoutes() {
       children: [
         {
           title: '庫存清單',
-          href: NextPath.INVENTORY,
+          href: NextPath.INVENTORYLIST,
         },
         {
           title: '地圖清單',
