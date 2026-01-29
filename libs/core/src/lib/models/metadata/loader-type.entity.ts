@@ -3,7 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   TableInheritance,
   UpdateDateColumn,
 } from 'typeorm';
@@ -13,7 +13,7 @@ export const LoaderTypeEntity = Symbol('LoaderTypeEntity');
 @Entity('loader_types')
 @TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
 export class LoaderTypeEntityClass {
-  @PrimaryColumn({ type: 'varchar' })
+  @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column({ type: 'varchar' })
@@ -24,7 +24,7 @@ export class LoaderTypeEntityClass {
 
   @Column({ type: 'varchar' })
   @Index()
-  serial!: string;
+  key!: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

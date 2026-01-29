@@ -39,3 +39,6 @@ registerEnumType(StockStatus, {
   name: 'StockStatus',
   description: 'The status of the stock',
 });
+
+@ObjectType()
+export class AggregatedStocks extends PaginatedResponse(AggregatedStockDto) {}
