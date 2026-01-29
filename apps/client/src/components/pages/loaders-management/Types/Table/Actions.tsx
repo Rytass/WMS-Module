@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Button } from '@mezzanine-ui/react';
+import { useCallback, useState } from 'react';
+import { Button, Message } from '@mezzanine-ui/react';
 import { LoaderTypeFragment } from '../../../../../graphql/generated/.graphql';
 import LoaderTypeForm from '../Form';
-import { ActiveValue } from '../Form/typing';
+import { FormValues, ActiveValue } from '../Form/typing';
+import { useUpdateLoaderType } from '../../useApi';
 
 interface ActionsProps {
   source: LoaderTypeFragment;
@@ -10,6 +11,29 @@ interface ActionsProps {
 
 const Actions: FC<ActionsProps> = ({ source }) => {
   const [editModalOpened, setEditModalOpened] = useState<boolean>(false);
+
+  const { updateLoaderType } = useUpdateLoaderType();
+
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await updateLoaderType({
+          variables: {
+            updateLoaderTypeId: source.id,
+            description: values.description,
+          },
+        });
+
+        if (data?.updateLoaderType.id) {
+          Message.success('儲存成功');
+          setEditModalOpened(false);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [source.id, updateLoaderType],
+  );
 
   return (
     <>
@@ -33,9 +57,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
             ? ActiveValue.active
             : ActiveValue.notActive,
         }}
-        onSubmit={async (values) => {
-          console.log('values', values);
-        }}
+        onSubmit={onSubmit}
         submitText="儲存"
         closeModal={() => {
           setEditModalOpened(false);
