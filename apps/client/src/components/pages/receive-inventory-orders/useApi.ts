@@ -1,9 +1,12 @@
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
-import { ReceiveInventoryOrdersDocument } from '../../../graphql/generated/.graphql';
+import {
+  ReceiveInventoryOrdersDocument,
+  CreateReceiveInventoryOrderDocument,
+} from '../../../graphql/generated/.graphql';
 
 export function useQueryReceiveInventoryOrders() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
@@ -31,5 +34,15 @@ export function useQueryReceiveInventoryOrders() {
     setPage,
     limit,
     setLimit,
+  };
+}
+
+export function useCreateReceiveInventoryOrder() {
+  const [createReceiveInventoryOrder] = useMutation(
+    CreateReceiveInventoryOrderDocument,
+  );
+
+  return {
+    createReceiveInventoryOrder,
   };
 }

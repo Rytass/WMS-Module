@@ -8,6 +8,8 @@ export enum NextPath {
     MAPS = "/maps",
     MATERIALSMANAGEMENT = "/materials-management",
     RECEIVEINVENTORYORDERS = "/receive-inventory-orders",
+    RECEIVEINVENTORYORDERS_ID_EDIT = "/receive-inventory-orders/[id]/edit",
+    RECEIVEINVENTORYORDERS_ID_VIEW = "/receive-inventory-orders/[id]/view",
     SHIPINVENTORYORDERS = "/ship-inventory-orders",
     SHIPINVENTORYORDERS_ID_EDIT = "/ship-inventory-orders/[id]/edit",
     SHIPINVENTORYORDERS_ID_VIEW = "/ship-inventory-orders/[id]/view",
