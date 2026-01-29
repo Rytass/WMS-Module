@@ -15,11 +15,11 @@ export function useRoutes() {
       children: [
         {
           title: '庫存清單',
-          href: '/1-1',
+          href: NextPath.INVENTORYLIST,
         },
         {
           title: '地圖清單',
-          href: '/1-2',
+          href: NextPath.MAPS,
         },
         {
           title: '標籤查詢',
@@ -30,17 +30,17 @@ export function useRoutes() {
     {
       title: '庫存異動',
       icon: FolderMoveIcon,
-      href: '/2',
+      href: NextPath.INVENTORYMOVEMENT,
     },
     {
       title: '異動紀錄',
       icon: SearchHistoryIcon,
-      href: '/3',
+      href: NextPath.CHANGEHISTORY,
     },
     {
       title: '盤點',
       icon: FileSearchIcon,
-      href: '/4',
+      href: NextPath.INVENTORYCOUNT,
     },
     {
       title: '主檔管理',
@@ -48,23 +48,23 @@ export function useRoutes() {
       children: [
         {
           title: '載具管理',
-          href: '/5-1',
+          href: NextPath.LOADERSMANAGEMENT,
         },
         {
           title: '庫位管理',
-          href: '/5-2',
+          href: NextPath.LOCATIONSMANAGEMENT,
         },
         {
           title: '料號管理',
-          href: '/5-3',
+          href: NextPath.MATERIALSMANAGEMENT,
         },
         {
           title: '出庫單',
-          href: NextPath.SHIPINVENTORYORDER,
+          href: NextPath.SHIPINVENTORYORDERS,
         },
         {
           title: '入庫單',
-          href: NextPath.RECEIVEINVENTORYORDER,
+          href: NextPath.RECEIVEINVENTORYORDERS,
         },
       ],
     },

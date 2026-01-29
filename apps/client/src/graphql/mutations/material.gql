@@ -1,0 +1,33 @@
+mutation CreateMaterial(
+  $createMaterialId: ID!
+  $description: String!
+  $baseUnit: String!
+  $units: [CreateMaterialUnitArgs!]!
+  $isActive: Boolean
+) {
+  createMaterial(
+    id: $createMaterialId
+    description: $description
+    baseUnit: $baseUnit
+    units: $units
+    isActive: $isActive
+  ) {
+    ...Material
+  }
+}
+
+mutation UpdateMaterial(
+  $updateMaterialId: ID!
+  $description: String
+  $isActive: Boolean
+  $units: [CreateMaterialUnitArgs!]
+) {
+  updateMaterial(
+    id: $updateMaterialId
+    description: $description
+    isActive: $isActive
+    units: $units
+  ) {
+    ...Material
+  }
+}

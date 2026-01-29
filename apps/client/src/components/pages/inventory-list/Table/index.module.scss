@@ -1,0 +1,8 @@
+@use '@mezzanine-ui/system/spacing';
+
+.actionsWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: spacing.semantic-variable(gap, base);
+}

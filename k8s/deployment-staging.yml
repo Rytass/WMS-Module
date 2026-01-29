@@ -1,0 +1,207 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wms-module-api-pvc
+  namespace: wms-module-staging
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: application
+  namespace: wms-module-staging
+  labels:
+    app: wms-module
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  minReadySeconds: 15
+  selector:
+    matchLabels:
+      app: wms-module
+  template:
+    metadata:
+      labels:
+        app: wms-module
+    spec:
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1000
+      automountServiceAccountToken: false
+      volumes:
+        - name: wms-module-api-storage
+          persistentVolumeClaim:
+            claimName: wms-module-api-pvc
+      containers:
+        - image: asia-east1-docker.pkg.dev/develop-server/wms-module/api:v0.0.0 # Tag is updated by CI/CD
+          name: api
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+              ephemeral-storage: 2Gi
+            limits:
+              memory: 384Mi
+              cpu: 200m
+              ephemeral-storage: 2Gi
+          env:
+            - name: VAULT_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: vault-secret
+                  key: VAULT_HOST
+            - name: VAULT_ACCOUNT
+              valueFrom:
+                secretKeyRef:
+                  name: vault-secret
+                  key: VAULT_ACCOUNT
+            - name: VAULT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vault-secret
+                  key: VAULT_PASSWORD
+            - name: VAULT_PATH
+              valueFrom:
+                secretKeyRef:
+                  name: vault-secret
+                  key: VAULT_PATH
+            - name: PORT
+              value: '3000'
+          ports:
+            - containerPort: 3000
+              name: api-http
+          readinessProbe:
+            httpGet:
+              path: /api
+              port: 3000
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          volumeMounts:
+            - name: wms-module-api-storage
+              mountPath: /app/storage
+
+        - image: asia-east1-docker.pkg.dev/develop-server/wms-module/client:v0.0.0 # Tag is updated by CI/CD
+          name: client
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+              ephemeral-storage: 2Gi
+            limits:
+              memory: 256Mi
+              cpu: 200m
+              ephemeral-storage: 2Gi
+          env:
+            - name: PORT
+              value: '3001' # Use a different port for the client container
+            - name: API_HOST # Next.js rewrite target
+              value: 'http://localhost:3000' # API is in the same Pod
+            - name: HOSTNAME
+              value: '0.0.0.0'
+          ports:
+            - containerPort: 3001
+              name: client-http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3001
+            initialDelaySeconds: 8
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: main
+  namespace: wms-module-staging
+spec:
+  selector:
+    app: wms-module
+  ports:
+    - name: api
+      port: 3000
+      targetPort: api-http
+    - name: client
+      port: 3001
+      targetPort: client-http
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wms-module-tls-certificate
+  namespace: wms-module-staging
+spec:
+  secretName: wms-module-tls-certificate
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - wms-module-staging.rytass.info
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wms-module-ingress
+  namespace: wms-module-staging
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  entryPoints:
+    - websecure
+  tls:
+    secretName: wms-module-tls-certificate
+  routes:
+    # Route for the API
+    - match: Host(`wms-module-staging.rytass.info`) && PathPrefix(`/graphql`)
+      kind: Rule
+      priority: 10
+      services:
+        - name: main
+          port: 3000 # Forward to the 'api' port of the 'main' service
+
+    # Route for the Client (frontend)
+    - match: Host(`wms-module-staging.rytass.info`)
+      kind: Rule
+      priority: 5
+      services:
+        - name: main
+          port: 3001 # Forward to the 'client' port of the 'main' service
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: wms-module-ingress-http
+  namespace: wms-module-staging
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  entryPoints:
+    - web
+  routes:
+    # Route for the API
+    - match: Host(`wms-module-staging.rytass.info`) && PathPrefix(`/graphql`)
+      kind: Rule
+      priority: 10
+      services:
+        - name: main
+          port: 3000 # Forward to the 'api' port of the 'main' service
+
+    # Route for the Client (frontend)
+    - match: Host(`wms-module-staging.rytass.info`)
+      kind: Rule
+      priority: 5
+      services:
+        - name: main
+          port: 3001 # Forward to the 'client' port of the 'main' service

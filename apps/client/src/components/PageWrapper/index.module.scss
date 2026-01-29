@@ -1,11 +1,20 @@
 @use '@mezzanine-ui/system/spacing';
 
 .host {
+  flex: 1;
   display: flex;
   flex-direction: column;
   row-gap: spacing.semantic-variable(gap, calm);
-  min-height: 100vh;
   background-color: #f3f4f6;
   padding: spacing.semantic-variable(padding, vertical, spacious)
     spacing.semantic-variable(padding, horizontal, comfort-fixed);
+
+  .pageHeader {
+    padding: 0;
+  }
+}
+
+.pageFooter {
+  position: sticky;
+  bottom: 0;
 }

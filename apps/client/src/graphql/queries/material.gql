@@ -1,0 +1,38 @@
+query Materials(
+  $offset: Int
+  $limit: Int
+  $materialId: ID
+  $materialIds: [ID!]
+  $description: String
+) {
+  materials(
+    offset: $offset
+    limit: $limit
+    materialId: $materialId
+    materialIds: $materialIds
+    description: $description
+  ) {
+    id
+    items {
+      ...SimpleMaterial
+    }
+    total
+  }
+}
+
+query MaterialOptions($offset: Int, $limit: Int) {
+  materials(offset: $offset, limit: $limit) {
+    id
+    items {
+      id
+      key
+    }
+    total
+  }
+}
+
+query Material($materialId: ID!) {
+  material(id: $materialId) {
+    ...Material
+  }
+}

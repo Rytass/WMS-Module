@@ -8,7 +8,9 @@ import {
 import { Button, cx } from '@mezzanine-ui/react';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { FormWrapper } from '../fields/FormWrapper';
-import { FilterType, renderFilter } from './utils';
+import FormActionButtons from '../FormActionButtons';
+import { renderFilter } from './utils';
+import { FilterType } from './typing';
 import classes from './index.module.scss';
 
 interface FilterWrapperProps<T extends FieldValues> {
@@ -46,43 +48,31 @@ const FilterWrapper = <T extends FieldValues>({
           {baseFilters.filters.map(renderFilter)}
         </div>
       </div>
-      <div className={classes.actions}>
-        {haveAdvancedFilters ? (
-          <Button
-            type="button"
-            size="sub"
-            variant="base-text-link"
-            className={cx(classes.expandButton, {
-              [classes.isExpanded]: isExpanded,
-            })}
-            icon={{
-              position: 'trailing',
-              src: ChevronDownIcon,
-            }}
-            onClick={() => {
-              setIsExpanded((state) => !state);
-            }}
-          >
-            {isExpanded ? '收合進階搜尋' : '進階搜尋'}
-          </Button>
-        ) : (
-          <div />
-        )}
-        <div className={classes.buttons}>
-          <Button
-            type="button"
-            size="sub"
-            variant="base-secondary"
-            className={classes.button}
-            onClick={onReset}
-          >
-            重置
-          </Button>
-          <Button type="submit" size="sub" className={classes.button}>
-            查詢
-          </Button>
-        </div>
-      </div>
+      <FormActionButtons
+        onReset={onReset}
+        submitText="查詢"
+        otherActionButton={
+          haveAdvancedFilters ? (
+            <Button
+              type="button"
+              size="sub"
+              variant="base-text-link"
+              className={cx(classes.expandButton, {
+                [classes.isExpanded]: isExpanded,
+              })}
+              icon={ChevronDownIcon}
+              iconType="trailing"
+              onClick={() => {
+                setIsExpanded((state) => !state);
+              }}
+            >
+              {isExpanded ? '收合進階搜尋' : '進階搜尋'}
+            </Button>
+          ) : (
+            <div />
+          )
+        }
+      />
     </FormWrapper>
   );
 };

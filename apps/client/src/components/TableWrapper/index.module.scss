@@ -6,7 +6,7 @@
   flex-direction: column;
   gap: spacing.semantic-variable(gap, calm);
   background-color: #fff;
-  padding: spacing.semantic-variable(gap, comfort)
+  padding: spacing.semantic-variable(padding, vertical, spacious)
     spacing.semantic-variable(padding, horizontal, spacious);
   border-radius: radius.variable(roomy);
 
@@ -14,5 +14,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: spacing.semantic-variable(gap, base);
+    }
   }
 }

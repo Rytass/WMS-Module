@@ -1,6 +1,33 @@
+fragment MaterialUnit on MaterialUnitDto {
+  id
+  materialId
+  unit
+  conversionFactor
+  isActive
+  createdAt
+}
+
 fragment Material on MaterialDto {
   id
+  key
   description
   baseUnit
   isActive
+  materialUnits {
+    ...MaterialUnit
+  }
+  stocks {
+    ...SimpleStock
+  }
+}
+
+fragment SimpleMaterial on MaterialDto {
+  id
+  key
+  description
+  baseUnit
+  isActive
+  materialUnits {
+    ...MaterialUnit
+  }
 }

@@ -1,0 +1,25 @@
+fragment LoaderType on LoaderTypeDto {
+  id
+  description
+  isActive
+  serial
+  referencedQuantity
+  createdAt
+  updatedAt
+}
+
+fragment Loader on LoaderDto {
+  id
+  length
+  width
+  height
+  sizeUnit
+  volume
+  volumeUnit
+  note
+  isActive
+  createdAt
+  type {
+    ...LoaderType
+  }
+}

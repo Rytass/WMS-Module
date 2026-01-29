@@ -1,0 +1,5 @@
+mutation CreateLocation($key: String!, $description: String!, $parentId: ID) {
+  createLocation(key: $key, description: $description, parentId: $parentId) {
+    ...Location
+  }
+}

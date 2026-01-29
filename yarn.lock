@@ -2422,21 +2422,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@graphql-codegen/typescript-react-apollo@npm:^4.4.0":
-  version: 4.4.0
-  resolution: "@graphql-codegen/typescript-react-apollo@npm:4.4.0"
-  dependencies:
-    "@graphql-codegen/plugin-helpers": "npm:^3.0.0"
-    "@graphql-codegen/visitor-plugin-common": "npm:2.13.8"
-    auto-bind: "npm:~4.0.0"
-    change-case-all: "npm:1.0.15"
-    tslib: "npm:^2.8.1"
-  peerDependencies:
-    graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
-  checksum: 10c0/114036e7d1a530e09650621429659aff4c1460b9c0ef408d28d45c586520f3310830e891061fb24f1f023b96c7c428705c756a027a97bf50a399735f63c39b71
-  languageName: node
-  linkType: hard
-
 "@graphql-codegen/typescript@npm:^5.0.7":
   version: 5.0.7
   resolution: "@graphql-codegen/typescript@npm:5.0.7"
@@ -4085,12 +4070,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/core@npm:1.0.0-beta.2":
-  version: 1.0.0-beta.2
-  resolution: "@mezzanine-ui/core@npm:1.0.0-beta.2"
+"@mezzanine-ui/core@npm:1.0.0-beta.5":
+  version: 1.0.0-beta.5
+  resolution: "@mezzanine-ui/core@npm:1.0.0-beta.5"
   dependencies:
-    "@mezzanine-ui/icons": "npm:^1.0.0-beta.2"
-    "@mezzanine-ui/system": "npm:^1.0.0-beta.2"
+    "@mezzanine-ui/icons": "npm:1.0.0-beta.5"
+    "@mezzanine-ui/system": "npm:1.0.0-beta.5"
     lodash: "npm:^4.17.21"
     tslib: "npm:^2.8.1"
   peerDependencies:
@@ -4105,48 +4090,50 @@ __metadata:
       optional: true
     moment:
       optional: true
-  checksum: 10c0/e7c20affec2ffa33a2ba8fe28a4ab73cbbc9c00225e9d53faa9948e5fa79c9696357c5a491ff55ad481481e049063d2c8cbdb6384a922d3f0d9ac0f489737bde
+  checksum: 10c0/51f05cfed9970405419f4fce7a289b185eca53015113dcb5690b6f6698682a59b03449b647fe4d8661152781f39381014a4abdb8c39e37e79ba49801e481a8c9
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/icons@npm:1.0.0-beta.2":
-  version: 1.0.0-beta.2
-  resolution: "@mezzanine-ui/icons@npm:1.0.0-beta.2"
-  checksum: 10c0/1e9a1b55ca18f99dcef364e9f38e4d3420d8315aa29188d0f31c44f59a7a48549e2e93039ab4b7c19cc48c9f728010daee3d9dc526488ee0d80dffa31988e862
+"@mezzanine-ui/icons@npm:1.0.0-beta.5":
+  version: 1.0.0-beta.5
+  resolution: "@mezzanine-ui/icons@npm:1.0.0-beta.5"
+  checksum: 10c0/224bf4462bc15a5639da55cfe980c812e1b0e0de34f30226c916e52de5e3410d8471938bdcd13d6acc05c802103fdaa1e134848fe2919b68579eb0fb50fdbed3
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/react@npm:1.0.0-beta.2":
-  version: 1.0.0-beta.2
-  resolution: "@mezzanine-ui/react@npm:1.0.0-beta.2"
+"@mezzanine-ui/react@npm:1.0.0-beta.5":
+  version: 1.0.0-beta.5
+  resolution: "@mezzanine-ui/react@npm:1.0.0-beta.5"
   dependencies:
     "@floating-ui/dom": "npm:^1.7.4"
     "@floating-ui/react-dom": "npm:^2.1.6"
     "@hello-pangea/dnd": "npm:^18.0.1"
-    "@mezzanine-ui/core": "npm:^1.0.0-beta.2"
-    "@mezzanine-ui/icons": "npm:^1.0.0-beta.2"
-    "@mezzanine-ui/system": "npm:^1.0.0-beta.2"
+    "@mezzanine-ui/core": "npm:1.0.0-beta.5"
+    "@mezzanine-ui/icons": "npm:1.0.0-beta.5"
+    "@mezzanine-ui/system": "npm:1.0.0-beta.5"
     "@tanstack/react-virtual": "npm:^3.13.13"
     "@types/react-transition-group": "npm:^4.4.12"
     clsx: "npm:^2.1.1"
     keycode: "npm:^2.2.1"
     lodash: "npm:^4.17.21"
+    overlayscrollbars: "npm:^2.13.0"
+    overlayscrollbars-react: "npm:^0.5.6"
     react-transition-group: "npm:^4.4.5"
     tslib: "npm:^2.8.1"
   peerDependencies:
     lodash: ">=4"
     react: ">=18"
     react-dom: ">=18"
-  checksum: 10c0/60142739e3320b917af109d92caf8d63d9ed079e60eb7f80d768305d4f35bc6332675a9687ad03082b3ebf21a00c06f665d0c0b68323bcfac24d4a1c4eadae26
+  checksum: 10c0/fee8f9ea4489c5ce3c3f8230a4d8033c26d0070cea01d9528d94b1ff2ee1e099193279cc516773e2f112a0e5861189310783b3359a56c6f7b38c6cf413d1587b
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/system@npm:1.0.0-beta.2":
-  version: 1.0.0-beta.2
-  resolution: "@mezzanine-ui/system@npm:1.0.0-beta.2"
+"@mezzanine-ui/system@npm:1.0.0-beta.5":
+  version: 1.0.0-beta.5
+  resolution: "@mezzanine-ui/system@npm:1.0.0-beta.5"
   dependencies:
     tslib: "npm:^2.8.1"
-  checksum: 10c0/c5e725c4646e0cf95bc5a81e3e2769a539431759909aacf2df5953e1757a80bc3b70f25e9879a6c52d3cd1eb4d888d3b912ff51e2aebf4024b137af515faf646
+  checksum: 10c0/5cab0bf79aaf1f9dfdcf803fc189da9924d4e87c287602341af3d6cda7a07ac98a6ddbc917e9982b16fd4777d01d68814f08478a49034844637884af5595f847
   languageName: node
   linkType: hard
 
@@ -5114,10 +5101,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/env@npm:15.5.7":
-  version: 15.5.7
-  resolution: "@next/env@npm:15.5.7"
-  checksum: 10c0/f92d99e5fa3516c6b7699abafd9bd813f5c1889dd257ab098f1b71f93137f5e4f49792e22f6dddf8a59efcb134e8e84277c983ff88607b2a42aac651bfde78ea
+"@next/env@npm:15.5.9":
+  version: 15.5.9
+  resolution: "@next/env@npm:15.5.9"
+  checksum: 10c0/92c4e29d81a8e78c33c2da179648a4f478a9a6852966192e079007b19ec9955e72530d5ca7df55ea0efeccbf5b1c9d0efcaf80433e26af89c6478193e1d088f1
   languageName: node
   linkType: hard
 
@@ -8060,14 +8047,13 @@ __metadata:
     "@graphql-codegen/typed-document-node": "npm:^6.1.5"
     "@graphql-codegen/typescript": "npm:^5.0.7"
     "@graphql-codegen/typescript-operations": "npm:^5.0.7"
-    "@graphql-codegen/typescript-react-apollo": "npm:^4.4.0"
     "@hookform/devtools": "npm:^4.4.0"
     "@hookform/error-message": "npm:^2.0.1"
     "@hookform/resolvers": "npm:^5.2.2"
-    "@mezzanine-ui/core": "npm:1.0.0-beta.2"
-    "@mezzanine-ui/icons": "npm:1.0.0-beta.2"
-    "@mezzanine-ui/react": "npm:1.0.0-beta.2"
-    "@mezzanine-ui/system": "npm:1.0.0-beta.2"
+    "@mezzanine-ui/core": "npm:1.0.0-beta.5"
+    "@mezzanine-ui/icons": "npm:1.0.0-beta.5"
+    "@mezzanine-ui/react": "npm:1.0.0-beta.5"
+    "@mezzanine-ui/system": "npm:1.0.0-beta.5"
     "@nestjs/apollo": "npm:^13.2.3"
     "@nestjs/common": "npm:^11.0.0"
     "@nestjs/config": "npm:^4.0.2"
@@ -8110,7 +8096,7 @@ __metadata:
     generate-next-links: "npm:^3.1.0"
     graphql: "npm:^16.12.0"
     lodash: "npm:^4.17.21"
-    next: "npm:15.5.7"
+    next: "npm:15.5.9"
     nuqs: "npm:^2.8.6"
     nx: "npm:22.3.3"
     pg: "npm:^8.16.3"
@@ -15850,11 +15836,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:15.5.7":
-  version: 15.5.7
-  resolution: "next@npm:15.5.7"
+"next@npm:15.5.9":
+  version: 15.5.9
+  resolution: "next@npm:15.5.9"
   dependencies:
-    "@next/env": "npm:15.5.7"
+    "@next/env": "npm:15.5.9"
     "@next/swc-darwin-arm64": "npm:15.5.7"
     "@next/swc-darwin-x64": "npm:15.5.7"
     "@next/swc-linux-arm64-gnu": "npm:15.5.7"
@@ -15905,7 +15891,7 @@ __metadata:
       optional: true
   bin:
     next: dist/bin/next
-  checksum: 10c0/baf5b9f42416c478702b3894479b3d7862bc4abf18afe0e43b7fc7ed35567b8dc6cb76cd94906505bab9013cb8d0f3370cdc0451c01ec15ae5a638d37b5ba7c7
+  checksum: 10c0/6a120afbc45b96aa14debba6375602d6319093af4e3e8c648cf22b12ffb9db016c889df5e764cf5e0aa414ad60505db4e2095624a19f4b71316561076158651a
   languageName: node
   linkType: hard
 
@@ -16417,6 +16403,23 @@ __metadata:
     strip-ansi: "npm:^6.0.0"
     wcwidth: "npm:^1.0.1"
   checksum: 10c0/10ff14aace236d0e2f044193362b22edce4784add08b779eccc8f8ef97195cae1248db8ec1ec5f5ff076f91acbe573f5f42a98c19b78dba8c54eefff983cae85
+  languageName: node
+  linkType: hard
+
+"overlayscrollbars-react@npm:^0.5.6":
+  version: 0.5.6
+  resolution: "overlayscrollbars-react@npm:0.5.6"
+  peerDependencies:
+    overlayscrollbars: ^2.0.0
+    react: ">=16.8.0"
+  checksum: 10c0/59a2aad3664d81dc4dee5e747b72bb2645047e0e6d300d9583244167d1e4b19c4cc263932e4b112d5c24358430f78d15d34ea389beb8845e3b5319ccc57db8d8
+  languageName: node
+  linkType: hard
+
+"overlayscrollbars@npm:^2.13.0":
+  version: 2.13.0
+  resolution: "overlayscrollbars@npm:2.13.0"
+  checksum: 10c0/6a2731c417d926932bb20dd6cb93df78ee2ecac9068959b9d7bdf35180c513324530eea8d9252eef6c9640c99c5c054a5a514f0c1427310a73b764a6fa17740a
   languageName: node
   linkType: hard
 

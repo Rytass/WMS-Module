@@ -50,3 +50,9 @@ out
 .yarn/install-state.gz
 
 .env
+
+#k8s
+k8s/vault-secret.yml
+
+
+

@@ -1,0 +1,31 @@
+fragment MapData on MapDataDto {
+  id
+  backgrounds {
+    id
+    filename
+    x
+    y
+    height
+    width
+  }
+  ranges {
+    ... on MapRectangleRangeDto {
+      id
+      type
+      color
+      x
+      y
+      width
+      height
+    }
+    ... on MapPolygonRangeDto {
+      id
+      type
+      color
+      points {
+        x
+        y
+      }
+    }
+  }
+}

@@ -1,19 +1,41 @@
+// import { useEffect } from 'react';
+// import { isEqual } from 'lodash';
 import {
   Table as MznTable,
   TableDataSource,
   TableProps,
+  // useTableDataSource,
 } from '@mezzanine-ui/react';
 
 const Table = <T extends TableDataSource>(props: TableProps<T>) => {
+  // const { dataSource, transitionState, updateDataSource } =
+  //   useTableDataSource<T>({
+  //     initialData: props.dataSource,
+  //     highlightDuration: 1000,
+  //     fadeOutDuration: 200,
+  //   });
+
+  // useEffect(() => {
+  //   if (!isEqual(dataSource, props.dataSource)) {
+  //     updateDataSource(props.dataSource);
+  //   }
+  // }, [dataSource, props.dataSource, updateDataSource]);
+
   return (
     <MznTable<T>
       {...props}
+      // dataSource={dataSource}
+      fullWidth
+      emptyProps={{
+        title: '查無資料',
+      }}
       pagination={{
         showPageSizeOptions: true,
         pageSizeLabel: '每頁顯示：',
         pageSizeOptions: [5, 10, 15, 20],
         ...props.pagination,
       }}
+      // transitionState={transitionState}
     />
   );
 };
