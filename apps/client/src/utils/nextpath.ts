@@ -4,6 +4,7 @@ export enum NextPath {
     INVENTORYLIST = "/inventory-list",
     INVENTORYMOVEMENT = "/inventory-movement",
     LOADERSMANAGEMENT = "/loaders-management",
+    LOADERSMANAGEMENT_CREATE = "/loaders-management/create",
     LOCATIONSMANAGEMENT = "/locations-management",
     MAPS = "/maps",
     MATERIALSMANAGEMENT = "/materials-management",

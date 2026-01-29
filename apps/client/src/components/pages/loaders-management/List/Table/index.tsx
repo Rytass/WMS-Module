@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useRouter } from 'next/router';
 import dayjs from 'dayjs';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
@@ -6,8 +7,10 @@ import Table from '../../../../TableWrapper/Table';
 import Actions from './Actions';
 import { LoaderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryLoaders } from '../../useApi';
+import { NextPath } from '../../../../../utils/nextpath';
 
 function LoadersManagementListTable() {
+  const { push } = useRouter();
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryLoaders();
 
@@ -107,7 +110,7 @@ function LoadersManagementListTable() {
       title="載具項目"
       createText="新增載具"
       onCreate={() => {
-        console.log('新增載具');
+        push(NextPath.LOADERSMANAGEMENT_CREATE);
       }}
     >
       <Table<LoaderFragment>
