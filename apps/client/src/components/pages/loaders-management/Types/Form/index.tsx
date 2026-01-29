@@ -56,6 +56,7 @@ function LoaderTypeForm({
           placeholder="輸入類型代碼"
           size="main"
           required
+          disabled={mode === 'edit' || undefined}
         />
       </div>
     </FormModalWrapper>

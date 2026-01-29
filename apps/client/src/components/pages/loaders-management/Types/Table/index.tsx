@@ -92,6 +92,7 @@ function LoadersManagementTypesTable() {
         defaultValues={{
           description: '',
           serial: '',
+          isActive: true,
         }}
         onSubmit={async (values) => {
           console.log('values', values);

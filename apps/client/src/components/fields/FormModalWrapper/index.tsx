@@ -117,8 +117,12 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
         }
       }
     } else {
-      methods.handleSubmit(onSubmit)();
-      closeModalProps();
+      const isValid = await methods.trigger();
+
+      if (isValid) {
+        methods.handleSubmit(onSubmit)();
+        closeModalProps();
+      }
     }
   }, [methods, mode, onSubmit, openDialog, submitWithConfirm, closeModalProps]);
 
