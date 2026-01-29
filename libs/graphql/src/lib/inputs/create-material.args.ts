@@ -3,8 +3,8 @@ import { CreateMaterialUnitArgs } from './create-material-unit.args';
 
 @ArgsType()
 export class CreateMaterialArgs {
-  @Field(() => ID)
-  id!: string;
+  @Field(() => String)
+  key!: string;
 
   @Field(() => String)
   description!: string;
@@ -21,7 +21,7 @@ export class CreateMaterialArgs {
 
 @ArgsType()
 export class UpdateMaterialArgs extends PartialType(
-  OmitType(CreateMaterialArgs, ['id', 'baseUnit', 'units'] as const)
+  OmitType(CreateMaterialArgs, ['key', 'baseUnit', 'units'] as const),
 ) {
   @Field(() => ID)
   id!: string;

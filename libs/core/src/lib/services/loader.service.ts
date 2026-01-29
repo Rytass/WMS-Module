@@ -63,11 +63,11 @@ export class LoaderService<
       this.loaderTypeEntity,
     );
 
-    const { serial } = await loaderTypeRepository.findOneByOrFail({
+    const { key } = await loaderTypeRepository.findOneByOrFail({
       id: options.typeId,
     });
 
-    const startSeq = await this.getSeq(serial, options.quantity, manager);
+    const startSeq = await this.getSeq(key, options.quantity, manager);
 
     const loaders: LoadersEntityClass[] = [];
     for (let i = 0; i < options.quantity; i++) {
@@ -77,7 +77,7 @@ export class LoaderService<
         .padStart(this.loaderSerialMaxDigits, '0');
       const loader = loaderRepository.create({
         ...options,
-        serialId: `${serial}${paddedSeq}`,
+        serialId: `${key}${paddedSeq}`,
       });
       loaders.push(loader);
     }
@@ -110,8 +110,8 @@ export class LoaderService<
       options.map(async (option) => {
         const loaderType = typeMap.get(option.typeId);
         if (loaderType) {
-          const { serial } = loaderType;
-          const startSeq = await this.getSeq(serial, option.quantity, manager);
+          const { key } = loaderType;
+          const startSeq = await this.getSeq(key, option.quantity, manager);
           for (let i = 0; i < option.quantity; i++) {
             const seqNum = startSeq + i;
             const paddedSeq = seqNum
@@ -119,7 +119,7 @@ export class LoaderService<
               .padStart(this.loaderSerialMaxDigits, '0');
             const loader = loaderRepository.create({
               ...option,
-              serialId: `${serial}${paddedSeq}`,
+              serialId: `${key}${paddedSeq}`,
             });
             loaders.push(loader);
           }

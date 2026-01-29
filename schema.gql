@@ -8,7 +8,7 @@ type LoaderTypeDto {
   isActive: Boolean!
 
   """類型代碼"""
-  serial: String!
+  key: String!
   createdAt: DateTime!
   updatedAt: DateTime!
   referencedQuantity: Int!
@@ -54,7 +54,7 @@ type MaterialDto {
   description: String!
   baseUnit: String!
   isActive: Boolean!
-  stocks: [StockDto!]!
+  aggregatedStock: [AggregatedStockDto!]!
   materialUnits: [MaterialUnitDto!]!
 }
 
@@ -76,7 +76,6 @@ type MaterialUnitDto {
 type StockDto {
   id: ID!
   loaderId: ID!
-  description: String!
   material: MaterialDto!
   location: LocationDto!
   batch: BatchDto!
@@ -85,6 +84,33 @@ type StockDto {
 type Stocks {
   id: ID!
   items: [StockDto!]!
+  total: Int!
+}
+
+type AggregatedStockDto {
+  quantity: Int!
+  status: StockStatus!
+  materialId: ID!
+  batchId: ID!
+  locationId: ID!
+  loaderId: ID!
+}
+
+"""The status of the stock"""
+enum StockStatus {
+  PENDING_INSPECTION
+  INSPECTION_FAILED
+  HELD
+  IN_TRANSFER
+  ALLOCATED
+  VENDOR_INVENTORY
+  CUSTOMER_INVENTORY
+  FREE
+}
+
+type AggregatedStocks {
+  id: ID!
+  items: [AggregatedStockDto!]!
   total: Int!
 }
 
@@ -229,10 +255,11 @@ type Query {
   loaderType(id: ID!): LoaderTypeDto!
   loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, serial: String): LoaderTypes!
   material(id: ID!): MaterialDto!
-  materials(offset: Int, limit: Int, materialId: ID, materialIds: [ID!], description: String): Materials!
+  materials(offset: Int, limit: Int, key: String, description: String): Materials!
   stock(id: ID!): StockDto!
   stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Stocks!
   stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Materials!
+  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): AggregatedStocks!
   receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
@@ -250,9 +277,9 @@ type Mutation {
   createLoader(typeId: ID!, serialId: String!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
   createBatchLoader(typeId: ID!, serialId: String!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
   updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!): LoaderDto!
-  createLoaderType(id: ID!, description: String!, serial: String!): LoaderTypeDto!
-  updateLoaderType(description: String, id: ID!): LoaderTypeDto!
-  createMaterial(id: ID!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
+  createLoaderType(description: String!, key: String!): LoaderTypeDto!
+  updateLoaderType(description: String, id: ID!, isActive: Boolean): LoaderTypeDto!
+  createMaterial(key: String!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
   updateMaterial(description: String, isActive: Boolean, id: ID!, units: [CreateMaterialUnitArgs!]): MaterialDto!
   createReceiveInventoryOrder(key: ID!, description: String!, items: [CreateReceiveInventoryOrderItemArgs!]!): ReceiveInventoryOrderDto!
   updateReceiveInventoryOrder(description: String, id: ID!, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!

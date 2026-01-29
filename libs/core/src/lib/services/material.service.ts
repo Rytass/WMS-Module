@@ -52,13 +52,13 @@ export class MaterialService<
       manager.getRepository<MaterialUnitEntityClass>(this.materialUnitEntity);
 
     const material = materialRepository.create(options);
-    await materialRepository.save(material);
+    const { id } = await materialRepository.save(material);
 
     if (options.units && options.units.length > 0) {
       const units = materialUnitRepository.create(
         options.units.map((unit) => ({
           ...unit,
-          materialId: options.id,
+          materialId: id,
         })),
       );
       await materialUnitRepository.save(units);
@@ -121,7 +121,7 @@ export class MaterialService<
     return updated as T;
   }
 
-  findMany(options: FindMaterialInput): Promise<[T[], number]> {
+  findMany(options: FindMaterialInput<T>): Promise<[T[], number]> {
     const queryBuilder = this.dataSource
       .getRepository<T>(this.materialEntity)
       .createQueryBuilder('material');
@@ -140,6 +140,13 @@ export class MaterialService<
       queryBuilder.andWhere('material.description ILIKE :description', {
         description: `%${options.description}%`,
       });
+
+    if (options.wildcard) {
+      const { key, value } = options.wildcard;
+      queryBuilder.andWhere(`material."${String(key)}" ILIKE :value`, {
+        value: `%${value}%`,
+      });
+    }
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);

@@ -1,7 +1,7 @@
 import { CreateMaterialUnitInput } from './create-material-unit.input';
 
 export type CreateMaterialInput = {
-  id: string;
+  key: string;
   description: string;
   baseUnit: string;
   units: Array<CreateMaterialUnitInput>;
@@ -10,4 +10,6 @@ export type CreateMaterialInput = {
 
 export type UpdateMaterialInput = Partial<
   Omit<CreateMaterialInput, 'baseUnit'>
->;
+> & {
+  id: string;
+};

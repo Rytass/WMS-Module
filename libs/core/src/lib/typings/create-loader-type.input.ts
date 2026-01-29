@@ -1,14 +1,13 @@
 import { EntityManager } from 'typeorm';
 
 export type CreateLoaderTypeInput = {
-  id: string;
   description: string;
-  serial: string;
+  key: string;
   manager?: EntityManager;
 };
 
 export type UpdateLoaderTypeInput = Partial<
-  Omit<CreateLoaderTypeInput, 'serial'>
+  Omit<CreateLoaderTypeInput, 'key'>
 > & {
   id: string;
 };

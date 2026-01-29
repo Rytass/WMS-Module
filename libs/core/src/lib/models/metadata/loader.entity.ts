@@ -20,7 +20,7 @@ export class LoadersEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'uuid' })
   @Index()
   typeId!: string;
 

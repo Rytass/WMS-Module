@@ -31,7 +31,7 @@ export class LoaderQuery {
   async loaderTypes(@Args() args: FindLoaderTypeArgs): Promise<LoaderTypes> {
     const [items, total] = await this.loaderService.findManyLoaderTypes({
       ...args,
-      wildcard: args.serial ? { key: 'serial', value: args.serial } : undefined,
+      wildcard: args.serial ? { key: 'key', value: args.serial } : undefined,
     });
     return { items, total };
   }

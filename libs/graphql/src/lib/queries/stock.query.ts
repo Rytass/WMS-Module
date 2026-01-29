@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
 import { StockService } from '@wms-module/core';
-import { Materials, StockDto, Stocks } from '../dto';
+import { AggregatedStocks, Materials, StockDto, Stocks } from '../dto';
 import { FindStockArgs } from '../inputs/find-stock.args';
 
 @Injectable()
@@ -21,11 +21,19 @@ export class StockQuery {
 
   @Query(() => Materials)
   async stocksGroupedByMaterial(
-    @Args() args: FindStockArgs
+    @Args() args: FindStockArgs,
   ): Promise<Materials> {
-    const [items, total] = await this.stockService.findManyGroupedByMaterialId(
-      args
-    );
+    const [items, total] =
+      await this.stockService.findManyGroupedByMaterialId(args);
+    return { items, total };
+  }
+
+  @Query(() => AggregatedStocks)
+  async aggregatedStocks(
+    @Args() args: FindStockArgs,
+  ): Promise<AggregatedStocks> {
+    const [items, total] = await this.stockService.findAggregatedStocks(args);
+    console.log({ items });
     return { items, total };
   }
 }
