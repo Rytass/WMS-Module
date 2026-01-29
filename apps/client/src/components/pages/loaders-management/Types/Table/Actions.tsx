@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@mezzanine-ui/react';
 import { LoaderTypeFragment } from '../../../../../graphql/generated/.graphql';
 import LoaderTypeForm from '../Form';
+import { ActiveValue } from '../Form/typing';
 
 interface ActionsProps {
   source: LoaderTypeFragment;
@@ -28,7 +29,9 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         defaultValues={{
           description: source.description,
           serial: source.serial,
-          isActive: source.isActive,
+          isActive: source.isActive
+            ? ActiveValue.active
+            : ActiveValue.notActive,
         }}
         onSubmit={async (values) => {
           console.log('values', values);

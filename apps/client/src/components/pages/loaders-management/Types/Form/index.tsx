@@ -2,8 +2,9 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormModalWrapper } from '../../../../fields/FormModalWrapper';
 import InputField from '../../../../fields/InputField';
+import SingleAutoCompleteField from '../../../../fields/SingleAutoCompleteField';
 import { formSchema } from './schema';
-import { FormValues } from './typing';
+import { FormValues, ActiveValue } from './typing';
 import classes from './index.module.scss';
 
 interface LoaderTypeFormProps {
@@ -58,6 +59,24 @@ function LoaderTypeForm({
           required
           disabled={mode === 'edit' || undefined}
         />
+        {mode === 'edit' && (
+          <SingleAutoCompleteField
+            name="isActive"
+            label="狀態"
+            options={[
+              {
+                id: ActiveValue.active,
+                name: '已啟用',
+              },
+              {
+                id: ActiveValue.notActive,
+                name: '已停用',
+              },
+            ]}
+            size="main"
+            required
+          />
+        )}
       </div>
     </FormModalWrapper>
   );

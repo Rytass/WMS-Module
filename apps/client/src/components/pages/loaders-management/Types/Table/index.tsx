@@ -6,6 +6,7 @@ import Table from '../../../../TableWrapper/Table';
 import Actions from './Actions';
 import { LoaderTypeFragment } from '../../../../../graphql/generated/.graphql';
 import LoaderTypeForm from '../Form';
+import { ActiveValue } from '../Form/typing';
 import { useQueryLoaderTypes } from '../../useApi';
 
 function LoadersManagementTypesTable() {
@@ -92,7 +93,7 @@ function LoadersManagementTypesTable() {
         defaultValues={{
           description: '',
           serial: '',
-          isActive: true,
+          isActive: ActiveValue.active,
         }}
         onSubmit={async (values) => {
           console.log('values', values);
