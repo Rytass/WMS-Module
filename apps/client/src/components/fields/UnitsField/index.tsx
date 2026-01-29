@@ -1,13 +1,14 @@
 import { useCallback } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import { useQueryUnits } from './useApi';
-import { SelectValue } from '@mezzanine-ui/react';
+import { SelectValue, TextFieldSize } from '@mezzanine-ui/react';
 
 interface UnitsFieldProps {
   name: string;
   label?: string;
   placeholder?: string;
   menuMaxHeight?: number;
+  size?: TextFieldSize;
   required?: boolean;
   disabled?: boolean;
 }
@@ -17,6 +18,7 @@ const UnitsField: FC<UnitsFieldProps> = ({
   label = '',
   placeholder,
   menuMaxHeight,
+  size,
   required = false,
   disabled = false,
 }) => {
@@ -44,6 +46,7 @@ const UnitsField: FC<UnitsFieldProps> = ({
       label={label}
       placeholder={placeholder}
       menuMaxHeight={menuMaxHeight}
+      size={size}
       options={currentOptions}
       onInsert={handleInsert}
       required={required}

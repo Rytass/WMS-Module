@@ -113,7 +113,6 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
 
         if (isConfirm) {
           methods.handleSubmit(onSubmit)();
-          closeModalProps();
         }
       }
     } else {
@@ -121,10 +120,9 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
 
       if (isValid) {
         methods.handleSubmit(onSubmit)();
-        closeModalProps();
       }
     }
-  }, [methods, mode, onSubmit, openDialog, submitWithConfirm, closeModalProps]);
+  }, [methods, mode, onSubmit, openDialog, submitWithConfirm]);
 
   return (
     <Modal
