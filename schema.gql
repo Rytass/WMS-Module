@@ -8,7 +8,7 @@ type LoaderTypeDto {
   isActive: Boolean!
 
   """類型代碼"""
-  serial: String!
+  key: String!
   createdAt: DateTime!
   updatedAt: DateTime!
   referencedQuantity: Int!
@@ -277,7 +277,7 @@ type Mutation {
   createLoader(typeId: ID!, serialId: String!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
   createBatchLoader(typeId: ID!, serialId: String!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
   updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!): LoaderDto!
-  createLoaderType(id: ID!, description: String!, serial: String!): LoaderTypeDto!
+  createLoaderType(description: String!, key: String!): LoaderTypeDto!
   updateLoaderType(description: String, id: ID!): LoaderTypeDto!
   createMaterial(id: ID!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
   updateMaterial(description: String, isActive: Boolean, id: ID!, units: [CreateMaterialUnitArgs!]): MaterialDto!

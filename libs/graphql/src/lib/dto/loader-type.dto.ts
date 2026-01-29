@@ -13,7 +13,7 @@ export class LoaderTypeDto {
   isActive!: boolean;
 
   @Field(() => String, { description: '類型代碼' })
-  serial!: string;
+  key!: string;
 
   @Field(() => Date)
   createdAt!: Date;
