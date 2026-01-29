@@ -255,7 +255,7 @@ type Query {
   loaderType(id: ID!): LoaderTypeDto!
   loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, serial: String): LoaderTypes!
   material(id: ID!): MaterialDto!
-  materials(offset: Int, limit: Int, materialId: ID, materialIds: [ID!], description: String): Materials!
+  materials(offset: Int, limit: Int, key: String, description: String): Materials!
   stock(id: ID!): StockDto!
   stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Stocks!
   stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Materials!
@@ -278,8 +278,8 @@ type Mutation {
   createBatchLoader(typeId: ID!, serialId: String!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
   updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!): LoaderDto!
   createLoaderType(description: String!, key: String!): LoaderTypeDto!
-  updateLoaderType(description: String, id: ID!): LoaderTypeDto!
-  createMaterial(id: ID!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
+  updateLoaderType(description: String, id: ID!, isActive: Boolean): LoaderTypeDto!
+  createMaterial(key: String!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
   updateMaterial(description: String, isActive: Boolean, id: ID!, units: [CreateMaterialUnitArgs!]): MaterialDto!
   createReceiveInventoryOrder(key: ID!, description: String!, items: [CreateReceiveInventoryOrderItemArgs!]!): ReceiveInventoryOrderDto!
   updateReceiveInventoryOrder(description: String, id: ID!, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!

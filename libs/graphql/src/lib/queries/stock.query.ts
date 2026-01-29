@@ -33,6 +33,7 @@ export class StockQuery {
     @Args() args: FindStockArgs,
   ): Promise<AggregatedStocks> {
     const [items, total] = await this.stockService.findAggregatedStocks(args);
+    console.log({ items });
     return { items, total };
   }
 }

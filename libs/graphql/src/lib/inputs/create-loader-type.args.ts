@@ -15,4 +15,7 @@ export class UpdateLoaderTypeArgs extends PartialType(
 ) {
   @Field(() => ID)
   id!: string;
+
+  @Field(() => Boolean, { nullable: true })
+  isActive?: boolean;
 }

@@ -118,7 +118,8 @@ export class StockService<
           `stock_status."stockId" = ${alias}.id`,
         )
         .addSelect('stock_status.status', 'status')
-        .addSelect('stock_status.quantity', 'quantity');
+        .addSelect('stock_status.quantity', 'quantity')
+        .addSelect(`${alias}.*`);
   }
 
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(

@@ -17,7 +17,9 @@ import { StockEntity, StockEntityClass } from './metadata/stock.entity';
 import {
   LocationEntity,
   LocationEntityClass,
+  WarehouseMapEntity,
 } from './metadata/location.entity';
+import { WarehouseMapEntity as WarehouseMapEntityClass } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
 import {
   ReceiveInventoryOrderChangeEntity,
   ReceiveInventoryOrderChangeEntityClass,
@@ -96,6 +98,7 @@ const entities = [
   [LoaderTypeEntity, LoaderTypeEntityClass],
   [StockEntity, StockEntityClass],
   [LocationEntity, LocationEntityClass],
+  [WarehouseMapEntity, WarehouseMapEntityClass],
   [ReceiveInventoryOrderEntity, ReceiveInventoryOrderEntityClass],
   [ReceiveInventoryOrderItemEntity, ReceiveInventoryOrderItemEntityClass],
   [ReceiveInventoryOrderChangeEntity, ReceiveInventoryOrderChangeEntityClass],

@@ -14,7 +14,10 @@ export class MaterialQuery {
 
   @Query(() => Materials)
   async materials(@Args() args: FindMaterialArgs): Promise<Materials> {
-    const [items, total] = await this.materialService.findMany(args);
+    const [items, total] = await this.materialService.findMany({
+      ...args,
+      wildcard: args.key ? { key: 'key', value: args.key } : undefined,
+    });
     return { items, total };
   }
 }
