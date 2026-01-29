@@ -36,6 +36,7 @@ function MaterialsManagementTable({
               conversionFactor: u.conversionFactor ?? 0,
               isActive: u.isActive,
             })),
+            isActive: true,
           },
         });
 

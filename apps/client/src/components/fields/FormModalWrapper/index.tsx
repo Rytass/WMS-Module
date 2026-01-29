@@ -136,12 +136,14 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
       onCancel={closeModal}
       onConfirm={onConfirm}
       cancelButtonProps={{
-        type: 'button',
         ...cancelButtonProps,
+        type: 'button',
       }}
       confirmButtonProps={{
-        type: 'button',
         ...confirmButtonProps,
+        type: 'button',
+        disabled:
+          confirmButtonProps?.disabled || methods.formState.isSubmitting,
       }}
       showStatusTypeIcon={false}
       statusTypeIconLayout="horizontal"

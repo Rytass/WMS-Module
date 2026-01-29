@@ -10,24 +10,17 @@ import {
   CombinedGraphQLErrors,
   CombinedProtocolErrors,
 } from '@apollo/client/errors';
+import { Message } from '@mezzanine-ui/react';
 
 const errorLink = new ErrorLink(({ error, operation }) => {
   if (CombinedGraphQLErrors.is(error)) {
     error.errors.forEach(({ message, locations, path }) =>
-      console.log(
-        `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
-      ),
+      Message.error(message),
     );
   } else if (CombinedProtocolErrors.is(error)) {
-    error.errors.forEach(({ message, extensions }) =>
-      console.log(
-        `[Protocol error]: Message: ${message}, Extensions: ${JSON.stringify(
-          extensions,
-        )}`,
-      ),
-    );
+    error.errors.forEach(({ message, extensions }) => Message.error(message));
   } else {
-    console.error(`[Network error]: ${error}`);
+    Message.error(`[Network error]: ${error}`);
   }
 });
 
