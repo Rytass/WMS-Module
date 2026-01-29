@@ -67,50 +67,54 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
 
   const onConfirm = useCallback(async () => {
     if (submitWithConfirm) {
-      const isConfirm = await openDialog({
-        modalStatusType: 'info',
-        title: (() => {
-          switch (mode) {
-            case 'create':
-              return '確認新增資料';
+      const isValid = await methods.trigger();
 
-            case 'edit':
-              return '確認儲存變更';
+      if (isValid) {
+        const isConfirm = await openDialog({
+          modalStatusType: 'info',
+          title: (() => {
+            switch (mode) {
+              case 'create':
+                return '確認新增資料';
 
-            default:
-              return '';
-          }
-        })(),
-        supportingText: (() => {
-          switch (mode) {
-            case 'create':
-              return '您即將進入新增流程，完成後系統將自動應用相關變更。請確認是否要繼續，以便順利完成操作。';
+              case 'edit':
+                return '確認儲存變更';
 
-            case 'edit':
-              return '您即將編輯設定流程，完成後系統將自動應用相關變更。請確認是否要繼續，以便順利完成操作。';
+              default:
+                return '';
+            }
+          })(),
+          supportingText: (() => {
+            switch (mode) {
+              case 'create':
+                return '您即將進入新增流程，完成後系統將自動應用相關變更。請確認是否要繼續，以便順利完成操作。';
 
-            default:
-              return '';
-          }
-        })(),
-        cancelText: '取消',
-        confirmText: (() => {
-          switch (mode) {
-            case 'create':
-              return '確認新增';
+              case 'edit':
+                return '您即將編輯設定流程，完成後系統將自動應用相關變更。請確認是否要繼續，以便順利完成操作。';
 
-            case 'edit':
-              return '套用變更';
+              default:
+                return '';
+            }
+          })(),
+          cancelText: '取消',
+          confirmText: (() => {
+            switch (mode) {
+              case 'create':
+                return '確認新增';
 
-            default:
-              return '';
-          }
-        })(),
-      });
+              case 'edit':
+                return '套用變更';
 
-      if (isConfirm) {
-        methods.handleSubmit(onSubmit)();
-        closeModalProps();
+              default:
+                return '';
+            }
+          })(),
+        });
+
+        if (isConfirm) {
+          methods.handleSubmit(onSubmit)();
+          closeModalProps();
+        }
       }
     } else {
       methods.handleSubmit(onSubmit)();

@@ -1,13 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
 import Actions from './Actions';
 import { LoaderTypeFragment } from '../../../../../graphql/generated/.graphql';
+import LoaderTypeForm from '../Form';
 import { useQueryLoaderTypes } from '../../useApi';
 
 function LoadersManagementTypesTable() {
+  const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
+
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryLoaderTypes();
 
@@ -62,26 +65,44 @@ function LoadersManagementTypesTable() {
   ];
 
   return (
-    <TableWrapper
-      title="類別項目"
-      createText="新增類別"
-      onCreate={() => {
-        console.log('新增類別');
-      }}
-    >
-      <Table<LoaderTypeFragment>
-        columns={columns}
-        dataSource={dataSource}
-        loading={loading}
-        pagination={{
-          current: page,
-          onChange: (page) => setPage(page),
-          total: pageTotal,
-          pageSize: limit,
-          onChangePageSize: (size) => setLimit(size),
+    <>
+      <TableWrapper
+        title="類別項目"
+        createText="新增類別"
+        onCreate={() => {
+          setCreateModalOpened(true);
         }}
+      >
+        <Table<LoaderTypeFragment>
+          columns={columns}
+          dataSource={dataSource}
+          loading={loading}
+          pagination={{
+            current: page,
+            onChange: (page) => setPage(page),
+            total: pageTotal,
+            pageSize: limit,
+            onChangePageSize: (size) => setLimit(size),
+          }}
+        />
+      </TableWrapper>
+      <LoaderTypeForm
+        title="新增載具類型"
+        mode="create"
+        defaultValues={{
+          description: '',
+          serial: '',
+        }}
+        onSubmit={async (values) => {
+          console.log('values', values);
+        }}
+        submitText="新增"
+        closeModal={() => {
+          setCreateModalOpened(false);
+        }}
+        open={createModalOpened}
       />
-    </TableWrapper>
+    </>
   );
 }
 
