@@ -41,6 +41,7 @@ function CreateShipInventoryOrderForm({
       mode={mode}
       submitWithConfirm
       cancelWithConfirm={methods.formState.isDirty}
+      size="narrow"
     >
       <div className={classes.host}>
         <InputField

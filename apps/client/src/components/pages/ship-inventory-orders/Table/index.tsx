@@ -1,16 +1,51 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { TableColumn } from '@mezzanine-ui/react';
+import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
 import { SimpleShipInventoryOrderFragment } from '../../../../graphql/generated/.graphql';
-import { useQueryShipInventoryOrders } from '../useApi';
+import {
+  useQueryShipInventoryOrders,
+  useCreateShipInventoryOrder,
+} from '../useApi';
 import CreateShipInventoryOrderForm from '../CreateForm';
+import { FormValues } from '../CreateForm/typing';
+import { NextPath } from '../../../../utils/nextpath';
+import { nextDynamicPath } from '../../../../utils/path';
 
 function ShipInventoryOrdersTable() {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
+  const { push } = useRouter();
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryShipInventoryOrders();
+
+  const { createShipInventoryOrder } = useCreateShipInventoryOrder();
+
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await createShipInventoryOrder({
+          variables: {
+            key: values.serial,
+            description: values.description ?? '',
+            items: [],
+          },
+        });
+
+        if (data?.createShipInventoryOrder.id) {
+          push(
+            nextDynamicPath(NextPath.SHIPINVENTORYORDERS_ID_EDIT, {
+              '[id]': data.createShipInventoryOrder.id,
+            }),
+          );
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [createShipInventoryOrder, push],
+  );
 
   const dataSource = useMemo(
     (): SimpleShipInventoryOrderFragment[] =>
@@ -55,9 +90,7 @@ function ShipInventoryOrdersTable() {
           description: '',
           serial: '',
         }}
-        onSubmit={async (values) => {
-          console.log('values', values);
-        }}
+        onSubmit={onSubmit}
         submitText="下一步"
         closeModal={() => {
           setCreateModalOpened(false);
