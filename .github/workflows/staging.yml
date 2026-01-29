@@ -51,41 +51,40 @@ jobs:
           username: _json_key
           password: ${{ secrets.GAR_JSON_KEY }}
 
-      - name: Build docker image (Client)
+      - name: Build and push Client Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          cache-from: type=local,src=/tmp/runner-cache
-          cache-to: type=local,dest=/tmp/runner-cache,mode=min,compression=zstd
+          target: client # Target the 'client' stage in the Dockerfile
           tags: asia-east1-docker.pkg.dev/develop-server/wms-module/client:${{ needs.tagging.outputs.tag }}
           build-args: |
-            TARGET=client
             NEXT_PUBLIC_IS_DEV=1
             API_HOST=https://wms-module-staging.rytass.info
+          cache-from: type=local,src=/tmp/runner-cache-client
+          cache-to: type=local,dest=/tmp/runner-cache-client,mode=min,compression=zstd
 
-      - name: Build docker image (Admin)
+      # - name: Build docker image (Admin)
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: .
+      #     push: true
+      #     target: admin
+      #     tags: asia-east1-docker.pkg.dev/develop-server/wms-module/admin:${{ needs.tagging.outputs.tag }}
+      #     build-args: |
+      #       NEXT_PUBLIC_IS_DEV=1
+      #     cache-from: type=local,src=/tmp/runner-cache-admin
+      #     cache-to: type=local,dest=/tmp/runner-cache-admin,mode=min,compression=zstd
+
+      - name: Build and push API Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          cache-from: type=local,src=/tmp/runner-cache
-          cache-to: type=local,dest=/tmp/runner-cache,mode=min,compression=zstd
-          tags: asia-east1-docker.pkg.dev/develop-server/wms-module/admin:${{ needs.tagging.outputs.tag }}
-          build-args: |
-            TARGET=admin
-            NEXT_PUBLIC_IS_DEV=1
-
-      - name: Build docker image (API)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          cache-from: type=local,src=/tmp/runner-cache
-          cache-to: type=local,dest=/tmp/runner-cache,mode=min,compression=zstd
+          target: api # Target the 'api' stage in the Dockerfile
           tags: asia-east1-docker.pkg.dev/develop-server/wms-module/api:${{ needs.tagging.outputs.tag }}
-          build-args: |
-            TARGET=api
+          cache-from: type=local,src=/tmp/runner-cache-api
+          cache-to: type=local,dest=/tmp/runner-cache-api,mode=min,compression=zstd
 
   update-deployments:
     runs-on: self-hosted
@@ -111,5 +110,4 @@ jobs:
           gcloud components install kubectl
           gcloud container clusters get-credentials rytass-cluster --region asia-east1 --project develop-server
           kubectl -n wms-module-staging set image deployments/application client=asia-east1-docker.pkg.dev/develop-server/wms-module/client:${{ needs.tagging.outputs.tag }}
-          kubectl -n wms-module-staging set image deployments/application admin=asia-east1-docker.pkg.dev/develop-server/wms-module/admin:${{ needs.tagging.outputs.tag }}
           kubectl -n wms-module-staging set image deployments/application api=asia-east1-docker.pkg.dev/develop-server/wms-module/api:${{ needs.tagging.outputs.tag }}

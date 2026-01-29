@@ -48,3 +48,8 @@ out
 .graphql.ts
 
 .yarn/install-state.gz
+#k8s
+k8s/vault-secret.yml
+
+
+
