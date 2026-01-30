@@ -9,6 +9,8 @@ import {
 import classes from './index.module.scss';
 
 function InventoryList() {
+  const [open, setOpen] = useState<boolean>(false);
+
   const [currentAction, setCurrentAction] = useState<InventoryActions | null>(
     null,
   );
@@ -18,25 +20,30 @@ function InventoryList() {
   }, [currentAction]);
 
   return (
-    <PageWrapper
-      title="庫存清單"
-      titleButtons={
-        targetAction ? (
-          <Button
-            icon={targetAction.icon}
-            className={classes.actionButton}
-            size="minor"
-            iconType="icon-only"
-            variant="base-secondary"
-          />
-        ) : undefined
-      }
-    >
-      <InventoryTable
-        currentAction={currentAction}
-        setCurrentAction={setCurrentAction}
-      />
-    </PageWrapper>
+    <>
+      <PageWrapper
+        title="庫存清單"
+        titleButtons={
+          targetAction ? (
+            <Button
+              icon={targetAction.icon}
+              className={classes.actionButton}
+              size="minor"
+              iconType="icon-only"
+              variant="base-secondary"
+              onClick={() => {
+                setOpen(true);
+              }}
+            />
+          ) : undefined
+        }
+      >
+        <InventoryTable
+          currentAction={currentAction}
+          setCurrentAction={setCurrentAction}
+        />
+      </PageWrapper>
+    </>
   );
 }
 
