@@ -28,7 +28,7 @@ function MaterialsManagementTable({
       try {
         const { data } = await createMaterial({
           variables: {
-            createMaterialId: values.materialNumber,
+            key: values.materialNumber,
             description: values.description,
             baseUnit: values.baseUnit,
             units: values.units.map((u) => ({

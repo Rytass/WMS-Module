@@ -17,7 +17,7 @@ function InventoryListTable() {
     {
       key: 'description',
       title: '物料說明',
-      render: (source) => source.description,
+      render: (source) => source.material?.description,
     },
   ];
 

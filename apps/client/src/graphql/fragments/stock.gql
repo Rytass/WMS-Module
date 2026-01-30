@@ -1,7 +1,6 @@
 fragment Stock on StockDto {
   id
   loaderId
-  description
   material {
     ...SimpleMaterial
   }
@@ -16,5 +15,4 @@ fragment Stock on StockDto {
 fragment SimpleStock on StockDto {
   id
   loaderId
-  description
 }

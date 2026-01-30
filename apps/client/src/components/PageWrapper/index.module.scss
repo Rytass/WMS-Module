@@ -10,7 +10,10 @@
     spacing.semantic-variable(padding, horizontal, comfort-fixed);
 
   .pageHeader {
-    padding: 0;
+    box-sizing: border-box;
+    display: grid;
+    gap: spacing.semantic-variable(gap, calm);
+    width: 100%;
   }
 }
 

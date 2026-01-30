@@ -1,0 +1,17 @@
+@use '@mezzanine-ui/system/palette';
+
+// 魔改區
+.actionButton {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    background-color: palette.semantic-variable(icon, error);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    top: 2px;
+    right: 2px;
+  }
+}

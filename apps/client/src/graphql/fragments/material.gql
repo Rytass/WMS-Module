@@ -16,9 +16,6 @@ fragment Material on MaterialDto {
   materialUnits {
     ...MaterialUnit
   }
-  stocks {
-    ...SimpleStock
-  }
 }
 
 fragment SimpleMaterial on MaterialDto {

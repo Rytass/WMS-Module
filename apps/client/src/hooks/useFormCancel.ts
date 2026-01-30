@@ -16,6 +16,9 @@ export function useFormCancel({ onCancel }: FormCancelProps) {
       supportingText: '您有尚未儲存的內容，確定要離開此頁嗎？',
       cancelText: '關閉提醒',
       confirmText: '離開此頁',
+      confirmButtonProps: {
+        variant: 'destructive-primary',
+      },
     });
 
     if (isConfirm) {

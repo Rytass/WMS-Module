@@ -1,19 +1,42 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
-import { TableColumn, Badge } from '@mezzanine-ui/react';
+import { TableColumn, Badge, Message } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
 import Actions from './Actions';
 import { LoaderTypeFragment } from '../../../../../graphql/generated/.graphql';
 import LoaderTypeForm from '../Form';
-import { ActiveValue } from '../Form/typing';
-import { useQueryLoaderTypes } from '../../useApi';
+import { ActiveValue, FormValues } from '../Form/typing';
+import { useQueryLoaderTypes, useCreateLoaderType } from '../../useApi';
 
 function LoadersManagementTypesTable() {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryLoaderTypes();
+
+  const { createLoaderType } = useCreateLoaderType();
+
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await createLoaderType({
+          variables: {
+            key: values.serial,
+            description: values.description,
+          },
+        });
+
+        if (data?.createLoaderType.id) {
+          Message.success('已成功新增項目');
+          setCreateModalOpened(false);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [createLoaderType],
+  );
 
   const dataSource = useMemo(
     (): LoaderTypeFragment[] => data?.loaderTypes.items ?? [],
@@ -40,10 +63,10 @@ function LoadersManagementTypesTable() {
         ),
     },
     {
-      key: 'serial',
+      key: 'key',
       title: '類型代碼',
       width: 236,
-      render: (source) => source.serial,
+      render: (source) => source.key,
     },
     {
       key: 'description',
@@ -95,9 +118,7 @@ function LoadersManagementTypesTable() {
           serial: '',
           isActive: ActiveValue.active,
         }}
-        onSubmit={async (values) => {
-          console.log('values', values);
-        }}
+        onSubmit={onSubmit}
         submitText="新增"
         closeModal={() => {
           setCreateModalOpened(false);

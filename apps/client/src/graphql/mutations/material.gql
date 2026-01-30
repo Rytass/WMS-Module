@@ -1,12 +1,12 @@
 mutation CreateMaterial(
-  $createMaterialId: ID!
+  $key: String!
   $description: String!
   $baseUnit: String!
   $units: [CreateMaterialUnitArgs!]!
   $isActive: Boolean
 ) {
   createMaterial(
-    id: $createMaterialId
+    key: $key
     description: $description
     baseUnit: $baseUnit
     units: $units
