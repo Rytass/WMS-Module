@@ -22,16 +22,9 @@ export class AggregatedStockDto {
   @Field(() => StockStatus)
   status!: StockStatus;
 
-  @Field(() => ID)
   materialId!: string;
-
-  @Field(() => ID)
   batchId!: string;
-
-  @Field(() => ID)
   locationId!: string;
-
-  @Field(() => ID)
   loaderId!: string;
 }
 

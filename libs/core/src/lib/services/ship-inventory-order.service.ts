@@ -105,7 +105,6 @@ export class ShipInventoryOrderService<
     manager = this.dataSource.manager,
     ...options
   }: CreateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
     const shipInventoryOrderRepository =
       manager.getRepository<ShipInventoryOrderEntityClass>(
         this.shipInventoryOrderEntity,
@@ -115,12 +114,9 @@ export class ShipInventoryOrderService<
         this.shipInventoryOrderItemEntity,
       );
 
-    // create base order
-    const { id } = await orderRepository.save(orderRepository.create());
-
     // create ship inventory order
     const order = await shipInventoryOrderRepository.save(
-      shipInventoryOrderRepository.create({ id, ...options }),
+      shipInventoryOrderRepository.create(options),
     );
 
     // create ship inventory order items
@@ -176,7 +172,6 @@ export class ShipInventoryOrderService<
           const itemSet = new Set(items.map((i) => i.id));
           options.items?.forEach((item) => {
             if (item.removedAt) return;
-
             if (!item.id) newItems.push(item);
             else if (itemSet.has(item.id)) existingItems.push(item);
           });
@@ -241,15 +236,16 @@ export class ShipInventoryOrderService<
     if (options.limit !== undefined && options.limit > 0)
       queryBuilder.take(options.limit);
 
-    return queryBuilder
-      .getRawAndEntities()
-      .then(({ entities, raw }) => [
-        entities.map((entity, index) => ({
-          ...entity,
-          status: raw[index]?.status,
-        })),
-        raw.length,
-      ] as [T[], number]);
+    return queryBuilder.getRawAndEntities().then(
+      ({ entities, raw }) =>
+        [
+          entities.map((entity, index) => ({
+            ...entity,
+            status: raw[index]?.status,
+          })),
+          raw.length,
+        ] as [T[], number],
+    );
   }
 
   ship(

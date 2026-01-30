@@ -13,6 +13,7 @@ import {
   ReceiveInventoryOrderService,
   ShipInventoryOrderService,
   UnitService,
+  HelperService,
 } from './services';
 
 const exportDependencies = [
@@ -23,6 +24,7 @@ const exportDependencies = [
   StockService,
   LocationService,
   UnitService,
+  HelperService,
 ];
 
 @Module({

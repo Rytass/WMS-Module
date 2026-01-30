@@ -90,10 +90,10 @@ type Stocks {
 type AggregatedStockDto {
   quantity: Int!
   status: StockStatus!
-  materialId: ID!
-  batchId: ID!
-  locationId: ID!
-  loaderId: ID!
+  material: MaterialDto!
+  batch: BatchDto!
+  location: LocationDto!
+  loader: LoaderDto!
 }
 
 """The status of the stock"""
