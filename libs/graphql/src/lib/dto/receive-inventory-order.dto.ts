@@ -9,6 +9,9 @@ export class ReceiveInventoryOrderDto {
   id!: string;
 
   @Field(() => String)
+  key!: string;
+
+  @Field(() => String)
   description!: string;
 
   @Field(() => String)

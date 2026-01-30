@@ -23,6 +23,9 @@ export class UpdateShipInventoryOrderArgs extends PartialType(
   @Field(() => ID)
   id!: string;
 
+  @Field(() => String, { nullable: true })
+  createdBy?: string;
+
   @Field(() => [UpdateShipInventoryOrderItemArgs], { nullable: true })
   items?: UpdateShipInventoryOrderItemArgs[];
 }

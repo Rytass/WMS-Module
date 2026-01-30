@@ -127,6 +127,7 @@ type ReceiveInventoryOrderItemDto {
 
 type ReceiveInventoryOrderDto {
   id: ID!
+  key: String!
   description: String!
   createdBy: String!
   removedAt: DateTime
@@ -160,6 +161,7 @@ type ShipInventoryOrderItemDto {
 
 type ShipInventoryOrderDto {
   id: ID!
+  key: String!
   description: String!
   createdBy: String!
   removedAt: DateTime
@@ -282,9 +284,9 @@ type Mutation {
   createMaterial(key: String!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
   updateMaterial(description: String, isActive: Boolean, id: ID!, units: [CreateMaterialUnitArgs!]): MaterialDto!
   createReceiveInventoryOrder(key: ID!, description: String!, items: [CreateReceiveInventoryOrderItemArgs!]!): ReceiveInventoryOrderDto!
-  updateReceiveInventoryOrder(description: String, id: ID!, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!
+  updateReceiveInventoryOrder(description: String, id: ID!, createdBy: String, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!
   createShipInventoryOrder(key: ID!, description: String!, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
-  updateShipInventoryOrder(description: String, id: ID!, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
+  updateShipInventoryOrder(description: String, id: ID!, createdBy: String, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
 }

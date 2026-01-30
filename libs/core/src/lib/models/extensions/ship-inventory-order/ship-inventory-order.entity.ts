@@ -26,8 +26,8 @@ export class ShipInventoryOrderEntityClass {
   @Column({ type: 'text' })
   description!: string;
 
-  @Column({ type: 'varchar' })
-  createdBy!: string;
+  @Column({ type: 'varchar', nullable: true })
+  createdBy!: string | null;
 
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
