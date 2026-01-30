@@ -1,12 +1,19 @@
+import { useState } from 'react';
 import PageWrapper from '../../PageWrapper';
-// import FilterWrapper from '../../FilterWrapper';
-// import { FilterType } from '../../FilterWrapper/typing';
 import InventoryTable from './Table';
+import { InventoryActions } from '../../../utils/inventoryActions';
 
 function InventoryList() {
+  const [currentAction, setCurrentAction] = useState<InventoryActions | null>(
+    null,
+  );
+
   return (
     <PageWrapper title="庫存清單">
-      <InventoryTable />
+      <InventoryTable
+        currentAction={currentAction}
+        setCurrentAction={setCurrentAction}
+      />
     </PageWrapper>
   );
 }
