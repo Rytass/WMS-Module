@@ -84,22 +84,22 @@ mutation UpdateLoader(
   }
 }
 
-mutation CreateLoaderType(
-  $createLoaderTypeId: ID!
-  $description: String!
-  $serial: String!
-) {
-  createLoaderType(
-    id: $createLoaderTypeId
-    description: $description
-    serial: $serial
-  ) {
+mutation CreateLoaderType($key: String!, $description: String!) {
+  createLoaderType(key: $key, description: $description) {
     ...LoaderType
   }
 }
 
-mutation UpdateLoaderType($updateLoaderTypeId: ID!, $description: String) {
-  updateLoaderType(id: $updateLoaderTypeId, description: $description) {
+mutation UpdateLoaderType(
+  $updateLoaderTypeId: ID!
+  $description: String
+  $isActive: Boolean
+) {
+  updateLoaderType(
+    id: $updateLoaderTypeId
+    description: $description
+    isActive: $isActive
+  ) {
     ...LoaderType
   }
 }

@@ -1,15 +1,8 @@
-query Materials(
-  $offset: Int
-  $limit: Int
-  $materialId: ID
-  $materialIds: [ID!]
-  $description: String
-) {
+query Materials($offset: Int, $limit: Int, $key: String, $description: String) {
   materials(
     offset: $offset
     limit: $limit
-    materialId: $materialId
-    materialIds: $materialIds
+    key: $key
     description: $description
   ) {
     id

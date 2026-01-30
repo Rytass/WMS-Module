@@ -40,10 +40,10 @@ function LoadersManagementTypesTable() {
         ),
     },
     {
-      key: 'serial',
+      key: 'key',
       title: '類型代碼',
       width: 236,
-      render: (source) => source.serial,
+      render: (source) => source.key,
     },
     {
       key: 'description',

@@ -21,6 +21,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
           variables: {
             updateLoaderTypeId: source.id,
             description: values.description,
+            isActive: values.isActive === ActiveValue.active,
           },
         });
 
@@ -52,7 +53,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         mode="edit"
         defaultValues={{
           description: source.description,
-          serial: source.serial,
+          serial: source.key,
           isActive: source.isActive
             ? ActiveValue.active
             : ActiveValue.notActive,

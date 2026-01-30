@@ -2,7 +2,7 @@ fragment LoaderType on LoaderTypeDto {
   id
   description
   isActive
-  serial
+  key
   referencedQuantity
   createdAt
   updatedAt
