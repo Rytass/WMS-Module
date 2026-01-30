@@ -29,7 +29,7 @@ export class ReceiveInventoryOrderEntityClass {
   description!: string;
 
   @Column({ type: 'varchar', nullable: true })
-  createdBy!: string;
+  createdBy!: string | null;
 
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
