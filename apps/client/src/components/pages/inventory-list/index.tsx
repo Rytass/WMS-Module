@@ -6,6 +6,7 @@ import {
   inventoryActionOptions,
   InventoryActions,
 } from '../../../utils/inventoryActions';
+import classes from './index.module.scss';
 
 function InventoryList() {
   const [currentAction, setCurrentAction] = useState<InventoryActions | null>(
@@ -23,6 +24,7 @@ function InventoryList() {
         targetAction ? (
           <Button
             icon={targetAction.icon}
+            className={classes.actionButton}
             size="minor"
             iconType="icon-only"
             variant="base-secondary"
