@@ -106,7 +106,6 @@ export class ReceiveInventoryOrderService<
   }: CreateReceiveInventoryOrderInput & {
     manager?: EntityManager;
   }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
     const receiveInventoryOrderRepository =
       manager.getRepository<ReceiveInventoryOrderEntityClass>(
         this.receiveInventoryOrderEntity,
@@ -116,12 +115,9 @@ export class ReceiveInventoryOrderService<
         this.receiveInventoryOrderItemEntity,
       );
 
-    // create base order
-    const { id } = await orderRepository.save(orderRepository.create());
-
     // create receive inventory order
     const order = await receiveInventoryOrderRepository.save(
-      receiveInventoryOrderRepository.create({ id, ...options }),
+      receiveInventoryOrderRepository.create(options),
     );
 
     // create receive inventory order items
@@ -244,15 +240,16 @@ export class ReceiveInventoryOrderService<
     if (options.limit !== undefined && options.limit > 0)
       queryBuilder.take(options.limit);
 
-    return queryBuilder
-      .getRawAndEntities()
-      .then(({ entities, raw }) => [
-        entities.map((entity, index) => ({
-          ...entity,
-          status: raw[index]?.status,
-        })),
-        raw.length,
-      ] as [T[], number]);
+    return queryBuilder.getRawAndEntities().then(
+      ({ entities, raw }) =>
+        [
+          entities.map((entity, index) => ({
+            ...entity,
+            status: raw[index]?.status,
+          })),
+          raw.length,
+        ] as [T[], number],
+    );
   }
 
   receive(

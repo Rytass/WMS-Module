@@ -21,6 +21,7 @@ import { LocationQuery } from './queries/location.query';
 import { LocationMutation } from './mutations/location.mutation';
 import { LoaderTypeResolver } from './resolvers/loader-type.resolver';
 import { UnitQuery } from './queries/unit.query';
+import { AggregatedStockResolver } from './resolvers/aggregated-stock.resolver';
 
 const exportDependencies = [
   UnitQuery,
@@ -33,6 +34,7 @@ const exportDependencies = [
   MaterialResolver,
   StockQuery,
   StockResolver,
+  AggregatedStockResolver,
   ReceiveInventoryOrderMutation,
   ReceiveInventoryOrderQuery,
   ShipInventoryOrderMutation,

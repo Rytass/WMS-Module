@@ -208,8 +208,12 @@ export class StockService<
 
   async findAggregatedStock(
     options: Omit<AggregatedStock, 'quantity'>,
+    manager = this.dataSource.manager,
   ): Promise<AggregatedStock | undefined> {
-    const queryBuilder = this.selectQueryBuilder('stock')
+    const queryBuilder = this.selectQueryBuilder(
+      'stock',
+      manager.getRepository<T>(this.stockEntity).createQueryBuilder('stock'),
+    )
       .where('stock.materialId = :materialId', {
         materialId: options.materialId,
       })
