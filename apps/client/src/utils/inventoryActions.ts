@@ -46,6 +46,8 @@ export enum InventoryActions {
 
 export type InventoryActionItem = DropdownOption & {
   status: StockStatus[];
+  title: string;
+  submitText: string;
 };
 
 export function inventoryActionsSpec(
@@ -57,6 +59,8 @@ export function inventoryActionsSpec(
         id: action,
         name: '凍結',
         icon: LockIcon,
+        title: '待凍結清單',
+        submitText: '凍結',
         status: [StockStatus.FREE],
       };
 
@@ -65,6 +69,8 @@ export function inventoryActionsSpec(
         id: action,
         name: '解除凍結',
         icon: UnlockIcon,
+        title: '待解除凍結清單',
+        submitText: '解除凍結',
         status: [StockStatus.HELD],
       };
 
@@ -73,6 +79,8 @@ export function inventoryActionsSpec(
         id: action,
         name: '綁定銷售訂單',
         icon: LinkIcon,
+        title: '待綁定銷售訂單',
+        submitText: '綁定訂單',
         status: [StockStatus.FREE],
       };
 
@@ -81,6 +89,8 @@ export function inventoryActionsSpec(
         id: action,
         name: '解除綁定銷售訂單',
         icon: UnlinkIcon,
+        title: '待解除綁定銷售訂單',
+        submitText: '解除綁定',
         status: [StockStatus.ALLOCATED],
       };
 
@@ -89,6 +99,8 @@ export function inventoryActionsSpec(
         id: action,
         name: '拆分批號',
         icon: SplitIcon,
+        title: '待拆分批號清單',
+        submitText: '拆分批號',
         status: [StockStatus.FREE],
       };
 
@@ -97,6 +109,8 @@ export function inventoryActionsSpec(
         id: action,
         name: '合併批號',
         icon: MergeIcon,
+        title: '待合併批號清單',
+        submitText: '合併批號',
         status: [StockStatus.FREE],
       };
 
@@ -106,6 +120,8 @@ export function inventoryActionsSpec(
         name: '報廢',
         icon: TrashIcon,
         validate: 'danger',
+        title: '待報廢清單',
+        submitText: '報廢',
         status: [StockStatus.FREE, StockStatus.INSPECTION_FAILED],
       };
 
@@ -128,4 +144,6 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   icon: inventoryActionsSpec(action)?.icon,
   validate: inventoryActionsSpec(action)?.validate,
   status: inventoryActionsSpec(action)?.status ?? [],
+  title: inventoryActionsSpec(action)?.title ?? '',
+  submitText: inventoryActionsSpec(action)?.submitText ?? '',
 }));

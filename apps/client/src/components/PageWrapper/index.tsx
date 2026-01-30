@@ -1,11 +1,6 @@
 import { ReactElement, ReactNode } from 'react';
 import { useRouter } from 'next/router';
-import {
-  PageHeader,
-  Breadcrumb,
-  PageFooter,
-  ButtonProps,
-} from '@mezzanine-ui/react';
+import { Breadcrumb, PageFooter, ButtonProps } from '@mezzanine-ui/react';
 import ContentHeader from '@mezzanine-ui/react/ContentHeader';
 import { Url } from 'next/dist/shared/lib/router/router';
 import classes from './index.module.scss';
@@ -34,7 +29,7 @@ function PageWrapper({
   return (
     <>
       <div className={classes.host}>
-        <PageHeader className={classes.pageHeader}>
+        <div className={classes.pageHeader}>
           {breadcrumb && (
             <Breadcrumb
               items={breadcrumb.map((b) => ({
@@ -50,6 +45,7 @@ function PageWrapper({
           )}
           <ContentHeader
             title={title}
+            size="sub"
             onBackClick={
               haveBack
                 ? onBack
@@ -62,7 +58,7 @@ function PageWrapper({
           >
             {titleButtons}
           </ContentHeader>
-        </PageHeader>
+        </div>
         {children}
       </div>
       {haveFooter && (

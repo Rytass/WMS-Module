@@ -42,7 +42,7 @@ function InventoryActionSelector({
           icon={targetAction.icon}
           iconType="leading"
         >
-          {targetAction.name}
+          {`加入${targetAction.title}`}
         </Button>
       ) : (
         <Button
