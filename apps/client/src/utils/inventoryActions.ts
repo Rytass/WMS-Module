@@ -3,6 +3,37 @@ import { SplitIcon, MergeIcon, UnlinkIcon } from '../icons';
 import { DropdownOption } from '@mezzanine-ui/react';
 import { StockStatus } from '../graphql/generated/.graphql';
 
+export function stockStatusName(status?: StockStatus): string {
+  switch (status) {
+    case StockStatus.PENDING_INSPECTION:
+      return '待檢驗';
+
+    case StockStatus.INSPECTION_FAILED:
+      return '檢驗失敗';
+
+    case StockStatus.HELD:
+      return '凍結中';
+
+    case StockStatus.IN_TRANSFER:
+      return '調撥中';
+
+    case StockStatus.ALLOCATED:
+      return '銷售訂單';
+
+    case StockStatus.VENDOR_INVENTORY:
+      return '供應商庫存';
+
+    case StockStatus.CUSTOMER_INVENTORY:
+      return '客戶倉';
+
+    case StockStatus.FREE:
+      return '未限制';
+
+    default:
+      return '';
+  }
+}
+
 export enum InventoryActions {
   HoldInventory = 'HoldInventory',
   ReleaseInventoryHold = 'ReleaseInventoryHold',
@@ -26,7 +57,7 @@ export function inventoryActionsSpec(
         id: action,
         name: '凍結',
         icon: LockIcon,
-        status: [],
+        status: [StockStatus.FREE],
       };
 
     case InventoryActions.ReleaseInventoryHold:
@@ -34,7 +65,7 @@ export function inventoryActionsSpec(
         id: action,
         name: '解除凍結',
         icon: UnlockIcon,
-        status: [],
+        status: [StockStatus.HELD],
       };
 
     case InventoryActions.AllocateInventory:
@@ -42,7 +73,7 @@ export function inventoryActionsSpec(
         id: action,
         name: '綁定銷售訂單',
         icon: LinkIcon,
-        status: [],
+        status: [StockStatus.FREE],
       };
 
     case InventoryActions.DeallocateInventory:
@@ -50,7 +81,7 @@ export function inventoryActionsSpec(
         id: action,
         name: '解除綁定銷售訂單',
         icon: UnlinkIcon,
-        status: [],
+        status: [StockStatus.ALLOCATED],
       };
 
     case InventoryActions.SplitBatch:
@@ -58,7 +89,7 @@ export function inventoryActionsSpec(
         id: action,
         name: '拆分批號',
         icon: SplitIcon,
-        status: [],
+        status: [StockStatus.FREE],
       };
 
     case InventoryActions.MergeBatch:
@@ -66,7 +97,7 @@ export function inventoryActionsSpec(
         id: action,
         name: '合併批號',
         icon: MergeIcon,
-        status: [],
+        status: [StockStatus.FREE],
       };
 
     case InventoryActions.ScrapInventory:
@@ -75,7 +106,7 @@ export function inventoryActionsSpec(
         name: '報廢',
         icon: TrashIcon,
         validate: 'danger',
-        status: [],
+        status: [StockStatus.FREE, StockStatus.INSPECTION_FAILED],
       };
 
     default:
