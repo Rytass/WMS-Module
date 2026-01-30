@@ -10,6 +10,7 @@ fragment LoaderType on LoaderTypeDto {
 
 fragment Loader on LoaderDto {
   id
+  serialId
   length
   width
   height

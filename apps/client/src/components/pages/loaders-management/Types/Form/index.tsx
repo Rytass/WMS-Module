@@ -40,6 +40,7 @@ function LoaderTypeForm({
       closeModal={closeModal}
       open={open}
       mode={mode}
+      size="narrow"
       submitWithConfirm
       cancelWithConfirm={methods.formState.isDirty}
     >
