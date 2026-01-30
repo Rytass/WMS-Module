@@ -1,11 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactElement, ReactNode } from 'react';
 import { useRouter } from 'next/router';
-import { ChevronLeftIcon } from '@mezzanine-ui/icons';
 import {
   PageHeader,
   Breadcrumb,
-  Button,
   PageFooter,
+  ButtonProps,
 } from '@mezzanine-ui/react';
 import ContentHeader from '@mezzanine-ui/react/ContentHeader';
 import { Url } from 'next/dist/shared/lib/router/router';
@@ -13,6 +12,7 @@ import classes from './index.module.scss';
 
 interface PageWrapperProps {
   title: string;
+  titleButtons?: ReactElement<ButtonProps> | ReactElement<ButtonProps>[];
   children: ReactNode;
   breadcrumb?: { label: string; href?: Url }[];
   haveBack?: boolean;
@@ -22,6 +22,7 @@ interface PageWrapperProps {
 
 function PageWrapper({
   title,
+  titleButtons,
   children,
   breadcrumb,
   haveBack = false,
@@ -47,23 +48,19 @@ function PageWrapper({
               }))}
             />
           )}
-          <ContentHeader title={title}>
-            {haveBack && (
-              <Button
-                type="button"
-                icon={ChevronLeftIcon}
-                iconType="icon-only"
-                variant="base-tertiary"
-                size="sub"
-                onClick={
-                  onBack
-                    ? async () => {
-                        await onBack();
-                      }
-                    : back
-                }
-              />
-            )}
+          <ContentHeader
+            title={title}
+            onBackClick={
+              haveBack
+                ? onBack
+                  ? async () => {
+                      await onBack();
+                    }
+                  : back
+                : undefined
+            }
+          >
+            {titleButtons}
           </ContentHeader>
         </PageHeader>
         {children}
