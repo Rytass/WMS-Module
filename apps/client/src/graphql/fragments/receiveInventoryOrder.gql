@@ -11,6 +11,7 @@ fragment ReceiveInventoryOrderItem on ReceiveInventoryOrderItemDto {
 
 fragment ReceiveInventoryOrder on ReceiveInventoryOrderDto {
   id
+  key
   description
   createdBy
   removedAt

@@ -38,7 +38,10 @@ export function useQueryMaterials(currentFilter?: FilterValues) {
     variables: {
       offset,
       limit,
-      key: currentFilter?.[FilterType.material],
+      key:
+        currentFilter?.[FilterType.material] ||
+        currentFilter?.['material-search'] ||
+        undefined,
       description: currentFilter?.[FilterType.materialDescription],
     },
     fetchPolicy: 'cache-and-network',
