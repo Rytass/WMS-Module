@@ -13,8 +13,8 @@ query Materials($offset: Int, $limit: Int, $key: String, $description: String) {
   }
 }
 
-query MaterialOptions($offset: Int, $limit: Int) {
-  materials(offset: $offset, limit: $limit) {
+query MaterialOptions($offset: Int, $limit: Int, $key: String) {
+  materials(offset: $offset, limit: $limit, key: $key) {
     id
     items {
       id

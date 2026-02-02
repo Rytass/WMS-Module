@@ -21,7 +21,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name, required }) => {
     [],
   );
 
-  const { currentOptions, onVisibilityChange, onReachBottom } =
+  const { currentOptions, onVisibilityChange, onSearch, onReachBottom } =
     useFetchMoreOptions<MaterialOptionsQuery>({
       fetchData: fetchMaterials,
       getNewOptions,
@@ -37,6 +37,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name, required }) => {
       required={required}
       onVisibilityChange={onVisibilityChange}
       useNameToValue
+      onSearch={onSearch}
       onReachBottom={onReachBottom}
     />
   );
