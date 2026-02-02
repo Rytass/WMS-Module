@@ -119,7 +119,6 @@ export function inventoryActionsSpec(
         id: action,
         name: '報廢',
         icon: TrashIcon,
-        validate: 'danger',
         title: '待報廢清單',
         submitText: '報廢',
         status: [StockStatus.FREE, StockStatus.INSPECTION_FAILED],

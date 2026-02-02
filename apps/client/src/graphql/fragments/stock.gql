@@ -16,3 +16,22 @@ fragment SimpleStock on StockDto {
   id
   loaderId
 }
+
+fragment AggregatedStock on AggregatedStockDto {
+  quantity
+  status
+  material {
+    id
+    key
+  }
+  batch {
+    ...Batch
+  }
+  location {
+    id
+    key
+  }
+  loader {
+    ...Loader
+  }
+}
