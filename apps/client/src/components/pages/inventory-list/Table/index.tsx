@@ -5,6 +5,7 @@ import InventoryGroupTable from './GroupTable';
 import InventoryListTable from './ListTable';
 import { InventoryActions } from '../../../../utils/inventoryActions';
 import InventoryActionSelector from './InventoryActionSelector';
+import { StockFragment } from '../../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
 
 enum Mode {
@@ -15,11 +16,14 @@ enum Mode {
 interface InventoryTableProps {
   currentAction: InventoryActions | null;
   setCurrentAction: Dispatch<SetStateAction<InventoryActions | null>>;
+  targetStocks: StockFragment[];
+  setTargetStocks: Dispatch<SetStateAction<StockFragment[]>>;
 }
 
 function InventoryTable({
   currentAction,
   setCurrentAction,
+  setTargetStocks,
 }: InventoryTableProps) {
   const [mode, setMode] = useState<Mode>(Mode.group);
 
@@ -29,12 +33,12 @@ function InventoryTable({
         return <InventoryGroupTable />;
 
       case Mode.list:
-        return <InventoryListTable />;
+        return <InventoryListTable setTargetStocks={setTargetStocks} />;
 
       default:
         return undefined;
     }
-  }, [mode]);
+  }, [mode, setTargetStocks]);
 
   return (
     <TableWrapper

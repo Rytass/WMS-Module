@@ -6,14 +6,18 @@ import {
   inventoryActionOptions,
   InventoryActions,
 } from '../../../utils/inventoryActions';
+import { StockFragment } from '../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
 
 function InventoryList() {
   const [open, setOpen] = useState<boolean>(false);
 
+  const [targetStocks, setTargetStocks] = useState<StockFragment[]>([]);
   const [currentAction, setCurrentAction] = useState<InventoryActions | null>(
     null,
   );
+
+  console.log('targetStocks', targetStocks);
 
   const targetAction = useMemo(() => {
     return inventoryActionOptions.find((o) => o.id === currentAction) ?? null;
@@ -41,6 +45,8 @@ function InventoryList() {
         <InventoryTable
           currentAction={currentAction}
           setCurrentAction={setCurrentAction}
+          targetStocks={targetStocks}
+          setTargetStocks={setTargetStocks}
         />
       </PageWrapper>
     </>

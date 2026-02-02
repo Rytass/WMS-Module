@@ -21,8 +21,7 @@ fragment AggregatedStock on AggregatedStockDto {
   quantity
   status
   material {
-    id
-    key
+    ...SimpleMaterial
   }
   batch {
     ...Batch
