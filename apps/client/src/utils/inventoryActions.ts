@@ -48,6 +48,7 @@ export type InventoryActionItem = DropdownOption & {
   status: StockStatus[];
   title: string;
   submitText: string;
+  maxDataLength?: number;
 };
 
 export function inventoryActionsSpec(
@@ -102,6 +103,7 @@ export function inventoryActionsSpec(
         title: '待拆分批號清單',
         submitText: '拆分批號',
         status: [StockStatus.FREE],
+        maxDataLength: 1,
       };
 
     case InventoryActions.MergeBatch:
@@ -145,4 +147,5 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   status: inventoryActionsSpec(action)?.status ?? [],
   title: inventoryActionsSpec(action)?.title ?? '',
   submitText: inventoryActionsSpec(action)?.submitText ?? '',
+  maxDataLength: inventoryActionsSpec(action)?.maxDataLength,
 }));
