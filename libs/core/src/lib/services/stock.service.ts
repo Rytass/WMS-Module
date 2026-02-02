@@ -25,13 +25,27 @@ export class StockService<
     alias: string,
     qb?: SelectQueryBuilder<T>,
   ) => SelectQueryBuilder<T>;
-  readonly aggregateKeys: (keyof T)[] = [
-    'materialId',
-    'batchId',
-    'locationId',
-    'loaderId',
-    'status',
-  ];
+  readonly aggregateKeys: (keyof Pick<
+    T,
+    'materialId' | 'batchId' | 'locationId' | 'loaderId' | 'status'
+  >)[] = ['materialId', 'batchId', 'locationId', 'loaderId', 'status'];
+  readonly generatedAggregateKey = <
+    A extends { [key in (typeof this.aggregateKeys)[number]]: T[key] },
+  >(
+    aggregated: A,
+  ) => {
+    return this.aggregateKeys.map((key) => aggregated[key]).join('|');
+  };
+  readonly destructAggregateKey = (key: string) => {
+    const [materialId, batchId, locationId, loaderId, status] = key.split('|');
+    return {
+      materialId,
+      batchId,
+      locationId,
+      loaderId,
+      status: status as StockStatus,
+    };
+  };
   constructor(
     private readonly dataSource: DataSource,
     @Inject(StockEntity) private readonly stockEntity: EntityTarget<T>,
@@ -52,22 +66,23 @@ export class StockService<
             subQuery
               .select(
                 `CASE
-              WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NULL THEN '${StockStatus.PENDING_INSPECTION}'
-              WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
-              WHEN hi_changes.id IS NOT NULL AND s.quantity > 0 THEN '${StockStatus.HELD}'
-              WHEN to_changes.id IS NOT NULL THEN '${StockStatus.IN_TRANSFER}'
-              WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
-              WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
-              WHEN tc_changes.id IS NOT NULL THEN '${StockStatus.CUSTOMER_INVENTORY}'
-              ELSE '${StockStatus.FREE}'
-            END`,
+                  WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NULL THEN '${StockStatus.PENDING_INSPECTION}'
+                  WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
+                  WHEN hi_changes.id IS NOT NULL AND s.quantity > 0 THEN '${StockStatus.HELD}'
+                  WHEN to_changes.id IS NOT NULL AND s.quantity > 0 THEN '${StockStatus.IN_TRANSFER}'
+                  WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
+                  WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
+                  WHEN tc_changes.id IS NOT NULL THEN '${StockStatus.CUSTOMER_INVENTORY}'
+                  ELSE '${StockStatus.FREE}'
+                END`,
                 'status',
               )
               .addSelect(
                 `CASE
-            WHEN hi_changes.id IS NOT NULL THEN s.quantity * ABS(hi_changes."quantityChanged") / hi_changes."quantityChanged"
-            ELSE s.quantity
-            END`,
+                  WHEN hi_changes.id IS NOT NULL THEN s.quantity * ABS(hi_changes."quantityChanged") / hi_changes."quantityChanged"
+                  WHEN to_changes.id IS NOT NULL THEN s.quantity * ABS(to_changes."quantityChanged") / to_changes."quantityChanged"
+                  ELSE s.quantity
+                END`,
                 'quantity',
               )
               .addSelect('s.id', 'stockId')
@@ -210,19 +225,14 @@ export class StockService<
     options: Omit<AggregatedStock, 'quantity'>,
     manager = this.dataSource.manager,
   ): Promise<AggregatedStock | undefined> {
-    const queryBuilder = this.selectQueryBuilder(
-      'stock',
-      manager.getRepository<T>(this.stockEntity).createQueryBuilder('stock'),
-    )
-      .where('stock.materialId = :materialId', {
-        materialId: options.materialId,
-      })
-      .andWhere('stock.batchId = :batchId', { batchId: options.batchId })
-      .andWhere('stock.locationId = :locationId', {
-        locationId: options.locationId,
-      })
-      .andWhere('stock.loaderId = :loaderId', { loaderId: options.loaderId })
-      .andWhere('stock_status.status = :status', { status: options.status });
+    const queryBuilder = this.pipeSelectOptionsToQueryBuilder(
+      options,
+      this.selectQueryBuilder(
+        'stock',
+        manager.getRepository<T>(this.stockEntity).createQueryBuilder('stock'),
+      ),
+      true,
+    );
 
     return queryBuilder.getRawOne<AggregatedStock>();
   }
@@ -233,6 +243,7 @@ export class StockService<
     const queryBuilder = this.pipeSelectOptionsToQueryBuilder(
       options,
       this.selectQueryBuilder('stock'),
+      true,
     );
 
     const count = await queryBuilder.getCount();

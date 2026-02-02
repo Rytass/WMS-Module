@@ -22,6 +22,9 @@ import { LocationMutation } from './mutations/location.mutation';
 import { LoaderTypeResolver } from './resolvers/loader-type.resolver';
 import { UnitQuery } from './queries/unit.query';
 import { AggregatedStockResolver } from './resolvers/aggregated-stock.resolver';
+import { TransferOrderMutation } from './mutations/transfer-order.mutation';
+import { TransferOrderQuery } from './queries/transfer-order.query';
+import { TransferOrderResolver } from './resolvers/transfer-order.resolver';
 
 const exportDependencies = [
   UnitQuery,
@@ -35,14 +38,22 @@ const exportDependencies = [
   StockQuery,
   StockResolver,
   AggregatedStockResolver,
+
   ReceiveInventoryOrderMutation,
   ReceiveInventoryOrderQuery,
+
   ShipInventoryOrderMutation,
   ShipInventoryOrderQuery,
+
+  TransferOrderMutation,
+  TransferOrderQuery,
+  TransferOrderResolver,
+
   WarehouseMapMutation,
   LocationMutation,
   LocationQuery,
   LocationResolver,
+  TransferOrderMutation,
 ];
 @Module({
   providers: exportDependencies,
