@@ -8,6 +8,7 @@ import {
 } from '../../../utils/inventoryActions';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
+import InventoryActionDrawers from '../../InventoryActionDrawers';
 
 function InventoryList() {
   const [open, setOpen] = useState<boolean>(false);
@@ -46,6 +47,13 @@ function InventoryList() {
           />
         ) : null}
       </PageWrapper>
+      <InventoryActionDrawers
+        targetAction={targetAction}
+        onClose={() => {
+          setOpen(false);
+        }}
+        open={open}
+      />
     </>
   );
 }
