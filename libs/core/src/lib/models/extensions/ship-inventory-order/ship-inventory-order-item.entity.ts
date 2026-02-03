@@ -79,6 +79,5 @@ export class ShipInventoryOrderItemEntityClass {
   batch!: BatchEntity;
 
   @OneToMany(() => ShipInventoryOrderChangeEntityClass, (change) => change.item)
-  @JoinColumn({ name: 'id', referencedColumnName: 'itemId' })
   changes!: ShipInventoryOrderChangeEntityClass[];
 }

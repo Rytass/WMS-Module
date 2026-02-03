@@ -4,6 +4,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   TableInheritance,
 } from 'typeorm';
@@ -61,7 +62,7 @@ export class TransferOrderItemEntityClass {
   @JoinColumn({ name: 'orderId', referencedColumnName: 'id' })
   order!: TransferOrderEntityClass;
 
-  @ManyToOne(
+  @OneToMany(
     'transfer_order_changes',
     (change: TransferOrderChangeEntityClass) => change.item,
   )

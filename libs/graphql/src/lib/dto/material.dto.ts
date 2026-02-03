@@ -12,9 +12,6 @@ export class MaterialDto {
   @Field(() => String)
   description!: string;
 
-  @Field(() => String)
-  baseUnit!: string;
-
   @Field(() => Boolean)
   isActive!: boolean;
 }
