@@ -55,3 +55,29 @@ query StocksGroupedByMaterial(
     total
   }
 }
+
+query AggregatedStocks(
+  $offset: Int
+  $limit: Int
+  $materialId: ID
+  $batchId: ID
+  $locationId: ID
+  $loaderId: ID
+  $description: String
+) {
+  aggregatedStocks(
+    offset: $offset
+    limit: $limit
+    materialId: $materialId
+    batchId: $batchId
+    locationId: $locationId
+    loaderId: $loaderId
+    description: $description
+  ) {
+    id
+    items {
+      ...AggregatedStock
+    }
+    total
+  }
+}

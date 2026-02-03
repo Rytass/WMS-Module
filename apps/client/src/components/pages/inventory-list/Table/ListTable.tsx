@@ -1,10 +1,23 @@
-import { useMemo } from 'react';
+import { Dispatch, SetStateAction, useState, useMemo, useEffect } from 'react';
 import { TableColumn } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
 import { StockFragment } from '../../../../graphql/generated/.graphql';
 import { useQueryStocks } from '../useApi';
 
-function InventoryListTable() {
+interface InventoryListTableProps {
+  setTargetStocks: Dispatch<SetStateAction<StockFragment[]>>;
+}
+
+function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [dataSignature, setDataSignature] = useState<{
+    [id: string]: StockFragment;
+  }>({});
+
+  useEffect(() => {
+    setTargetStocks(selectedRowKeys.map((key) => dataSignature[key]));
+  }, [dataSignature, selectedRowKeys, setTargetStocks]);
+
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryStocks();
 
@@ -12,6 +25,18 @@ function InventoryListTable() {
     (): StockFragment[] => data?.stocks.items ?? [],
     [data?.stocks.items],
   );
+
+  useEffect(() => {
+    const signature = dataSource.reduce(
+      (prev, curr) => ({
+        ...prev,
+        [curr.id]: curr,
+      }),
+      {},
+    );
+
+    setDataSignature((s) => ({ ...s, ...signature }));
+  }, [dataSource]);
 
   const columns: TableColumn<StockFragment>[] = [
     {
@@ -26,6 +51,13 @@ function InventoryListTable() {
       columns={columns}
       dataSource={dataSource}
       loading={loading}
+      rowSelection={{
+        mode: 'checkbox',
+        onChange: setSelectedRowKeys,
+        selectedRowKeys,
+        preserveSelectedRowKeys: true,
+        fixed: true,
+      }}
       pagination={{
         current: page,
         onChange: (page) => setPage(page),

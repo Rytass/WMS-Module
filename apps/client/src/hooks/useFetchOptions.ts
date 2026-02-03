@@ -70,10 +70,12 @@ export function useFetchMoreOptions<T>({
     Exact<{
       offset?: InputMaybe<Scalars['Int']['input']>;
       limit?: InputMaybe<Scalars['Int']['input']>;
+      key?: InputMaybe<Scalars['String']['input']>;
     }>
   >;
   getNewOptions: (data: T | undefined) => SelectValue[];
 }) {
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [page, setPage] = useState<number>(0);
   const [currentOptions, setOptions] = useState<SelectValue[]>([]);
   const [isEnd, setIsEnd] = useState<boolean>(false);
@@ -84,6 +86,7 @@ export function useFetchMoreOptions<T>({
         variables: {
           limit: 10,
           offset: (page - 1) * 10,
+          key: searchTerm,
         },
       });
 
@@ -97,7 +100,7 @@ export function useFetchMoreOptions<T>({
     } catch (error) {
       console.error('error', error);
     }
-  }, [fetchData, getNewOptions, page]);
+  }, [fetchData, getNewOptions, page, searchTerm]);
 
   useEffect(() => {
     if (page) {
@@ -114,6 +117,13 @@ export function useFetchMoreOptions<T>({
     [page],
   );
 
+  const onSearch = useCallback((input: string) => {
+    setSearchTerm(input);
+    setPage(1);
+    setOptions([]);
+    setIsEnd(false);
+  }, []);
+
   const onReachBottom = useCallback(() => {
     if (!isEnd) {
       setPage((p) => p + 1);
@@ -123,6 +133,7 @@ export function useFetchMoreOptions<T>({
   return {
     currentOptions,
     onVisibilityChange,
+    onSearch,
     onReachBottom,
   };
 }
