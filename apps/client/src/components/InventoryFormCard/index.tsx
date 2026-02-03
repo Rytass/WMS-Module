@@ -5,6 +5,7 @@ import {
   DescriptionContent,
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
+import SelectInputField from '../fields/SelectInputField';
 import classes from './index.module.scss';
 
 const InventoryFormCard: FC = () => {
@@ -40,6 +41,30 @@ const InventoryFormCard: FC = () => {
         <Description title="庫存 :" widthType="hug">
           <DescriptionContent>2,000</DescriptionContent>
         </Description>
+        <SelectInputField
+          name="demo"
+          selectName="demoSelect"
+          label=""
+          inputType="number"
+          options={[
+            {
+              id: '1',
+              name: '111',
+            },
+            {
+              id: '2',
+              name: '222',
+            },
+            {
+              id: '3',
+              name: '333',
+            },
+            {
+              id: '4',
+              name: '444',
+            },
+          ]}
+        />
       </div>
     </div>
   );

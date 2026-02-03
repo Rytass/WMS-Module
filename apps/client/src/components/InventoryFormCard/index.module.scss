@@ -39,4 +39,11 @@
       gap: spacing.semantic-variable(gap, calm);
     }
   }
+
+  .contentWrapper {
+    display: grid;
+    align-self: stretch;
+    align-items: center;
+    grid-template-columns: 1fr 200px;
+  }
 }

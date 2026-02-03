@@ -21,3 +21,7 @@
 .mzn-autocomplete--single {
   min-width: unset;
 }
+
+.mzn-dropdown-popper--with-portal {
+  z-index: 1004 !important;
+}
