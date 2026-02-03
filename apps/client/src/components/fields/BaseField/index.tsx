@@ -1,5 +1,9 @@
 import { ReactNode, useMemo } from 'react';
-import { ControlFieldSlotLayout, FormFieldSize } from '@mezzanine-ui/core/form';
+import {
+  ControlFieldSlotLayout,
+  FormFieldSize,
+  LabelLayout,
+} from '@mezzanine-ui/core/form';
 import { useFormContext, get } from 'react-hook-form';
 import { cx } from '@mezzanine-ui/react';
 import FormField from '@mezzanine-ui/react/Form/FormField';
@@ -46,6 +50,11 @@ const BaseField: FC<BaseFieldProps> = ({
       label={label}
       name={name}
       size={fieldSize}
+      labelLayout={
+        fieldSize === FormFieldSize.VERTICAL
+          ? LabelLayout.VERTICAL
+          : LabelLayout.HORIZONTAL_MAIN
+      }
       controlFieldSlotLayout={controlFieldSlotLayout}
       required={required}
       disabled={disabled}
