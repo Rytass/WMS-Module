@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
 import { DatePicker, DatePickerProps } from '@mezzanine-ui/react';
+import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
 export type DateFieldProps = DatePickerProps & Omit<BaseFieldProps, 'children'>;
@@ -46,6 +47,11 @@ export const DateField: FC<DateFieldProps> = ({
       label={label}
       hint={hint}
       fieldSize={fieldSize}
+      controlFieldSlotLayout={
+        size === 'sub'
+          ? ControlFieldSlotLayout.SUB
+          : ControlFieldSlotLayout.MAIN
+      }
     >
       <DatePicker
         clearable

@@ -1,6 +1,7 @@
 import { ChangeEventHandler, useCallback, useMemo } from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
 import Input from '@mezzanine-ui/react/Input';
+import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import type { BaseInputProps } from '@mezzanine-ui/react/Input';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
@@ -53,6 +54,11 @@ export const InputField: FC<InputFieldProps> = ({
       label={label}
       hint={hint}
       fieldSize={fieldSize}
+      controlFieldSlotLayout={
+        size === 'sub'
+          ? ControlFieldSlotLayout.SUB
+          : ControlFieldSlotLayout.MAIN
+      }
     >
       <Input
         fullWidth

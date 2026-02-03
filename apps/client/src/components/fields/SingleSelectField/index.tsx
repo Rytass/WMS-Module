@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
+import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import { Select, SelectValue } from '@mezzanine-ui/react';
 import type { SelectSingleProps } from '@mezzanine-ui/react/Select/Select';
 import BaseField, { BaseFieldProps } from '../BaseField';
@@ -79,6 +80,11 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
       label={label}
       hint={hint}
       fieldSize={fieldSize}
+      controlFieldSlotLayout={
+        size === 'sub'
+          ? ControlFieldSlotLayout.SUB
+          : ControlFieldSlotLayout.MAIN
+      }
     >
       <Select
         {...rest}
@@ -93,6 +99,7 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
         value={watchValueInOptions}
         options={options}
         menuMaxHeight={menuMaxHeight}
+        dropdownZIndex={1004}
       />
     </BaseField>
   );
