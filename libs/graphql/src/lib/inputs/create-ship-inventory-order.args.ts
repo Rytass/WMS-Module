@@ -12,6 +12,9 @@ export class CreateShipInventoryOrderArgs {
   @Field(() => String)
   description!: string;
 
+  @Field(() => String, { nullable: true })
+  createdBy?: string;
+
   @Field(() => [CreateShipInventoryOrderItemArgs])
   items!: CreateShipInventoryOrderItemArgs[];
 }
@@ -22,9 +25,6 @@ export class UpdateShipInventoryOrderArgs extends PartialType(
 ) {
   @Field(() => ID)
   id!: string;
-
-  @Field(() => String, { nullable: true })
-  createdBy?: string;
 
   @Field(() => [UpdateShipInventoryOrderItemArgs], { nullable: true })
   items?: UpdateShipInventoryOrderItemArgs[];

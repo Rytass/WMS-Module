@@ -90,6 +90,7 @@ type Stocks {
 type AggregatedStockDto {
   quantity: Int!
   status: StockStatus!
+  id: ID!
   material: MaterialDto!
   batch: BatchDto!
   location: LocationDto!
@@ -129,7 +130,7 @@ type ReceiveInventoryOrderDto {
   id: ID!
   key: String!
   description: String!
-  createdBy: String!
+  createdBy: String
   removedAt: DateTime
   items: [ReceiveInventoryOrderItemDto!]!
   status: ReceiveInventoryOrderStatus!
@@ -163,7 +164,7 @@ type ShipInventoryOrderDto {
   id: ID!
   key: String!
   description: String!
-  createdBy: String!
+  createdBy: String
   removedAt: DateTime
   items: [ShipInventoryOrderItemDto!]!
   status: ShipInventoryOrderStatus!
@@ -250,6 +251,29 @@ type UnitDto {
   key: String!
 }
 
+type TransferOrderItemDto {
+  id: ID!
+  targetTransferredQuantity: Int!
+  removedAt: DateTime
+}
+
+type TransferOrderDto {
+  id: ID!
+  key: String!
+  description: String
+  receiver: String
+  createdBy: String
+  removedAt: DateTime
+  createdAt: DateTime!
+  items: [TransferOrderItemDto!]!
+}
+
+type TransferOrders {
+  id: ID!
+  items: [TransferOrderDto!]!
+  total: Int!
+}
+
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
@@ -266,6 +290,7 @@ type Query {
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
   shipInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ShipInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ShipInventoryOrders!
+  transferOrders(offset: Int, limit: Int, key: String, receiver: String, dateRange: DateRangeArgs, description: String, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): TransferOrders!
   location(id: ID!): LocationDto!
   locations(offset: Int, limit: Int, description: String): Locations!
 }
@@ -285,8 +310,9 @@ type Mutation {
   updateMaterial(description: String, isActive: Boolean, id: ID!, units: [CreateMaterialUnitArgs!]): MaterialDto!
   createReceiveInventoryOrder(key: ID!, description: String!, items: [CreateReceiveInventoryOrderItemArgs!]!): ReceiveInventoryOrderDto!
   updateReceiveInventoryOrder(description: String, id: ID!, createdBy: String, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!
-  createShipInventoryOrder(key: ID!, description: String!, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
-  updateShipInventoryOrder(description: String, id: ID!, createdBy: String, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
+  createShipInventoryOrder(key: ID!, description: String!, createdBy: String, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
+  updateShipInventoryOrder(description: String, createdBy: String, id: ID!, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
+  createTransferOrder(description: String, locationId: ID!, loaderId: ID, receiver: String, createdBy: String, items: [CreateTransferOrderItemArgs!]!): TransferOrderDto!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
 }
@@ -331,6 +357,12 @@ input UpdateShipInventoryOrderItemArgs {
   targetShippedQuantity: Float
   id: ID
   removedAt: DateTime
+}
+
+input CreateTransferOrderItemArgs {
+  id: ID!
+  unitId: ID
+  targetTransferredQuantity: Int!
 }
 
 input MapBackgroundInput {

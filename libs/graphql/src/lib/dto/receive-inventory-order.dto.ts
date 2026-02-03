@@ -14,8 +14,8 @@ export class ReceiveInventoryOrderDto {
   @Field(() => String)
   description!: string;
 
-  @Field(() => String)
-  createdBy!: string;
+  @Field(() => String, { nullable: true })
+  createdBy!: string | null;
 
   @Field(() => Date, { nullable: true })
   removedAt!: Date | null;

@@ -20,10 +20,21 @@ export class TransferOrderItemEntityClass {
 
   @Column({ type: 'uuid' })
   @Index()
+  materialId!: string;
+
+  @Column({ type: 'uuid' })
+  @Index()
+  batchId!: string;
+
+  @Column({ type: 'uuid' })
+  @Index()
   locationId!: string;
 
   @Column({ type: 'uuid', nullable: true })
   loaderId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  unitId!: string | null;
 
   @Column({ type: 'numeric' })
   targetTransferredQuantity!: number;
@@ -31,6 +42,9 @@ export class TransferOrderItemEntityClass {
   @Column({ type: 'uuid' })
   @Index()
   orderId!: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  removedAt!: Date | null;
 
   @ManyToOne('locations')
   @JoinColumn({ name: 'locationId', referencedColumnName: 'id' })
