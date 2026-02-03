@@ -2,6 +2,7 @@ export type InventoryFieldItem = {
   stockId: string;
   materialKey: string;
   batchKey: string;
+  originQuantity: number;
   quantity: number;
   inputQuantity: string;
   selectedUnit: string;
