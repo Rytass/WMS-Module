@@ -29,13 +29,13 @@ export class StockService<
     T,
     'materialId' | 'batchId' | 'locationId' | 'loaderId' | 'status'
   >)[] = ['materialId', 'batchId', 'locationId', 'loaderId', 'status'];
-
   readonly generatedAggregateKey = <
     A extends { [key in (typeof this.aggregateKeys)[number]]: T[key] },
   >(
     aggregated: A,
-  ) => this.aggregateKeys.map((key) => aggregated[key]).join('|');
-
+  ) => {
+    return this.aggregateKeys.map((key) => aggregated[key]).join('|');
+  };
   readonly destructAggregateKey = (key: string) => {
     const [materialId, batchId, locationId, loaderId, status] = key.split('|');
     return {
@@ -46,148 +46,95 @@ export class StockService<
       status: status as StockStatus,
     };
   };
-
-  private readonly statusCase = `CASE
-    WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NULL THEN '${StockStatus.PENDING_INSPECTION}'
-    WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
-    WHEN hi_changes.id IS NOT NULL AND s.quantity > 0 THEN '${StockStatus.HELD}'
-    WHEN to_changes.id IS NOT NULL AND s.quantity > 0 THEN '${StockStatus.IN_TRANSFER}'
-    WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
-    WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
-    WHEN tc_changes.id IS NOT NULL THEN '${StockStatus.CUSTOMER_INVENTORY}'
-    ELSE '${StockStatus.FREE}'
-  END`;
-
-  private readonly quantityCase = `CASE
-    WHEN hi_changes.id IS NOT NULL THEN s.quantity * ABS(hi_changes."quantityChanged") / hi_changes."quantityChanged"
-    WHEN to_changes.id IS NOT NULL THEN s.quantity * ABS(to_changes."quantityChanged") / to_changes."quantityChanged"
-    ELSE s.quantity
-  END`;
-
   constructor(
     private readonly dataSource: DataSource,
     @Inject(StockEntity) private readonly stockEntity: EntityTarget<T>,
     @Inject(MaterialEntity) private readonly materialEntity: EntityTarget<K>,
   ) {
     this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
+    // select builder for status and quantity calculation, calculated field will override fields in stock entity.
+    // every query should use this selectQueryBuilder to ensure status and quantity are correct
     this.selectQueryBuilder = (
       alias: string,
       qb = this.dataSource
         .getRepository<T>(this.stockEntity)
         .createQueryBuilder(alias),
-    ) => this.buildStatusSubquery(qb, alias);
-  }
-
-  private buildStatusSubquery(
-    qb: SelectQueryBuilder<T>,
-    alias: string,
-  ): SelectQueryBuilder<T> {
-    return qb
-      .leftJoin(
-        (subQuery) =>
-          subQuery
-            .select(this.statusCase, 'status')
-            .addSelect(this.quantityCase, 'quantity')
-            .addSelect('s.id', 'stockId')
-            .from('stocks', 's')
-            .innerJoin('orders', 'o', 's."orderId" = o.id')
-            .leftJoin(
-              'quality_inspection_order_changes',
-              'qi_changes',
-              'qi_changes.id = o.id AND qi_changes."result" IS NULL',
-            )
-            .leftJoin(
-              'quality_inspection_order_changes',
-              'qi_failed',
-              'qi_failed.id = o.id AND qi_failed."result" = false',
-            )
-            .leftJoin(
-              'hold_inventory_order_changes',
-              'hi_changes',
-              'hi_changes.id = o.id',
-            )
-            .leftJoin(
-              'transfer_order_changes',
-              'to_changes',
-              'to_changes.id = o.id',
-            )
-            .leftJoin(
-              'allocate_inventory_order_changes',
-              'ai_changes',
-              'ai_changes.id = o.id',
-            )
-            .leftJoin(
-              'transfer_vendor_order_changes',
-              'tv_changes',
-              'tv_changes.id = o.id',
-            )
-            .leftJoin(
-              'transfer_customer_order_changes',
-              'tc_changes',
-              'tc_changes.id = o.id',
-            ),
-        'stock_status',
-        `stock_status."stockId" = ${alias}.id`,
-      )
-      .addSelect('stock_status.status', 'status')
-      .addSelect('stock_status.quantity', 'quantity')
-      .addSelect(`${alias}.*`);
-  }
-
-  private applyFilters<U extends ObjectLiteral>(
-    qb: SelectQueryBuilder<U>,
-    options: FindStockInput<T>,
-  ): void {
-    const filters = [
-      { field: 'materialId', value: options.materialId },
-      { field: 'batchId', value: options.batchId },
-      { field: 'locationId', value: options.locationId },
-      { field: 'loaderId', value: options.loaderId },
-    ];
-
-    filters.forEach(({ field, value }) => {
-      if (value) {
-        qb.andWhere(`stock."${field}" = :${field}`, { [field]: value });
-      }
-    });
-
-    if (options.description) {
-      qb.andWhere('stock."description" ILIKE :description', {
-        description: `%${options.description}%`,
-      });
-    }
-
-    if (options.wildcard) {
-      const { key, value } = options.wildcard;
-      qb.andWhere(`location."${String(key)}" ILIKE :value`, {
-        value: `%${value}%`,
-      });
-    }
-  }
-
-  private applyPagination<U extends ObjectLiteral>(
-    qb: SelectQueryBuilder<U>,
-    options: FindStockInput<T>,
-  ): void {
-    if (options.offset !== undefined && options.offset >= 0) {
-      qb.skip(options.offset);
-    }
-    if (options.limit !== undefined && options.limit > 0) {
-      qb.take(options.limit);
-    }
-  }
-
-  private applyAggregation<U extends ObjectLiteral>(
-    qb: SelectQueryBuilder<U>,
-  ): void {
-    const fields = ['materialId', 'batchId', 'locationId', 'loaderId'] as const;
-    qb.select(fields.map((f) => `stock."${f}"`).join(', '), fields.join(', '));
-    qb.addSelect('stock_status.status', 'status');
-    qb.addSelect('SUM(stock_status.quantity)', 'quantity');
-
-    fields.forEach((field) => qb.addGroupBy(`stock."${field}"`));
-    qb.addGroupBy('stock_status.status');
-    qb.having('SUM(stock_status.quantity) <> 0');
+    ) =>
+      qb
+        .leftJoin(
+          (subQuery) =>
+            subQuery
+              .select(
+                `CASE
+                  WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NULL THEN '${StockStatus.PENDING_INSPECTION}'
+                  WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
+                  WHEN hi_changes.id IS NOT NULL AND s.quantity > 0 THEN '${StockStatus.HELD}'
+                  WHEN to_changes.id IS NOT NULL AND s.quantity > 0 THEN '${StockStatus.IN_TRANSFER}'
+                  WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
+                  WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
+                  WHEN tc_changes.id IS NOT NULL THEN '${StockStatus.CUSTOMER_INVENTORY}'
+                  ELSE '${StockStatus.FREE}'
+                END`,
+                'status',
+              )
+              .addSelect(
+                `CASE
+                  WHEN hi_changes.id IS NOT NULL THEN s.quantity * ABS(hi_changes."quantityChanged") / hi_changes."quantityChanged"
+                  WHEN to_changes.id IS NOT NULL THEN s.quantity * ABS(to_changes."quantityChanged") / to_changes."quantityChanged"
+                  ELSE s.quantity
+                END`,
+                'quantity',
+              )
+              .addSelect('s.id', 'stockId')
+              .from('stocks', 's')
+              .innerJoin('orders', 'o', 's."orderId" = o.id')
+              // Quality Inspection Order - PENDING_INSPECTION when joined but result is null, INSPECTION_FAILED when result is false
+              .leftJoin(
+                'quality_inspection_order_changes',
+                'qi_changes',
+                'qi_changes.id = o.id AND qi_changes."result" IS NULL',
+              )
+              .leftJoin(
+                'quality_inspection_order_changes',
+                'qi_failed',
+                'qi_failed.id = o.id AND qi_failed."result" = false',
+              )
+              // Hold Inventory Order
+              .leftJoin(
+                'hold_inventory_order_changes',
+                'hi_changes',
+                'hi_changes.id = o.id',
+              )
+              // Transfer Order
+              .leftJoin(
+                'transfer_order_changes',
+                'to_changes',
+                'to_changes.id = o.id',
+              )
+              // Allocate Inventory Order
+              .leftJoin(
+                'allocate_inventory_order_changes',
+                'ai_changes',
+                'ai_changes.id = o.id',
+              )
+              // Transfer Vendor Order
+              .leftJoin(
+                'transfer_vendor_order_changes',
+                'tv_changes',
+                'tv_changes.id = o.id',
+              )
+              // Transfer Customer Order
+              .leftJoin(
+                'transfer_customer_order_changes',
+                'tc_changes',
+                'tc_changes.id = o.id',
+              ),
+          'stock_status',
+          `stock_status."stockId" = ${alias}.id`,
+        )
+        .addSelect('stock_status.status', 'status')
+        .addSelect('stock_status.quantity', 'quantity')
+        .addSelect(`${alias}.*`);
   }
 
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(
@@ -195,12 +142,57 @@ export class StockService<
     queryBuilder: SelectQueryBuilder<U>,
     aggregated = false,
   ): SelectQueryBuilder<U> {
-    this.applyFilters(queryBuilder, options);
+    if (options.materialId)
+      queryBuilder.andWhere('stock."materialId" = :materialId', {
+        materialId: options.materialId,
+      });
+
+    if (options.batchId)
+      queryBuilder.andWhere('stock."batchId" = :batchId', {
+        batchId: options.batchId,
+      });
+
+    if (options.locationId)
+      queryBuilder.andWhere('stock."locationId" = :locationId', {
+        locationId: options.locationId,
+      });
+
+    if (options.loaderId)
+      queryBuilder.andWhere('stock."loaderId" = :loaderId', {
+        loaderId: options.loaderId,
+      });
+
+    if (options.description)
+      queryBuilder.andWhere('stock."description" ILIKE :description', {
+        description: `%${options.description}%`,
+      });
+
+    if (options.wildcard) {
+      const { key, value } = options.wildcard;
+      queryBuilder.andWhere(`location."${String(key)}" ILIKE :value`, {
+        value: `%${value}%`,
+      });
+    }
+
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
 
     if (aggregated) {
-      this.applyAggregation(queryBuilder);
-    } else {
-      this.applyPagination(queryBuilder, options);
+      queryBuilder.select('stock.materialId', 'materialId');
+      queryBuilder.addSelect('stock.batchId', 'batchId');
+      queryBuilder.addSelect('stock.locationId', 'locationId');
+      queryBuilder.addSelect('stock.loaderId', 'loaderId');
+      queryBuilder.addSelect('stock_status.status', 'status');
+      queryBuilder.addSelect('SUM(stock_status.quantity)', 'quantity');
+      queryBuilder.groupBy('stock.materialId');
+      queryBuilder.addGroupBy('stock.batchId');
+      queryBuilder.addGroupBy('stock.locationId');
+      queryBuilder.addGroupBy('stock.loaderId');
+      queryBuilder.addGroupBy('stock_status.status');
+      queryBuilder.having('SUM(stock_status.quantity) <> 0');
     }
 
     return queryBuilder;
@@ -248,31 +240,38 @@ export class StockService<
   async findAggregatedStocks(
     options: FindStockInput<T>,
   ): Promise<[AggregatedStock[], number]> {
-    const aggregatedQueryBuilder = this.pipeSelectOptionsToQueryBuilder(
-      { ...options, limit: undefined, offset: undefined }, // Remove pagination temporarily
+    // Create the aggregated subquery without pagination
+    const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
+      { ...options, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
       true,
     );
 
-    const count = await aggregatedQueryBuilder.getCount();
-
-    const subQuery = aggregatedQueryBuilder.getQuery();
-
+    // Wrap the aggregated subquery and apply pagination on top
     const paginatedQueryBuilder = this.dataSource
-      .getRepository<T>(this.stockEntity)
       .createQueryBuilder()
-      .select('*')
-      .from(`(${subQuery})`, 'aggregated')
-      .setParameters(aggregatedQueryBuilder.getParameters());
+      .addSelect('agg.quantity', 'quantity')
+      .from(`(${aggregateSubquery.getQuery()})`, 'agg')
+      .setParameters(aggregateSubquery.getParameters());
+    this.aggregateKeys.forEach((key) =>
+      paginatedQueryBuilder.addSelect(`agg."${key}"`, key),
+    );
 
     // Apply pagination to the outer query
     if (options.offset !== undefined && options.offset >= 0) {
       paginatedQueryBuilder.skip(options.offset);
     }
-
     if (options.limit !== undefined && options.limit > 0) {
       paginatedQueryBuilder.take(options.limit);
     }
+
+    // Get total count from the aggregated subquery
+    const countBuilder = this.pipeSelectOptionsToQueryBuilder(
+      { ...options, offset: undefined, limit: undefined },
+      this.selectQueryBuilder('stock'),
+      true,
+    );
+    const count = await countBuilder.getCount();
 
     const items = await paginatedQueryBuilder.getRawMany<AggregatedStock>();
 
