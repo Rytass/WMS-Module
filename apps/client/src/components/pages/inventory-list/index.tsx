@@ -27,29 +27,24 @@ function InventoryList() {
 
   return (
     <>
-      <PageWrapper
-        title="庫存清單"
-        titleButtons={
-          targetAction ? (
-            <Button
-              icon={targetAction.icon}
-              className={classes.actionButton}
-              size="minor"
-              iconType="icon-only"
-              variant="base-secondary"
-              onClick={() => {
-                setOpen(true);
-              }}
-            />
-          ) : undefined
-        }
-      >
+      <PageWrapper title="庫存清單">
         <InventoryTable
           currentAction={currentAction}
           setCurrentAction={setCurrentAction}
           targetStocks={targetStocks}
           setTargetStocks={setTargetStocks}
         />
+        {targetAction ? (
+          <Button
+            icon={targetAction.icon}
+            className={classes.actionButton}
+            iconType="icon-only"
+            variant="base-secondary"
+            onClick={() => {
+              setOpen(true);
+            }}
+          />
+        ) : null}
       </PageWrapper>
     </>
   );
