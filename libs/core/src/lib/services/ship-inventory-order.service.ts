@@ -263,7 +263,7 @@ export class ShipInventoryOrderService<
 
       const items = await itemRepository.find({
         where: { id: In(options.map((option) => option.itemId)) },
-        relations: ['order'],
+        relations: ['changes'],
       });
       const itemMap = new Map(items.map((item) => [item.id, item]));
       await Promise.all(

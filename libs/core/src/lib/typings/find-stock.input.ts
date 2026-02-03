@@ -1,3 +1,4 @@
+import { StockStatus } from '../constants';
 import { PaginationInput } from './paginations';
 
 export type FindStockInput<U extends object> = PaginationInput & {
@@ -10,4 +11,5 @@ export type FindStockInput<U extends object> = PaginationInput & {
     key: keyof U;
     value: string;
   };
+  status?: StockStatus;
 };

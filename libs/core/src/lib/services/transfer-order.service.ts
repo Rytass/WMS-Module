@@ -8,7 +8,7 @@ import {
   TransferOrderItemEntity,
   TransferOrderItemEntityClass,
 } from '../models';
-import { DataSource, EntityManager, EntityTarget } from 'typeorm';
+import { DataSource, EntityManager, EntityTarget, In } from 'typeorm';
 import { OrderEntity, StockService } from '@rytass/wms-base-nestjs-module';
 import { HelperService } from './helper.service';
 import {
@@ -16,6 +16,7 @@ import {
   UpdateTransferOrderInput,
 } from '../typings/create-transfer-order.input';
 import { FindTransferOrderInput } from '../typings/find-transfer-order.input';
+import { TransferOrderInput } from '../typings/transfer-order.input';
 
 @Injectable()
 export class TransferOrderService<
@@ -116,6 +117,8 @@ export class TransferOrderService<
           ({
             ...item,
             orderId: order.id,
+            targetLoaderId: options.loaderId,
+            targetLocationId: options.locationId,
           }) as Partial<TransferOrderItemEntityClass>,
       );
       // TODO: check stock availability before creating transfer order
@@ -246,5 +249,89 @@ export class TransferOrderService<
       queryBuilder.take(options.limit);
 
     return queryBuilder.getManyAndCount();
+  }
+
+  transfer(
+    options: TransferOrderInput[] | TransferOrderInput,
+  ): Promise<boolean> {
+    if (!Array.isArray(options)) options = [options];
+    return this.dataSource.transaction(async (manager) => {
+      const changeRepository = manager.getRepository(
+        TransferOrderChangeEntityClass,
+      );
+      const itemRepository =
+        manager.getRepository<TransferOrderItemEntityClass>(
+          this.transferOrderItemEntity,
+        );
+      const stockRepository = manager.getRepository<StockEntityClass>(
+        this.stockEntity,
+      );
+
+      const items = await itemRepository.find({
+        where: { id: In(options.map((o) => o.itemId)) },
+        relations: ['changes'],
+      });
+
+      const itemMap = new Map(items.map((item) => [item.id, item]));
+
+      await Promise.all(
+        options.map(async (option) => {
+          const item = itemMap.get(option.itemId);
+          if (!item) return;
+
+          const totalTransferred = item.changes.reduce((sum, change) => {
+            if (change.quantityChanged < 0)
+              sum += Number(change.quantityChanged);
+            return sum;
+          }, 0);
+
+          const remainingQuantity =
+            item.targetTransferredQuantity + totalTransferred;
+
+          if (remainingQuantity - option.quantity < 0)
+            throw new Error(
+              `Transfer quantity exceeds remaining quantity for item ${item.id}`,
+            );
+
+          // Record the transfer change
+          const base = await manager.getRepository(OrderEntity).save({});
+
+          await Promise.all([
+            changeRepository.save(
+              changeRepository.create({
+                itemId: item.id,
+                id: base.id,
+                quantityChanged: -1 * option.quantity,
+              }),
+            ),
+            // Update stock levels
+            stockRepository.save(
+              stockRepository.create([
+                // add FREE stock to destination location
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId,
+                  locationId: item.targetLocationId || undefined,
+                  loaderId: item.targetLoaderId || undefined,
+                  quantity: option.quantity,
+                },
+                // deduct IN_TRANSFER stock from source location
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId,
+                  locationId: item.locationId,
+                  loaderId: item.loaderId || undefined,
+                  quantity: -1 * option.quantity,
+                },
+              ]),
+            ),
+          ]);
+        }),
+      );
+
+      return true;
+    });
   }
 }
