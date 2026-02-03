@@ -6,13 +6,15 @@ import {
   inventoryActionOptions,
   InventoryActions,
 } from '../../../utils/inventoryActions';
-import { StockFragment } from '../../../graphql/generated/.graphql';
+import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
 
 function InventoryList() {
   const [open, setOpen] = useState<boolean>(false);
 
-  const [targetStocks, setTargetStocks] = useState<StockFragment[]>([]);
+  const [targetStocks, setTargetStocks] = useState<AggregatedStockFragment[]>(
+    [],
+  );
   const [currentAction, setCurrentAction] = useState<InventoryActions | null>(
     null,
   );

@@ -3,12 +3,12 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
-import { StocksDocument } from '../../../graphql/generated/.graphql';
+import { AggregatedStocksDocument } from '../../../graphql/generated/.graphql';
 
 export function useQueryStocks() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
-  const { data, loading } = useQuery(StocksDocument, {
+  const { data, loading } = useQuery(AggregatedStocksDocument, {
     variables: {
       limit,
       offset,
@@ -18,7 +18,7 @@ export function useQueryStocks() {
 
   const { pageTotal } = useTablePageTotal({
     page,
-    total: data?.stocks.total,
+    total: data?.aggregatedStocks.total,
     setPage,
     filterValues: [],
   });

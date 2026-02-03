@@ -45,7 +45,6 @@ function PageWrapper({
           )}
           <ContentHeader
             title={title}
-            size="sub"
             onBackClick={
               haveBack
                 ? onBack

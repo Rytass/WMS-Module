@@ -6,7 +6,7 @@ import InventoryGroupTable from './GroupTable';
 import InventoryListTable from './ListTable';
 import { InventoryActions } from '../../../../utils/inventoryActions';
 import InventoryActionSelector from './InventoryActionSelector';
-import { StockFragment } from '../../../../graphql/generated/.graphql';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useDialog } from '../../../dialog/useDialog';
 import classes from './index.module.scss';
 
@@ -18,8 +18,8 @@ enum Mode {
 interface InventoryTableProps {
   currentAction: InventoryActions | null;
   setCurrentAction: Dispatch<SetStateAction<InventoryActions | null>>;
-  targetStocks: StockFragment[];
-  setTargetStocks: Dispatch<SetStateAction<StockFragment[]>>;
+  targetStocks: AggregatedStockFragment[];
+  setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
 }
 
 function InventoryTable({

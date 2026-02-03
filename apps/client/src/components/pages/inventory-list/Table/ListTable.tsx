@@ -1,17 +1,17 @@
 import { Dispatch, SetStateAction, useState, useMemo, useEffect } from 'react';
 import { TableColumn } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
-import { StockFragment } from '../../../../graphql/generated/.graphql';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useQueryStocks } from '../useApi';
 
 interface InventoryListTableProps {
-  setTargetStocks: Dispatch<SetStateAction<StockFragment[]>>;
+  setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
 }
 
 function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [dataSignature, setDataSignature] = useState<{
-    [id: string]: StockFragment;
+    [id: string]: AggregatedStockFragment;
   }>({});
 
   useEffect(() => {
@@ -22,8 +22,8 @@ function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
     useQueryStocks();
 
   const dataSource = useMemo(
-    (): StockFragment[] => data?.stocks.items ?? [],
-    [data?.stocks.items],
+    (): AggregatedStockFragment[] => data?.aggregatedStocks.items ?? [],
+    [data?.aggregatedStocks.items],
   );
 
   useEffect(() => {
@@ -38,7 +38,7 @@ function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
     setDataSignature((s) => ({ ...s, ...signature }));
   }, [dataSource]);
 
-  const columns: TableColumn<StockFragment>[] = [
+  const columns: TableColumn<AggregatedStockFragment>[] = [
     {
       key: 'description',
       title: '物料說明',
@@ -47,7 +47,7 @@ function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
   ];
 
   return (
-    <Table<StockFragment>
+    <Table<AggregatedStockFragment>
       columns={columns}
       dataSource={dataSource}
       loading={loading}
