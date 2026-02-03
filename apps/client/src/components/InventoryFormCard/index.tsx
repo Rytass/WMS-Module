@@ -25,9 +25,9 @@ const InventoryFormCard: FC = () => {
           </Typography>
         </div>
         <div className={classes.rightTitleWrapper}>
-          <Typography variant="caption" color="text-neutral">
+          {/* <Typography variant="caption" color="text-neutral">
             SO240596827-00100043
-          </Typography>
+          </Typography> */}
           <Button
             type="button"
             icon={TrashIcon}

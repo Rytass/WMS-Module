@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryFormCard from '../../InventoryFormCard';
+import { FormValues } from './typing';
 
 interface HoldInventoryProps {
   onClose: VoidFunction;
@@ -18,7 +19,7 @@ const HoldInventory: FC<HoldInventoryProps> = ({
   bottomPrimaryActionText,
   bottomPrimaryActionIcon,
 }) => {
-  const methods = useForm();
+  const methods = useForm<FormValues>();
 
   return (
     <FormDrawerWrapper

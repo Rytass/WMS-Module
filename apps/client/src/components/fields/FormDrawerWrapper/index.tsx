@@ -19,7 +19,7 @@ type FormDrawerWrapperProps<T extends FieldValues = FieldValues> = {
   headerTitle: string;
 };
 
-function FormDrawerWrapper({
+function FormDrawerWrapper<T extends FieldValues = FieldValues>({
   children,
   onClose,
   open,
@@ -32,7 +32,7 @@ function FormDrawerWrapper({
   bottomPrimaryActionText,
   bottomPrimaryActionIcon,
   headerTitle,
-}: FormDrawerWrapperProps) {
+}: FormDrawerWrapperProps<T>) {
   const [acting, setActing] = useState<boolean>(false);
   const onConfirm = useCallback(async () => {
     methods.handleSubmit(onSubmit)();
