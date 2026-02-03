@@ -5,10 +5,14 @@ import {
   DescriptionContent,
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
-import SelectInputField from '../fields/SelectInputField';
+import SelectInputField from '../../fields/SelectInputField';
 import classes from './index.module.scss';
 
-const InventoryFormCard: FC = () => {
+interface InventoryFormCardProps {
+  index: number;
+}
+
+const InventoryFormCard: FC<InventoryFormCardProps> = ({ index }) => {
   return (
     <div className={classes.host}>
       <div className={classes.titleWrapper}>

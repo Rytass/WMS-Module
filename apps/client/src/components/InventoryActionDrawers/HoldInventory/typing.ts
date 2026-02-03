@@ -1,5 +1,3 @@
-import { InventoryFieldItem } from '../../InventoryFormCard/typing';
+import { InventoryFieldArrayValues } from '../../InventoryFieldArray/typing';
 
-export type FormValues = {
-  stocks: InventoryFieldItem[];
-};
+export type FormValues = InventoryFieldArrayValues;

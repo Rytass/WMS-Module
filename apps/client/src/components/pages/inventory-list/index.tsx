@@ -20,8 +20,6 @@ function InventoryList() {
     null,
   );
 
-  console.log('targetStocks', targetStocks);
-
   const targetAction = useMemo(() => {
     return inventoryActionOptions.find((o) => o.id === currentAction) ?? null;
   }, [currentAction]);
@@ -49,6 +47,7 @@ function InventoryList() {
       </PageWrapper>
       <InventoryActionDrawers
         targetAction={targetAction}
+        targetStocks={targetStocks}
         onClose={() => {
           setOpen(false);
         }}

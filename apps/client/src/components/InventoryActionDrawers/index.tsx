@@ -1,3 +1,4 @@
+import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
 import {
   InventoryActions,
   InventoryActionItem,
@@ -6,12 +7,14 @@ import HoldInventory from './HoldInventory';
 
 interface InventoryActionDrawersProps {
   targetAction: InventoryActionItem | null;
+  targetStocks: AggregatedStockFragment[];
   onClose: VoidFunction;
   open: boolean;
 }
 
 const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
   targetAction,
+  targetStocks,
   onClose,
   open,
 }) => {
@@ -19,6 +22,7 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     case InventoryActions.HoldInventory:
       return (
         <HoldInventory
+          targetStocks={targetStocks}
           onClose={onClose}
           open={open}
           headerTitle={targetAction.title}
