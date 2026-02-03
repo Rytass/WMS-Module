@@ -5,9 +5,11 @@ import {
   MaterialUnitEntityClass,
   StockEntityClass,
   StockService,
+  UnitEntityClass,
 } from '@wms-module/core';
 import { type LoaderType } from '../helpers';
 import { groupBy, sumBy } from 'lodash';
+import { UnitDto } from '../dto/unit.dto';
 
 @Resolver(() => MaterialDto)
 export class MaterialResolver {
@@ -52,6 +54,17 @@ export class MaterialResolver {
     return loaders.batchMany.load({
       __entity: MaterialUnitEntityClass,
       __from: { materialId: id },
+    });
+  }
+
+  @ResolveField(() => UnitDto)
+  async baseUnit(
+    @Parent() { baseUnit }: MaterialEntityClass,
+    @Context() { loaders }: LoaderType<UnitEntityClass>,
+  ): Promise<UnitDto> {
+    return loaders.batchSingle.load({
+      __entity: UnitEntityClass,
+      __from: { id: baseUnit },
     });
   }
 }
