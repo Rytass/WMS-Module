@@ -69,7 +69,7 @@ function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
       title: '單位',
       width: 100,
       align: 'center',
-      render: (source) => source.material?.baseUnit,
+      render: (source) => source.material?.baseUnit?.key,
     },
   ];
 
