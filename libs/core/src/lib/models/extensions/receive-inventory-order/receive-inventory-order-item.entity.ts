@@ -79,6 +79,5 @@ export class ReceiveInventoryOrderItemEntityClass {
     () => ReceiveInventoryOrderChangeEntityClass,
     (change) => change.item,
   )
-  @JoinColumn({ name: 'id', referencedColumnName: 'itemId' })
   changes!: ReceiveInventoryOrderChangeEntityClass[];
 }
