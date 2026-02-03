@@ -40,9 +40,36 @@ function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
 
   const columns: TableColumn<AggregatedStockFragment>[] = [
     {
+      key: 'materialKey',
+      title: '料號',
+      width: 140,
+      render: (source) => source.material?.key,
+    },
+    {
       key: 'description',
       title: '物料說明',
+      width: 140,
       render: (source) => source.material?.description,
+    },
+    {
+      key: 'batchKey',
+      title: '批號',
+      width: 140,
+      render: (source) => source.batch?.key,
+    },
+    {
+      key: 'quantity',
+      title: '數量',
+      width: 100,
+      align: 'end',
+      render: (source) => source.quantity,
+    },
+    {
+      key: 'baseUnit',
+      title: '單位',
+      width: 100,
+      align: 'center',
+      render: (source) => source.material?.baseUnit,
     },
   ];
 
