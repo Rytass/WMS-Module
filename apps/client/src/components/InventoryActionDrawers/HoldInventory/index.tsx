@@ -1,7 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
-import InventoryFieldArray from '../../InventoryFieldArray/';
+import InventoryFieldArray from '../../InventoryFieldArray';
+import { initInventoryFieldItem } from '../../InventoryFieldArray/InventoryFormCard/utils';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { FormValues } from './typing';
 import { useEffect } from 'react';
@@ -29,22 +30,7 @@ const HoldInventory: FC<HoldInventoryProps> = ({
     if (open) {
       methods.setValue(
         'stocks',
-        targetStocks.map((s) => ({
-          stockId: s.id,
-          materialKey: s.material.key,
-          batchKey: s.batch.key,
-          originQuantity: s.quantity,
-          quantity: s.quantity,
-          inputQuantity: `${s.quantity}`,
-          selectedUnit: s.material.baseUnit.key,
-          units: [
-            ...s.material.materialUnits.map((u) => ({
-              id: u.unit,
-              name: u.unit,
-              conversionFactor: u.conversionFactor,
-            })),
-          ],
-        })),
+        targetStocks.map((s) => initInventoryFieldItem(s)),
       );
     }
   }, [methods, open, targetStocks]);

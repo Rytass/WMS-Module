@@ -40,6 +40,12 @@ function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
 
   const columns: TableColumn<AggregatedStockFragment>[] = [
     {
+      key: 'status',
+      title: '狀態',
+      width: 100,
+      render: (source) => source.status,
+    },
+    {
       key: 'materialKey',
       title: '料號',
       width: 140,
