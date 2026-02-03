@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
+import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import { AutoComplete, SelectValue } from '@mezzanine-ui/react';
 import type { AutoCompleteSingleProps } from '@mezzanine-ui/react/AutoComplete';
 import BaseField, { BaseFieldProps } from '../BaseField';
@@ -101,6 +102,11 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
       label={label}
       hint={hint}
       fieldSize={fieldSize}
+      controlFieldSlotLayout={
+        size === 'sub'
+          ? ControlFieldSlotLayout.SUB
+          : ControlFieldSlotLayout.MAIN
+      }
     >
       <AutoComplete
         {...rest}

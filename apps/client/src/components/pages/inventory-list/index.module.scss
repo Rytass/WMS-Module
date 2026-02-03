@@ -1,17 +1,25 @@
+@use '@mezzanine-ui/system/effect';
+@use '@mezzanine-ui/system/spacing';
 @use '@mezzanine-ui/system/palette';
+@use '@mezzanine-ui/system/transition';
 
-// 魔改區
 .actionButton {
-  position: relative;
+  position: absolute;
+  bottom: spacing.semantic-variable(padding, vertical, spacious);
+  right: spacing.semantic-variable(padding, horizontal, comfort-fixed);
+  border-radius: 50%;
+  background-color: palette.semantic-variable(
+    'background',
+    fixed-dark
+  ) !important;
+  transition: transition.standard(box-shadow, fast);
+  will-change: box-shadow;
 
-  &::after {
-    content: '';
-    position: absolute;
-    background-color: palette.semantic-variable(icon, error);
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    top: 2px;
-    right: 2px;
+  & > i {
+    color: palette.semantic-variable(icon, fixed-light) !important;
+  }
+
+  &:hover {
+    box-shadow: effect.variable(focus, primary);
   }
 }

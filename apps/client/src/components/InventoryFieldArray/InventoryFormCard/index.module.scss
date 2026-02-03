@@ -1,0 +1,49 @@
+@use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/radius';
+@use '@mezzanine-ui/system/palette';
+
+.host {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: spacing.semantic-variable(gap, base);
+  border-radius: radius.variable(roomy);
+  padding: spacing.semantic-variable(padding, vertical, calm)
+    spacing.semantic-variable(padding, horizontal, comfort);
+  border: 1px solid palette.semantic-variable(border, neutral-faint);
+
+  .titleWrapper {
+    display: flex;
+    align-self: stretch;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    .leftTitleWrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: spacing.semantic-variable(gap, tight);
+
+      .tag {
+        border-radius: radius.variable(base);
+        padding: spacing.semantic-variable(padding, vertical, micro)
+          spacing.semantic-variable(padding, horizontal, tiny);
+        background-color: palette.semantic-variable(background, neutral-faint);
+      }
+    }
+
+    .rightTitleWrapper {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: spacing.semantic-variable(gap, calm);
+    }
+  }
+
+  .contentWrapper {
+    display: grid;
+    align-self: stretch;
+    align-items: center;
+    grid-template-columns: 1fr 200px;
+  }
+}

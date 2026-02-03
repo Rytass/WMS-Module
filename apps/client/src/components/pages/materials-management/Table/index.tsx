@@ -91,14 +91,17 @@ function MaterialsManagementTable({
       title: '基礎計量單位',
       width: 108,
       align: 'center',
-      render: (source) => source.baseUnit,
+      render: (source) => source.baseUnit?.key,
     },
     {
       key: 'units',
       title: '單位轉換',
       render: (source) =>
         source.materialUnits
-          ?.map((u) => `1 ${u.unit} = ${u.conversionFactor} ${source.baseUnit}`)
+          ?.map(
+            (u) =>
+              `1 ${u.unit} = ${u.conversionFactor} ${source.baseUnit?.key}`,
+          )
           .join('、'),
     },
   ];

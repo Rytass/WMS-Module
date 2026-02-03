@@ -6,18 +6,19 @@ import {
   inventoryActionOptions,
   InventoryActions,
 } from '../../../utils/inventoryActions';
-import { StockFragment } from '../../../graphql/generated/.graphql';
+import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
+import InventoryActionDrawers from '../../InventoryActionDrawers';
 
 function InventoryList() {
   const [open, setOpen] = useState<boolean>(false);
 
-  const [targetStocks, setTargetStocks] = useState<StockFragment[]>([]);
+  const [targetStocks, setTargetStocks] = useState<AggregatedStockFragment[]>(
+    [],
+  );
   const [currentAction, setCurrentAction] = useState<InventoryActions | null>(
     null,
   );
-
-  console.log('targetStocks', targetStocks);
 
   const targetAction = useMemo(() => {
     return inventoryActionOptions.find((o) => o.id === currentAction) ?? null;
@@ -25,30 +26,33 @@ function InventoryList() {
 
   return (
     <>
-      <PageWrapper
-        title="庫存清單"
-        titleButtons={
-          targetAction ? (
-            <Button
-              icon={targetAction.icon}
-              className={classes.actionButton}
-              size="minor"
-              iconType="icon-only"
-              variant="base-secondary"
-              onClick={() => {
-                setOpen(true);
-              }}
-            />
-          ) : undefined
-        }
-      >
+      <PageWrapper title="庫存清單">
         <InventoryTable
           currentAction={currentAction}
           setCurrentAction={setCurrentAction}
           targetStocks={targetStocks}
           setTargetStocks={setTargetStocks}
         />
+        {targetAction ? (
+          <Button
+            icon={targetAction.icon}
+            className={classes.actionButton}
+            iconType="icon-only"
+            variant="base-secondary"
+            onClick={() => {
+              setOpen(true);
+            }}
+          />
+        ) : null}
       </PageWrapper>
+      <InventoryActionDrawers
+        targetAction={targetAction}
+        targetStocks={targetStocks}
+        onClose={() => {
+          setOpen(false);
+        }}
+        open={open}
+      />
     </>
   );
 }

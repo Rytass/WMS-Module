@@ -18,6 +18,7 @@ fragment SimpleStock on StockDto {
 }
 
 fragment AggregatedStock on AggregatedStockDto {
+  id
   quantity
   status
   material {

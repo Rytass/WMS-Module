@@ -29,7 +29,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
               conversionFactor: u.conversionFactor ?? 0,
               isActive: u.isActive,
             })),
-            isActive: true,
+            isActive: source.isActive,
           },
           refetchQueries: [MaterialsDocument],
         });
@@ -42,7 +42,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         console.error(error);
       }
     },
-    [source.id, updateMaterial],
+    [source.id, source.isActive, updateMaterial],
   );
 
   return (
@@ -111,7 +111,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         defaultValues={{
           materialNumber: source.key,
           description: source.description,
-          baseUnit: source.baseUnit,
+          baseUnit: source.baseUnit?.key,
           units: source.materialUnits.map((unit) => ({
             unit: unit.unit,
             conversionFactor: unit.conversionFactor,

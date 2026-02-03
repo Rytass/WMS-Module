@@ -18,6 +18,7 @@ import {
   type EntityTarget,
 } from 'typeorm';
 import { FindMaterialInput } from '../typings/find-material.input';
+import { UnitEntityClass } from '../models';
 
 /**
  * Service for managing materials and their units
@@ -51,6 +52,21 @@ export class MaterialService<
     const materialUnitRepository =
       manager.getRepository<MaterialUnitEntityClass>(this.materialUnitEntity);
 
+    const unitRepository =
+      manager.getRepository<UnitEntityClass>(UnitEntityClass);
+
+    const baseUnit = await unitRepository
+      .findOneBy({ key: options.baseUnit })
+      .then((unit) => {
+        console.log([unit]);
+        return unit
+          ? unit
+          : unitRepository.save(
+              unitRepository.create({ key: options.baseUnit }),
+            );
+      });
+    options.baseUnit = baseUnit.id;
+
     const material = materialRepository.create(options);
     const { id } = await materialRepository.save(material);
 
@@ -80,6 +96,7 @@ export class MaterialService<
     const material = await materialRepository.findOneByOrFail({
       id: options.id,
     });
+
     const updated = await materialRepository.save(
       materialRepository.create({
         ...material,
