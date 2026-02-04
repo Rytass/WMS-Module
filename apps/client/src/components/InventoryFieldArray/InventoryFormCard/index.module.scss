@@ -4,6 +4,7 @@
 
 .host {
   display: flex;
+  align-self: stretch;
   flex-direction: column;
   align-items: flex-start;
   gap: spacing.semantic-variable(gap, base);
