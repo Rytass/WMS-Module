@@ -21,11 +21,11 @@ export class HoldInventoryOrderEntityClass {
   @Index()
   key!: string;
 
-  @Column({ type: 'text' })
-  description!: string;
+  @Column({ type: 'varchar', nullable: true })
+  createdBy!: string | null;
 
-  @Column({ type: 'varchar' })
-  reason!: string;
+  @Column({ type: 'timestamptz', nullable: true })
+  removedAt!: Date | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

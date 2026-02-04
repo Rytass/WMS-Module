@@ -1,20 +1,299 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  HoldInventoryOrderChangeEntityClass,
   HoldInventoryOrderEntity,
   HoldInventoryOrderEntityClass,
   HoldInventoryOrderItemEntity,
   HoldInventoryOrderItemEntityClass,
+  StockEntity,
+  StockEntityClass,
 } from '../models';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager, EntityTarget, In } from 'typeorm';
+import { HelperService } from './helper.service';
+import { OrderEntity } from '@rytass/wms-base-nestjs-module';
+import {
+  CreateHoldInventoryOrderInput,
+  UpdateHoldInventoryOrderInput,
+} from '../typings/create-hold-inventory-order.input';
+import { FindHoldInventoryOrderInput } from '../typings/find-hold-inventory-order.input';
+import { ReleaseInventoryOrderItemInput } from '../typings/release-inventory-order.input';
 
 @Injectable()
 export class HoldInventoryOrderService<
   T extends HoldInventoryOrderEntityClass = HoldInventoryOrderEntityClass,
-  K extends HoldInventoryOrderItemEntityClass = HoldInventoryOrderItemEntityClass,
+  K extends
+    HoldInventoryOrderItemEntityClass = HoldInventoryOrderItemEntityClass,
 > {
+  private readonly seqPrefix = 'HIO';
+
   constructor(
     private readonly dataSource: DataSource,
-    @Inject(HoldInventoryOrderEntity) readonly holdInventoryOrderEntity: T,
-    @Inject(HoldInventoryOrderItemEntity) readonly holdInventoryOrderItemEntity: K,
+    private readonly helperService: HelperService,
+    @Inject(HoldInventoryOrderEntity)
+    readonly holdInventoryOrderEntity: EntityTarget<T>,
+    @Inject(HoldInventoryOrderItemEntity)
+    readonly holdInventoryOrderItemEntity: EntityTarget<K>,
+    @Inject(StockEntity) readonly stockEntity: EntityTarget<StockEntityClass>,
   ) {}
+
+  private getRepositories(manager: EntityManager) {
+    return {
+      holdInventoryOrder: manager.getRepository<HoldInventoryOrderEntityClass>(
+        this.holdInventoryOrderEntity,
+      ),
+      holdInventoryOrderItem:
+        manager.getRepository<HoldInventoryOrderItemEntityClass>(
+          this.holdInventoryOrderItemEntity,
+        ),
+      holdInventoryOrderChange: manager.getRepository(
+        HoldInventoryOrderChangeEntityClass,
+      ),
+      stock: manager.getRepository<StockEntityClass>(this.stockEntity),
+      order: manager.getRepository(OrderEntity),
+    };
+  }
+
+  private async processHoldInventoryOrderItems(
+    items: Partial<HoldInventoryOrderItemEntityClass>[],
+    repos: ReturnType<typeof this.getRepositories>,
+  ): Promise<void> {
+    await Promise.all(
+      items.map(async (data) => {
+        const item = await repos.holdInventoryOrderItem.save(
+          repos.holdInventoryOrderItem.create(data),
+        );
+        const base = await repos.order.save({});
+
+        await repos.holdInventoryOrderChange.save(
+          repos.holdInventoryOrderChange.create({
+            itemId: item.id,
+            id: base.id,
+            quantityChanged: data.targetHeldQuantity,
+          }),
+        );
+
+        await repos.stock.save(
+          repos.stock.create([
+            // add held stock to location
+            {
+              orderId: base.id,
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: item.locationId || undefined,
+              loaderId: item.loaderId || undefined,
+              quantity: item.targetHeldQuantity,
+            },
+            // deduct available stock from location
+            {
+              orderId: base.id,
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: item.locationId || undefined,
+              loaderId: item.loaderId || undefined,
+              quantity: -1 * item.targetHeldQuantity,
+            },
+          ]),
+        );
+      }),
+    );
+  }
+
+  async createHoldInventoryOrder(
+    options: CreateHoldInventoryOrderInput,
+    manager = this.dataSource.manager,
+  ): Promise<T> {
+    const repos = this.getRepositories(manager);
+
+    const key = await this.helperService.getSeq(this.seqPrefix, manager);
+    const order = await repos.holdInventoryOrder.save(
+      repos.holdInventoryOrder.create({ key, ...options }),
+    );
+
+    if (options.items?.length > 0) {
+      const items = options.items.map((item) => ({
+        ...item,
+        orderId: order.id,
+      }));
+      await this.processHoldInventoryOrderItems(items, repos);
+    }
+    return order as T;
+  }
+
+  async updateHoldInventoryOrder({
+    id,
+    manager,
+    ...options
+  }: UpdateHoldInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
+    const repos = this.getRepositories(manager ?? this.dataSource.manager);
+
+    const order = await repos.holdInventoryOrder.findOneBy({ id });
+    const updated = await repos.holdInventoryOrder.save({
+      ...order,
+      ...options,
+    });
+
+    if (options.items?.length) {
+      const existingItemIds = new Set(
+        (
+          await repos.holdInventoryOrderItem.find({ where: { orderId: id } })
+        ).map((i) => i.id),
+      );
+
+      const newItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
+      const existingItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
+
+      options.items.forEach((item) => {
+        if (item.removedAt) return;
+        if (!item.id) newItems.push({ ...item, orderId: id });
+        else if (existingItemIds.has(item.id))
+          existingItems.push({ ...item, orderId: id });
+      });
+
+      if (newItems.length)
+        await this.processHoldInventoryOrderItems(newItems, repos);
+      if (existingItems.length)
+        await Promise.all(
+          existingItems.map((item) =>
+            repos.holdInventoryOrderItem.create(item),
+          ),
+        );
+    }
+
+    return updated as T;
+  }
+
+  findMany(options: FindHoldInventoryOrderInput): Promise<[T[], number]> {
+    const queryBuilder = this.dataSource
+      .getRepository<T>(this.holdInventoryOrderEntity)
+      .createQueryBuilder('to');
+
+    if (options.key)
+      queryBuilder.andWhere('to.key ILIKE :key', { key: `%${options.key}%` });
+
+    if (options.dateRange)
+      queryBuilder.andWhere('to.createdAt BETWEEN :start AND :end', {
+        start: options.dateRange.from,
+        end: options.dateRange.to,
+      });
+
+    if (options.materialId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'm_items',
+        'm_items.materialId = :materialId',
+        {
+          materialId: options.materialId,
+        },
+      );
+
+    if (options.batchId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'b_items',
+        'b_items.batchId = :batchId',
+        {
+          batchId: options.batchId,
+        },
+      );
+
+    if (options.locationId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'l_items',
+        'l_items.locationId = :locationId',
+        {
+          locationId: options.locationId,
+        },
+      );
+
+    if (options.loaderId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'ld_items',
+        'ld_items.loaderId = :loaderId',
+        {
+          loaderId: options.loaderId,
+        },
+      );
+
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
+
+    return queryBuilder.getManyAndCount();
+  }
+
+  release(
+    options: ReleaseInventoryOrderItemInput | ReleaseInventoryOrderItemInput[],
+  ): Promise<boolean> {
+    if (!Array.isArray(options)) options = [options];
+    return this.dataSource.transaction(async (manager) => {
+      const repos = this.getRepositories(manager);
+
+      const items = await repos.holdInventoryOrderItem.find({
+        where: { id: In(options.map((o) => o.itemId)) },
+        relations: ['changes'],
+      });
+
+      const itemMap = new Map(items.map((item) => [item.id, item]));
+
+      await Promise.all(
+        options.map(async (option) => {
+          const item = itemMap.get(option.itemId);
+          if (!item) return;
+
+          const totalHeld = item.changes.reduce((sum, change) => {
+            if (change.quantityChanged < 0)
+              sum += Number(change.quantityChanged);
+            return sum;
+          }, 0);
+
+          const remainingQuantity = item.targetHeldQuantity + totalHeld;
+
+          if (remainingQuantity - option.quantity < 0)
+            throw new Error(
+              `Release quantity exceeds held quantity for item ${item.id}`,
+            );
+
+          const base = await repos.order.save({});
+
+          await Promise.all([
+            repos.holdInventoryOrderChange.save(
+              repos.holdInventoryOrderChange.create({
+                itemId: item.id,
+                id: base.id,
+                quantityChanged: -1 * option.quantity,
+              }),
+            ),
+
+            repos.stock.save(
+              repos.stock.create([
+                // deduct held stock from location
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId,
+                  locationId: item.locationId || undefined,
+                  loaderId: item.loaderId || undefined,
+                  quantity: -1 * option.quantity,
+                },
+                {
+                  // add available stock to location
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId,
+                  locationId: item.locationId || undefined,
+                  loaderId: item.loaderId || undefined,
+                  quantity: option.quantity,
+                },
+              ]),
+            ),
+          ]);
+        }),
+      );
+      return true;
+    });
+  }
 }

@@ -30,6 +30,7 @@ export class HoldInventoryOrderChangeEntityClass {
   @ManyToOne(
     'hold_inventory_order_items',
     (item: HoldInventoryOrderItemEntityClass) => item.changes,
+    { onDelete: 'CASCADE', orphanedRowAction: 'delete' },
   )
   @JoinColumn({ name: 'itemId', referencedColumnName: 'id' })
   item!: HoldInventoryOrderItemEntityClass;

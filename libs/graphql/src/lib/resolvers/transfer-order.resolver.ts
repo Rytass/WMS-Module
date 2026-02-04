@@ -1,6 +1,6 @@
 import { Context, Parent, ResolveField, Resolver } from '@nestjs/graphql';
-import { TransferOrderDto } from '../dto/transfer-order';
-import { TransferOrderItemDto } from '../dto/transfer-order-item';
+import { TransferOrderDto } from '../dto/transfer-order.dto';
+import { TransferOrderItemDto } from '../dto/transfer-order-item.dto';
 import { type LoaderType } from '../helpers';
 import { TransferOrderItemEntityClass } from '@wms-module/core';
 

@@ -9,7 +9,7 @@ import {
   TransferOrderItemEntityClass,
 } from '../models';
 import { DataSource, EntityManager, EntityTarget, In } from 'typeorm';
-import { OrderEntity, StockService } from '@rytass/wms-base-nestjs-module';
+import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { HelperService } from './helper.service';
 import {
   CreateTransferOrderInput,
@@ -27,7 +27,6 @@ export class TransferOrderService<
 
   constructor(
     private readonly dataSource: DataSource,
-    private readonly stockService: StockService,
     private readonly helperService: HelperService,
     @Inject(TransferOrderEntity) readonly transferOrderEntity: EntityTarget<T>,
     @Inject(TransferOrderItemEntity)

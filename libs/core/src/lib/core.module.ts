@@ -15,6 +15,7 @@ import {
   UnitService,
   HelperService,
   TransferOrderService,
+  HoldInventoryOrderService,
 } from './services';
 
 const exportDependencies = [
@@ -23,6 +24,7 @@ const exportDependencies = [
   ReceiveInventoryOrderService,
   ShipInventoryOrderService,
   TransferOrderService,
+  HoldInventoryOrderService,
   StockService,
   LocationService,
   UnitService,

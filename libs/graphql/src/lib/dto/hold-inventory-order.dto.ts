@@ -1,20 +1,14 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
-import { TransferOrderItemDto } from './transfer-order-item';
+import { HoldInventoryOrderItemDto } from './hold-inventory-order-item.dto';
 import { PaginatedResponse } from './pagination.dto';
 
 @ObjectType()
-export class TransferOrderDto {
+export class HoldInventoryOrderDto {
   @Field(() => ID)
   id!: string;
 
   @Field(() => String)
   key!: string;
-
-  @Field(() => String, { nullable: true })
-  description!: string | null;
-
-  @Field(() => String, { nullable: true })
-  receiver!: string | null;
 
   @Field(() => String, { nullable: true })
   createdBy!: string | null;
@@ -25,9 +19,11 @@ export class TransferOrderDto {
   @Field(() => Date)
   createdAt!: Date;
 
-  @Field(() => [TransferOrderItemDto])
-  items!: TransferOrderItemDto[];
+  @Field(() => [HoldInventoryOrderItemDto])
+  items!: HoldInventoryOrderItemDto[];
 }
 
 @ObjectType()
-export class TransferOrders extends PaginatedResponse(TransferOrderDto) {}
+export class HoldInventoryOrders extends PaginatedResponse(
+  HoldInventoryOrderDto,
+) {}

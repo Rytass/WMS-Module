@@ -14,5 +14,6 @@ export * from './reclassify-inventory-order.service';
 export * from './transfer-vendor-order.service';
 export * from './quality-inspection-order.service';
 export * from './transfer-customer-order.service';
+export * from './hold-inventory-order.service';
 
 export * from './helper.service';
