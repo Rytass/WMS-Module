@@ -5,9 +5,11 @@ import { InventoryFieldArrayValues } from './typing';
 import classes from './index.module.scss';
 
 const InventoryFieldArray: FC = () => {
-  const { fields } = useFieldArray<InventoryFieldArrayValues, 'stocks'>({
-    name: 'stocks',
-  });
+  const { fields, remove } = useFieldArray<InventoryFieldArrayValues, 'stocks'>(
+    {
+      name: 'stocks',
+    },
+  );
 
   return (
     <div className={classes.host}>
@@ -15,7 +17,13 @@ const InventoryFieldArray: FC = () => {
         {`已選項目 (${fields.length})`}
       </Typography>
       {fields.map((f, index) => (
-        <InventoryFormCard key={f.id} index={index} />
+        <InventoryFormCard
+          key={f.id}
+          index={index}
+          onRemove={() => {
+            remove(index);
+          }}
+        />
       ))}
     </div>
   );
