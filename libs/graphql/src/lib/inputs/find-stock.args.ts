@@ -1,5 +1,6 @@
 import { Field, ID, ArgsType } from '@nestjs/graphql';
 import { PaginationArgs } from './pagination.args';
+import { StockStatus } from '@wms-module/core';
 
 @ArgsType()
 export class FindStockArgs extends PaginationArgs {
@@ -17,4 +18,7 @@ export class FindStockArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   description?: string;
+
+  @Field(() => StockStatus, { nullable: true })
+  status?: StockStatus;
 }

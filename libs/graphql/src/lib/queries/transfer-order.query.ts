@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Query } from '@nestjs/graphql';
 import { TransferOrderService } from '@wms-module/core';
-import { TransferOrders } from '../dto/transfer-order';
+import { TransferOrders } from '../dto/transfer-order.dto';
 import { FindTransferOrderArgs } from '../inputs/find-transfer-order.args';
 
 @Injectable()

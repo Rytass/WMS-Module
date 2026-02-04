@@ -4,6 +4,7 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   TableInheritance,
 } from 'typeorm';
@@ -11,7 +12,9 @@ import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { HoldInventoryOrderEntityClass } from './hold-inventory-order.entity';
 import { HoldInventoryOrderChangeEntityClass } from './hold-inventory-order-change.entity';
 
-export const HoldInventoryOrderItemEntity = Symbol('HoldInventoryOrderItemEntity');
+export const HoldInventoryOrderItemEntity = Symbol(
+  'HoldInventoryOrderItemEntity',
+);
 @Entity('hold_inventory_order_items')
 @TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
 export class HoldInventoryOrderItemEntityClass {
@@ -20,7 +23,15 @@ export class HoldInventoryOrderItemEntityClass {
 
   @Column({ type: 'uuid' })
   @Index()
-  locationId!: string;
+  materialId!: string;
+
+  @Column({ type: 'uuid' })
+  @Index()
+  batchId!: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
+  locationId!: string | null;
 
   @Column({ type: 'uuid', nullable: true })
   loaderId!: string | null;
@@ -31,6 +42,13 @@ export class HoldInventoryOrderItemEntityClass {
   @Column({ type: 'uuid' })
   @Index()
   orderId!: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  removedAt!: Date | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
+  unitId!: string | null;
 
   @ManyToOne('locations')
   @JoinColumn({ name: 'locationId', referencedColumnName: 'id' })
@@ -43,11 +61,12 @@ export class HoldInventoryOrderItemEntityClass {
   @ManyToOne(
     'hold_inventory_orders',
     (entity: HoldInventoryOrderEntityClass) => entity.items,
+    { onDelete: 'CASCADE', orphanedRowAction: 'delete' },
   )
   @JoinColumn({ name: 'orderId', referencedColumnName: 'id' })
   order!: HoldInventoryOrderEntityClass;
 
-  @ManyToOne(
+  @OneToMany(
     'hold_inventory_order_changes',
     (change: HoldInventoryOrderChangeEntityClass) => change.item,
   )

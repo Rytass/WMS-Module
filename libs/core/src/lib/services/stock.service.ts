@@ -174,6 +174,11 @@ export class StockService<
       });
     }
 
+    if (options.status)
+      queryBuilder.andWhere('stock_status.status = :status', {
+        status: options.status,
+      });
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 

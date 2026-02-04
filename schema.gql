@@ -274,6 +274,27 @@ type TransferOrders {
   total: Int!
 }
 
+type HoldInventoryOrderItemDto {
+  id: ID!
+  targetHeldQuantity: Int!
+  removedAt: DateTime
+}
+
+type HoldInventoryOrderDto {
+  id: ID!
+  key: String!
+  createdBy: String
+  removedAt: DateTime
+  createdAt: DateTime!
+  items: [HoldInventoryOrderItemDto!]!
+}
+
+type HoldInventoryOrders {
+  id: ID!
+  items: [HoldInventoryOrderDto!]!
+  total: Int!
+}
+
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
@@ -283,14 +304,15 @@ type Query {
   material(id: ID!): MaterialDto!
   materials(offset: Int, limit: Int, key: String, description: String): Materials!
   stock(id: ID!): StockDto!
-  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Stocks!
-  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): Materials!
-  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String): AggregatedStocks!
+  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String, status: StockStatus): Stocks!
+  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String, status: StockStatus): Materials!
+  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, description: String, status: StockStatus): AggregatedStocks!
   receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
   shipInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ShipInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ShipInventoryOrders!
   transferOrders(offset: Int, limit: Int, key: String, receiver: String, dateRange: DateRangeArgs, description: String, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): TransferOrders!
+  holdInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): HoldInventoryOrders!
   location(id: ID!): LocationDto!
   locations(offset: Int, limit: Int, description: String): Locations!
 }
@@ -313,6 +335,11 @@ type Mutation {
   createShipInventoryOrder(key: ID!, description: String!, createdBy: String, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
   updateShipInventoryOrder(description: String, createdBy: String, id: ID!, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
   createTransferOrder(description: String, locationId: ID!, loaderId: ID, receiver: String, createdBy: String, items: [CreateTransferOrderItemArgs!]!): TransferOrderDto!
+  updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
+  transfer(items: [TransferOrderArgs!]!): Boolean!
+  createHoldInventoryOrder(createdBy: String, items: [CreateHoldInventoryOrderItemArgs!]!): HoldInventoryOrderDto!
+  updateHoldInventoryOrder(createdBy: String, id: String!, removedAt: DateTime, items: [UpdateHoldInventoryOrderItemArgs!]): HoldInventoryOrderDto!
+  release(items: [ReleaseOrderArgs!]!): Boolean!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
 }
@@ -360,9 +387,44 @@ input UpdateShipInventoryOrderItemArgs {
 }
 
 input CreateTransferOrderItemArgs {
-  id: ID!
+  aggregatedKey: ID!
   unitId: ID
   targetTransferredQuantity: Int!
+}
+
+input UpdateTransferOrderItemArgs {
+  aggregatedKey: ID
+  unitId: ID
+  targetTransferredQuantity: Int
+  id: ID
+  removedAt: DateTime
+}
+
+input TransferOrderArgs {
+  """The ID of transfer order item"""
+  itemId: ID!
+
+  """The quantity to transfer"""
+  quantity: Int!
+}
+
+input CreateHoldInventoryOrderItemArgs {
+  aggregatedKey: ID!
+  unitId: ID
+  targetHeldQuantity: Float!
+}
+
+input UpdateHoldInventoryOrderItemArgs {
+  aggregatedKey: ID
+  unitId: ID
+  targetHeldQuantity: Float
+  id: ID
+  removedAt: DateTime
+}
+
+input ReleaseOrderArgs {
+  itemId: ID!
+  quantity: Int!
 }
 
 input MapBackgroundInput {

@@ -40,6 +40,14 @@ export class TransferOrderItemEntityClass {
   @Column({ type: 'numeric' })
   targetTransferredQuantity!: number;
 
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
+  targetLocationId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
+  targetLoaderId!: string | null;
+
   @Column({ type: 'uuid' })
   @Index()
   orderId!: string;
