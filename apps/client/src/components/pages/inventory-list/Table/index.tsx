@@ -58,6 +58,7 @@ function InventoryTable({
               const doChange = () => {
                 setMode(e.target.value as Mode);
                 setTargetStocks([]);
+                setCurrentAction(null);
                 replace({ pathname: pathname, query: {} }, undefined, {
                   shallow: true,
                 });
@@ -93,6 +94,7 @@ function InventoryTable({
           <InventoryActionSelector
             currentAction={currentAction}
             setCurrentAction={setCurrentAction}
+            disabled={targetStocks.length === 0}
           />
         </div>
       }

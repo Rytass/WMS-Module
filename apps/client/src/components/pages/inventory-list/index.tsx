@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Button } from '@mezzanine-ui/react';
+import { Button, Message } from '@mezzanine-ui/react';
 import PageWrapper from '../../PageWrapper';
 import InventoryTable from './Table';
 import {
@@ -40,7 +40,16 @@ function InventoryList() {
             iconType="icon-only"
             variant="base-secondary"
             onClick={() => {
-              setOpen(true);
+              const invalidStock = targetStocks.find(
+                (stock) => !targetAction.status.includes(stock.status),
+              );
+
+              if (invalidStock) {
+                Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
+無法執行作業：料號，資料不符作業條件。`);
+              } else {
+                setOpen(true);
+              }
             }}
           />
         ) : null}
