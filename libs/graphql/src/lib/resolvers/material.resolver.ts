@@ -10,6 +10,7 @@ import {
 import { type LoaderType } from '../helpers';
 import { groupBy, sumBy } from 'lodash';
 import { UnitDto } from '../dto/unit.dto';
+import { SelectQueryBuilder } from 'typeorm';
 
 @Resolver(() => MaterialDto)
 export class MaterialResolver {
@@ -18,32 +19,12 @@ export class MaterialResolver {
   @ResolveField(() => [AggregatedStockDto])
   async aggregatedStock(
     @Parent() { id }: MaterialEntityClass,
-    @Context() { loaders }: LoaderType<StockEntityClass>,
   ): Promise<AggregatedStockDto[]> {
-    const stocks = await loaders.batchMany.load({
-      __entity: StockEntityClass,
-      __from: { materialId: id },
+    // TODO: should be compatible with dataloader in the future
+    const [items] = await this.stockService.findAggregatedStocks({
+      materialId: id,
     });
-
-    return Object.values(
-      groupBy(stocks, (stock) =>
-        this.stockService.aggregateKeys.map((key) => stock[key]).join('|'),
-      ),
-    ).reduce<AggregatedStockDto[]>((acc, group) => {
-      const [item] = group;
-      const quantity = sumBy(group, 'quantity');
-      if (quantity !== 0) {
-        acc.push({
-          materialId: item.materialId,
-          batchId: item.batchId,
-          locationId: item.locationId,
-          loaderId: item.loaderId,
-          status: item.status,
-          quantity,
-        });
-      }
-      return acc;
-    }, []);
+    return items;
   }
 
   @ResolveField(() => [MaterialUnitDto])
