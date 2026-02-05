@@ -14,6 +14,11 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../../hooks/useTablePagination';
+import {
+  MaterialWithAggregatedStockFragment,
+  AggregatedStockFragment,
+} from '../../../../graphql/generated/.graphql';
+import { useQueryStocksGrouped } from '../useApi';
 import classes from './group-table.module.scss';
 
 interface DataType extends TableDataSourceWithKey {
