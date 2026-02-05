@@ -64,6 +64,18 @@ function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
       render: (source) => source.batch?.key,
     },
     {
+      key: 'locationKey',
+      title: '儲存位置',
+      width: 140,
+      render: (source) => source.location?.key,
+    },
+    {
+      key: 'loaderSerialId',
+      title: '載具',
+      width: 100,
+      render: (source) => source.loader?.serialId,
+    },
+    {
       key: 'quantity',
       title: '數量',
       width: 100,
