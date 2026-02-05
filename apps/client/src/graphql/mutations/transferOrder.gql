@@ -1,0 +1,19 @@
+mutation CreateTransferOrder(
+  $locationId: ID!
+  $items: [CreateTransferOrderItemArgs!]!
+  $description: String
+  $loaderId: ID
+  $receiver: String
+  $createdBy: String
+) {
+  createTransferOrder(
+    locationId: $locationId
+    items: $items
+    description: $description
+    loaderId: $loaderId
+    receiver: $receiver
+    createdBy: $createdBy
+  ) {
+    ...TransferOrder
+  }
+}

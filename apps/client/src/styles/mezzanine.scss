@@ -22,6 +22,10 @@
   min-width: unset;
 }
 
+.mzn-drawer__overlay {
+  z-index: 1003;
+}
+
 .mzn-dropdown-popper--with-portal {
   z-index: 1004 !important;
 }

@@ -50,7 +50,7 @@ query StocksGroupedByMaterial(
   ) {
     id
     items {
-      ...Material
+      ...MaterialWithAggregatedStock
     }
     total
   }

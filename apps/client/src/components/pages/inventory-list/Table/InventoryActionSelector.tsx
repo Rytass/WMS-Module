@@ -9,11 +9,13 @@ import {
 interface InventoryActionSelectorProps {
   currentAction: InventoryActions | null;
   setCurrentAction: Dispatch<SetStateAction<InventoryActions | null>>;
+  disabled: boolean;
 }
 
 function InventoryActionSelector({
   currentAction,
   setCurrentAction,
+  disabled,
 }: InventoryActionSelectorProps) {
   const [open, toggleOpen] = useState<boolean>(false);
 
@@ -50,6 +52,7 @@ function InventoryActionSelector({
           size="sub"
           icon={ChevronDownIcon}
           iconType="trailing"
+          disabled={disabled}
         >
           執行操作
         </Button>

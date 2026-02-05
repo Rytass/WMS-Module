@@ -1,0 +1,18 @@
+fragment TransferOrderItem on TransferOrderItemDto {
+  id
+  targetTransferredQuantity
+  removedAt
+}
+
+fragment TransferOrder on TransferOrderDto {
+  id
+  key
+  description
+  receiver
+  createdBy
+  removedAt
+  createdAt
+  items {
+    ...TransferOrderItem
+  }
+}

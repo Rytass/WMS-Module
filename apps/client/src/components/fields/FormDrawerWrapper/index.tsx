@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useState, useMemo } from 'react';
-import { Drawer } from '@mezzanine-ui/react';
+import { ButtonVariant, Drawer } from '@mezzanine-ui/react';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { UseFormReturn, SubmitHandler, FieldValues } from 'react-hook-form';
 import { FormWrapper } from '../FormWrapper';
@@ -16,6 +16,7 @@ type FormDrawerWrapperProps<T extends FieldValues = FieldValues> = {
   bottomSecondaryActionText?: string;
   bottomPrimaryActionText: string;
   bottomPrimaryActionIcon?: IconDefinition;
+  bottomPrimaryActionVariant?: ButtonVariant;
   headerTitle: string;
 };
 
@@ -31,6 +32,7 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
   bottomSecondaryActionText,
   bottomPrimaryActionText,
   bottomPrimaryActionIcon,
+  bottomPrimaryActionVariant,
   headerTitle,
 }: FormDrawerWrapperProps<T>) {
   const [acting, setActing] = useState<boolean>(false);
@@ -58,6 +60,7 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
       bottomOnPrimaryActionClick={onConfirm}
       bottomPrimaryActionIconType="leading"
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}
+      bottomPrimaryActionVariant={bottomPrimaryActionVariant}
       disableCloseOnBackdropClick={false}
       disableCloseOnEscapeKeyDown={false}
       headerTitle={headerTitle}

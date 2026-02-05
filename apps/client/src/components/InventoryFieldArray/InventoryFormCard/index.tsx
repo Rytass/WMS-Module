@@ -14,9 +14,10 @@ import { useEffect } from 'react';
 
 interface InventoryFormCardProps {
   index: number;
+  onRemove: VoidFunction;
 }
 
-const InventoryFormCard: FC<InventoryFormCardProps> = ({ index }) => {
+const InventoryFormCard: FC<InventoryFormCardProps> = ({ index, onRemove }) => {
   const values: InventoryFieldItem = useWatch({ name: `stocks.${index}` });
   const { setValue } = useFormContext();
   const prevSelectedUnit = usePreviousValue(values.selectedUnit);
@@ -70,6 +71,7 @@ const InventoryFormCard: FC<InventoryFormCardProps> = ({ index }) => {
             iconType="icon-only"
             size="minor"
             variant="destructive-ghost"
+            onClick={onRemove}
           />
         </div>
       </div>

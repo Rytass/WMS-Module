@@ -4,6 +4,7 @@ import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryFieldArray from '../../InventoryFieldArray';
 import { initInventoryFieldItem } from '../../InventoryFieldArray/InventoryFormCard/utils';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { useClearAll } from '../hooks';
 import { FormValues } from './typing';
 import { useEffect } from 'react';
 
@@ -25,6 +26,9 @@ const HoldInventory: FC<HoldInventoryProps> = ({
   bottomPrimaryActionIcon,
 }) => {
   const methods = useForm<FormValues>();
+  const onClearAll = useClearAll(() => {
+    methods.setValue('stocks', []);
+  });
 
   useEffect(() => {
     if (open) {
@@ -46,9 +50,7 @@ const HoldInventory: FC<HoldInventoryProps> = ({
       headerTitle={headerTitle}
       bottomPrimaryActionText={bottomPrimaryActionText}
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}
-      bottomOnGhostActionClick={() => {
-        console.log('ghost');
-      }}
+      bottomOnGhostActionClick={onClearAll}
     >
       <InventoryFieldArray />
     </FormDrawerWrapper>

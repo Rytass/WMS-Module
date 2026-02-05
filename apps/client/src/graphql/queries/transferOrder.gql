@@ -1,0 +1,31 @@
+query TransferOrders(
+  $offset: Int
+  $limit: Int
+  $key: String
+  $receiver: String
+  $dateRange: DateRangeArgs
+  $description: String
+  $materialId: ID
+  $batchId: ID
+  $locationId: ID
+  $loaderId: ID
+) {
+  transferOrders(
+    offset: $offset
+    limit: $limit
+    key: $key
+    receiver: $receiver
+    dateRange: $dateRange
+    description: $description
+    materialId: $materialId
+    batchId: $batchId
+    locationId: $locationId
+    loaderId: $loaderId
+  ) {
+    id
+    items {
+      ...TransferOrder
+    }
+    total
+  }
+}
