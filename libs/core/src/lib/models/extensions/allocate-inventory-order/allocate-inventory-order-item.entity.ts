@@ -22,9 +22,22 @@ export class AllocateInventoryOrderItemEntityClass {
 
   @Column({ type: 'uuid' })
   @Index()
-  locationId!: string;
+  materialId!: string;
+
+  @Column({ type: 'uuid' })
+  @Index()
+  batchId!: string;
 
   @Column({ type: 'uuid', nullable: true })
+  @Index()
+  unitId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
+  locationId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
   loaderId!: string | null;
 
   @Column({ type: 'numeric' })
@@ -33,6 +46,12 @@ export class AllocateInventoryOrderItemEntityClass {
   @Column({ type: 'uuid' })
   @Index()
   orderId!: string;
+
+  @Column({ type: 'varchar' })
+  saleId!: string;
+
+  @Column({ type: 'varchar' })
+  serial!: string;
 
   @ManyToOne('locations')
   @JoinColumn({ name: 'locationId', referencedColumnName: 'id' })

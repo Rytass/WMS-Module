@@ -7,6 +7,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   TableInheritance,
+  Unique,
 } from 'typeorm';
 import { ShipInventoryOrderEntityClass } from './ship-inventory-order.entity';
 import { MaterialEntityClass } from '../../metadata/material.entity';
@@ -20,12 +21,16 @@ export const ShipInventoryOrderItemEntity = Symbol(
 
 @Entity('ship_inventory_order_items')
 @TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
+@Unique('UQ_saleId_serial', ['saleId', 'serial'])
 export class ShipInventoryOrderItemEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'int' })
-  serial: number;
+  @Column({ type: 'varchar', nullable: true })
+  saleId!: string;
+
+  @Column({ type: 'int', nullable: true })
+  serial!: number;
 
   @Column({ type: 'text', nullable: true })
   description!: string | null;

@@ -3,6 +3,7 @@ export type CreateHoldInventoryOrderItemInput = {
   batchId: string;
   locationId?: string;
   loaderId?: string;
+  unitId?: string;
   targetHeldQuantity: number;
 };
 
