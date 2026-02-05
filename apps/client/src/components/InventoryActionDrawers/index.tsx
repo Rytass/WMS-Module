@@ -4,6 +4,8 @@ import {
   InventoryActionItem,
 } from '../../utils/inventoryActions';
 import HoldInventory from './HoldInventory';
+import ReleaseHoldInventory from './ReleaseHoldInventory';
+import ScrapInventory from './ScrapInventory';
 
 interface InventoryActionDrawersProps {
   targetAction: InventoryActionItem | null;
@@ -22,6 +24,30 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     case InventoryActions.HoldInventory:
       return (
         <HoldInventory
+          targetStocks={targetStocks}
+          onClose={onClose}
+          open={open}
+          headerTitle={targetAction.title}
+          bottomPrimaryActionText={targetAction.submitText}
+          bottomPrimaryActionIcon={targetAction.icon}
+        />
+      );
+
+    case InventoryActions.ReleaseInventoryHold:
+      return (
+        <ReleaseHoldInventory
+          targetStocks={targetStocks}
+          onClose={onClose}
+          open={open}
+          headerTitle={targetAction.title}
+          bottomPrimaryActionText={targetAction.submitText}
+          bottomPrimaryActionIcon={targetAction.icon}
+        />
+      );
+
+    case InventoryActions.ScrapInventory:
+      return (
+        <ScrapInventory
           targetStocks={targetStocks}
           onClose={onClose}
           open={open}
