@@ -5,6 +5,7 @@ import {
 } from '../../utils/inventoryActions';
 import HoldInventory from './HoldInventory';
 import ReleaseHoldInventory from './ReleaseHoldInventory';
+import MergeBatch from './MergeBatch';
 import ScrapInventory from './ScrapInventory';
 
 interface InventoryActionDrawersProps {
@@ -36,6 +37,18 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     case InventoryActions.ReleaseInventoryHold:
       return (
         <ReleaseHoldInventory
+          targetStocks={targetStocks}
+          onClose={onClose}
+          open={open}
+          headerTitle={targetAction.title}
+          bottomPrimaryActionText={targetAction.submitText}
+          bottomPrimaryActionIcon={targetAction.icon}
+        />
+      );
+
+    case InventoryActions.MergeBatch:
+      return (
+        <MergeBatch
           targetStocks={targetStocks}
           onClose={onClose}
           open={open}
