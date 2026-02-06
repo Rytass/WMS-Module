@@ -1,5 +1,7 @@
 import { useCallback, useState, useMemo } from 'react';
+import { flatten } from 'lodash';
 import {
+  Typography,
   TableColumn,
   Table as MznTable,
   useTableRowSelection,
@@ -94,22 +96,60 @@ function InventoryGroupTable() {
       key: 'batchKey',
       title: '批號',
       width: 140,
-      render: (source) =>
-        source.aggregatedStock?.map((s) => s.batch.key).join(','),
+      render: (source) => {
+        if ((source.aggregatedStock?.length ?? 0) >= 2) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {source.aggregatedStock?.map((s) => s.batch.key).join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return source.aggregatedStock?.map((s) => s.batch.key).join(',');
+      },
     },
     {
       key: 'locationKey',
       title: '儲存位置',
       width: 140,
-      render: (source) =>
-        source.aggregatedStock?.map((s) => s.location.key).join(','),
+      render: (source) => {
+        if ((source.aggregatedStock?.length ?? 0) >= 2) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {source.aggregatedStock?.map((s) => s.location.key).join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return source.aggregatedStock?.map((s) => s.location.key).join(',');
+      },
     },
     {
       key: 'loaderSerialId',
       title: '載具',
       width: 100,
-      render: (source) =>
-        source.aggregatedStock?.map((s) => s.loader.serialId).join(','),
+      render: (source) => {
+        if ((source.aggregatedStock?.length ?? 0) >= 2) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {source.aggregatedStock
+                  ?.map((s) => s.loader.serialId)
+                  .join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return source.aggregatedStock?.map((s) => s.loader.serialId).join(',');
+      },
     },
   ];
 
@@ -148,16 +188,17 @@ function InventoryGroupTable() {
 
   console.log(
     'selectedRowKeys',
-    parentSelectedKeys,
-    parentSelectedKeys.map((k) => {
-      const item = dataSource.find((d) => d.key === k);
+    flatten(
+      parentSelectedKeys.map((k) => {
+        const item = dataSource.find((d) => d.key === k);
 
-      if (item) {
-        return getChildSelectedRowKeys(item);
-      }
+        if (item) {
+          return getChildSelectedRowKeys(item);
+        }
 
-      return null;
-    }),
+        return null;
+      }),
+    ),
   );
 
   return (
