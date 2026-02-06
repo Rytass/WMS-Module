@@ -94,7 +94,7 @@ function InventoryTable({
           <InventoryActionSelector
             currentAction={currentAction}
             setCurrentAction={setCurrentAction}
-            disabled={targetStocks.length === 0}
+            targetStocks={targetStocks}
           />
         </div>
       }
