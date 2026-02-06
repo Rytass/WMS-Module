@@ -70,6 +70,8 @@ function InventoryGroupTable() {
     (): DataType[] =>
       (data?.stocksGroupedByMaterial.items ?? []).map((item) => ({
         ...item.aggregatedStock[0],
+        key: item.key,
+        id: item.id,
         aggregatedStock: item.aggregatedStock,
       })),
     [data?.stocksGroupedByMaterial.items],
