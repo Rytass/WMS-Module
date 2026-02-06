@@ -30,8 +30,8 @@ function LoaderFormBody({ title, breadcrumbTitle }: LoaderFormBodyProps) {
       onBack={onFormCancel}
     >
       <SectionWrapper title="載具設定">
-        <div className={classes.fieldsWrapper}>
-          <div>
+        <div className={classes.fieldsSection}>
+          <div className={classes.fieldsWrapper}>
             <InputField name="remark" label="備註" placeholder="輸入備註" />
           </div>
           <FormActionButtons

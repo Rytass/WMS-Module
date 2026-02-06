@@ -1,5 +1,12 @@
-.fieldsWrapper {
+@use '@mezzanine-ui/system/spacing';
+
+.fieldsSection {
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
+  gap: spacing.semantic-variable(gap, base);
+
+  .fieldsWrapper {
+    flex: 1;
+  }
 }
