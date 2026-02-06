@@ -121,10 +121,10 @@ export class HoldInventoryOrderService<
 
   async updateHoldInventoryOrder({
     id,
-    manager,
+    manager = this.dataSource.manager,
     ...options
   }: UpdateHoldInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
-    const repos = this.getRepositories(manager ?? this.dataSource.manager);
+    const repos = this.getRepositories(manager);
 
     const order = await repos.holdInventoryOrder.findOneBy({ id });
     const updated = await repos.holdInventoryOrder.save({
