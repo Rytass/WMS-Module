@@ -68,9 +68,7 @@ const FilterWrapper = <T extends FieldValues>({
             >
               {isExpanded ? '收合進階搜尋' : '進階搜尋'}
             </Button>
-          ) : (
-            <div />
-          )
+          ) : null
         }
       />
     </FormWrapper>

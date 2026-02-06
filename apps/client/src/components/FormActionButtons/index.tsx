@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Button } from '@mezzanine-ui/react';
+import { Button, cx } from '@mezzanine-ui/react';
 import classes from './index.module.scss';
 
 interface FormActionButtonsProps {
@@ -18,7 +18,11 @@ function FormActionButtons({
   otherActionButton,
 }: FormActionButtonsProps) {
   return (
-    <div className={classes.host}>
+    <div
+      className={cx(classes.host, {
+        [classes.haveOtherButton]: !!otherActionButton,
+      })}
+    >
       {otherActionButton}
       <div className={classes.buttons}>
         <Button
