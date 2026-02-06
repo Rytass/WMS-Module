@@ -1,23 +1,14 @@
 import { useCallback, useState, useMemo } from 'react';
 import {
-  TableDataSourceWithKey,
   TableColumn,
   Table as MznTable,
   useTableRowSelection,
-  Typography,
   Button,
   cx,
 } from '@mezzanine-ui/react';
 import { CaretDownIcon } from '@mezzanine-ui/icons';
 import Table from '../../../TableWrapper/Table';
-import {
-  useTablePageState,
-  useTablePageTotal,
-} from '../../../../hooks/useTablePagination';
-import {
-  MaterialWithAggregatedStockFragment,
-  AggregatedStockFragment,
-} from '../../../../graphql/generated/.graphql';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useQueryStocksGrouped } from '../useApi';
 import classes from './group-table.module.scss';
 
@@ -91,6 +82,33 @@ function InventoryGroupTable() {
       width: 140,
       render: (source) => source.material?.key,
     },
+    {
+      key: 'description',
+      title: '物料說明',
+      width: 140,
+      render: (source) => source.material?.description,
+    },
+    {
+      key: 'batchKey',
+      title: '批號',
+      width: 140,
+      render: (source) =>
+        source.aggregatedStock?.map((s) => s.batch.key).join(','),
+    },
+    {
+      key: 'locationKey',
+      title: '儲存位置',
+      width: 140,
+      render: (source) =>
+        source.aggregatedStock?.map((s) => s.location.key).join(','),
+    },
+    {
+      key: 'loaderSerialId',
+      title: '載具',
+      width: 100,
+      render: (source) =>
+        source.aggregatedStock?.map((s) => s.loader.serialId).join(','),
+    },
   ];
 
   const subColumns: TableColumn<DataType>[] = [
@@ -99,6 +117,30 @@ function InventoryGroupTable() {
       title: '料號',
       width: 140,
       render: (source) => source.material?.key,
+    },
+    {
+      key: 'description',
+      title: '物料說明',
+      width: 140,
+      render: (source) => source.material?.description,
+    },
+    {
+      key: 'batchKey',
+      title: '批號',
+      width: 140,
+      render: (source) => source.batch?.key,
+    },
+    {
+      key: 'locationKey',
+      title: '儲存位置',
+      width: 140,
+      render: (source) => source.location?.key,
+    },
+    {
+      key: 'loaderSerialId',
+      title: '載具',
+      width: 100,
+      render: (source) => source.loader?.serialId,
     },
   ];
 
@@ -135,7 +177,7 @@ function InventoryGroupTable() {
             }}
           />
         ),
-        rowExpandable: (record) => !!record.aggregatedStock?.length,
+        rowExpandable: (record) => (record.aggregatedStock?.length ?? 0) >= 2,
         onExpandedRowsChange: (keys) => {
           setExpandedRowKeys(keys);
         },
