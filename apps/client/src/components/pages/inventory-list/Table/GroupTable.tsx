@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useState, useMemo, useEffect } from 'react';
 import { flatten } from 'lodash';
 import {
   Typography,
@@ -30,6 +30,9 @@ function InventoryGroupTable() {
   });
 
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
+  const [dataSignature, setDataSignature] = useState<{
+    [id: string]: AggregatedStockFragment;
+  }>({});
 
   const renderExpandButton = useCallback(
     (source: AggregatedStockFragment) => {
@@ -78,6 +81,19 @@ function InventoryGroupTable() {
       })),
     [data?.stocksGroupedByMaterial.items],
   );
+
+  useEffect(() => {
+    const signature = flatten(dataSource.map((d) => d.aggregatedStock)).reduce(
+      (prev, curr) => ({
+        ...prev,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        [curr!.id]: curr,
+      }),
+      {},
+    );
+
+    setDataSignature((s) => ({ ...s, ...signature }));
+  }, [dataSource]);
 
   const baseColumns: TableColumn<DataType>[] = [
     {
