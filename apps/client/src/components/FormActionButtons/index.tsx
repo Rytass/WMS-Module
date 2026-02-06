@@ -5,12 +5,14 @@ import classes from './index.module.scss';
 interface FormActionButtonsProps {
   onReset: VoidFunction;
   submitText: string;
+  submitButtonType?: 'submit' | 'button';
   otherActionButton?: ReactNode;
 }
 
 function FormActionButtons({
   onReset,
   submitText,
+  submitButtonType = 'submit',
   otherActionButton,
 }: FormActionButtonsProps) {
   return (
@@ -26,7 +28,7 @@ function FormActionButtons({
         >
           重置
         </Button>
-        <Button type="submit" size="sub" className={classes.button}>
+        <Button type={submitButtonType} size="sub" className={classes.button}>
           {submitText}
         </Button>
       </div>

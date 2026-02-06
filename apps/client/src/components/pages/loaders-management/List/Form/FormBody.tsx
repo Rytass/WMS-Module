@@ -28,7 +28,9 @@ function LoaderFormBody({ title, breadcrumbTitle }: LoaderFormBodyProps) {
       onBack={onFormCancel}
     >
       <SectionWrapper title="載具設定">
-        <InputField name="demo" label="demo" />
+        <div>
+          <InputField name="remark" label="備註" placeholder="輸入備註" />
+        </div>
       </SectionWrapper>
       <SectionWrapper title="待建立列表">section</SectionWrapper>
     </PageWrapper>

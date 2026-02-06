@@ -12,7 +12,7 @@ function CreateLoader() {
       onSubmit={onSubmit}
       title="新增載具"
       breadcrumbTitle="新增載具"
-      submitText="新增"
+      submitText="建立全部"
     />
   );
 }
