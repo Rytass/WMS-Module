@@ -1,5 +1,12 @@
-import { useCallback, useState, useMemo, useEffect } from 'react';
-import { flatten } from 'lodash';
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useState,
+  useMemo,
+  useEffect,
+} from 'react';
+import { flatten, compact } from 'lodash';
 import {
   Typography,
   TableColumn,
@@ -18,7 +25,11 @@ type DataType = AggregatedStockFragment & {
   aggregatedStock?: AggregatedStockFragment[];
 };
 
-function InventoryGroupTable() {
+interface InventoryGroupTableProps {
+  setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
+}
+
+function InventoryGroupTable({ setTargetStocks }: InventoryGroupTableProps) {
   const {
     parentSelectedKeys,
     parentOnChange,
@@ -95,7 +106,37 @@ function InventoryGroupTable() {
     setDataSignature((s) => ({ ...s, ...signature }));
   }, [dataSource]);
 
+  useEffect(() => {
+    setTargetStocks(
+      compact(
+        flatten(
+          parentSelectedKeys.map((k) => {
+            const item = dataSource.find((d) => d.key === k);
+
+            if (item) {
+              return getChildSelectedRowKeys(item);
+            }
+
+            return null;
+          }),
+        ).map((key) => (key ? dataSignature[key] : null)),
+      ),
+    );
+  }, [
+    dataSignature,
+    dataSource,
+    getChildSelectedRowKeys,
+    parentSelectedKeys,
+    setTargetStocks,
+  ]);
+
   const baseColumns: TableColumn<DataType>[] = [
+    {
+      key: 'status',
+      title: '狀態',
+      width: 100,
+      render: (source) => source.status,
+    },
     {
       key: 'materialKey',
       title: '料號',
@@ -171,6 +212,12 @@ function InventoryGroupTable() {
 
   const subColumns: TableColumn<DataType>[] = [
     {
+      key: 'status',
+      title: '狀態',
+      width: 100,
+      render: (source) => source.status,
+    },
+    {
       key: 'materialKey',
       title: '料號',
       width: 140,
@@ -201,21 +248,6 @@ function InventoryGroupTable() {
       render: (source) => source.loader?.serialId,
     },
   ];
-
-  console.log(
-    'selectedRowKeys',
-    flatten(
-      parentSelectedKeys.map((k) => {
-        const item = dataSource.find((d) => d.key === k);
-
-        if (item) {
-          return getChildSelectedRowKeys(item);
-        }
-
-        return null;
-      }),
-    ),
-  );
 
   return (
     <Table<DataType>

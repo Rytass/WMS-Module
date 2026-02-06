@@ -35,7 +35,7 @@ function InventoryTable({
   const tableComponent = useMemo(() => {
     switch (mode) {
       case Mode.group:
-        return <InventoryGroupTable />;
+        return <InventoryGroupTable setTargetStocks={setTargetStocks} />;
 
       case Mode.list:
         return <InventoryListTable setTargetStocks={setTargetStocks} />;
