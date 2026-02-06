@@ -6,6 +6,7 @@ interface FormActionButtonsProps {
   onReset: VoidFunction;
   submitText: string;
   submitButtonType?: 'submit' | 'button';
+  onClickSubmit?: VoidFunction;
   otherActionButton?: ReactNode;
 }
 
@@ -13,6 +14,7 @@ function FormActionButtons({
   onReset,
   submitText,
   submitButtonType = 'submit',
+  onClickSubmit,
   otherActionButton,
 }: FormActionButtonsProps) {
   return (
@@ -28,7 +30,12 @@ function FormActionButtons({
         >
           重置
         </Button>
-        <Button type={submitButtonType} size="sub" className={classes.button}>
+        <Button
+          type={submitButtonType}
+          size="sub"
+          className={classes.button}
+          onClick={onClickSubmit}
+        >
           {submitText}
         </Button>
       </div>
