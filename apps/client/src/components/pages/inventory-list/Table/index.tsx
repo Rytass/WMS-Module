@@ -1,13 +1,17 @@
-import { Dispatch, SetStateAction, useMemo, useState } from 'react';
-import { Radio, RadioGroup } from '@mezzanine-ui/react';
+import { useMemo, useState } from 'react';
+import { Button, Message, Radio, RadioGroup } from '@mezzanine-ui/react';
 import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
 import InventoryGroupTable from './GroupTable';
 import InventoryListTable from './ListTable';
-import { InventoryActions } from '../../../../utils/inventoryActions';
+import {
+  inventoryActionOptions,
+  InventoryActions,
+} from '../../../../utils/inventoryActions';
 import InventoryActionSelector from './InventoryActionSelector';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useDialog } from '../../../dialog/useDialog';
+import InventoryActionDrawers from '../../../InventoryActionDrawers';
 import classes from './index.module.scss';
 
 enum Mode {
@@ -15,22 +19,22 @@ enum Mode {
   list = 'list',
 }
 
-interface InventoryTableProps {
-  currentAction: InventoryActions | null;
-  setCurrentAction: Dispatch<SetStateAction<InventoryActions | null>>;
-  targetStocks: AggregatedStockFragment[];
-  setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
-}
-
-function InventoryTable({
-  currentAction,
-  setCurrentAction,
-  targetStocks,
-  setTargetStocks,
-}: InventoryTableProps) {
-  const [mode, setMode] = useState<Mode>(Mode.group);
+function InventoryTable() {
   const { openDialog } = useDialog();
   const { replace, pathname } = useRouter();
+  const [mode, setMode] = useState<Mode>(Mode.group);
+  const [open, setOpen] = useState<boolean>(false);
+
+  const [targetStocks, setTargetStocks] = useState<AggregatedStockFragment[]>(
+    [],
+  );
+  const [currentAction, setCurrentAction] = useState<InventoryActions | null>(
+    null,
+  );
+
+  const targetAction = useMemo(() => {
+    return inventoryActionOptions.find((o) => o.id === currentAction) ?? null;
+  }, [currentAction]);
 
   const tableComponent = useMemo(() => {
     switch (mode) {
@@ -46,61 +50,92 @@ function InventoryTable({
   }, [mode, setTargetStocks]);
 
   return (
-    <TableWrapper
-      title="庫存項目"
-      otherActions={
-        <div className={classes.actionsWrapper}>
-          <RadioGroup
-            size="sub"
-            type="segment"
-            value={mode}
-            onChange={async (e) => {
-              const doChange = () => {
-                setMode(e.target.value as Mode);
-                setTargetStocks([]);
-                setCurrentAction(null);
-                replace({ pathname: pathname, query: {} }, undefined, {
-                  shallow: true,
-                });
-              };
+    <>
+      <TableWrapper
+        title="庫存項目"
+        otherActions={
+          <div className={classes.actionsWrapper}>
+            <RadioGroup
+              size="sub"
+              type="segment"
+              value={mode}
+              onChange={async (e) => {
+                const doChange = () => {
+                  setMode(e.target.value as Mode);
+                  setTargetStocks([]);
+                  setCurrentAction(null);
+                  replace({ pathname: pathname, query: {} }, undefined, {
+                    shallow: true,
+                  });
+                };
 
-              if (targetStocks.length > 0) {
-                const isConfirm = await openDialog({
-                  title: '切換模式將清除已選內容',
-                  supportingText:
-                    '已選內容尚未儲存，切換模式後將遺失目前進度。確認是否要切換模式嗎？',
-                  cancelText: '繼續編輯',
-                  confirmText: '切換模式',
-                  confirmButtonProps: {
-                    variant: 'destructive-primary',
-                  },
-                });
+                if (targetStocks.length > 0) {
+                  const isConfirm = await openDialog({
+                    title: '切換模式將清除已選內容',
+                    supportingText:
+                      '已選內容尚未儲存，切換模式後將遺失目前進度。確認是否要切換模式嗎？',
+                    cancelText: '繼續編輯',
+                    confirmText: '切換模式',
+                    confirmButtonProps: {
+                      variant: 'destructive-primary',
+                    },
+                  });
 
-                if (isConfirm) {
+                  if (isConfirm) {
+                    doChange();
+                  }
+                } else {
                   doChange();
                 }
-              } else {
-                doChange();
-              }
-            }}
-          >
-            <Radio value={Mode.group} type="segment">
-              料號模式
-            </Radio>
-            <Radio value={Mode.list} type="segment">
-              攤平模式
-            </Radio>
-          </RadioGroup>
-          <InventoryActionSelector
-            currentAction={currentAction}
-            setCurrentAction={setCurrentAction}
-            targetStocks={targetStocks}
-          />
-        </div>
-      }
-    >
-      {tableComponent}
-    </TableWrapper>
+              }}
+            >
+              <Radio value={Mode.group} type="segment">
+                料號模式
+              </Radio>
+              <Radio value={Mode.list} type="segment">
+                攤平模式
+              </Radio>
+            </RadioGroup>
+            <InventoryActionSelector
+              currentAction={currentAction}
+              setCurrentAction={setCurrentAction}
+              targetStocks={targetStocks}
+            />
+          </div>
+        }
+      >
+        {tableComponent}
+      </TableWrapper>
+      {targetAction ? (
+        <Button
+          icon={targetAction.icon}
+          className={classes.actionButton}
+          iconType="icon-only"
+          variant="base-secondary"
+          onClick={() => {
+            const invalidStock = targetStocks.find(
+              (stock) => !targetAction.status.includes(stock.status),
+            );
+
+            if (invalidStock) {
+              Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
+無法執行作業：料號，資料不符作業條件。`);
+            } else {
+              setOpen(true);
+            }
+          }}
+        />
+      ) : null}
+
+      <InventoryActionDrawers
+        targetAction={targetAction}
+        targetStocks={targetStocks}
+        onClose={() => {
+          setOpen(false);
+        }}
+        open={open}
+      />
+    </>
   );
 }
 
