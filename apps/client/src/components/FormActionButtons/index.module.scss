@@ -4,8 +4,12 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-self: stretch;
+
+  &.haveOtherButton {
+    justify-content: space-between;
+  }
 
   .buttons {
     display: flex;

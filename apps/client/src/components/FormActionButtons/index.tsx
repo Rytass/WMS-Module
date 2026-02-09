@@ -1,20 +1,28 @@
 import { ReactNode } from 'react';
-import { Button } from '@mezzanine-ui/react';
+import { Button, cx } from '@mezzanine-ui/react';
 import classes from './index.module.scss';
 
 interface FormActionButtonsProps {
   onReset: VoidFunction;
   submitText: string;
+  submitButtonType?: 'submit' | 'button';
+  onClickSubmit?: VoidFunction;
   otherActionButton?: ReactNode;
 }
 
 function FormActionButtons({
   onReset,
   submitText,
+  submitButtonType = 'submit',
+  onClickSubmit,
   otherActionButton,
 }: FormActionButtonsProps) {
   return (
-    <div className={classes.host}>
+    <div
+      className={cx(classes.host, {
+        [classes.haveOtherButton]: !!otherActionButton,
+      })}
+    >
       {otherActionButton}
       <div className={classes.buttons}>
         <Button
@@ -26,7 +34,12 @@ function FormActionButtons({
         >
           重置
         </Button>
-        <Button type="submit" size="sub" className={classes.button}>
+        <Button
+          type={submitButtonType}
+          size="sub"
+          className={classes.button}
+          onClick={onClickSubmit}
+        >
           {submitText}
         </Button>
       </div>

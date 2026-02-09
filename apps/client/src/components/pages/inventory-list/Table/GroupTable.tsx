@@ -1,23 +1,23 @@
-import { useCallback, useState, useMemo } from 'react';
 import {
-  TableDataSourceWithKey,
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useState,
+  useMemo,
+  useEffect,
+} from 'react';
+import { flatten, compact } from 'lodash';
+import {
+  Typography,
   TableColumn,
   Table as MznTable,
   useTableRowSelection,
-  Typography,
   Button,
   cx,
 } from '@mezzanine-ui/react';
 import { CaretDownIcon } from '@mezzanine-ui/icons';
 import Table from '../../../TableWrapper/Table';
-import {
-  useTablePageState,
-  useTablePageTotal,
-} from '../../../../hooks/useTablePagination';
-import {
-  MaterialWithAggregatedStockFragment,
-  AggregatedStockFragment,
-} from '../../../../graphql/generated/.graphql';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useQueryStocksGrouped } from '../useApi';
 import classes from './group-table.module.scss';
 
@@ -25,7 +25,17 @@ type DataType = AggregatedStockFragment & {
   aggregatedStock?: AggregatedStockFragment[];
 };
 
-function InventoryGroupTable() {
+interface InventoryGroupTableProps {
+  setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
+  needClearSelectedRows: boolean;
+  setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;
+}
+
+function InventoryGroupTable({
+  setTargetStocks,
+  needClearSelectedRows,
+  setNeedClearSelectedRows,
+}: InventoryGroupTableProps) {
   const {
     parentSelectedKeys,
     parentOnChange,
@@ -37,6 +47,9 @@ function InventoryGroupTable() {
   });
 
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
+  const [dataSignature, setDataSignature] = useState<{
+    [id: string]: AggregatedStockFragment;
+  }>({});
 
   const renderExpandButton = useCallback(
     (source: AggregatedStockFragment) => {
@@ -79,42 +92,175 @@ function InventoryGroupTable() {
     (): DataType[] =>
       (data?.stocksGroupedByMaterial.items ?? []).map((item) => ({
         ...item.aggregatedStock[0],
+        key: item.key,
+        id: item.id,
         aggregatedStock: item.aggregatedStock,
       })),
     [data?.stocksGroupedByMaterial.items],
   );
 
+  useEffect(() => {
+    if (needClearSelectedRows) {
+      parentOnChange([], null, []);
+      setNeedClearSelectedRows(false);
+    }
+  }, [parentOnChange, needClearSelectedRows, setNeedClearSelectedRows]);
+
+  useEffect(() => {
+    const signature = flatten(dataSource.map((d) => d.aggregatedStock)).reduce(
+      (prev, curr) => ({
+        ...prev,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        [curr!.id]: curr,
+      }),
+      {},
+    );
+
+    setDataSignature((s) => ({ ...s, ...signature }));
+  }, [dataSource]);
+
+  useEffect(() => {
+    setTargetStocks(
+      compact(
+        flatten(
+          parentSelectedKeys.map((k) => {
+            const item = dataSource.find((d) => d.key === k);
+
+            if (item) {
+              return getChildSelectedRowKeys(item);
+            }
+
+            return null;
+          }),
+        ).map((key) => (key ? dataSignature[key] : null)),
+      ),
+    );
+  }, [
+    dataSignature,
+    dataSource,
+    getChildSelectedRowKeys,
+    parentSelectedKeys,
+    setTargetStocks,
+  ]);
+
   const baseColumns: TableColumn<DataType>[] = [
+    {
+      key: 'status',
+      title: '狀態',
+      width: 100,
+      render: (source) => source.status,
+    },
     {
       key: 'materialKey',
       title: '料號',
       width: 140,
       render: (source) => source.material?.key,
+    },
+    {
+      key: 'description',
+      title: '物料說明',
+      width: 140,
+      render: (source) => source.material?.description,
+    },
+    {
+      key: 'batchKey',
+      title: '批號',
+      width: 140,
+      render: (source) => {
+        if ((source.aggregatedStock?.length ?? 0) >= 2) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {source.aggregatedStock?.map((s) => s.batch.key).join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return source.aggregatedStock?.map((s) => s.batch.key).join(',');
+      },
+    },
+    {
+      key: 'locationKey',
+      title: '儲存位置',
+      width: 140,
+      render: (source) => {
+        if ((source.aggregatedStock?.length ?? 0) >= 2) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {source.aggregatedStock?.map((s) => s.location.key).join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return source.aggregatedStock?.map((s) => s.location.key).join(',');
+      },
+    },
+    {
+      key: 'loaderSerialId',
+      title: '載具',
+      width: 100,
+      render: (source) => {
+        if ((source.aggregatedStock?.length ?? 0) >= 2) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {source.aggregatedStock
+                  ?.map((s) => s.loader.serialId)
+                  .join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return source.aggregatedStock?.map((s) => s.loader.serialId).join(',');
+      },
     },
   ];
 
   const subColumns: TableColumn<DataType>[] = [
     {
+      key: 'status',
+      title: '狀態',
+      width: 100,
+      render: (source) => source.status,
+    },
+    {
       key: 'materialKey',
       title: '料號',
       width: 140,
       render: (source) => source.material?.key,
     },
+    {
+      key: 'description',
+      title: '物料說明',
+      width: 140,
+      render: (source) => source.material?.description,
+    },
+    {
+      key: 'batchKey',
+      title: '批號',
+      width: 140,
+      render: (source) => source.batch?.key,
+    },
+    {
+      key: 'locationKey',
+      title: '儲存位置',
+      width: 140,
+      render: (source) => source.location?.key,
+    },
+    {
+      key: 'loaderSerialId',
+      title: '載具',
+      width: 100,
+      render: (source) => source.loader?.serialId,
+    },
   ];
-
-  console.log(
-    'selectedRowKeys',
-    parentSelectedKeys,
-    parentSelectedKeys.map((k) => {
-      const item = dataSource.find((d) => d.key === k);
-
-      if (item) {
-        return getChildSelectedRowKeys(item);
-      }
-
-      return null;
-    }),
-  );
 
   return (
     <Table<DataType>
@@ -135,7 +281,7 @@ function InventoryGroupTable() {
             }}
           />
         ),
-        rowExpandable: (record) => !!record.aggregatedStock?.length,
+        rowExpandable: (record) => (record.aggregatedStock?.length ?? 0) >= 2,
         onExpandedRowsChange: (keys) => {
           setExpandedRowKeys(keys);
         },
