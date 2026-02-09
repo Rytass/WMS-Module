@@ -124,7 +124,6 @@ function InventoryTable() {
       ) : null}
 
       <InventoryActionDrawers
-        targetStocks={targetStocks}
         onClose={() => {
           setOpen(false);
         }}
