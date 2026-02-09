@@ -4,14 +4,11 @@ import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
 import InventoryGroupTable from './GroupTable';
 import InventoryListTable from './ListTable';
-import {
-  inventoryActionOptions,
-  InventoryActions,
-} from '../../../../utils/inventoryActions';
 import InventoryActionSelector from './InventoryActionSelector';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useDialog } from '../../../dialog/useDialog';
 import InventoryActionDrawers from '../../../InventoryActionDrawers';
+import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import classes from './index.module.scss';
 
 enum Mode {
@@ -22,19 +19,14 @@ enum Mode {
 function InventoryTable() {
   const { openDialog } = useDialog();
   const { replace, pathname } = useRouter();
+  const { targetAction } = useInventoryActions();
+
   const [mode, setMode] = useState<Mode>(Mode.group);
   const [open, setOpen] = useState<boolean>(false);
 
   const [targetStocks, setTargetStocks] = useState<AggregatedStockFragment[]>(
     [],
   );
-  const [currentAction, setCurrentAction] = useState<InventoryActions | null>(
-    null,
-  );
-
-  const targetAction = useMemo(() => {
-    return inventoryActionOptions.find((o) => o.id === currentAction) ?? null;
-  }, [currentAction]);
 
   const tableComponent = useMemo(() => {
     switch (mode) {
@@ -63,7 +55,6 @@ function InventoryTable() {
                 const doChange = () => {
                   setMode(e.target.value as Mode);
                   setTargetStocks([]);
-                  setCurrentAction(null);
                   replace({ pathname: pathname, query: {} }, undefined, {
                     shallow: true,
                   });
@@ -96,11 +87,7 @@ function InventoryTable() {
                 攤平模式
               </Radio>
             </RadioGroup>
-            <InventoryActionSelector
-              currentAction={currentAction}
-              setCurrentAction={setCurrentAction}
-              targetStocks={targetStocks}
-            />
+            <InventoryActionSelector targetStocks={targetStocks} />
           </div>
         }
       >
@@ -128,7 +115,6 @@ function InventoryTable() {
       ) : null}
 
       <InventoryActionDrawers
-        targetAction={targetAction}
         targetStocks={targetStocks}
         onClose={() => {
           setOpen(false);
