@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Message, Radio, RadioGroup } from '@mezzanine-ui/react';
+import { Button, Radio, RadioGroup } from '@mezzanine-ui/react';
 import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
 import InventoryGroupTable from './GroupTable';
@@ -23,6 +23,8 @@ function InventoryTable() {
 
   const [mode, setMode] = useState<Mode>(Mode.group);
   const [open, setOpen] = useState<boolean>(false);
+  const [needClearSelectedRows, setNeedClearSelectedRows] =
+    useState<boolean>(false);
 
   const [targetStocks, setTargetStocks] = useState<AggregatedStockFragment[]>(
     [],
@@ -34,12 +36,18 @@ function InventoryTable() {
         return <InventoryGroupTable setTargetStocks={setTargetStocks} />;
 
       case Mode.list:
-        return <InventoryListTable setTargetStocks={setTargetStocks} />;
+        return (
+          <InventoryListTable
+            setTargetStocks={setTargetStocks}
+            needClearSelectedRows={needClearSelectedRows}
+            setNeedClearSelectedRows={setNeedClearSelectedRows}
+          />
+        );
 
       default:
         return undefined;
     }
-  }, [mode, setTargetStocks]);
+  }, [mode, setTargetStocks, needClearSelectedRows, setNeedClearSelectedRows]);
 
   return (
     <>
@@ -87,7 +95,11 @@ function InventoryTable() {
                 攤平模式
               </Radio>
             </RadioGroup>
-            <InventoryActionSelector targetStocks={targetStocks} />
+            <InventoryActionSelector
+              targetStocks={targetStocks}
+              setTargetStocks={setTargetStocks}
+              setNeedClearSelectedRows={setNeedClearSelectedRows}
+            />
           </div>
         }
       >
@@ -100,16 +112,7 @@ function InventoryTable() {
           iconType="icon-only"
           variant="base-secondary"
           onClick={() => {
-            const invalidStock = targetStocks.find(
-              (stock) => !targetAction.status.includes(stock.status),
-            );
-
-            if (invalidStock) {
-              Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
-無法執行作業：料號，資料不符作業條件。`);
-            } else {
-              setOpen(true);
-            }
+            setOpen(true);
           }}
         />
       ) : null}

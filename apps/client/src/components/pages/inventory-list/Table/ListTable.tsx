@@ -6,13 +6,26 @@ import { useQueryStocks } from '../useApi';
 
 interface InventoryListTableProps {
   setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
+  needClearSelectedRows: boolean;
+  setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;
 }
 
-function InventoryListTable({ setTargetStocks }: InventoryListTableProps) {
+function InventoryListTable({
+  needClearSelectedRows,
+  setNeedClearSelectedRows,
+  setTargetStocks,
+}: InventoryListTableProps) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [dataSignature, setDataSignature] = useState<{
     [id: string]: AggregatedStockFragment;
   }>({});
+
+  useEffect(() => {
+    if (needClearSelectedRows) {
+      setSelectedRowKeys([]);
+      setNeedClearSelectedRows(false);
+    }
+  }, [needClearSelectedRows, setNeedClearSelectedRows]);
 
   useEffect(() => {
     setTargetStocks(selectedRowKeys.map((key) => dataSignature[key]));

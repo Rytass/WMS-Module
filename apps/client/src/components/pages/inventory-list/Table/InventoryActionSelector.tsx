@@ -1,19 +1,34 @@
-import { useMemo, useState } from 'react';
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
 import { uniq, intersection } from 'lodash';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
-import { Dropdown, Button } from '@mezzanine-ui/react';
+import { Dropdown, Button, Message } from '@mezzanine-ui/react';
 import { inventoryActionOptions } from '../../../../utils/inventoryActions';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 
 interface InventoryActionSelectorProps {
   targetStocks: AggregatedStockFragment[];
+  setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
+  setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;
 }
 
 function InventoryActionSelector({
   targetStocks,
+  setTargetStocks,
+  setNeedClearSelectedRows,
 }: InventoryActionSelectorProps) {
-  const { targetAction, setTargetAction } = useInventoryActions();
+  const {
+    targetAction,
+    setTargetAction,
+    targetInventoryIds,
+    setTargetInventoryIds,
+  } = useInventoryActions();
   const [open, toggleOpen] = useState<boolean>(false);
 
   const availableOptions = useMemo(() => {
@@ -25,6 +40,34 @@ function InventoryActionSelector({
     );
   }, [targetStocks]);
 
+  const onAddInventoryIds = useCallback(() => {
+    const duplicateItem = targetStocks.find((s) =>
+      targetInventoryIds.includes(s.id),
+    );
+    const invalidStock = targetStocks.find(
+      (stock) => targetAction && !targetAction.status.includes(stock.status),
+    );
+
+    if (duplicateItem) {
+      Message.error(`料號：${duplicateItem.material.key} / 批號：${duplicateItem.batch.key} / 儲存位置：${duplicateItem.location.key}
+此項目已在清單中，無法重複加入。`);
+    } else if (invalidStock) {
+      Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
+無法執行作業：料號，資料不符作業條件。`);
+    } else {
+      setTargetInventoryIds(targetStocks.map((s) => s.id));
+      setTargetStocks([]);
+      setNeedClearSelectedRows(true);
+    }
+  }, [
+    setNeedClearSelectedRows,
+    setTargetInventoryIds,
+    setTargetStocks,
+    targetAction,
+    targetInventoryIds,
+    targetStocks,
+  ]);
+
   if (targetAction) {
     return (
       <Button
@@ -32,6 +75,7 @@ function InventoryActionSelector({
         size="sub"
         icon={targetAction.icon}
         iconType="leading"
+        onClick={onAddInventoryIds}
       >
         {`加入${targetAction.title}`}
       </Button>
@@ -47,6 +91,7 @@ function InventoryActionSelector({
         setTargetAction(
           inventoryActionOptions.find((o) => o.id === option.id) ?? null,
         );
+        onAddInventoryIds();
         toggleOpen(false);
       }}
       placement="bottom-end"
