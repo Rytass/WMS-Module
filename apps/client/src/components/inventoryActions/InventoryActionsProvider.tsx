@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { InventoryActionItem } from '../../utils/inventoryActions';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
 
@@ -8,11 +8,20 @@ const InventoryActionsProvider: FC = ({ children }) => {
     null,
   );
 
+  const pushTargetInventoryIds = useCallback((ids: string[]) => {
+    setTargetInventoryIds((prev) => [...prev, ...ids]);
+  }, []);
+
+  const clearTargetInventoryIds = useCallback(() => {
+    setTargetInventoryIds([]);
+  }, []);
+
   return (
     <InventoryActionsContextProvider
       value={{
         targetInventoryIds,
-        setTargetInventoryIds,
+        pushTargetInventoryIds,
+        clearTargetInventoryIds,
         targetAction,
         setTargetAction,
       }}

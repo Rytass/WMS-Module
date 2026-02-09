@@ -4,7 +4,8 @@ import { InventoryActionItem } from '../../utils/inventoryActions';
 
 export interface InventoryActionsContextValues {
   targetInventoryIds: string[];
-  setTargetInventoryIds: Dispatch<SetStateAction<string[]>>;
+  pushTargetInventoryIds: (ids: string[]) => void;
+  clearTargetInventoryIds: VoidFunction;
   targetAction: InventoryActionItem | null;
   setTargetAction: Dispatch<SetStateAction<InventoryActionItem | null>>;
 }
@@ -12,7 +13,8 @@ export interface InventoryActionsContextValues {
 export const InventoryActionsContext =
   createContext<InventoryActionsContextValues>({
     targetInventoryIds: [],
-    setTargetInventoryIds: () => {},
+    pushTargetInventoryIds: () => {},
+    clearTargetInventoryIds: () => {},
     targetAction: null,
     setTargetAction: () => {},
   });

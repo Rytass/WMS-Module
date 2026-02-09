@@ -27,7 +27,7 @@ function InventoryActionSelector({
     targetAction,
     setTargetAction,
     targetInventoryIds,
-    setTargetInventoryIds,
+    pushTargetInventoryIds,
   } = useInventoryActions();
   const [open, toggleOpen] = useState<boolean>(false);
 
@@ -55,13 +55,13 @@ function InventoryActionSelector({
       Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
 無法執行作業：料號，資料不符作業條件。`);
     } else {
-      setTargetInventoryIds(targetStocks.map((s) => s.id));
+      pushTargetInventoryIds(targetStocks.map((s) => s.id));
       setTargetStocks([]);
       setNeedClearSelectedRows(true);
     }
   }, [
     setNeedClearSelectedRows,
-    setTargetInventoryIds,
+    pushTargetInventoryIds,
     setTargetStocks,
     targetAction,
     targetInventoryIds,
