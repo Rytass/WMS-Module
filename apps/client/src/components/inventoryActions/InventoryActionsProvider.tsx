@@ -12,7 +12,9 @@ const InventoryActionsProvider: FC = ({ children }) => {
     <InventoryActionsContextProvider
       value={{
         targetInventoryIds,
+        setTargetInventoryIds,
         targetAction,
+        setTargetAction,
       }}
     >
       {children}
