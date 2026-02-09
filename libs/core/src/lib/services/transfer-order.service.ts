@@ -17,6 +17,7 @@ import {
 } from '../typings/create-transfer-order.input';
 import { FindTransferOrderInput } from '../typings/find-transfer-order.input';
 import { TransferOrderInput } from '../typings/transfer-order.input';
+import { MaterialService } from './material.service';
 
 @Injectable()
 export class TransferOrderService<
@@ -28,6 +29,7 @@ export class TransferOrderService<
   constructor(
     private readonly dataSource: DataSource,
     private readonly helperService: HelperService,
+    private readonly materialService: MaterialService,
     @Inject(TransferOrderEntity) readonly transferOrderEntity: EntityTarget<T>,
     @Inject(TransferOrderItemEntity)
     readonly transferOrderItemEntity: EntityTarget<K>,
@@ -64,12 +66,16 @@ export class TransferOrderService<
           repos.transferOrderItem.create(data),
         );
         const base = await repos.order.save({});
-
+        const conversedQuantity = await this.materialService.convertToBaseUnit(
+          item.materialId,
+          item.targetTransferredQuantity,
+          item.unitId || undefined,
+        );
         await repos.transferOrderChange.save(
           repos.transferOrderChange.create({
             itemId: item.id,
             id: base.id,
-            quantityChanged: item.targetTransferredQuantity,
+            quantityChanged: conversedQuantity,
           }),
         );
 
@@ -82,7 +88,7 @@ export class TransferOrderService<
               batchId: item.batchId,
               locationId: item.locationId,
               loaderId: item.loaderId || undefined,
-              quantity: item.targetTransferredQuantity,
+              quantity: conversedQuantity,
             },
             // deduct stock from source location
             {
@@ -91,7 +97,7 @@ export class TransferOrderService<
               batchId: item.batchId,
               locationId: item.locationId,
               loaderId: item.loaderId || undefined,
-              quantity: -1 * item.targetTransferredQuantity,
+              quantity: -1 * conversedQuantity,
             },
           ]),
         );
@@ -284,23 +290,29 @@ export class TransferOrderService<
             return sum;
           }, 0);
 
-          const remainingQuantity =
-            item.targetTransferredQuantity + totalTransferred;
+          const conversion = await this.materialService.convertToBaseUnit(
+            item.materialId,
+            item.targetTransferredQuantity,
+            item.unitId || undefined,
+          );
 
-          if (remainingQuantity - option.quantity < 0)
+          const remainingQuantity =
+            item.targetTransferredQuantity * conversion + totalTransferred;
+
+          if (remainingQuantity - option.quantity * conversion < 0)
             throw new Error(
               `Transfer quantity exceeds remaining quantity for item ${item.id}`,
             );
 
           // Record the transfer change
           const base = await manager.getRepository(OrderEntity).save({});
-
+          const conversedQuantity = option.quantity * conversion;
           await Promise.all([
             changeRepository.save(
               changeRepository.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged: -1 * option.quantity,
+                quantityChanged: -1 * conversedQuantity,
               }),
             ),
             // Update stock levels
@@ -313,7 +325,7 @@ export class TransferOrderService<
                   batchId: item.batchId,
                   locationId: item.locationId || undefined,
                   loaderId: item.loaderId || undefined,
-                  quantity: option.quantity,
+                  quantity: -1 * conversedQuantity,
                 },
                 // deduct IN_TRANSFER stock from source location
                 {
@@ -322,7 +334,7 @@ export class TransferOrderService<
                   batchId: item.batchId,
                   locationId: item.targetLocationId || undefined,
                   loaderId: item.targetLoaderId || undefined,
-                  quantity: -1 * option.quantity,
+                  quantity: conversedQuantity,
                 },
               ]),
             ),

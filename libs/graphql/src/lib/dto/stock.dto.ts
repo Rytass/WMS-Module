@@ -9,6 +9,12 @@ export class StockDto {
 
   @Field(() => ID)
   loaderId!: string;
+
+  @Field(() => Int)
+  quantity!: number;
+
+  @Field(() => StockStatus)
+  status!: StockStatus;
 }
 
 @ObjectType()
