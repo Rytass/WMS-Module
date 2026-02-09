@@ -75,6 +75,7 @@ function InventoryActionSelector({
         size="sub"
         icon={targetAction.icon}
         iconType="leading"
+        disabled={targetStocks.length === 0}
         onClick={onAddInventoryIds}
       >
         {`加入${targetAction.title}`}

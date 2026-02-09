@@ -27,9 +27,15 @@ type DataType = AggregatedStockFragment & {
 
 interface InventoryGroupTableProps {
   setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
+  needClearSelectedRows: boolean;
+  setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;
 }
 
-function InventoryGroupTable({ setTargetStocks }: InventoryGroupTableProps) {
+function InventoryGroupTable({
+  setTargetStocks,
+  needClearSelectedRows,
+  setNeedClearSelectedRows,
+}: InventoryGroupTableProps) {
   const {
     parentSelectedKeys,
     parentOnChange,
@@ -92,6 +98,13 @@ function InventoryGroupTable({ setTargetStocks }: InventoryGroupTableProps) {
       })),
     [data?.stocksGroupedByMaterial.items],
   );
+
+  useEffect(() => {
+    if (needClearSelectedRows) {
+      parentOnChange([], null, []);
+      setNeedClearSelectedRows(false);
+    }
+  }, [parentOnChange, needClearSelectedRows, setNeedClearSelectedRows]);
 
   useEffect(() => {
     const signature = flatten(dataSource.map((d) => d.aggregatedStock)).reduce(
