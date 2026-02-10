@@ -1,0 +1,16 @@
+fragment HoldInventoryOrderItem on HoldInventoryOrderItemDto {
+  id
+  targetHeldQuantity
+  removedAt
+}
+
+fragment HoldInventoryOrder on HoldInventoryOrderDto {
+  id
+  key
+  createdBy
+  removedAt
+  createdAt
+  items {
+    ...HoldInventoryOrderItem
+  }
+}

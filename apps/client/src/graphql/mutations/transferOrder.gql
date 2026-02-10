@@ -17,3 +17,27 @@ mutation CreateTransferOrder(
     ...TransferOrder
   }
 }
+
+mutation UpdateTransferOrder(
+  $updateTransferOrderId: ID!
+  $description: String
+  $locationId: ID
+  $loaderId: ID
+  $receiver: String
+  $createdBy: String
+  $removedAt: DateTime
+  $items: [UpdateTransferOrderItemArgs!]
+) {
+  updateTransferOrder(
+    id: $updateTransferOrderId
+    description: $description
+    locationId: $locationId
+    loaderId: $loaderId
+    receiver: $receiver
+    createdBy: $createdBy
+    removedAt: $removedAt
+    items: $items
+  ) {
+    ...TransferOrder
+  }
+}
