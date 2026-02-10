@@ -35,6 +35,7 @@ export class StockQuery {
     const [items, total] = await this.stockService.findAggregatedStocks({
       ...args,
       aggregated: true,
+      aggregatedKeys: args.ids?.length ? args.ids : [],
     });
     return { items, total };
   }
