@@ -216,7 +216,7 @@ export class StockService<
       this.dataSource
         .getRepository<K>(this.materialEntity)
         .createQueryBuilder('material')
-        .leftJoinAndSelect('material.stocks', 'stock'),
+        .innerJoinAndSelect('material.stocks', 'stock'),
     );
 
     return queryBuilder.getManyAndCount();
