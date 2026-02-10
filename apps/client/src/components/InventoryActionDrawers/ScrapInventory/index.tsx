@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
-import InventoryFieldArray from '../../InventoryFieldArray';
+import InventoryGrid from '../../InventoryGrid';
 import { useClearAll } from '../hooks';
 import { FormValues } from './typing';
 
@@ -39,7 +39,7 @@ const ScrapInventory: FC<ScrapInventoryProps> = ({
       bottomPrimaryActionVariant="destructive-primary"
       bottomOnGhostActionClick={onClearAll}
     >
-      <InventoryFieldArray />
+      <InventoryGrid />
     </FormDrawerWrapper>
   );
 };

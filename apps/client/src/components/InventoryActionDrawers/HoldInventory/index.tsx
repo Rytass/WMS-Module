@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
-import InventoryFieldArray from '../../InventoryFieldArray';
+import InventoryGrid from '../../InventoryGrid';
 import { useClearAll } from '../hooks';
 import { FormValues } from './typing';
 
@@ -38,7 +38,7 @@ const HoldInventory: FC<HoldInventoryProps> = ({
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}
       bottomOnGhostActionClick={onClearAll}
     >
-      <InventoryFieldArray />
+      <InventoryGrid />
     </FormDrawerWrapper>
   );
 };

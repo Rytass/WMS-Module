@@ -1,15 +1,13 @@
 import { useFieldArray } from 'react-hook-form';
 import { Typography } from '@mezzanine-ui/react';
 import InventoryFormCard from './InventoryFormCard';
-import { InventoryFieldArrayValues } from './typing';
+import { InventoryGridValues } from './typing';
 import classes from './index.module.scss';
 
-const InventoryFieldArray: FC = () => {
-  const { fields, remove } = useFieldArray<InventoryFieldArrayValues, 'stocks'>(
-    {
-      name: 'stocks',
-    },
-  );
+const InventoryGrid: FC = () => {
+  const { fields, remove } = useFieldArray<InventoryGridValues, 'stocks'>({
+    name: 'stocks',
+  });
 
   return (
     <div className={classes.host}>
@@ -29,4 +27,4 @@ const InventoryFieldArray: FC = () => {
   );
 };
 
-export default InventoryFieldArray;
+export default InventoryGrid;

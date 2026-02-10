@@ -1,5 +1,5 @@
 import { InventoryFieldItem } from './InventoryFormCard/typing';
 
-export type InventoryFieldArrayValues = {
+export type InventoryGridValues = {
   stocks: InventoryFieldItem[];
 };

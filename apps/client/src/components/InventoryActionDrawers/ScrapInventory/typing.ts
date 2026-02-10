@@ -1,3 +1,3 @@
-import { InventoryFieldArrayValues } from '../../InventoryFieldArray/typing';
+import { InventoryGridValues } from '../../InventoryGrid/typing';
 
-export type FormValues = InventoryFieldArrayValues;
+export type FormValues = InventoryGridValues;
