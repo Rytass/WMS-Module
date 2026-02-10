@@ -1,7 +1,8 @@
+export interface InventorySignatureValues {
+  id: string;
+  quantity: number;
+  unitId: string | null;
+}
 export interface InventorySignature {
-  [id: string]: {
-    id: string;
-    quantity: number;
-    unitId: string | null;
-  };
+  [id: string]: InventorySignatureValues;
 }

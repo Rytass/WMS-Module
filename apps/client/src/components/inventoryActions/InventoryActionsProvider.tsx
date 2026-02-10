@@ -1,7 +1,7 @@
 import { useState, memo, useCallback } from 'react';
 import { InventoryActionItem } from '../../utils/inventoryActions';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
-import { InventorySignature } from './typing';
+import { InventorySignatureValues, InventorySignature } from './typing';
 
 const InventoryActionsProvider: FC = ({ children }) => {
   const [inventorySignature, setInventorySignature] =
@@ -31,6 +31,16 @@ const InventoryActionsProvider: FC = ({ children }) => {
     }));
   }, []);
 
+  const updateInventorySignature = useCallback(
+    (id: string, values: Omit<InventorySignatureValues, 'id'>) => {
+      setInventorySignature((prevSignature) => ({
+        ...prevSignature,
+        [id]: { id, ...values },
+      }));
+    },
+    [],
+  );
+
   const resetAll = useCallback(() => {
     setInventorySignature({});
     setTargetInventoryIds([]);
@@ -43,6 +53,7 @@ const InventoryActionsProvider: FC = ({ children }) => {
         inventorySignature,
         targetInventoryIds,
         pushTargetInventoryIds,
+        updateInventorySignature,
         resetAll,
         targetAction,
         setTargetAction,
