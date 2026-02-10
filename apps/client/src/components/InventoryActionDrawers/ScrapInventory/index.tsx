@@ -3,7 +3,6 @@ import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../InventoryGrid';
 import { useClearAll } from '../hooks';
-import { FormValues } from './typing';
 
 interface ScrapInventoryProps {
   onClose: VoidFunction;
@@ -20,7 +19,7 @@ const ScrapInventory: FC<ScrapInventoryProps> = ({
   bottomPrimaryActionText,
   bottomPrimaryActionIcon,
 }) => {
-  const methods = useForm<FormValues>();
+  const methods = useForm();
   const onClearAll = useClearAll(() => {
     //
   });
@@ -39,7 +38,8 @@ const ScrapInventory: FC<ScrapInventoryProps> = ({
       bottomPrimaryActionVariant="destructive-primary"
       bottomOnGhostActionClick={onClearAll}
     >
-      <InventoryGrid />
+      {/* <InventoryGrid /> */}
+      ScrapInventory
     </FormDrawerWrapper>
   );
 };

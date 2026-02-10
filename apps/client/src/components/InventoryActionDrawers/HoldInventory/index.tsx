@@ -3,7 +3,6 @@ import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../InventoryGrid';
 import { useClearAll } from '../hooks';
-import { FormValues } from './typing';
 
 interface HoldInventoryProps {
   onClose: VoidFunction;
@@ -20,7 +19,7 @@ const HoldInventory: FC<HoldInventoryProps> = ({
   bottomPrimaryActionText,
   bottomPrimaryActionIcon,
 }) => {
-  const methods = useForm<FormValues>();
+  const methods = useForm();
   const onClearAll = useClearAll(() => {
     //
   });
@@ -38,7 +37,8 @@ const HoldInventory: FC<HoldInventoryProps> = ({
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}
       bottomOnGhostActionClick={onClearAll}
     >
-      <InventoryGrid />
+      {/* <InventoryGrid /> */}
+      HoldInventory
     </FormDrawerWrapper>
   );
 };

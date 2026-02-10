@@ -1,27 +1,20 @@
-import { useFieldArray } from 'react-hook-form';
 import { Typography } from '@mezzanine-ui/react';
-import InventoryFormCard from './InventoryFormCard';
-import { InventoryGridValues } from './typing';
+import InventoryCard from './InventoryCard';
+import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
 import classes from './index.module.scss';
 
-const InventoryGrid: FC = () => {
-  const { fields, remove } = useFieldArray<InventoryGridValues, 'stocks'>({
-    name: 'stocks',
-  });
+interface InventoryGridProps {
+  inventoryList: AggregatedStockFragment[];
+}
 
+const InventoryGrid: FC<InventoryGridProps> = ({ inventoryList }) => {
   return (
     <div className={classes.host}>
       <Typography variant="label-primary" color="text-neutral-solid">
-        {`已選項目 (${fields.length})`}
+        {`已選項目 (${inventoryList.length})`}
       </Typography>
-      {fields.map((f, index) => (
-        <InventoryFormCard
-          key={f.id}
-          index={index}
-          onRemove={() => {
-            remove(index);
-          }}
-        />
+      {inventoryList.map((inventory) => (
+        <InventoryCard key={inventory.id} inventory={inventory} />
       ))}
     </div>
   );
