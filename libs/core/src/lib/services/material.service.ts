@@ -32,6 +32,7 @@ export class MaterialService<
   K extends MaterialUnitEntityClass = MaterialUnitEntityClass,
 > {
   readonly materialRepository: Repository<T>;
+  readonly materialUnitRepository: Repository<K>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(MaterialEntity) readonly materialEntity: EntityTarget<T>,
@@ -40,6 +41,28 @@ export class MaterialService<
     this.materialRepository = this.dataSource.getRepository<T>(
       this.materialEntity,
     );
+    this.materialUnitRepository = this.dataSource.getRepository<K>(
+      this.materialUnitEntity,
+    );
+  }
+
+  async convertToBaseUnit(
+    materialId: string,
+    quantity: number,
+    unitId?: string,
+  ) {
+    if (!unitId) return quantity;
+    const materialUnitRepository =
+      this.dataSource.getRepository<MaterialUnitEntityClass>(
+        this.materialUnitEntity,
+      );
+
+    const materialUnit = await materialUnitRepository.findOneByOrFail({
+      materialId,
+      unit: unitId,
+    });
+
+    return Number(quantity) * Number(materialUnit.conversionFactor);
   }
 
   async createMaterial({

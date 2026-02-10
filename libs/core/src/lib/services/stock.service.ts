@@ -66,24 +66,16 @@ export class StockService<
             subQuery
               .select(
                 `CASE
-                  WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NULL THEN '${StockStatus.PENDING_INSPECTION}'
-                  WHEN qi_changes.id IS NOT NULL AND qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
-                  WHEN hi_changes.id IS NOT NULL AND s.quantity > 0 THEN '${StockStatus.HELD}'
-                  WHEN to_changes.id IS NOT NULL AND s.quantity > 0 THEN '${StockStatus.IN_TRANSFER}'
+                  WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.PENDING_INSPECTION}'
+                  WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
+                  WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") > 0 THEN '${StockStatus.HELD}'
+                  WHEN to_changes.id IS NOT NULL AND (s.quantity * to_changes."quantityChanged") > 0 THEN '${StockStatus.IN_TRANSFER}'
                   WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
                   WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
                   WHEN tc_changes.id IS NOT NULL THEN '${StockStatus.CUSTOMER_INVENTORY}'
                   ELSE '${StockStatus.FREE}'
                 END`,
                 'status',
-              )
-              .addSelect(
-                `CASE
-                  WHEN hi_changes.id IS NOT NULL THEN s.quantity * ABS(hi_changes."quantityChanged") / hi_changes."quantityChanged"
-                  WHEN to_changes.id IS NOT NULL THEN s.quantity * ABS(to_changes."quantityChanged") / to_changes."quantityChanged"
-                  ELSE s.quantity
-                END`,
-                'quantity',
               )
               .addSelect('s.id', 'stockId')
               .from('stocks', 's')
@@ -133,7 +125,6 @@ export class StockService<
           `stock_status."stockId" = ${alias}.id`,
         )
         .addSelect('stock_status.status', 'status')
-        .addSelect('stock_status.quantity', 'quantity')
         .addSelect(`${alias}.*`);
   }
 
@@ -179,6 +170,11 @@ export class StockService<
         status: options.status,
       });
 
+    if (options.negateStatus)
+      queryBuilder.andWhere('stock_status.status != :negateStatus', {
+        negateStatus: options.negateStatus,
+      });
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
@@ -191,13 +187,13 @@ export class StockService<
       queryBuilder.addSelect('stock.locationId', 'locationId');
       queryBuilder.addSelect('stock.loaderId', 'loaderId');
       queryBuilder.addSelect('stock_status.status', 'status');
-      queryBuilder.addSelect('SUM(stock_status.quantity)', 'quantity');
+      queryBuilder.addSelect('SUM(stock.quantity)', 'quantity');
       queryBuilder.groupBy('stock.materialId');
       queryBuilder.addGroupBy('stock.batchId');
       queryBuilder.addGroupBy('stock.locationId');
       queryBuilder.addGroupBy('stock.loaderId');
       queryBuilder.addGroupBy('stock_status.status');
-      queryBuilder.having('SUM(stock_status.quantity) <> 0');
+      queryBuilder.having('SUM(stock.quantity) <> 0');
     }
 
     return queryBuilder;
@@ -249,7 +245,7 @@ export class StockService<
     const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
-      true,
+      options.aggregated ? true : false,
     );
 
     // Wrap the aggregated subquery and apply pagination on top
@@ -274,9 +270,16 @@ export class StockService<
     const countBuilder = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
-      true,
+      options.aggregated ? true : false,
     );
-    const count = await countBuilder.getCount();
+
+    const countResult = await this.dataSource
+      .createQueryBuilder()
+      .select('COUNT(*)', 'count')
+      .from(`(${countBuilder.getQuery()})`, 'grouped')
+      .setParameters(countBuilder.getParameters())
+      .getRawOne<{ count: string }>();
+    const count = parseInt(countResult?.count ?? '0', 10);
 
     const items = await paginatedQueryBuilder.getRawMany<AggregatedStock>();
 
