@@ -1,0 +1,27 @@
+query HoldInventoryOrders(
+  $offset: Int
+  $limit: Int
+  $key: String
+  $dateRange: DateRangeArgs
+  $materialId: ID
+  $batchId: ID
+  $locationId: ID
+  $loaderId: ID
+) {
+  holdInventoryOrders(
+    offset: $offset
+    limit: $limit
+    key: $key
+    dateRange: $dateRange
+    materialId: $materialId
+    batchId: $batchId
+    locationId: $locationId
+    loaderId: $loaderId
+  ) {
+    id
+    items {
+      ...HoldInventoryOrder
+    }
+    total
+  }
+}

@@ -1,0 +1,24 @@
+mutation CreateHoldInventoryOrder(
+  $items: [CreateHoldInventoryOrderItemArgs!]!
+  $createdBy: String
+) {
+  createHoldInventoryOrder(items: $items, createdBy: $createdBy) {
+    ...HoldInventoryOrder
+  }
+}
+
+mutation UpdateHoldInventoryOrder(
+  $updateHoldInventoryOrderId: String!
+  $createdBy: String
+  $removedAt: DateTime
+  $items: [UpdateHoldInventoryOrderItemArgs!]
+) {
+  updateHoldInventoryOrder(
+    id: $updateHoldInventoryOrderId
+    createdBy: $createdBy
+    removedAt: $removedAt
+    items: $items
+  ) {
+    ...HoldInventoryOrder
+  }
+}

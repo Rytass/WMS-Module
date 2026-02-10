@@ -1,9 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
-import InventoryFieldArray from '../../InventoryFieldArray';
+import InventoryGrid from '../InventoryGrid';
 import { useClearAll } from '../hooks';
-import { FormValues } from './typing';
 
 interface MergeBatchProps {
   onClose: VoidFunction;
@@ -20,7 +19,7 @@ const MergeBatch: FC<MergeBatchProps> = ({
   bottomPrimaryActionText,
   bottomPrimaryActionIcon,
 }) => {
-  const methods = useForm<FormValues>();
+  const methods = useForm();
   const onClearAll = useClearAll(() => {
     //
   });
@@ -38,7 +37,8 @@ const MergeBatch: FC<MergeBatchProps> = ({
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}
       bottomOnGhostActionClick={onClearAll}
     >
-      <InventoryFieldArray />
+      {/* <InventoryGrid /> */}
+      MergeBatch
     </FormDrawerWrapper>
   );
 };
