@@ -1,27 +1,49 @@
 import { useState, memo, useCallback } from 'react';
 import { InventoryActionItem } from '../../utils/inventoryActions';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
+import { InventorySignature } from './typing';
 
 const InventoryActionsProvider: FC = ({ children }) => {
+  const [inventorySignature, setInventorySignature] =
+    useState<InventorySignature>({});
   const [targetInventoryIds, setTargetInventoryIds] = useState<string[]>([]);
   const [targetAction, setTargetAction] = useState<InventoryActionItem | null>(
     null,
   );
 
   const pushTargetInventoryIds = useCallback((ids: string[]) => {
-    setTargetInventoryIds((prev) => [...prev, ...ids]);
+    setTargetInventoryIds((prevIds) => [...prevIds, ...ids]);
+
+    const currentSignature = ids.reduce(
+      (prev, curr) => ({
+        ...prev,
+        [curr]: {
+          id: curr,
+          quantity: 0,
+          unitId: null,
+        },
+      }),
+      {},
+    );
+    setInventorySignature((prevSignature) => ({
+      ...prevSignature,
+      ...currentSignature,
+    }));
   }, []);
 
-  const clearTargetInventoryIds = useCallback(() => {
+  const resetAll = useCallback(() => {
+    setInventorySignature({});
     setTargetInventoryIds([]);
+    setTargetAction(null);
   }, []);
 
   return (
     <InventoryActionsContextProvider
       value={{
+        inventorySignature,
         targetInventoryIds,
         pushTargetInventoryIds,
-        clearTargetInventoryIds,
+        resetAll,
         targetAction,
         setTargetAction,
       }}

@@ -2,6 +2,6 @@ export interface InventorySignature {
   [id: string]: {
     id: string;
     quantity: number;
-    unitId: string;
+    unitId: string | null;
   };
 }
