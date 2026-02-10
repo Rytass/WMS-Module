@@ -1,6 +1,6 @@
 import { Typography, Button } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
 
 interface InventoryCardProps {

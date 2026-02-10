@@ -1,6 +1,6 @@
 import { Typography } from '@mezzanine-ui/react';
 import InventoryCard from './InventoryCard';
-import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
+import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
 
 interface InventoryGridProps {

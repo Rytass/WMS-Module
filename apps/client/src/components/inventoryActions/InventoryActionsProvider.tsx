@@ -1,4 +1,5 @@
 import { useState, memo, useCallback } from 'react';
+import { omit } from 'lodash';
 import { InventoryActionItem } from '../../utils/inventoryActions';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
 import { InventorySignatureValues, InventorySignature } from './typing';
@@ -41,6 +42,19 @@ const InventoryActionsProvider: FC = ({ children }) => {
     [],
   );
 
+  const removeTargetInventory = useCallback((id: string) => {
+    setTargetInventoryIds((prevIds) => {
+      const targetIndex = prevIds.findIndex((i) => i === id);
+
+      return [
+        ...prevIds.slice(0, targetIndex),
+        ...prevIds.slice(targetIndex + 1),
+      ];
+    });
+
+    setInventorySignature((prevSignature) => omit(prevSignature, id));
+  }, []);
+
   const resetAll = useCallback(() => {
     setInventorySignature({});
     setTargetInventoryIds([]);
@@ -54,6 +68,7 @@ const InventoryActionsProvider: FC = ({ children }) => {
         targetInventoryIds,
         pushTargetInventoryIds,
         updateInventorySignature,
+        removeTargetInventory,
         resetAll,
         targetAction,
         setTargetAction,

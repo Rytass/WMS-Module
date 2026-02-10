@@ -11,6 +11,7 @@ export interface InventoryActionsContextValues {
     id: string,
     values: Omit<InventorySignatureValues, 'id'>,
   ) => void;
+  removeTargetInventory: (id: string) => void;
   resetAll: VoidFunction;
   targetAction: InventoryActionItem | null;
   setTargetAction: Dispatch<SetStateAction<InventoryActionItem | null>>;
@@ -22,6 +23,7 @@ export const InventoryActionsContext =
     targetInventoryIds: [],
     pushTargetInventoryIds: () => {},
     updateInventorySignature: () => {},
+    removeTargetInventory: () => {},
     resetAll: () => {},
     targetAction: null,
     setTargetAction: () => {},

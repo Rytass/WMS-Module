@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
-import InventoryGrid from '../../InventoryGrid';
+import InventoryGrid from '../InventoryGrid';
 import { useClearAll } from '../hooks';
 
 interface MergeBatchProps {
