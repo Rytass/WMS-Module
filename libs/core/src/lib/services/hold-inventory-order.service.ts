@@ -17,6 +17,7 @@ import {
 } from '../typings/create-hold-inventory-order.input';
 import { FindHoldInventoryOrderInput } from '../typings/find-hold-inventory-order.input';
 import { ReleaseInventoryOrderItemInput } from '../typings/release-inventory-order.input';
+import { MaterialService } from './material.service';
 
 @Injectable()
 export class HoldInventoryOrderService<
@@ -29,6 +30,7 @@ export class HoldInventoryOrderService<
   constructor(
     private readonly dataSource: DataSource,
     private readonly helperService: HelperService,
+    private readonly materialService: MaterialService,
     @Inject(HoldInventoryOrderEntity)
     readonly holdInventoryOrderEntity: EntityTarget<T>,
     @Inject(HoldInventoryOrderItemEntity)
@@ -63,12 +65,16 @@ export class HoldInventoryOrderService<
           repos.holdInventoryOrderItem.create(data),
         );
         const base = await repos.order.save({});
+        const conversionFactor = await this.materialService.getConversionFactor(
+          item.materialId,
+          item.unitId || undefined,
+        );
 
         await repos.holdInventoryOrderChange.save(
           repos.holdInventoryOrderChange.create({
             itemId: item.id,
             id: base.id,
-            quantityChanged: data.targetHeldQuantity,
+            quantityChanged: item.targetHeldQuantity * conversionFactor,
           }),
         );
 
@@ -81,7 +87,7 @@ export class HoldInventoryOrderService<
               batchId: item.batchId,
               locationId: item.locationId || undefined,
               loaderId: item.loaderId || undefined,
-              quantity: item.targetHeldQuantity,
+              quantity: item.targetHeldQuantity * conversionFactor,
             },
             // deduct available stock from location
             {
@@ -90,7 +96,7 @@ export class HoldInventoryOrderService<
               batchId: item.batchId,
               locationId: item.locationId || undefined,
               loaderId: item.loaderId || undefined,
-              quantity: -1 * item.targetHeldQuantity,
+              quantity: -1 * item.targetHeldQuantity * conversionFactor,
             },
           ]),
         );
@@ -244,15 +250,22 @@ export class HoldInventoryOrderService<
           const item = itemMap.get(option.itemId);
           if (!item) return;
 
+          const conversionFactor =
+            await this.materialService.getConversionFactor(
+              item.materialId,
+              item.unitId || undefined,
+            );
+
           const totalHeld = item.changes.reduce((sum, change) => {
             if (change.quantityChanged < 0)
               sum += Number(change.quantityChanged);
             return sum;
           }, 0);
 
-          const remainingQuantity = item.targetHeldQuantity + totalHeld;
+          const remainingQuantity =
+            conversionFactor * item.targetHeldQuantity + totalHeld;
 
-          if (remainingQuantity - option.quantity < 0)
+          if (remainingQuantity - option.quantity * conversionFactor < 0)
             throw new Error(
               `Release quantity exceeds held quantity for item ${item.id}`,
             );
@@ -264,7 +277,7 @@ export class HoldInventoryOrderService<
               repos.holdInventoryOrderChange.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged: -1 * option.quantity,
+                quantityChanged: -1 * option.quantity * conversionFactor,
               }),
             ),
 
@@ -277,7 +290,7 @@ export class HoldInventoryOrderService<
                   batchId: item.batchId,
                   locationId: item.locationId || undefined,
                   loaderId: item.loaderId || undefined,
-                  quantity: -1 * option.quantity,
+                  quantity: -1 * option.quantity * conversionFactor,
                 },
                 {
                   // add available stock to location
@@ -286,7 +299,7 @@ export class HoldInventoryOrderService<
                   batchId: item.batchId,
                   locationId: item.locationId || undefined,
                   loaderId: item.loaderId || undefined,
-                  quantity: option.quantity,
+                  quantity: option.quantity * conversionFactor,
                 },
               ]),
             ),

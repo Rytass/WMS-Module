@@ -8,13 +8,15 @@ import {
   StockEntity,
   StockEntityClass,
 } from '../models';
-import { DataSource, EntityManager, EntityTarget } from 'typeorm';
+import { DataSource, EntityManager, EntityTarget, In } from 'typeorm';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   CreateAllocateInventoryOrderInput,
   UpdateAllocateInventoryOrderInput,
 } from '../typings/create-allocate-inventory-order.input';
 import { HelperService } from './helper.service';
+import { DeallocateInventoryOrderItemInput } from '../typings/deallocate-inventory-order';
+import { MaterialService } from './material.service';
 
 @Injectable()
 export class AllocateInventoryOrderService<
@@ -28,6 +30,7 @@ export class AllocateInventoryOrderService<
   constructor(
     private readonly dataSource: DataSource,
     private readonly helperService: HelperService,
+    private readonly materialService: MaterialService,
     @Inject(AllocateInventoryOrderEntity)
     readonly allocateInventoryOrderEntity: EntityTarget<T>,
     @Inject(AllocateInventoryOrderItemEntity)
@@ -63,12 +66,16 @@ export class AllocateInventoryOrderService<
           repos.allocateInventoryOrderItem.create(data),
         );
         const base = await repos.order.save({});
+        const conversionFactor = await this.materialService.getConversionFactor(
+          item.materialId,
+          item.unitId || undefined,
+        );
 
         await repos.allocateInventoryOrderChange.save(
           repos.allocateInventoryOrderChange.create({
             item,
             order: base,
-            quantityChanged: data.targetAllocatedQuantity,
+            quantityChanged: item.targetAllocatedQuantity * conversionFactor,
           }),
         );
 
@@ -81,7 +88,7 @@ export class AllocateInventoryOrderService<
               batchId: item.batchId,
               locationId: item.locationId || undefined,
               loaderId: item.loaderId || undefined,
-              quantity: item.targetAllocatedQuantity,
+              quantity: item.targetAllocatedQuantity * conversionFactor,
             },
             // deduct allocated stock from free stock
             {
@@ -90,7 +97,7 @@ export class AllocateInventoryOrderService<
               batchId: item.batchId,
               locationId: item.locationId || undefined,
               loaderId: item.loaderId || undefined,
-              quantity: -1 * item.targetAllocatedQuantity,
+              quantity: -1 * item.targetAllocatedQuantity * conversionFactor,
             },
           ]),
         );
@@ -169,5 +176,83 @@ export class AllocateInventoryOrderService<
     }
 
     return updated as T;
+  }
+
+  deallocate(
+    options:
+      | DeallocateInventoryOrderItemInput
+      | DeallocateInventoryOrderItemInput[],
+  ): Promise<boolean> {
+    if (!Array.isArray(options)) options = [options];
+    return this.dataSource.transaction(async (manager) => {
+      const repos = this.getRepositories(manager);
+      const items = await repos.allocateInventoryOrderItem.find({
+        where: { id: In(options.map((o) => o.itemId)) },
+        relations: ['changes'],
+      });
+
+      const itemMap = new Map(items.map((item) => [item.id, item]));
+
+      await Promise.all(
+        options.map(async (option) => {
+          const item = itemMap.get(option.itemId);
+          if (!item) return;
+
+          const conversionFactor =
+            await this.materialService.getConversionFactor(
+              item.materialId,
+              item.unitId || undefined,
+            );
+
+          const totalAllocated = item.changes.reduce((sum, change) => {
+            if (change.quantityChanged < 0)
+              sum += Number(change.quantityChanged);
+            return sum;
+          }, 0);
+
+          const remainingQuantity =
+            conversionFactor * item.targetAllocatedQuantity + totalAllocated;
+
+          if (remainingQuantity - option.quantity * conversionFactor < 0)
+            throw new Error(
+              `Deallocate quantity exceeds allocated quantity for item ${item.id}`,
+            );
+
+          const base = await repos.order.save({});
+          await Promise.all([
+            repos.allocateInventoryOrderChange.save(
+              repos.allocateInventoryOrderChange.create({
+                itemId: item.id,
+                id: base.id,
+                quantityChanged: -1 * option.quantity * conversionFactor,
+              }),
+            ),
+            repos.stock.save(
+              repos.stock.create([
+                // add deallocated stock to free stock
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId,
+                  locationId: item.locationId || undefined,
+                  loaderId: item.loaderId || undefined,
+                  quantity: option.quantity * conversionFactor,
+                },
+                // deduct deallocated stock from allocated stock
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId,
+                  locationId: item.locationId || undefined,
+                  loaderId: item.loaderId || undefined,
+                  quantity: -1 * option.quantity * conversionFactor,
+                },
+              ]),
+            ),
+          ]);
+        }),
+      );
+      return true;
+    });
   }
 }

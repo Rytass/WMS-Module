@@ -46,12 +46,7 @@ export class MaterialService<
     );
   }
 
-  async convertToBaseUnit(
-    materialId: string,
-    quantity: number,
-    unitId?: string,
-  ) {
-    if (!unitId) return quantity;
+  async getConversionFactor(materialId: string, unitId?: string) {
     const materialUnitRepository =
       this.dataSource.getRepository<MaterialUnitEntityClass>(
         this.materialUnitEntity,
@@ -62,7 +57,9 @@ export class MaterialService<
       unit: unitId,
     });
 
-    return Number(quantity) * Number(materialUnit.conversionFactor);
+    if (!unitId) return 1;
+
+    return materialUnit.conversionFactor;
   }
 
   async createMaterial({

@@ -66,16 +66,16 @@ export class TransferOrderService<
           repos.transferOrderItem.create(data),
         );
         const base = await repos.order.save({});
-        const conversedQuantity = await this.materialService.convertToBaseUnit(
+        const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
-          item.targetTransferredQuantity,
           item.unitId || undefined,
         );
+
         await repos.transferOrderChange.save(
           repos.transferOrderChange.create({
             itemId: item.id,
             id: base.id,
-            quantityChanged: conversedQuantity,
+            quantityChanged: item.targetTransferredQuantity * conversionFactor,
           }),
         );
 
@@ -88,7 +88,7 @@ export class TransferOrderService<
               batchId: item.batchId,
               locationId: item.locationId,
               loaderId: item.loaderId || undefined,
-              quantity: conversedQuantity,
+              quantity: item.targetTransferredQuantity * conversionFactor,
             },
             // deduct stock from source location
             {
@@ -97,7 +97,7 @@ export class TransferOrderService<
               batchId: item.batchId,
               locationId: item.locationId,
               loaderId: item.loaderId || undefined,
-              quantity: -1 * conversedQuantity,
+              quantity: -1 * item.targetTransferredQuantity * conversionFactor,
             },
           ]),
         );
@@ -284,35 +284,35 @@ export class TransferOrderService<
           const item = itemMap.get(option.itemId);
           if (!item) return;
 
+          const conversionFactor =
+            await this.materialService.getConversionFactor(
+              item.materialId,
+              item.unitId || undefined,
+            );
+
           const totalTransferred = item.changes.reduce((sum, change) => {
             if (change.quantityChanged < 0)
               sum += Number(change.quantityChanged);
             return sum;
           }, 0);
 
-          const conversion = await this.materialService.convertToBaseUnit(
-            item.materialId,
-            item.targetTransferredQuantity,
-            item.unitId || undefined,
-          );
-
           const remainingQuantity =
-            item.targetTransferredQuantity * conversion + totalTransferred;
+            item.targetTransferredQuantity * conversionFactor +
+            totalTransferred;
 
-          if (remainingQuantity - option.quantity * conversion < 0)
+          if (remainingQuantity - option.quantity * conversionFactor < 0)
             throw new Error(
               `Transfer quantity exceeds remaining quantity for item ${item.id}`,
             );
 
           // Record the transfer change
           const base = await manager.getRepository(OrderEntity).save({});
-          const conversedQuantity = option.quantity * conversion;
           await Promise.all([
             changeRepository.save(
               changeRepository.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged: -1 * conversedQuantity,
+                quantityChanged: -1 * option.quantity * conversionFactor,
               }),
             ),
             // Update stock levels
@@ -325,7 +325,7 @@ export class TransferOrderService<
                   batchId: item.batchId,
                   locationId: item.locationId || undefined,
                   loaderId: item.loaderId || undefined,
-                  quantity: -1 * conversedQuantity,
+                  quantity: -1 * option.quantity * conversionFactor,
                 },
                 // deduct IN_TRANSFER stock from source location
                 {
@@ -334,7 +334,7 @@ export class TransferOrderService<
                   batchId: item.batchId,
                   locationId: item.targetLocationId || undefined,
                   loaderId: item.targetLoaderId || undefined,
-                  quantity: conversedQuantity,
+                  quantity: option.quantity * conversionFactor,
                 },
               ]),
             ),
