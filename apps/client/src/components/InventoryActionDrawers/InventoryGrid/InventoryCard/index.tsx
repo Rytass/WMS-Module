@@ -4,6 +4,7 @@ import {
   Button,
   Description,
   DescriptionContent,
+  Input,
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
@@ -58,6 +59,12 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
     [inventory.material.baseUnit.key, inventory.material.materialUnits],
   );
 
+  const currentUnitName = useMemo(() => {
+    return (
+      unitOptions.find((o) => o.id === (currentUnitId || BASE_UNIT))?.name ?? ''
+    );
+  }, [currentUnitId, unitOptions]);
+
   const quantity = useMemo(() => {
     if (currentUnitId) {
       const conversionFactor = inventory.material.materialUnits.find(
@@ -107,13 +114,34 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
         <Description title="庫存 :" widthType="hug">
           <DescriptionContent>{`${quantity}`}</DescriptionContent>
         </Description>
-        {/* <SelectInputField
-          name={`stocks.${index}.inputQuantity`}
-          selectName={`stocks.${index}.selectedUnit`}
-          label=""
+        <Input
+          fullWidth
+          // error={isError}
+          variant="select"
+          // value={watchValue}
+          // onChange={onChange}
+          onSelect={(value) => {
+            if (value === BASE_UNIT) {
+              updateInventoryUnitId(inventory.id, null);
+            } else {
+              updateInventoryUnitId(inventory.id, value as string);
+            }
+          }}
+          placeholder="請輸入數量"
+          size="sub"
+          selectedValue={currentUnitId || BASE_UNIT}
+          selectButton={{
+            position: 'suffix',
+            value: currentUnitName,
+          }}
+          options={unitOptions}
           inputType="number"
-          options={values.units}
-        /> */}
+          inputProps={{
+            style: {
+              textAlign: 'right',
+            },
+          }}
+        />
       </div>
     </div>
   );
