@@ -1,6 +1,13 @@
-import { Typography, Button } from '@mezzanine-ui/react';
+import { useMemo } from 'react';
+import {
+  Typography,
+  Button,
+  Description,
+  DescriptionContent,
+} from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import classes from './index.module.scss';
 
 interface InventoryCardProps {
@@ -8,6 +15,28 @@ interface InventoryCardProps {
 }
 
 const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
+  const { inventorySignature } = useInventoryActions();
+
+  const currentUnitId = useMemo(() => {
+    return inventorySignature[inventory.id].unitId;
+  }, [inventory.id, inventorySignature]);
+
+  const quantity = useMemo(() => {
+    if (currentUnitId) {
+      const conversionFactor = inventory.material.materialUnits.find(
+        (u) => u.id === currentUnitId,
+      )?.conversionFactor;
+
+      if (conversionFactor) {
+        return inventory.quantity / conversionFactor;
+      }
+
+      return inventory.quantity;
+    }
+
+    return inventory.quantity;
+  }, [currentUnitId, inventory.material.materialUnits, inventory.quantity]);
+
   return (
     <div className={classes.host}>
       <div className={classes.titleWrapper}>
@@ -38,9 +67,9 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
         </div>
       </div>
       <div className={classes.contentWrapper}>
-        {/* <Description title="庫存 :" widthType="hug">
-          <DescriptionContent>{`${values.quantity}`}</DescriptionContent>
-        </Description> */}
+        <Description title="庫存 :" widthType="hug">
+          <DescriptionContent>{`${quantity}`}</DescriptionContent>
+        </Description>
         {/* <SelectInputField
           name={`stocks.${index}.inputQuantity`}
           selectName={`stocks.${index}.selectedUnit`}
