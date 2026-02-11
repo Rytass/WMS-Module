@@ -49,9 +49,9 @@ export class ShipInventoryOrderItemEntityClass {
   @Index()
   materialId!: string;
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ type: 'uuid' })
   @Index()
-  batchId!: string | null;
+  batchId!: string;
 
   @Column({ type: 'uuid', nullable: true })
   @Index()

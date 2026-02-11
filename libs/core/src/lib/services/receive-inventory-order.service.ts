@@ -26,6 +26,7 @@ import {
 } from '../typings/find-receive-inventory-order.input';
 import { ReceiveInventoryOrderChangeEntityClass } from '../models';
 import { ReceiveInventoryOrderInput } from '../typings/receive-inventory-order.input';
+import { MaterialService } from './material.service';
 
 /**
  * Service for managing receive inventory orders and their items
@@ -42,6 +43,7 @@ export class ReceiveInventoryOrderService<
   readonly selectQueryBuilder: (alias: string) => SelectQueryBuilder<T>;
   constructor(
     private readonly dataSource: DataSource,
+    private readonly materialService: MaterialService,
     @Inject(ReceiveInventoryOrderEntity)
     readonly receiveInventoryOrderEntity: EntityTarget<T>,
     @Inject(ReceiveInventoryOrderItemEntity)
@@ -275,12 +277,21 @@ export class ReceiveInventoryOrderService<
           const item = itemMap.get(option.itemId);
           if (!item) return;
 
+          const conversionFactor =
+            await this.materialService.getConversionFactor(
+              item.materialId,
+              item.unitId || undefined,
+            );
+
           const totalChanged = item.changes.reduce(
             (sum, change) => sum + Number(change.quantityChanged),
             0,
           );
 
-          if (totalChanged + option.quantity > item.targetReceivedQuantity) {
+          const remainingQuantity =
+            conversionFactor * item.targetReceivedQuantity - totalChanged;
+
+          if (remainingQuantity - option.quantity * conversionFactor < 0) {
             throw new Error(
               `Receiving quantity exceeds target for item ${option.itemId}`,
             );
@@ -292,7 +303,7 @@ export class ReceiveInventoryOrderService<
             changeRepository.save(
               changeRepository.create({
                 itemId: option.itemId,
-                quantityChanged: option.quantity,
+                quantityChanged: option.quantity * conversionFactor,
                 id: newOrder.id,
               }),
             ),
@@ -300,7 +311,7 @@ export class ReceiveInventoryOrderService<
               stockRepository.create({
                 batchId: option.batchId ?? item.batchId,
                 materialId: item.materialId,
-                quantity: option.quantity,
+                quantity: option.quantity * conversionFactor,
                 orderId: newOrder.id,
               }),
             ),

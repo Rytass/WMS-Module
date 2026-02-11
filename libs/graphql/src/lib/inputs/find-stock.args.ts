@@ -16,6 +16,9 @@ export class FindStockArgs extends PaginationArgs {
   @Field(() => ID, { nullable: true })
   loaderId?: string;
 
+  @Field(() => [ID], { nullable: true })
+  ids?: string[];
+
   @Field(() => String, { nullable: true })
   description?: string;
 

@@ -3,14 +3,11 @@ import { AggregatedStockDto, MaterialDto, MaterialUnitDto } from '../dto';
 import {
   MaterialEntityClass,
   MaterialUnitEntityClass,
-  StockEntityClass,
   StockService,
   UnitEntityClass,
 } from '@wms-module/core';
 import { type LoaderType } from '../helpers';
-import { groupBy, sumBy } from 'lodash';
 import { UnitDto } from '../dto/unit.dto';
-import { SelectQueryBuilder } from 'typeorm';
 
 @Resolver(() => MaterialDto)
 export class MaterialResolver {
@@ -23,6 +20,7 @@ export class MaterialResolver {
     // TODO: should be compatible with dataloader in the future
     const [items] = await this.stockService.findAggregatedStocks({
       materialId: id,
+      aggregated: true,
     });
     return items;
   }

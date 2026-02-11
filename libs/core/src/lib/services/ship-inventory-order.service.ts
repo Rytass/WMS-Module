@@ -26,6 +26,7 @@ import {
 import { OrderEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
 import { ShipInventoryOrderChangeEntityClass } from '../models';
 import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
+import { MaterialService } from './material.service';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -43,6 +44,7 @@ export class ShipInventoryOrderService<
 
   constructor(
     private readonly dataSource: DataSource,
+    private readonly materialService: MaterialService,
     @Inject(ShipInventoryOrderEntity)
     readonly shipInventoryOrderEntity: EntityTarget<T>,
     @Inject(ShipInventoryOrderItemEntity)
@@ -271,19 +273,25 @@ export class ShipInventoryOrderService<
           const item = itemMap.get(option.itemId);
           if (!item) return;
 
+          const conversionFactor =
+            await this.materialService.getConversionFactor(
+              item.materialId,
+              item.unitId || undefined,
+            );
+
           const totalChanged = item.changes.reduce(
             (sum, change) => sum + Number(change.quantityChanged),
             0,
           );
 
-          if (totalChanged + option.quantity > item.targetShippedQuantity) {
+          const remainingQuantity =
+            conversionFactor * item.targetShippedQuantity - totalChanged;
+
+          if (remainingQuantity - option.quantity * conversionFactor < 0) {
             throw new Error(
-              `Shipped quantity exceeds target for item ${option.itemId}`,
+              `Shipping quantity exceeds target for item ${option.itemId}`,
             );
           }
-
-          if (!item.batchId)
-            throw new Error(`Item ${option.itemId} has no batch assigned`);
 
           const newOrder = await orderRepository.save(orderRepository.create());
 
@@ -291,7 +299,7 @@ export class ShipInventoryOrderService<
             changeRepository.save(
               changeRepository.create({
                 itemId: option.itemId,
-                quantityChanged: option.quantity,
+                quantityChanged: option.quantity * conversionFactor,
                 id: newOrder.id,
               }),
             ),
@@ -299,7 +307,7 @@ export class ShipInventoryOrderService<
               stockRepository.create({
                 batchId: item.batchId,
                 materialId: item.materialId,
-                quantity: option.quantity,
+                quantity: option.quantity * conversionFactor,
                 orderId: newOrder.id,
               }),
             ),

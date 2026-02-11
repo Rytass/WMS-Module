@@ -182,6 +182,12 @@ export class StockService<
       queryBuilder.take(options.limit);
 
     if (aggregated) {
+      const aggregateExpression = this.aggregateKeys
+        .map(
+          (key) =>
+            `COALESCE(${key === 'status' ? 'stock_status' : 'stock'}."${key}"::text, '')`,
+        )
+        .join(" || '|' || ");
       queryBuilder.select('stock.materialId', 'materialId');
       queryBuilder.addSelect('stock.batchId', 'batchId');
       queryBuilder.addSelect('stock.locationId', 'locationId');
@@ -194,6 +200,15 @@ export class StockService<
       queryBuilder.addGroupBy('stock.loaderId');
       queryBuilder.addGroupBy('stock_status.status');
       queryBuilder.having('SUM(stock.quantity) <> 0');
+
+      if (options.aggregatedKeys?.length) {
+        queryBuilder.andHaving(
+          `${aggregateExpression} IN (:...aggregatedKeys)`,
+          {
+            aggregatedKeys: options.aggregatedKeys,
+          },
+        );
+      }
     }
 
     return queryBuilder;
@@ -216,7 +231,7 @@ export class StockService<
       this.dataSource
         .getRepository<K>(this.materialEntity)
         .createQueryBuilder('material')
-        .leftJoinAndSelect('material.stocks', 'stock'),
+        .innerJoinAndSelect('material.stocks', 'stock'),
     );
 
     return queryBuilder.getManyAndCount();
