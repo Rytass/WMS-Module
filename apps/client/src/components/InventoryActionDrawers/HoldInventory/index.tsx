@@ -2,9 +2,12 @@ import { useForm } from 'react-hook-form';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../InventoryGrid';
+import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useClearAll } from '../hooks';
 
 interface HoldInventoryProps {
+  inventoryList: AggregatedStockFragment[];
+  queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;
   headerTitle: string;
@@ -13,6 +16,8 @@ interface HoldInventoryProps {
 }
 
 const HoldInventory: FC<HoldInventoryProps> = ({
+  inventoryList,
+  queryInventoryListLoading,
   onClose,
   open,
   headerTitle,
@@ -37,8 +42,10 @@ const HoldInventory: FC<HoldInventoryProps> = ({
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}
       bottomOnGhostActionClick={onClearAll}
     >
-      {/* <InventoryGrid /> */}
-      HoldInventory
+      <InventoryGrid
+        inventoryList={inventoryList}
+        queryInventoryListLoading={queryInventoryListLoading}
+      />
     </FormDrawerWrapper>
   );
 };

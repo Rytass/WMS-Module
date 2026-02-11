@@ -16,7 +16,11 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
   onClose,
   open,
 }) => {
-  const { fetchInventoryList, data, loading } = useQueryInventoryList();
+  const {
+    fetchInventoryList,
+    data,
+    loading: queryInventoryListLoading,
+  } = useQueryInventoryList();
   const { targetInventoryIds, targetAction } = useInventoryActions();
 
   useEffect(() => {
@@ -40,6 +44,8 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     case InventoryActions.HoldInventory:
       return (
         <HoldInventory
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
           onClose={onClose}
           open={open}
           headerTitle={targetAction.title}

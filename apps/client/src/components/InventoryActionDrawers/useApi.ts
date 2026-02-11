@@ -5,6 +5,9 @@ import { AggregatedStocksForInventoryActionsDocument } from '../../graphql/gener
 export function useQueryInventoryList() {
   const [fetchInventoryList, { data, loading }] = useLazyQuery(
     AggregatedStocksForInventoryActionsDocument,
+    {
+      fetchPolicy: 'cache-and-network',
+    },
   );
 
   return {
