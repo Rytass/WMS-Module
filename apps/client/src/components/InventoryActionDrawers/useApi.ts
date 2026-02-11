@@ -1,0 +1,15 @@
+import { useLazyQuery } from '@apollo/client/react';
+
+import { AggregatedStocksForInventoryActionsDocument } from '../../graphql/generated/.graphql';
+
+export function useQueryInventoryList() {
+  const [fetchInventoryList, { data, loading }] = useLazyQuery(
+    AggregatedStocksForInventoryActionsDocument,
+  );
+
+  return {
+    fetchInventoryList,
+    data,
+    loading,
+  };
+}

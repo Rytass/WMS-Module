@@ -1,9 +1,11 @@
+import { useEffect, useMemo } from 'react';
 import { InventoryActions } from '../../utils/inventoryActions';
 import HoldInventory from './HoldInventory';
 import ReleaseHoldInventory from './ReleaseHoldInventory';
 import MergeBatch from './MergeBatch';
 import ScrapInventory from './ScrapInventory';
 import { useInventoryActions } from '../inventoryActions/useInventoryActions';
+import { useQueryInventoryList } from './useApi';
 
 interface InventoryActionDrawersProps {
   onClose: VoidFunction;
@@ -14,9 +16,25 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
   onClose,
   open,
 }) => {
+  const { fetchInventoryList, data, loading } = useQueryInventoryList();
   const { targetInventoryIds, targetAction } = useInventoryActions();
 
-  console.log('targetInventoryIds', targetInventoryIds);
+  useEffect(() => {
+    if (open) {
+      fetchInventoryList({
+        variables: {
+          ids: targetInventoryIds,
+        },
+      });
+    }
+  }, [fetchInventoryList, open, targetInventoryIds]);
+
+  const inventoryList = useMemo(
+    () => data?.aggregatedStocks.items ?? [],
+    [data?.aggregatedStocks.items],
+  );
+
+  console.log('inventoryList', inventoryList);
 
   switch (targetAction?.id) {
     case InventoryActions.HoldInventory:
