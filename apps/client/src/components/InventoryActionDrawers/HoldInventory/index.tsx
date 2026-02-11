@@ -25,9 +25,7 @@ const HoldInventory: FC<HoldInventoryProps> = ({
   bottomPrimaryActionIcon,
 }) => {
   const methods = useForm();
-  const onClearAll = useClearAll(() => {
-    //
-  });
+  const onClearAll = useClearAll();
 
   return (
     <FormDrawerWrapper
