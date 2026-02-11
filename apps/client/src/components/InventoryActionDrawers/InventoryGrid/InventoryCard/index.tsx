@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import {
   Typography,
   Button,
@@ -14,12 +14,49 @@ interface InventoryCardProps {
   inventory: AggregatedStockFragment;
 }
 
+const BASE_UNIT = 'BASE_UNIT';
+
 const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
-  const { inventorySignature } = useInventoryActions();
+  const { inventorySignature, updateInventoryQuantity, updateInventoryUnitId } =
+    useInventoryActions();
+
+  const currentSignature = useMemo(
+    () => inventorySignature[inventory.id],
+    [inventory.id, inventorySignature],
+  );
 
   const currentUnitId = useMemo(() => {
-    return inventorySignature[inventory.id].unitId;
-  }, [inventory.id, inventorySignature]);
+    return currentSignature.unitId;
+  }, [currentSignature.unitId]);
+
+  useEffect(() => {
+    // 如果 query 後找不到對應的 unit，重置他
+    if (
+      currentUnitId &&
+      !inventory.material.materialUnits.find((u) => u.id === currentUnitId)
+    ) {
+      updateInventoryUnitId(inventory.id, null);
+    }
+  }, [
+    currentUnitId,
+    inventory.id,
+    inventory.material.materialUnits,
+    updateInventoryUnitId,
+  ]);
+
+  const unitOptions = useMemo(
+    () => [
+      {
+        id: BASE_UNIT,
+        name: inventory.material.baseUnit.key,
+      },
+      ...inventory.material.materialUnits.map((u) => ({
+        id: u.id,
+        name: u.unit,
+      })),
+    ],
+    [inventory.material.baseUnit.key, inventory.material.materialUnits],
+  );
 
   const quantity = useMemo(() => {
     if (currentUnitId) {
