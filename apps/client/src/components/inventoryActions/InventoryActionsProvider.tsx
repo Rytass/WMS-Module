@@ -2,7 +2,7 @@ import { useState, memo, useCallback } from 'react';
 import { omit } from 'lodash';
 import { InventoryActionItem } from '../../utils/inventoryActions';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
-import { InventorySignatureValues, InventorySignature } from './typing';
+import { InventorySignature } from './typing';
 
 const InventoryActionsProvider: FC = ({ children }) => {
   const [inventorySignature, setInventorySignature] =
@@ -32,11 +32,27 @@ const InventoryActionsProvider: FC = ({ children }) => {
     }));
   }, []);
 
-  const updateInventorySignature = useCallback(
-    (id: string, values: Omit<InventorySignatureValues, 'id'>) => {
+  const updateInventoryQuantity = useCallback(
+    (id: string, quantity: number) => {
       setInventorySignature((prevSignature) => ({
         ...prevSignature,
-        [id]: { id, ...values },
+        [id]: {
+          ...prevSignature[id],
+          quantity,
+        },
+      }));
+    },
+    [],
+  );
+
+  const updateInventoryUnitId = useCallback(
+    (id: string, unitId: string | null) => {
+      setInventorySignature((prevSignature) => ({
+        ...prevSignature,
+        [id]: {
+          ...prevSignature[id],
+          unitId,
+        },
       }));
     },
     [],
@@ -67,7 +83,8 @@ const InventoryActionsProvider: FC = ({ children }) => {
         inventorySignature,
         targetInventoryIds,
         pushTargetInventoryIds,
-        updateInventorySignature,
+        updateInventoryQuantity,
+        updateInventoryUnitId,
         removeTargetInventory,
         resetAll,
         targetAction,
