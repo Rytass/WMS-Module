@@ -17,6 +17,7 @@ type FormDrawerWrapperProps<T extends FieldValues = FieldValues> = {
   bottomPrimaryActionText: string;
   bottomPrimaryActionIcon?: IconDefinition;
   bottomPrimaryActionVariant?: ButtonVariant;
+  bottomPrimaryActionDisabled?: boolean;
   headerTitle: string;
 };
 
@@ -33,6 +34,7 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
   bottomPrimaryActionText,
   bottomPrimaryActionIcon,
   bottomPrimaryActionVariant,
+  bottomPrimaryActionDisabled = false,
   headerTitle,
 }: FormDrawerWrapperProps<T>) {
   const [acting, setActing] = useState<boolean>(false);
@@ -50,19 +52,23 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
       bottomGhostActionText={bottomGhostActionText}
       bottomGhostActionVariant="destructive-ghost"
       bottomOnGhostActionClick={bottomOnGhostActionClick}
+      bottomGhostActionDisabled={loading}
       bottomSecondaryActionText={bottomSecondaryActionText}
       bottomOnSecondaryActionClick={async () => {
         setActing(true);
         await bottomOnSecondaryActionClick?.(values);
         setActing(false);
       }}
+      bottomSecondaryActionDisabled={loading}
       bottomPrimaryActionText={bottomPrimaryActionText}
       bottomOnPrimaryActionClick={onConfirm}
       bottomPrimaryActionIconType="leading"
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}
       bottomPrimaryActionVariant={bottomPrimaryActionVariant}
-      disableCloseOnBackdropClick={false}
-      disableCloseOnEscapeKeyDown={false}
+      bottomPrimaryActionDisabled={bottomPrimaryActionDisabled || loading}
+      bottomPrimaryActionLoading={loading}
+      disableCloseOnBackdropClick={loading}
+      disableCloseOnEscapeKeyDown={loading}
       headerTitle={headerTitle}
       isBottomDisplay
       isHeaderDisplay

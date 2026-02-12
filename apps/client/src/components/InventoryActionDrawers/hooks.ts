@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
 import { useDialog } from '../dialog/useDialog';
+import { useInventoryActions } from '../inventoryActions/useInventoryActions';
 
-export function useClearAll(clear: VoidFunction) {
+export function useClearAll() {
+  const { resetAll } = useInventoryActions();
   const { openDialog } = useDialog();
 
   const onClearAll = useCallback(async () => {
@@ -17,9 +19,9 @@ export function useClearAll(clear: VoidFunction) {
     });
 
     if (isConfirm) {
-      clear();
+      resetAll();
     }
-  }, [clear, openDialog]);
+  }, [resetAll, openDialog]);
 
   return onClearAll;
 }

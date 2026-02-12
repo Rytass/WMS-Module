@@ -1,13 +1,133 @@
-import { Typography, Button } from '@mezzanine-ui/react';
+import { useMemo, useEffect } from 'react';
+import {
+  Typography,
+  Button,
+  Description,
+  DescriptionContent,
+  Input,
+} from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import classes from './index.module.scss';
 
 interface InventoryCardProps {
   inventory: AggregatedStockFragment;
 }
 
+const BASE_UNIT = 'BASE_UNIT';
+
 const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
+  const {
+    inventorySignature,
+    errorSignature,
+    updateInventoryQuantity,
+    updateInventoryUnitId,
+    removeTargetInventory,
+    updateErrorSignature,
+    removeErrorSignature,
+  } = useInventoryActions();
+
+  const currentSignature = useMemo(
+    () => inventorySignature[inventory.id],
+    [inventory.id, inventorySignature],
+  );
+
+  const currentErrorSignature = useMemo(
+    () => errorSignature[inventory.id],
+    [errorSignature, inventory.id],
+  );
+
+  const currentUnitId = useMemo(() => {
+    return currentSignature?.unitId;
+  }, [currentSignature?.unitId]);
+
+  const unitOptions = useMemo(
+    () => [
+      {
+        id: BASE_UNIT,
+        name: inventory.material.baseUnit.key,
+      },
+      ...inventory.material.materialUnits.map((u) => ({
+        id: u.id,
+        name: u.unit,
+      })),
+    ],
+    [inventory.material.baseUnit.key, inventory.material.materialUnits],
+  );
+
+  const currentUnitName = useMemo(() => {
+    return (
+      unitOptions.find((o) => o.id === (currentUnitId || BASE_UNIT))?.name ?? ''
+    );
+  }, [currentUnitId, unitOptions]);
+
+  const quantity = useMemo(() => {
+    if (currentUnitId) {
+      const conversionFactor = inventory.material.materialUnits.find(
+        (u) => u.id === currentUnitId,
+      )?.conversionFactor;
+
+      if (conversionFactor) {
+        return Math.round((inventory.quantity / conversionFactor) * 100) / 100;
+      }
+
+      return inventory.quantity;
+    }
+
+    return inventory.quantity;
+  }, [currentUnitId, inventory.material.materialUnits, inventory.quantity]);
+
+  const inputQuantity = useMemo(
+    () => currentSignature?.quantity,
+    [currentSignature?.quantity],
+  );
+
+  useEffect(() => {
+    // 如果 query 後找不到對應的 unit，重置他
+    if (
+      currentUnitId &&
+      !inventory.material.materialUnits.find((u) => u.id === currentUnitId)
+    ) {
+      updateInventoryUnitId(inventory.id, null);
+    }
+  }, [
+    currentUnitId,
+    inventory.id,
+    inventory.material.materialUnits,
+    updateInventoryUnitId,
+  ]);
+
+  useEffect(() => {
+    if (!currentErrorSignature && inputQuantity) {
+      if (inputQuantity > quantity) {
+        updateErrorSignature(inventory.id, '數量大於庫存數量');
+      } else if (!Number.isInteger(inputQuantity)) {
+        updateErrorSignature(inventory.id, '需要為整數');
+      }
+    }
+  }, [
+    currentErrorSignature,
+    inputQuantity,
+    inventory.id,
+    quantity,
+    updateErrorSignature,
+  ]);
+
+  useEffect(() => {
+    if (currentErrorSignature) {
+      if (inputQuantity <= quantity && Number.isInteger(inputQuantity)) {
+        removeErrorSignature(inventory.id);
+      }
+    }
+  }, [
+    currentErrorSignature,
+    inputQuantity,
+    inventory.id,
+    quantity,
+    removeErrorSignature,
+  ]);
+
   return (
     <div className={classes.host}>
       <div className={classes.titleWrapper}>
@@ -33,21 +153,46 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
             iconType="icon-only"
             size="minor"
             variant="destructive-ghost"
-            // onClick={onRemove}
+            onClick={() => {
+              removeTargetInventory(inventory.id);
+            }}
           />
         </div>
       </div>
       <div className={classes.contentWrapper}>
-        {/* <Description title="庫存 :" widthType="hug">
-          <DescriptionContent>{`${values.quantity}`}</DescriptionContent>
-        </Description> */}
-        {/* <SelectInputField
-          name={`stocks.${index}.inputQuantity`}
-          selectName={`stocks.${index}.selectedUnit`}
-          label=""
+        <Description title="庫存 :" widthType="hug">
+          <DescriptionContent>{`${quantity}`}</DescriptionContent>
+        </Description>
+        <Input
+          fullWidth
+          error={!!currentErrorSignature}
+          variant="select"
+          value={`${inputQuantity}`}
+          onChange={(e) => {
+            updateInventoryQuantity(inventory.id, Number(e.target.value));
+          }}
+          onSelect={(value) => {
+            if (value === BASE_UNIT) {
+              updateInventoryUnitId(inventory.id, null);
+            } else {
+              updateInventoryUnitId(inventory.id, value as string);
+            }
+          }}
+          placeholder="請輸入數量"
+          size="sub"
+          selectedValue={currentUnitId || BASE_UNIT}
+          selectButton={{
+            position: 'suffix',
+            value: currentUnitName,
+          }}
+          options={unitOptions}
           inputType="number"
-          options={values.units}
-        /> */}
+          inputProps={{
+            style: {
+              textAlign: 'right',
+            },
+          }}
+        />
       </div>
     </div>
   );

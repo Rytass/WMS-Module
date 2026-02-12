@@ -81,3 +81,13 @@ query AggregatedStocks(
     total
   }
 }
+
+query AggregatedStocksForInventoryActions($ids: [ID!]) {
+  aggregatedStocks(offset: null, limit: null, ids: $ids) {
+    id
+    items {
+      ...AggregatedStock
+    }
+    total
+  }
+}

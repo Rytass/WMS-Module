@@ -1,20 +1,21 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { createContext, Dispatch, SetStateAction } from 'react';
 import { InventoryActionItem } from '../../utils/inventoryActions';
-import { InventorySignatureValues, InventorySignature } from './typing';
+import { InventorySignature, ErrorSignature } from './typing';
 
 export interface InventoryActionsContextValues {
   inventorySignature: InventorySignature;
   targetInventoryIds: string[];
   pushTargetInventoryIds: (ids: string[]) => void;
-  updateInventorySignature: (
-    id: string,
-    values: Omit<InventorySignatureValues, 'id'>,
-  ) => void;
+  updateInventoryQuantity: (id: string, quantity: number) => void;
+  updateInventoryUnitId: (id: string, unitId: string | null) => void;
   removeTargetInventory: (id: string) => void;
   resetAll: VoidFunction;
   targetAction: InventoryActionItem | null;
   setTargetAction: Dispatch<SetStateAction<InventoryActionItem | null>>;
+  errorSignature: ErrorSignature;
+  updateErrorSignature: (id: string, errorMessage: string) => void;
+  removeErrorSignature: (id: string) => void;
 }
 
 export const InventoryActionsContext =
@@ -22,11 +23,15 @@ export const InventoryActionsContext =
     inventorySignature: {},
     targetInventoryIds: [],
     pushTargetInventoryIds: () => {},
-    updateInventorySignature: () => {},
+    updateInventoryQuantity: () => {},
+    updateInventoryUnitId: () => {},
     removeTargetInventory: () => {},
     resetAll: () => {},
     targetAction: null,
     setTargetAction: () => {},
+    errorSignature: {},
+    updateErrorSignature: () => {},
+    removeErrorSignature: () => {},
   });
 
 export const InventoryActionsContextProvider = InventoryActionsContext.Provider;
