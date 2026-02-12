@@ -98,6 +98,36 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
     updateInventoryUnitId,
   ]);
 
+  useEffect(() => {
+    if (!currentErrorSignature) {
+      if (inputQuantity > quantity) {
+        updateErrorSignature(inventory.id, '數量大於庫存數量');
+      } else if (!Number.isInteger(inputQuantity)) {
+        updateErrorSignature(inventory.id, '需要為整數');
+      }
+    }
+  }, [
+    currentErrorSignature,
+    inputQuantity,
+    inventory.id,
+    quantity,
+    updateErrorSignature,
+  ]);
+
+  useEffect(() => {
+    if (currentErrorSignature) {
+      if (inputQuantity <= quantity && Number.isInteger(inputQuantity)) {
+        removeErrorSignature(inventory.id);
+      }
+    }
+  }, [
+    currentErrorSignature,
+    inputQuantity,
+    inventory.id,
+    quantity,
+    removeErrorSignature,
+  ]);
+
   return (
     <div className={classes.host}>
       <div className={classes.titleWrapper}>
@@ -135,7 +165,7 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
         </Description>
         <Input
           fullWidth
-          // error={isError}
+          error={!!currentErrorSignature}
           variant="select"
           value={`${inputQuantity}`}
           onChange={(e) => {
