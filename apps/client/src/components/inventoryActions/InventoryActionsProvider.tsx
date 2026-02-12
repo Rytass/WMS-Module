@@ -2,11 +2,12 @@ import { useState, memo, useCallback } from 'react';
 import { omit } from 'lodash';
 import { InventoryActionItem } from '../../utils/inventoryActions';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
-import { InventorySignature } from './typing';
+import { InventorySignature, ErrorSignature } from './typing';
 
 const InventoryActionsProvider: FC = ({ children }) => {
   const [inventorySignature, setInventorySignature] =
     useState<InventorySignature>({});
+  const [errorSignature, setErrorSignature] = useState<ErrorSignature>({});
   const [targetInventoryIds, setTargetInventoryIds] = useState<string[]>([]);
   const [targetAction, setTargetAction] = useState<InventoryActionItem | null>(
     null,
@@ -69,10 +70,22 @@ const InventoryActionsProvider: FC = ({ children }) => {
     });
 
     setInventorySignature((prevSignature) => omit(prevSignature, id));
+    setErrorSignature((prevSignature) => omit(prevSignature, id));
   }, []);
+
+  const updateErrorSignature = useCallback(
+    (id: string, errorMessage: string) => {
+      setErrorSignature((prevSignature) => ({
+        ...prevSignature,
+        [id]: errorMessage,
+      }));
+    },
+    [],
+  );
 
   const resetAll = useCallback(() => {
     setInventorySignature({});
+    setErrorSignature({});
     setTargetInventoryIds([]);
     setTargetAction(null);
   }, []);
@@ -89,6 +102,8 @@ const InventoryActionsProvider: FC = ({ children }) => {
         resetAll,
         targetAction,
         setTargetAction,
+        errorSignature,
+        updateErrorSignature,
       }}
     >
       {children}

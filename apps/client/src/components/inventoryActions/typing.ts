@@ -6,3 +6,7 @@ export interface InventorySignatureValues {
 export interface InventorySignature {
   [id: string]: InventorySignatureValues;
 }
+
+export interface ErrorSignature {
+  [id: string]: string;
+}

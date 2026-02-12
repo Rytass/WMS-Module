@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { createContext, Dispatch, SetStateAction } from 'react';
 import { InventoryActionItem } from '../../utils/inventoryActions';
-import { InventorySignature } from './typing';
+import { InventorySignature, ErrorSignature } from './typing';
 
 export interface InventoryActionsContextValues {
   inventorySignature: InventorySignature;
@@ -13,6 +13,8 @@ export interface InventoryActionsContextValues {
   resetAll: VoidFunction;
   targetAction: InventoryActionItem | null;
   setTargetAction: Dispatch<SetStateAction<InventoryActionItem | null>>;
+  errorSignature: ErrorSignature;
+  updateErrorSignature: (id: string, errorMessage: string) => void;
 }
 
 export const InventoryActionsContext =
@@ -26,6 +28,8 @@ export const InventoryActionsContext =
     resetAll: () => {},
     targetAction: null,
     setTargetAction: () => {},
+    errorSignature: {},
+    updateErrorSignature: () => {},
   });
 
 export const InventoryActionsContextProvider = InventoryActionsContext.Provider;
