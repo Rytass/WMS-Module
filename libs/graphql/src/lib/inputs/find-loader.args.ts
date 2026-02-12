@@ -4,6 +4,9 @@ import { DateRangeArgs } from './date-range.args';
 
 @ArgsType()
 export class FindLoaderArgs extends PaginationArgs {
+  @Field(() => String, { nullable: true })
+  key?: string;
+
   @Field(() => ID, { nullable: true })
   typeId?: string;
 

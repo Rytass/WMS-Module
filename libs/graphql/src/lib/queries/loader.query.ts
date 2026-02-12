@@ -16,7 +16,10 @@ export class LoaderQuery {
 
   @Query(() => Loaders)
   async loaders(@Args() args: FindLoaderArgs): Promise<Loaders> {
-    const [items, total] = await this.loaderService.findManyLoaders(args);
+    const [items, total] = await this.loaderService.findManyLoaders({
+      ...args,
+      wildcard: args.key ? { key: 'serialId', value: args.key } : undefined,
+    });
     return { items, total };
   }
 

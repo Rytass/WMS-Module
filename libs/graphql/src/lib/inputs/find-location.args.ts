@@ -5,4 +5,7 @@ import { PaginationArgs } from './pagination.args';
 export class FindLocationArgs extends PaginationArgs {
   @Field(() => String, { nullable: true })
   description?: string;
+
+  @Field(() => String, { nullable: true })
+  key?: string;
 }

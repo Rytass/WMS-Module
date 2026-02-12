@@ -218,7 +218,7 @@ export class LoaderService<
     return startVal;
   }
 
-  findManyLoaders(options: FindLoaderInput): Promise<[T[], number]> {
+  findManyLoaders(options: FindLoaderInput<T>): Promise<[T[], number]> {
     const queryBuilder = this.dataSource
       .getRepository<T>(this.loaderEntity)
       .createQueryBuilder('loader');
@@ -268,6 +268,13 @@ export class LoaderService<
       queryBuilder.andWhere('loader.note LIKE :note', {
         note: `%${options.note}%`,
       });
+
+    if (options.wildcard) {
+      const { key, value } = options.wildcard;
+      queryBuilder.andWhere(`loader."${String(key)}" ILIKE :value`, {
+        value: `%${value}%`,
+      });
+    }
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);

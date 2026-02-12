@@ -15,7 +15,10 @@ export class LocationQuery {
 
   @Query(() => Locations)
   async locations(@Args() args: FindLocationArgs): Promise<Locations> {
-    const [items, total] = await this.locationService.findMany(args);
+    const [items, total] = await this.locationService.findMany({
+      ...args,
+      wildcard: args.key ? { key: 'key', value: args.key } : undefined,
+    });
     return { items, total };
   }
 }

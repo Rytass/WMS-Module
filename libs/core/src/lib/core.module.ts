@@ -17,10 +17,12 @@ import {
   TransferOrderService,
   HoldInventoryOrderService,
 } from './services';
+import { BatchService } from './services/batch.service';
 
 const exportDependencies = [
   LoaderService,
   MaterialService,
+  BatchService,
   ReceiveInventoryOrderService,
   ShipInventoryOrderService,
   TransferOrderService,
