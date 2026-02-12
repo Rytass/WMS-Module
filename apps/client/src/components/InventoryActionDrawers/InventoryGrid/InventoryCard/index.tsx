@@ -99,7 +99,7 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
   ]);
 
   useEffect(() => {
-    if (!currentErrorSignature) {
+    if (!currentErrorSignature && inputQuantity) {
       if (inputQuantity > quantity) {
         updateErrorSignature(inventory.id, '數量大於庫存數量');
       } else if (!Number.isInteger(inputQuantity)) {
