@@ -38,8 +38,6 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     [data?.aggregatedStocks.items],
   );
 
-  console.log('inventoryList', inventoryList);
-
   switch (targetAction?.id) {
     case InventoryActions.HoldInventory:
       return (

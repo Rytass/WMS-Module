@@ -18,8 +18,12 @@ interface InventoryCardProps {
 const BASE_UNIT = 'BASE_UNIT';
 
 const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
-  const { inventorySignature, updateInventoryQuantity, updateInventoryUnitId } =
-    useInventoryActions();
+  const {
+    inventorySignature,
+    updateInventoryQuantity,
+    updateInventoryUnitId,
+    removeTargetInventory,
+  } = useInventoryActions();
 
   const currentSignature = useMemo(
     () => inventorySignature[inventory.id],
@@ -27,23 +31,8 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
   );
 
   const currentUnitId = useMemo(() => {
-    return currentSignature.unitId;
-  }, [currentSignature.unitId]);
-
-  useEffect(() => {
-    // 如果 query 後找不到對應的 unit，重置他
-    if (
-      currentUnitId &&
-      !inventory.material.materialUnits.find((u) => u.id === currentUnitId)
-    ) {
-      updateInventoryUnitId(inventory.id, null);
-    }
-  }, [
-    currentUnitId,
-    inventory.id,
-    inventory.material.materialUnits,
-    updateInventoryUnitId,
-  ]);
+    return currentSignature?.unitId;
+  }, [currentSignature?.unitId]);
 
   const unitOptions = useMemo(
     () => [
@@ -72,7 +61,7 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
       )?.conversionFactor;
 
       if (conversionFactor) {
-        return inventory.quantity / conversionFactor;
+        return Math.round((inventory.quantity / conversionFactor) * 100) / 100;
       }
 
       return inventory.quantity;
@@ -80,6 +69,26 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
 
     return inventory.quantity;
   }, [currentUnitId, inventory.material.materialUnits, inventory.quantity]);
+
+  const inputQuantity = useMemo(
+    () => currentSignature?.quantity,
+    [currentSignature?.quantity],
+  );
+
+  useEffect(() => {
+    // 如果 query 後找不到對應的 unit，重置他
+    if (
+      currentUnitId &&
+      !inventory.material.materialUnits.find((u) => u.id === currentUnitId)
+    ) {
+      updateInventoryUnitId(inventory.id, null);
+    }
+  }, [
+    currentUnitId,
+    inventory.id,
+    inventory.material.materialUnits,
+    updateInventoryUnitId,
+  ]);
 
   return (
     <div className={classes.host}>
@@ -106,7 +115,9 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
             iconType="icon-only"
             size="minor"
             variant="destructive-ghost"
-            // onClick={onRemove}
+            onClick={() => {
+              removeTargetInventory(inventory.id);
+            }}
           />
         </div>
       </div>
@@ -118,8 +129,10 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
           fullWidth
           // error={isError}
           variant="select"
-          // value={watchValue}
-          // onChange={onChange}
+          value={`${inputQuantity}`}
+          onChange={(e) => {
+            updateInventoryQuantity(inventory.id, Number(e.target.value));
+          }}
           onSelect={(value) => {
             if (value === BASE_UNIT) {
               updateInventoryUnitId(inventory.id, null);
