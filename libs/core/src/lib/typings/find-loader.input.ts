@@ -1,6 +1,6 @@
 import { PaginationInput } from './paginations';
 
-export type FindLoaderInput = PaginationInput & {
+export type FindLoaderInput<U> = PaginationInput & {
   typeId?: string;
   typeIds?: string[];
   locationId?: string;
@@ -13,6 +13,10 @@ export type FindLoaderInput = PaginationInput & {
     to: Date;
   };
   note?: string;
+  wildcard?: {
+    key: keyof U;
+    value: string;
+  };
 };
 
 export type FindLoaderTypeInput<U> = PaginationInput & {
