@@ -20,14 +20,22 @@ const BASE_UNIT = 'BASE_UNIT';
 const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
   const {
     inventorySignature,
+    errorSignature,
     updateInventoryQuantity,
     updateInventoryUnitId,
     removeTargetInventory,
+    updateErrorSignature,
+    removeErrorSignature,
   } = useInventoryActions();
 
   const currentSignature = useMemo(
     () => inventorySignature[inventory.id],
     [inventory.id, inventorySignature],
+  );
+
+  const currentErrorSignature = useMemo(
+    () => errorSignature[inventory.id],
+    [errorSignature, inventory.id],
   );
 
   const currentUnitId = useMemo(() => {

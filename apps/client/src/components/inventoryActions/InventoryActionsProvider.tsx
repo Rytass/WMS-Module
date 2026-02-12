@@ -83,6 +83,10 @@ const InventoryActionsProvider: FC = ({ children }) => {
     [],
   );
 
+  const removeErrorSignature = useCallback((id: string) => {
+    setErrorSignature((prevSignature) => omit(prevSignature, id));
+  }, []);
+
   const resetAll = useCallback(() => {
     setInventorySignature({});
     setErrorSignature({});
@@ -104,6 +108,7 @@ const InventoryActionsProvider: FC = ({ children }) => {
         setTargetAction,
         errorSignature,
         updateErrorSignature,
+        removeErrorSignature,
       }}
     >
       {children}

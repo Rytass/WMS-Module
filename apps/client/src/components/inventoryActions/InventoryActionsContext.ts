@@ -15,6 +15,7 @@ export interface InventoryActionsContextValues {
   setTargetAction: Dispatch<SetStateAction<InventoryActionItem | null>>;
   errorSignature: ErrorSignature;
   updateErrorSignature: (id: string, errorMessage: string) => void;
+  removeErrorSignature: (id: string) => void;
 }
 
 export const InventoryActionsContext =
@@ -30,6 +31,7 @@ export const InventoryActionsContext =
     setTargetAction: () => {},
     errorSignature: {},
     updateErrorSignature: () => {},
+    removeErrorSignature: () => {},
   });
 
 export const InventoryActionsContextProvider = InventoryActionsContext.Provider;
