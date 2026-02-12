@@ -21,17 +21,23 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     data,
     loading: queryInventoryListLoading,
   } = useQueryInventoryList();
-  const { targetInventoryIds, targetAction } = useInventoryActions();
+  const { targetInventoryIds, targetAction, resetAll } = useInventoryActions();
 
   useEffect(() => {
     if (open) {
-      fetchInventoryList({
-        variables: {
-          ids: targetInventoryIds,
-        },
-      });
+      if (targetInventoryIds.length > 0) {
+        fetchInventoryList({
+          variables: {
+            ids: targetInventoryIds,
+          },
+        });
+      } else {
+        onClose();
+        resetAll();
+      }
     }
-  }, [fetchInventoryList, open, targetInventoryIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchInventoryList, open, targetInventoryIds, resetAll]);
 
   const inventoryList = useMemo(
     () => data?.aggregatedStocks.items ?? [],
