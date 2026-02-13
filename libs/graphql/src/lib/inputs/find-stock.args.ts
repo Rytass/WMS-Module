@@ -24,4 +24,16 @@ export class FindStockArgs extends PaginationArgs {
 
   @Field(() => StockStatus, { nullable: true })
   status?: StockStatus;
+
+  @Field(() => String, { nullable: true })
+  materialKey?: string;
+
+  @Field(() => String, { nullable: true })
+  batchKey?: string;
+
+  @Field(() => String, { nullable: true })
+  locationKey?: string;
+
+  @Field(() => String, { nullable: true })
+  loaderKey?: string;
 }
