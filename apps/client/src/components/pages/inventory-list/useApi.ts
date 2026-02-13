@@ -17,6 +17,22 @@ export function useQueryStocksGrouped(currentFilter?: FilterValues) {
     variables: {
       limit,
       offset,
+      materialKey:
+        currentFilter?.[FilterType.material] ||
+        currentFilter?.['material-search'] ||
+        undefined,
+      batchKey:
+        currentFilter?.[FilterType.batch] ||
+        currentFilter?.['batch-search'] ||
+        undefined,
+      locationKey:
+        currentFilter?.[FilterType.location] ||
+        currentFilter?.['location-search'] ||
+        undefined,
+      loaderKey:
+        currentFilter?.[FilterType.loader] ||
+        currentFilter?.['loader-search'] ||
+        undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,
     },
     fetchPolicy: 'cache-and-network',
@@ -47,6 +63,22 @@ export function useQueryStocks(currentFilter?: FilterValues) {
     variables: {
       limit,
       offset,
+      materialKey:
+        currentFilter?.[FilterType.material] ||
+        currentFilter?.['material-search'] ||
+        undefined,
+      batchKey:
+        currentFilter?.[FilterType.batch] ||
+        currentFilter?.['batch-search'] ||
+        undefined,
+      locationKey:
+        currentFilter?.[FilterType.location] ||
+        currentFilter?.['location-search'] ||
+        undefined,
+      loaderKey:
+        currentFilter?.[FilterType.loader] ||
+        currentFilter?.['loader-search'] ||
+        undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,
     },
     fetchPolicy: 'cache-and-network',

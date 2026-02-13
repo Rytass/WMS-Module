@@ -8,7 +8,10 @@ import {
 import { isNumber, uniq, intersection } from 'lodash';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { Dropdown, Button, Message } from '@mezzanine-ui/react';
-import { inventoryActionOptions } from '../../../../utils/inventoryActions';
+import {
+  InventoryActionItem,
+  inventoryActionOptions,
+} from '../../../../utils/inventoryActions';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 
@@ -46,42 +49,46 @@ function InventoryActionSelector({
     });
   }, [targetStocks]);
 
-  const onAddInventoryIds = useCallback(() => {
-    const duplicateItem = targetStocks.find((s) =>
-      targetInventoryIds.includes(s.id),
-    );
-    const invalidStock = targetStocks.find(
-      (stock) => targetAction && !targetAction.status.includes(stock.status),
-    );
-
-    if (duplicateItem) {
-      Message.error(`料號：${duplicateItem.material.key} / 批號：${duplicateItem.batch.key} / 儲存位置：${duplicateItem.location.key}
-此項目已在清單中，無法重複加入。`);
-    } else if (invalidStock) {
-      Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
-無法執行作業：料號，資料不符作業條件。`);
-    } else if (
-      targetAction &&
-      isNumber(targetAction.maxDataLength) &&
-      targetStocks.length + targetInventoryIds.length >
-        targetAction.maxDataLength
-    ) {
-      Message.warning(
-        `${targetAction.submitText}僅能選取${targetAction.maxDataLength}個項目`,
+  const onAddInventoryIds = useCallback(
+    (currentAction: InventoryActionItem | null) => {
+      const duplicateItem = targetStocks.find((s) =>
+        targetInventoryIds.includes(s.id),
       );
-    } else {
-      pushTargetInventoryIds(targetStocks.map((s) => s.id));
-      setTargetStocks([]);
-      setNeedClearSelectedRows(true);
-    }
-  }, [
-    setNeedClearSelectedRows,
-    pushTargetInventoryIds,
-    setTargetStocks,
-    targetAction,
-    targetInventoryIds,
-    targetStocks,
-  ]);
+      const invalidStock = targetStocks.find(
+        (stock) =>
+          currentAction && !currentAction.status.includes(stock.status),
+      );
+
+      if (duplicateItem) {
+        Message.error(`料號：${duplicateItem.material.key} / 批號：${duplicateItem.batch.key} / 儲存位置：${duplicateItem.location.key}
+此項目已在清單中，無法重複加入。`);
+      } else if (invalidStock) {
+        Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
+無法執行作業：料號，資料不符作業條件。`);
+      } else if (
+        currentAction &&
+        isNumber(currentAction.maxDataLength) &&
+        targetStocks.length + targetInventoryIds.length >
+          currentAction.maxDataLength
+      ) {
+        Message.warning(
+          `${currentAction.submitText}僅能選取${currentAction.maxDataLength}個項目`,
+        );
+      } else {
+        pushTargetInventoryIds(targetStocks.map((s) => s.id));
+        setTargetStocks([]);
+        setNeedClearSelectedRows(true);
+        Message.success(`項目已加入${currentAction?.title}`);
+      }
+    },
+    [
+      setNeedClearSelectedRows,
+      pushTargetInventoryIds,
+      setTargetStocks,
+      targetInventoryIds,
+      targetStocks,
+    ],
+  );
 
   if (targetAction) {
     return (
@@ -91,7 +98,9 @@ function InventoryActionSelector({
         icon={targetAction.icon}
         iconType="leading"
         disabled={targetStocks.length === 0}
-        onClick={onAddInventoryIds}
+        onClick={() => {
+          onAddInventoryIds(targetAction);
+        }}
       >
         {`加入${targetAction.title}`}
       </Button>
@@ -104,10 +113,10 @@ function InventoryActionSelector({
       options={availableOptions}
       onVisibilityChange={toggleOpen}
       onSelect={(option) => {
-        setTargetAction(
-          inventoryActionOptions.find((o) => o.id === option.id) ?? null,
-        );
-        onAddInventoryIds();
+        const currentAction =
+          inventoryActionOptions.find((o) => o.id === option.id) ?? null;
+        setTargetAction(currentAction);
+        onAddInventoryIds(currentAction);
         toggleOpen(false);
       }}
       placement="bottom-end"
