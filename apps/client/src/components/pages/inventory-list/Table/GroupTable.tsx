@@ -19,6 +19,7 @@ import { CaretDownIcon } from '@mezzanine-ui/icons';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useQueryStocksGrouped } from '../useApi';
+import { FilterValues } from '../typing';
 import classes from './group-table.module.scss';
 
 type DataType = AggregatedStockFragment & {
@@ -26,12 +27,14 @@ type DataType = AggregatedStockFragment & {
 };
 
 interface InventoryGroupTableProps {
+  currentFilter?: FilterValues;
   setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
   needClearSelectedRows: boolean;
   setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;
 }
 
 function InventoryGroupTable({
+  currentFilter,
   setTargetStocks,
   needClearSelectedRows,
   setNeedClearSelectedRows,
@@ -86,7 +89,7 @@ function InventoryGroupTable({
   );
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryStocksGrouped();
+    useQueryStocksGrouped(currentFilter);
 
   const dataSource = useMemo(
     (): DataType[] =>

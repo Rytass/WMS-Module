@@ -1,6 +1,9 @@
 import { InputField } from '../fields/InputField';
 import { DateField } from '../fields/DateField';
 import MaterialsField from '../fields/MaterialsField';
+import BatchesField from '../fields/BatchesField';
+import LocationsField from '../fields/LocationsField';
+import LoadersField from '../fields/LoadersField';
 import { FilterType } from './typing';
 
 export function renderFilter(filterType: FilterType) {
@@ -9,7 +12,7 @@ export function renderFilter(filterType: FilterType) {
       return (
         <DateField
           key={filterType}
-          name={FilterType.createdAt}
+          name={filterType}
           label="建立日期"
           placeholder="建立日期"
         />
@@ -19,7 +22,7 @@ export function renderFilter(filterType: FilterType) {
       return (
         <InputField
           key={filterType}
-          name={FilterType.description}
+          name={filterType}
           label="備註"
           placeholder="輸入備註"
         />
@@ -29,14 +32,23 @@ export function renderFilter(filterType: FilterType) {
       return (
         <InputField
           key={filterType}
-          name={FilterType.materialDescription}
+          name={filterType}
           label="物料說明"
           placeholder="輸入物料說明"
         />
       );
 
     case FilterType.material:
-      return <MaterialsField key={filterType} name={FilterType.material} />;
+      return <MaterialsField key={filterType} name={filterType} />;
+
+    case FilterType.batch:
+      return <BatchesField key={filterType} name={filterType} />;
+
+    case FilterType.location:
+      return <LocationsField key={filterType} name={filterType} />;
+
+    case FilterType.loader:
+      return <LoadersField key={filterType} name={filterType} />;
 
     default:
       return null;

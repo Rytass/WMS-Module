@@ -7,14 +7,17 @@ import {
   StocksGroupedByMaterialDocument,
   AggregatedStocksDocument,
 } from '../../../graphql/generated/.graphql';
+import { FilterType } from '../../FilterWrapper/typing';
+import { FilterValues } from './typing';
 
-export function useQueryStocksGrouped() {
+export function useQueryStocksGrouped(currentFilter?: FilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(StocksGroupedByMaterialDocument, {
     variables: {
       limit,
       offset,
+      description: currentFilter?.[FilterType.materialDescription] || undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -23,7 +26,7 @@ export function useQueryStocksGrouped() {
     page,
     total: data?.stocksGroupedByMaterial.total,
     setPage,
-    filterValues: [],
+    filterValues: [currentFilter],
   });
 
   return {
@@ -37,13 +40,14 @@ export function useQueryStocksGrouped() {
   };
 }
 
-export function useQueryStocks() {
+export function useQueryStocks(currentFilter?: FilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(AggregatedStocksDocument, {
     variables: {
       limit,
       offset,
+      description: currentFilter?.[FilterType.materialDescription] || undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -52,7 +56,7 @@ export function useQueryStocks() {
     page,
     total: data?.aggregatedStocks.total,
     setPage,
-    filterValues: [],
+    filterValues: [currentFilter],
   });
 
   return {

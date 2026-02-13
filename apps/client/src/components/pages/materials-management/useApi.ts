@@ -42,7 +42,7 @@ export function useQueryMaterials(currentFilter?: FilterValues) {
         currentFilter?.[FilterType.material] ||
         currentFilter?.['material-search'] ||
         undefined,
-      description: currentFilter?.[FilterType.materialDescription],
+      description: currentFilter?.[FilterType.materialDescription] || undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
