@@ -5,6 +5,9 @@ export enum FilterType {
   description = 'description',
   materialDescription = 'materialDescription',
   material = 'material',
+  batch = 'batch',
+  location = 'location',
+  loader = 'loader',
 }
 
 export type FilterValues = {
@@ -13,4 +16,10 @@ export type FilterValues = {
   [FilterType.materialDescription]?: string;
   [FilterType.material]?: string;
   'material-search'?: string;
+  [FilterType.batch]?: string;
+  'batch-search'?: string;
+  [FilterType.location]?: string;
+  'location-search'?: string;
+  [FilterType.loader]?: string;
+  'loader-search'?: string;
 };
