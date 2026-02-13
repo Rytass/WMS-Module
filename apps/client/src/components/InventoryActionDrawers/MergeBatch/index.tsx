@@ -12,6 +12,7 @@ import { useInventoryActions } from '../../inventoryActions/useInventoryActions'
 import MergeBatchField from '../../inventoryActions/fields/MergeBatchField';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import classes from '../index.module.scss';
 
 interface MergeBatchProps {
   inventoryList: AggregatedStockFragment[];
@@ -60,11 +61,15 @@ const MergeBatch: FC<MergeBatchProps> = ({
       bottomPrimaryActionDisabled={haveError}
       bottomOnGhostActionClick={onClearAll}
     >
-      <MergeBatchField />
-      <InventoryGrid
-        inventoryList={inventoryList}
-        queryInventoryListLoading={queryInventoryListLoading}
-      />
+      <div className={classes.wrapper}>
+        <div className={classes.fieldsWrapper}>
+          <MergeBatchField />
+        </div>
+        <InventoryGrid
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      </div>
     </FormDrawerWrapper>
   );
 };
