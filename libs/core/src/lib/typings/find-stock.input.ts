@@ -15,4 +15,9 @@ export type FindStockInput<U extends object> = PaginationInput & {
   negateStatus?: StockStatus;
   aggregated?: boolean;
   aggregatedKeys?: string[];
+
+  materialKey?: string;
+  batchKey?: string;
+  locationKey?: string;
+  loaderKey?: string;
 };
