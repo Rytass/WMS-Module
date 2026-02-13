@@ -18,3 +18,14 @@ query Locations($offset: Int, $limit: Int, $description: String, $key: String) {
     total
   }
 }
+
+query LocationOptions($offset: Int, $limit: Int, $key: String) {
+  locations(offset: $offset, limit: $limit, key: $key) {
+    id
+    items {
+      id
+      key
+    }
+    total
+  }
+}

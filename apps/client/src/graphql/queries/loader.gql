@@ -40,6 +40,17 @@ query Loaders(
   }
 }
 
+query LoaderOptions($offset: Int, $limit: Int, $key: String) {
+  loaders(offset: $offset, limit: $limit, key: $key) {
+    id
+    items {
+      id
+      serialId
+    }
+    total
+  }
+}
+
 query LoaderType($loaderTypeId: ID!) {
   loaderType(id: $loaderTypeId) {
     ...LoaderType
