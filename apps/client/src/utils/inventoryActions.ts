@@ -138,7 +138,7 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   // InventoryActions.DeallocateInventory,
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
-  // InventoryActions.ScrapInventory,
+  InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,
   name: inventoryActionsSpec(action)?.name ?? '',
