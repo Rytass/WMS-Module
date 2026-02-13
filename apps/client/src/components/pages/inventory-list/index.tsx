@@ -19,7 +19,9 @@ function InventoryList() {
           filters: [
             FilterType.material,
             FilterType.materialDescription,
+            FilterType.batch,
             FilterType.location,
+            FilterType.loader,
           ],
           gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
         }}
