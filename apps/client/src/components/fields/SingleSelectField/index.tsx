@@ -16,7 +16,7 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
   name,
   label,
   hint,
-  fieldSize,
+  layout,
   required = false,
   disabled = false,
   placeholder,
@@ -79,7 +79,7 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
       disabled={disabled}
       label={label}
       hint={hint}
-      fieldSize={fieldSize}
+      layout={layout}
       controlFieldSlotLayout={
         size === 'sub'
           ? ControlFieldSlotLayout.SUB

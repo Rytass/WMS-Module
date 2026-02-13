@@ -3,14 +3,17 @@ import { TableColumn } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useQueryStocks } from '../useApi';
+import { FilterValues } from '../typing';
 
 interface InventoryListTableProps {
+  currentFilter?: FilterValues;
   setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
   needClearSelectedRows: boolean;
   setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;
 }
 
 function InventoryListTable({
+  currentFilter,
   needClearSelectedRows,
   setNeedClearSelectedRows,
   setTargetStocks,
@@ -32,7 +35,7 @@ function InventoryListTable({
   }, [dataSignature, selectedRowKeys, setTargetStocks]);
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryStocks();
+    useQueryStocks(currentFilter);
 
   const dataSource = useMemo(
     (): AggregatedStockFragment[] => data?.aggregatedStocks.items ?? [],

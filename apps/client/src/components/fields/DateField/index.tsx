@@ -12,7 +12,7 @@ export const DateField: FC<DateFieldProps> = ({
   name,
   label,
   hint,
-  fieldSize,
+  layout,
   required = false,
   disabled = false,
   placeholder,
@@ -46,7 +46,7 @@ export const DateField: FC<DateFieldProps> = ({
       disabled={disabled}
       label={label}
       hint={hint}
-      fieldSize={fieldSize}
+      layout={layout}
       controlFieldSlotLayout={
         size === 'sub'
           ? ControlFieldSlotLayout.SUB
@@ -54,6 +54,7 @@ export const DateField: FC<DateFieldProps> = ({
       }
     >
       <DatePicker
+        fullWidth
         clearable
         error={isError}
         className={className}

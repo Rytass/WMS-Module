@@ -17,7 +17,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   name,
   label,
   hint,
-  fieldSize,
+  layout,
   required = false,
   disabled = false,
   placeholder,
@@ -101,7 +101,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
       disabled={disabled}
       label={label}
       hint={hint}
-      fieldSize={fieldSize}
+      layout={layout}
       controlFieldSlotLayout={
         size === 'sub'
           ? ControlFieldSlotLayout.SUB
@@ -122,7 +122,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
         value={watchValueInOptions}
         options={options}
         menuMaxHeight={menuMaxHeight}
-        keepSearchTextOnBlur
+        clearSearchText={false}
         dropdownZIndex={1004}
       />
     </BaseField>

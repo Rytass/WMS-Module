@@ -313,10 +313,10 @@ type Query {
   materials(offset: Int, limit: Int, key: String, description: String): Materials!
   batches(offset: Int, limit: Int, key: String): Batches!
   stock(id: ID!): StockDto!
-  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus): Stocks!
-  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus): Materials!
-  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus): AggregatedStocks!
-  changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus): AggregatedStocks!
+  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): Stocks!
+  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): Materials!
+  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): AggregatedStocks!
+  changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): AggregatedStocks!
   receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!

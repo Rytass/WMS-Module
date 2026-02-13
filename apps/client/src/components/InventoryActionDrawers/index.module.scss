@@ -1,0 +1,18 @@
+@use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/radius';
+@use '@mezzanine-ui/system/palette';
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: spacing.semantic-variable(gap, comfort);
+}
+
+.fieldsWrapper {
+  border-radius: radius.variable(roomy);
+  border: 1px solid palette.semantic-variable(border, neutral-faint);
+  padding: spacing.semantic-variable(padding, vertical, comfort)
+    spacing.semantic-variable(padding, horizontal, comfort);
+  background-color: #f9fafb;
+}

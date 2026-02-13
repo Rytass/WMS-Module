@@ -14,6 +14,12 @@ import {
 } from '../models/metadata/material.entity';
 import { StockStatus } from '../constants/stock-status';
 import { AggregatedStock } from '../typings/aggregated-stock';
+import { BatchEntity } from '@rytass/wms-base-nestjs-module';
+import {
+  LoadersEntityClass,
+  LocationEntity,
+  LocationEntityClass,
+} from '../models';
 
 @Injectable()
 export class StockService<
@@ -174,6 +180,46 @@ export class StockService<
       queryBuilder.andWhere('stock_status.status != :negateStatus', {
         negateStatus: options.negateStatus,
       });
+
+    if (options.materialKey)
+      queryBuilder.innerJoin(
+        MaterialEntityClass,
+        'mk',
+        'mk.id = stock."materialId" AND mk.key ILIKE :materialKey',
+        {
+          materialKey: `%${options.materialKey}%`,
+        },
+      );
+
+    if (options.batchKey)
+      queryBuilder.innerJoin(
+        BatchEntity,
+        'bk',
+        'bk.id = stock."batchId" AND bk.key ILIKE :batchKey',
+        {
+          batchKey: `%${options.batchKey}%`,
+        },
+      );
+
+    if (options.locationKey)
+      queryBuilder.innerJoin(
+        LocationEntityClass,
+        'lk',
+        'lk.id = stock."locationId" AND lk.key ILIKE :locationKey',
+        {
+          locationKey: `%${options.locationKey}%`,
+        },
+      );
+
+    if (options.loaderKey)
+      queryBuilder.innerJoin(
+        LoadersEntityClass,
+        'lk',
+        'lk.id = stock."loaderId" AND lk."serialId" ILIKE :loaderKey',
+        {
+          loaderKey: `%${options.loaderKey}%`,
+        },
+      );
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);

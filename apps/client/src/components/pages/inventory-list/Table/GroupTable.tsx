@@ -6,7 +6,7 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import { flatten, compact } from 'lodash';
+import { flatten, compact, uniq } from 'lodash';
 import {
   Typography,
   TableColumn,
@@ -19,6 +19,7 @@ import { CaretDownIcon } from '@mezzanine-ui/icons';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useQueryStocksGrouped } from '../useApi';
+import { FilterValues } from '../typing';
 import classes from './group-table.module.scss';
 
 type DataType = AggregatedStockFragment & {
@@ -26,12 +27,14 @@ type DataType = AggregatedStockFragment & {
 };
 
 interface InventoryGroupTableProps {
+  currentFilter?: FilterValues;
   setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
   needClearSelectedRows: boolean;
   setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;
 }
 
 function InventoryGroupTable({
+  currentFilter,
   setTargetStocks,
   needClearSelectedRows,
   setNeedClearSelectedRows,
@@ -86,7 +89,7 @@ function InventoryGroupTable({
   );
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryStocksGrouped();
+    useQueryStocksGrouped(currentFilter);
 
   const dataSource = useMemo(
     (): DataType[] =>
@@ -167,18 +170,20 @@ function InventoryGroupTable({
       title: '批號',
       width: 140,
       render: (source) => {
-        if ((source.aggregatedStock?.length ?? 0) >= 2) {
+        const keys = uniq(source.aggregatedStock?.map((s) => s.batch.key));
+
+        if (keys.length > 1) {
           return (
             <div className={classes.columnWithExpandButton}>
               <Typography variant="body" ellipsis>
-                {source.aggregatedStock?.map((s) => s.batch.key).join(',')}
+                {keys.join(',')}
               </Typography>
               {renderExpandButton(source)}
             </div>
           );
         }
 
-        return source.aggregatedStock?.map((s) => s.batch.key).join(',');
+        return keys.join(',');
       },
     },
     {
@@ -186,18 +191,20 @@ function InventoryGroupTable({
       title: '儲存位置',
       width: 140,
       render: (source) => {
-        if ((source.aggregatedStock?.length ?? 0) >= 2) {
+        const keys = uniq(source.aggregatedStock?.map((s) => s.location.key));
+
+        if (keys.length > 1) {
           return (
             <div className={classes.columnWithExpandButton}>
               <Typography variant="body" ellipsis>
-                {source.aggregatedStock?.map((s) => s.location.key).join(',')}
+                {keys.join(',')}
               </Typography>
               {renderExpandButton(source)}
             </div>
           );
         }
 
-        return source.aggregatedStock?.map((s) => s.location.key).join(',');
+        return keys.join(',');
       },
     },
     {
@@ -205,20 +212,22 @@ function InventoryGroupTable({
       title: '載具',
       width: 100,
       render: (source) => {
-        if ((source.aggregatedStock?.length ?? 0) >= 2) {
+        const keys = uniq(
+          source.aggregatedStock?.map((s) => s.loader.serialId),
+        );
+
+        if (keys.length > 1) {
           return (
             <div className={classes.columnWithExpandButton}>
               <Typography variant="body" ellipsis>
-                {source.aggregatedStock
-                  ?.map((s) => s.loader.serialId)
-                  .join(',')}
+                {keys.join(',')}
               </Typography>
               {renderExpandButton(source)}
             </div>
           );
         }
 
-        return source.aggregatedStock?.map((s) => s.loader.serialId).join(',');
+        return keys.join(',');
       },
     },
   ];
