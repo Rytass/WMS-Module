@@ -7,6 +7,7 @@ query Loader($loaderId: ID!) {
 query Loaders(
   $offset: Int
   $limit: Int
+  $key: String
   $typeId: ID
   $typeIds: [ID!]
   $locationId: ID
@@ -20,6 +21,7 @@ query Loaders(
   loaders(
     offset: $offset
     limit: $limit
+    key: $key
     typeId: $typeId
     typeIds: $typeIds
     locationId: $locationId

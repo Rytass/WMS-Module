@@ -1,0 +1,9 @@
+query Batches($offset: Int, $limit: Int, $key: String) {
+  batches(offset: $offset, limit: $limit, key: $key) {
+    id
+    items {
+      ...Batch
+    }
+    total
+  }
+}

@@ -4,8 +4,13 @@ query Location($locationId: ID!) {
   }
 }
 
-query Locations($offset: Int, $limit: Int, $description: String) {
-  locations(offset: $offset, limit: $limit, description: $description) {
+query Locations($offset: Int, $limit: Int, $description: String, $key: String) {
+  locations(
+    offset: $offset
+    limit: $limit
+    description: $description
+    key: $key
+  ) {
     id
     items {
       ...Location
