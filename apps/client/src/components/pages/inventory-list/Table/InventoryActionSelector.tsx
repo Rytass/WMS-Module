@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { uniq, intersection } from 'lodash';
+import { isNumber, uniq, intersection } from 'lodash';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { Dropdown, Button, Message } from '@mezzanine-ui/react';
 import { inventoryActionOptions } from '../../../../utils/inventoryActions';
@@ -34,10 +34,16 @@ function InventoryActionSelector({
   const availableOptions = useMemo(() => {
     const targetStatus = uniq(targetStocks.map((s) => s.status));
 
-    return inventoryActionOptions.filter(
-      (iao) =>
-        intersection(iao.status, targetStatus).length === targetStatus.length,
-    );
+    return inventoryActionOptions.filter((iao) => {
+      const baseCondition =
+        intersection(iao.status, targetStatus).length === targetStatus.length;
+
+      if (isNumber(iao.maxDataLength)) {
+        return baseCondition && targetStocks.length <= iao.maxDataLength;
+      }
+
+      return baseCondition;
+    });
   }, [targetStocks]);
 
   const onAddInventoryIds = useCallback(() => {
@@ -54,6 +60,15 @@ function InventoryActionSelector({
     } else if (invalidStock) {
       Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
 無法執行作業：料號，資料不符作業條件。`);
+    } else if (
+      targetAction &&
+      isNumber(targetAction.maxDataLength) &&
+      targetStocks.length + targetInventoryIds.length >
+        targetAction.maxDataLength
+    ) {
+      Message.warning(
+        `${targetAction.submitText}僅能選取${targetAction.maxDataLength}個項目`,
+      );
     } else {
       pushTargetInventoryIds(targetStocks.map((s) => s.id));
       setTargetStocks([]);

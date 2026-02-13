@@ -1,4 +1,4 @@
-import { Typography, Spin } from '@mezzanine-ui/react';
+import { Typography } from '@mezzanine-ui/react';
 import InventoryCard from './InventoryCard';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import Loading from '../../Loading';
