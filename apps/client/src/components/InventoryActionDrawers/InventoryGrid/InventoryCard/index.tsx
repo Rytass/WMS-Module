@@ -1,9 +1,11 @@
 import { useMemo, useEffect } from 'react';
+import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import {
   Typography,
   Button,
   Description,
   DescriptionContent,
+  FormField,
   Input,
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
@@ -163,36 +165,43 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
         <Description title="庫存 :" widthType="hug">
           <DescriptionContent>{`${quantity}`}</DescriptionContent>
         </Description>
-        <Input
-          fullWidth
-          error={!!currentErrorSignature}
-          variant="select"
-          value={`${inputQuantity}`}
-          onChange={(e) => {
-            updateInventoryQuantity(inventory.id, Number(e.target.value));
-          }}
-          onSelect={(value) => {
-            if (value === BASE_UNIT) {
-              updateInventoryUnitId(inventory.id, null);
-            } else {
-              updateInventoryUnitId(inventory.id, value as string);
-            }
-          }}
-          placeholder="請輸入數量"
-          size="sub"
-          selectedValue={currentUnitId || BASE_UNIT}
-          selectButton={{
-            position: 'suffix',
-            value: currentUnitName,
-          }}
-          options={unitOptions}
-          inputType="number"
-          inputProps={{
-            style: {
-              textAlign: 'right',
-            },
-          }}
-        />
+        <FormField
+          name="inventory-input"
+          controlFieldSlotLayout={ControlFieldSlotLayout.SUB}
+          hintText={currentErrorSignature ? currentErrorSignature : undefined}
+          severity={currentErrorSignature ? 'error' : 'info'}
+        >
+          <Input
+            fullWidth
+            error={!!currentErrorSignature}
+            variant="select"
+            value={`${inputQuantity}`}
+            onChange={(e) => {
+              updateInventoryQuantity(inventory.id, Number(e.target.value));
+            }}
+            onSelect={(value) => {
+              if (value === BASE_UNIT) {
+                updateInventoryUnitId(inventory.id, null);
+              } else {
+                updateInventoryUnitId(inventory.id, value as string);
+              }
+            }}
+            placeholder="請輸入數量"
+            size="sub"
+            selectedValue={currentUnitId || BASE_UNIT}
+            selectButton={{
+              position: 'suffix',
+              value: currentUnitName,
+            }}
+            options={unitOptions}
+            inputType="number"
+            inputProps={{
+              style: {
+                textAlign: 'right',
+              },
+            }}
+          />
+        </FormField>
       </div>
     </div>
   );
