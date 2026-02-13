@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { uniq, intersection } from 'lodash';
+import { isNumber, uniq, intersection } from 'lodash';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { Dropdown, Button, Message } from '@mezzanine-ui/react';
 import { inventoryActionOptions } from '../../../../utils/inventoryActions';
@@ -34,10 +34,16 @@ function InventoryActionSelector({
   const availableOptions = useMemo(() => {
     const targetStatus = uniq(targetStocks.map((s) => s.status));
 
-    return inventoryActionOptions.filter(
-      (iao) =>
-        intersection(iao.status, targetStatus).length === targetStatus.length,
-    );
+    return inventoryActionOptions.filter((iao) => {
+      const baseCondition =
+        intersection(iao.status, targetStatus).length === targetStatus.length;
+
+      if (isNumber(iao.maxDataLength)) {
+        return baseCondition && targetStocks.length <= iao.maxDataLength;
+      }
+
+      return baseCondition;
+    });
   }, [targetStocks]);
 
   const onAddInventoryIds = useCallback(() => {
