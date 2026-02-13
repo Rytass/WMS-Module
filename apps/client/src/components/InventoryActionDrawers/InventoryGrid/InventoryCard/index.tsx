@@ -7,6 +7,7 @@ import {
   DescriptionContent,
   FormField,
   Input,
+  Message,
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
@@ -21,6 +22,7 @@ const BASE_UNIT = 'BASE_UNIT';
 
 const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
   const {
+    targetAction,
     inventorySignature,
     errorSignature,
     updateInventoryQuantity,
@@ -157,6 +159,9 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
             variant="destructive-ghost"
             onClick={() => {
               removeTargetInventory(inventory.id);
+
+              Message.warning(`料號：${inventory.material.key} / 批號：${inventory.batch.key} / 儲存位置：${inventory.location.key}
+已移除${targetAction?.title}`);
             }}
           />
         </div>
