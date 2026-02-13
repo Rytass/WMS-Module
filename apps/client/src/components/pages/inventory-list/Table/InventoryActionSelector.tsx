@@ -60,6 +60,15 @@ function InventoryActionSelector({
     } else if (invalidStock) {
       Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
 無法執行作業：料號，資料不符作業條件。`);
+    } else if (
+      targetAction &&
+      isNumber(targetAction.maxDataLength) &&
+      targetStocks.length + targetInventoryIds.length >
+        targetAction.maxDataLength
+    ) {
+      Message.warning(
+        `${targetAction.submitText}僅能選取${targetAction.maxDataLength}個項目`,
+      );
     } else {
       pushTargetInventoryIds(targetStocks.map((s) => s.id));
       setTargetStocks([]);
