@@ -6,6 +6,7 @@ import { formSchema } from './schema';
 import { FormValues } from './typing';
 
 interface ShipInventoryOrderFormProps {
+  defaultValues: FormValues;
   onSubmit: (values: FormValues) => Promise<void>;
   title: string;
   breadcrumbTitle: string;
@@ -13,6 +14,7 @@ interface ShipInventoryOrderFormProps {
 }
 
 function ShipInventoryOrderForm({
+  defaultValues,
   onSubmit,
   title,
   breadcrumbTitle,
@@ -20,9 +22,7 @@ function ShipInventoryOrderForm({
 }: ShipInventoryOrderFormProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      demo: '',
-    },
+    defaultValues,
   });
 
   return (

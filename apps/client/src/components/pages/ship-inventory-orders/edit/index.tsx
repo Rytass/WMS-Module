@@ -11,8 +11,16 @@ function EditShipInventoryOrder() {
     console.log('values', values);
   }, []);
 
+  const defaultValues = useMemo(
+    (): FormValues => ({
+      remark: '',
+    }),
+    [],
+  );
+
   return (
     <EditShipInventoryOrderForm
+      defaultValues={defaultValues}
       onSubmit={onSubmit}
       title={`出庫單號：${id}`}
       breadcrumbTitle={id}

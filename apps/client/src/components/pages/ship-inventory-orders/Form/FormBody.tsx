@@ -3,6 +3,7 @@ import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
 import InputField from '../../../fields/InputField';
 import { useFormCancel } from '../../../../hooks/useFormCancel';
+import classes from './index.module.scss';
 
 interface ShipInventoryOrderFormBodyProps {
   title: string;
@@ -35,7 +36,12 @@ function ShipInventoryOrderFormBody({
       onBack={onFormCancel}
     >
       <SectionWrapper title="單號資訊">
-        <InputField name="demo" label="demo" />
+        <div className={classes.headSectionWrapper}>
+          <div>1</div>
+          <div>2</div>
+          <div>3</div>
+          <InputField name="remark" label="備註" placeholder="輸入備註" />
+        </div>
       </SectionWrapper>
       <SectionWrapper title="待建立列表">section</SectionWrapper>
     </PageWrapper>
