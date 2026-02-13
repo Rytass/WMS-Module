@@ -1,20 +1,19 @@
 import { ReactNode, useMemo } from 'react';
 import {
   ControlFieldSlotLayout,
-  FormFieldSize,
-  LabelLayout,
+  FormFieldLayout,
+  FormFieldLabelSpacing,
 } from '@mezzanine-ui/core/form';
 import { useFormContext, get } from 'react-hook-form';
 import { cx } from '@mezzanine-ui/react';
 import FormField from '@mezzanine-ui/react/Form/FormField';
-import classes from './index.module.scss';
 
 export interface BaseFieldProps {
   fieldClassName?: string;
   name: string;
   children: ReactNode;
-  label: string;
-  fieldSize?: FormFieldSize;
+  label?: string;
+  layout?: FormFieldLayout;
   controlFieldSlotLayout?: ControlFieldSlotLayout;
   hint?: string;
   required?: boolean;
@@ -26,7 +25,7 @@ const BaseField: FC<BaseFieldProps> = ({
   name,
   children,
   label,
-  fieldSize = FormFieldSize.VERTICAL,
+  layout = FormFieldLayout.VERTICAL,
   controlFieldSlotLayout = ControlFieldSlotLayout.MAIN,
   hint,
   required = false,
@@ -40,20 +39,14 @@ const BaseField: FC<BaseFieldProps> = ({
 
   return (
     <FormField
-      className={cx(
-        classes.host,
-        {
-          [classes.noLabel]: !label,
-        },
-        fieldClassName,
-      )}
+      className={cx(fieldClassName)}
       label={label}
       name={name}
-      size={fieldSize}
-      labelLayout={
-        fieldSize === FormFieldSize.VERTICAL
-          ? LabelLayout.VERTICAL
-          : LabelLayout.HORIZONTAL_MAIN
+      layout={layout}
+      labelSpacing={
+        layout === FormFieldLayout.VERTICAL
+          ? FormFieldLabelSpacing.SUB
+          : FormFieldLabelSpacing.MAIN
       }
       controlFieldSlotLayout={controlFieldSlotLayout}
       required={required}

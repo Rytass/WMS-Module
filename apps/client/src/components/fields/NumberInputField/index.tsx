@@ -14,7 +14,7 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
   name,
   label,
   hint,
-  fieldSize,
+  layout,
   required = false,
   disabled = false,
   placeholder,
@@ -48,7 +48,7 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
       disabled={disabled}
       label={label}
       hint={hint}
-      fieldSize={fieldSize}
+      layout={layout}
       controlFieldSlotLayout={
         size === 'sub'
           ? ControlFieldSlotLayout.SUB
