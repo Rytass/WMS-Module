@@ -3,8 +3,10 @@ import { TableColumn } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useQueryStocks } from '../useApi';
+import { FilterValues } from '../typing';
 
 interface InventoryListTableProps {
+  currentFilter?: FilterValues;
   setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
   needClearSelectedRows: boolean;
   setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;

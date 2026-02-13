@@ -9,6 +9,7 @@ import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql'
 import { useDialog } from '../../../dialog/useDialog';
 import InventoryActionDrawers from '../../../InventoryActionDrawers';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import { FilterValues } from '../typing';
 import classes from './index.module.scss';
 
 enum Mode {
@@ -16,7 +17,11 @@ enum Mode {
   list = 'list',
 }
 
-function InventoryTable() {
+interface InventoryTableProps {
+  currentFilter?: FilterValues;
+}
+
+function InventoryTable({ currentFilter }: InventoryTableProps) {
   const { openDialog } = useDialog();
   const { replace, pathname } = useRouter();
   const { targetAction } = useInventoryActions();
@@ -35,6 +40,7 @@ function InventoryTable() {
       case Mode.group:
         return (
           <InventoryGroupTable
+            currentFilter={currentFilter}
             setTargetStocks={setTargetStocks}
             needClearSelectedRows={needClearSelectedRows}
             setNeedClearSelectedRows={setNeedClearSelectedRows}
@@ -44,6 +50,7 @@ function InventoryTable() {
       case Mode.list:
         return (
           <InventoryListTable
+            currentFilter={currentFilter}
             setTargetStocks={setTargetStocks}
             needClearSelectedRows={needClearSelectedRows}
             setNeedClearSelectedRows={setNeedClearSelectedRows}
@@ -53,7 +60,13 @@ function InventoryTable() {
       default:
         return undefined;
     }
-  }, [mode, setTargetStocks, needClearSelectedRows, setNeedClearSelectedRows]);
+  }, [
+    currentFilter,
+    mode,
+    setTargetStocks,
+    needClearSelectedRows,
+    setNeedClearSelectedRows,
+  ]);
 
   return (
     <>
