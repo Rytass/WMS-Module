@@ -133,12 +133,12 @@ export function inventoryActionsSpec(
 
 export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.HoldInventory,
-  InventoryActions.ReleaseInventoryHold,
-  InventoryActions.AllocateInventory,
-  InventoryActions.DeallocateInventory,
+  // InventoryActions.ReleaseInventoryHold,
+  // InventoryActions.AllocateInventory,
+  // InventoryActions.DeallocateInventory,
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
-  InventoryActions.ScrapInventory,
+  // InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,
   name: inventoryActionsSpec(action)?.name ?? '',

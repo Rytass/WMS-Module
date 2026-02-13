@@ -4,6 +4,7 @@ import {
   InventoryActions,
 } from '../../utils/inventoryActions';
 import HoldInventory from './HoldInventory';
+import MergeBatch from './MergeBatch';
 import { useInventoryActions } from '../inventoryActions/useInventoryActions';
 import { useQueryInventoryList } from './useApi';
 
@@ -60,6 +61,9 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
   switch (targetAction?.id) {
     case InventoryActions.HoldInventory:
       return <HoldInventory {...baseProps(targetAction)} />;
+
+    case InventoryActions.MergeBatch:
+      return <MergeBatch {...baseProps(targetAction)} />;
 
     default:
       return null;
