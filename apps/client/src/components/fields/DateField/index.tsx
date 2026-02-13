@@ -54,6 +54,7 @@ export const DateField: FC<DateFieldProps> = ({
       }
     >
       <DatePicker
+        fullWidth
         clearable
         error={isError}
         className={className}
