@@ -13,6 +13,7 @@ interface InventoryListTableProps {
 }
 
 function InventoryListTable({
+  currentFilter,
   needClearSelectedRows,
   setNeedClearSelectedRows,
   setTargetStocks,
@@ -34,7 +35,7 @@ function InventoryListTable({
   }, [dataSignature, selectedRowKeys, setTargetStocks]);
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryStocks();
+    useQueryStocks(currentFilter);
 
   const dataSource = useMemo(
     (): AggregatedStockFragment[] => data?.aggregatedStocks.items ?? [],

@@ -17,7 +17,6 @@ export function useQueryStocksGrouped(currentFilter?: FilterValues) {
     variables: {
       limit,
       offset,
-      materialId: currentFilter?.[FilterType.material] || undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,
     },
     fetchPolicy: 'cache-and-network',
@@ -48,7 +47,6 @@ export function useQueryStocks(currentFilter?: FilterValues) {
     variables: {
       limit,
       offset,
-      materialId: currentFilter?.[FilterType.material] || undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,
     },
     fetchPolicy: 'cache-and-network',

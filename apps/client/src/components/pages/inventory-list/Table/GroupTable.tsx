@@ -34,6 +34,7 @@ interface InventoryGroupTableProps {
 }
 
 function InventoryGroupTable({
+  currentFilter,
   setTargetStocks,
   needClearSelectedRows,
   setNeedClearSelectedRows,
@@ -88,7 +89,7 @@ function InventoryGroupTable({
   );
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryStocksGrouped();
+    useQueryStocksGrouped(currentFilter);
 
   const dataSource = useMemo(
     (): DataType[] =>

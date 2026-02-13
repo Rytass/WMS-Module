@@ -16,7 +16,11 @@ function InventoryList() {
           materialDescription: '',
         }}
         baseFilters={{
-          filters: [FilterType.material, FilterType.materialDescription],
+          filters: [
+            FilterType.material,
+            FilterType.materialDescription,
+            FilterType.location,
+          ],
           gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
         }}
         onSubmit={(values) => {
