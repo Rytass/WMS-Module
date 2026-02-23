@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
 import { StockService, StockStatus } from '@wms-module/core';
-import { AggregatedStocks, Materials, StockDto, Stocks } from '../dto';
+import {
+  AggregatedStocks,
+  ChangeLogs,
+  Materials,
+  StockDto,
+  Stocks,
+} from '../dto';
 import { FindStockArgs } from '../inputs/find-stock.args';
 
 @Injectable()
@@ -40,9 +46,9 @@ export class StockQuery {
     return { items, total };
   }
 
-  @Query(() => AggregatedStocks)
-  async changeLogs(@Args() args: FindStockArgs): Promise<AggregatedStocks> {
-    const [items, total] = await this.stockService.findAggregatedStocks({
+  @Query(() => ChangeLogs)
+  async changeLogs(@Args() args: FindStockArgs): Promise<ChangeLogs> {
+    const [items, total] = await this.stockService.findChangeLogs({
       ...args,
       negateStatus: StockStatus.FREE,
       aggregated: false,

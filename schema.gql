@@ -117,6 +117,21 @@ type AggregatedStocks {
   total: Int!
 }
 
+type ChangeLogDto {
+  quantity: Int!
+  status: StockStatus!
+  id: ID!
+  material: MaterialDto!
+  location: LocationDto!
+  batch: BatchDto!
+}
+
+type ChangeLogs {
+  id: ID!
+  items: [ChangeLogDto!]!
+  total: Int!
+}
+
 type ReceiveInventoryOrderItemDto {
   id: ID!
   description: String
@@ -316,7 +331,7 @@ type Query {
   stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): Stocks!
   stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): Materials!
   aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): AggregatedStocks!
-  changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): AggregatedStocks!
+  changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): ChangeLogs!
   receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!

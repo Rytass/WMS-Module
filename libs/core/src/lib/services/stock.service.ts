@@ -13,13 +13,9 @@ import {
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
 import { StockStatus } from '../constants/stock-status';
-import { AggregatedStock } from '../typings/aggregated-stock';
+import { AggregatedStock, ChangeLog } from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
-import {
-  LoadersEntityClass,
-  LocationEntity,
-  LocationEntityClass,
-} from '../models';
+import { LoadersEntityClass, LocationEntityClass } from '../models';
 
 @Injectable()
 export class StockService<
@@ -343,6 +339,52 @@ export class StockService<
     const count = parseInt(countResult?.count ?? '0', 10);
 
     const items = await paginatedQueryBuilder.getRawMany<AggregatedStock>();
+
+    return [items, count];
+  }
+
+  async findChangeLogs(
+    options: FindStockInput<T>,
+  ): Promise<[ChangeLog[], number]> {
+    const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
+      { ...options, offset: undefined, limit: undefined },
+      this.selectQueryBuilder('stock'),
+      false,
+    );
+
+    const paginatedQueryBuilder = this.dataSource
+      .createQueryBuilder()
+      .addSelect('agg.quantity', 'quantity')
+      .addSelect('agg.id', 'id')
+      .from(`(${aggregateSubquery.getQuery()})`, 'agg')
+      .setParameters(aggregateSubquery.getParameters());
+
+    this.aggregateKeys.forEach((key) =>
+      paginatedQueryBuilder.addSelect(`agg."${key}"`, key),
+    );
+
+    if (options.offset !== undefined && options.offset >= 0) {
+      paginatedQueryBuilder.skip(options.offset);
+    }
+    if (options.limit !== undefined && options.limit > 0) {
+      paginatedQueryBuilder.take(options.limit);
+    }
+
+    const countBuilder = this.pipeSelectOptionsToQueryBuilder(
+      { ...options, offset: undefined, limit: undefined },
+      this.selectQueryBuilder('stock'),
+      false,
+    );
+
+    const countResult = await this.dataSource
+      .createQueryBuilder()
+      .select('COUNT(*)', 'count')
+      .from(`(${countBuilder.getQuery()})`, 'grouped')
+      .setParameters(countBuilder.getParameters())
+      .getRawOne<{ count: string }>();
+    const count = parseInt(countResult?.count ?? '0', 10);
+
+    const items = await paginatedQueryBuilder.getRawMany<ChangeLog>();
 
     return [items, count];
   }

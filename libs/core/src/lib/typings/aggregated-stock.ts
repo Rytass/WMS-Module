@@ -4,3 +4,14 @@ export type AggregatedStock = Pick<
   StockEntityClass,
   'materialId' | 'batchId' | 'locationId' | 'loaderId' | 'status' | 'quantity'
 >;
+
+export type ChangeLog = Pick<
+  StockEntityClass,
+  | 'id'
+  | 'materialId'
+  | 'batchId'
+  | 'locationId'
+  | 'loaderId'
+  | 'status'
+  | 'quantity'
+>;
