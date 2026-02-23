@@ -5,7 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { Message } from '@mezzanine-ui/react';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
-import InventoryGrid from '../InventoryGrid';
+import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useClearAll } from '../hooks';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';

@@ -51,6 +51,36 @@ export type InventoryActionItem = DropdownOption & {
   maxDataLength?: number;
 };
 
+export function inventoryActionsEnableStatus(
+  action: InventoryActions,
+): StockStatus[] {
+  switch (action) {
+    case InventoryActions.HoldInventory:
+      return [StockStatus.FREE];
+
+    case InventoryActions.ReleaseInventoryHold:
+      return [StockStatus.HELD];
+
+    case InventoryActions.AllocateInventory:
+      return [StockStatus.FREE];
+
+    case InventoryActions.DeallocateInventory:
+      return [StockStatus.ALLOCATED];
+
+    case InventoryActions.SplitBatch:
+      return [StockStatus.FREE];
+
+    case InventoryActions.MergeBatch:
+      return [StockStatus.FREE];
+
+    case InventoryActions.ScrapInventory:
+      return [StockStatus.FREE, StockStatus.INSPECTION_FAILED];
+
+    default:
+      return [];
+  }
+}
+
 export function inventoryActionsSpec(
   action: InventoryActions,
 ): InventoryActionItem | null {
@@ -62,7 +92,7 @@ export function inventoryActionsSpec(
         icon: LockIcon,
         title: '待凍結清單',
         submitText: '凍結',
-        status: [StockStatus.FREE],
+        status: inventoryActionsEnableStatus(action),
       };
 
     case InventoryActions.ReleaseInventoryHold:
@@ -72,7 +102,7 @@ export function inventoryActionsSpec(
         icon: UnlockIcon,
         title: '待解除凍結清單',
         submitText: '解除凍結',
-        status: [StockStatus.HELD],
+        status: inventoryActionsEnableStatus(action),
       };
 
     case InventoryActions.AllocateInventory:
@@ -82,7 +112,7 @@ export function inventoryActionsSpec(
         icon: LinkIcon,
         title: '待綁定銷售訂單',
         submitText: '綁定訂單',
-        status: [StockStatus.FREE],
+        status: inventoryActionsEnableStatus(action),
       };
 
     case InventoryActions.DeallocateInventory:
@@ -92,7 +122,7 @@ export function inventoryActionsSpec(
         icon: UnlinkIcon,
         title: '待解除綁定銷售訂單',
         submitText: '解除綁定',
-        status: [StockStatus.ALLOCATED],
+        status: inventoryActionsEnableStatus(action),
       };
 
     case InventoryActions.SplitBatch:
@@ -102,7 +132,7 @@ export function inventoryActionsSpec(
         icon: SplitIcon,
         title: '待拆分批號清單',
         submitText: '拆分批號',
-        status: [StockStatus.FREE],
+        status: inventoryActionsEnableStatus(action),
         maxDataLength: 1,
       };
 
@@ -113,7 +143,7 @@ export function inventoryActionsSpec(
         icon: MergeIcon,
         title: '待合併批號清單',
         submitText: '合併批號',
-        status: [StockStatus.FREE],
+        status: inventoryActionsEnableStatus(action),
       };
 
     case InventoryActions.ScrapInventory:
@@ -123,7 +153,7 @@ export function inventoryActionsSpec(
         icon: TrashIcon,
         title: '待報廢清單',
         submitText: '報廢',
-        status: [StockStatus.FREE, StockStatus.INSPECTION_FAILED],
+        status: inventoryActionsEnableStatus(action),
       };
 
     default:
