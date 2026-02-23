@@ -8,7 +8,7 @@ import InventoryActionSelector from './InventoryActionSelector';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useDialog } from '../../../dialog/useDialog';
 import InventoryActionDrawers from '../../../InventoryActionDrawers';
-import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import { useInventoryActions } from '../../../inventoryActions/utils';
 import { FilterValues } from '../typing';
 import classes from './index.module.scss';
 

@@ -13,7 +13,7 @@ import {
   inventoryActionOptions,
 } from '../../../../utils/inventoryActions';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
-import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import { useInventoryActions } from '../../../inventoryActions/utils';
 
 interface InventoryActionSelectorProps {
   targetStocks: AggregatedStockFragment[];

@@ -6,7 +6,7 @@ import {
 import HoldInventory from './HoldInventory';
 import MergeBatch from './MergeBatch';
 import ScrapInventory from './ScrapInventory';
-import { useInventoryActions } from '../inventoryActions/useInventoryActions';
+import { useInventoryActions } from '../inventoryActions/utils';
 import { useQueryInventoryList } from './useApi';
 
 interface InventoryActionDrawersProps {

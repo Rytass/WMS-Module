@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useDialog } from '../dialog/useDialog';
-import { useInventoryActions } from '../inventoryActions/useInventoryActions';
+import { useInventoryActions } from '../inventoryActions/utils';
 
 export function useClearAll() {
   const { resetAll } = useInventoryActions();

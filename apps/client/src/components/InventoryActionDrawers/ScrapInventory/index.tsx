@@ -7,7 +7,7 @@ import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useClearAll } from '../hooks';
-import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
+import { useInventoryActions } from '../../inventoryActions/utils';
 
 interface ScrapInventoryProps {
   inventoryList: AggregatedStockFragment[];
