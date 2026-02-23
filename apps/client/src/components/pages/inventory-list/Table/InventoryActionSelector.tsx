@@ -37,18 +37,16 @@ function InventoryActionSelector({
   const availableOptions = useMemo(() => {
     const targetStatus = uniq(targetStocks.map((s) => s.status));
 
-    return inventoryActionOptions;
+    return inventoryActionOptions.filter((iao) => {
+      const baseCondition =
+        intersection(iao.status, targetStatus).length === targetStatus.length;
 
-    // return inventoryActionOptions.filter((iao) => {
-    //   const baseCondition =
-    //     intersection(iao.status, targetStatus).length === targetStatus.length;
+      if (isNumber(iao.maxDataLength)) {
+        return baseCondition && targetStocks.length <= iao.maxDataLength;
+      }
 
-    //   if (isNumber(iao.maxDataLength)) {
-    //     return baseCondition && targetStocks.length <= iao.maxDataLength;
-    //   }
-
-    //   return baseCondition;
-    // });
+      return baseCondition;
+    });
   }, [targetStocks]);
 
   const onAddInventoryIds = useCallback(
@@ -61,32 +59,27 @@ function InventoryActionSelector({
           currentAction && !currentAction.status.includes(stock.status),
       );
 
-      pushTargetInventoryIds(targetStocks.map((s) => s.id));
-      setTargetStocks([]);
-      setNeedClearSelectedRows(true);
-      Message.success(`項目已加入${currentAction?.title}`);
-
-      //       if (duplicateItem) {
-      //         Message.error(`料號：${duplicateItem.material.key} / 批號：${duplicateItem.batch.key} / 儲存位置：${duplicateItem.location.key}
-      // 此項目已在清單中，無法重複加入。`);
-      //       } else if (invalidStock) {
-      //         Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
-      // 無法執行作業：料號，資料不符作業條件。`);
-      //       } else if (
-      //         currentAction &&
-      //         isNumber(currentAction.maxDataLength) &&
-      //         targetStocks.length + targetInventoryIds.length >
-      //           currentAction.maxDataLength
-      //       ) {
-      //         Message.warning(
-      //           `${currentAction.submitText}僅能選取${currentAction.maxDataLength}個項目`,
-      //         );
-      //       } else {
-      //         pushTargetInventoryIds(targetStocks.map((s) => s.id));
-      //         setTargetStocks([]);
-      //         setNeedClearSelectedRows(true);
-      //         Message.success(`項目已加入${currentAction?.title}`);
-      //       }
+      if (duplicateItem) {
+        Message.error(`料號：${duplicateItem.material.key} / 批號：${duplicateItem.batch.key} / 儲存位置：${duplicateItem.location.key}
+      此項目已在清單中，無法重複加入。`);
+      } else if (invalidStock) {
+        Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
+      無法執行作業：料號，資料不符作業條件。`);
+      } else if (
+        currentAction &&
+        isNumber(currentAction.maxDataLength) &&
+        targetStocks.length + targetInventoryIds.length >
+          currentAction.maxDataLength
+      ) {
+        Message.warning(
+          `${currentAction.submitText}僅能選取${currentAction.maxDataLength}個項目`,
+        );
+      } else {
+        pushTargetInventoryIds(targetStocks.map((s) => s.id));
+        setTargetStocks([]);
+        setNeedClearSelectedRows(true);
+        Message.success(`項目已加入${currentAction?.title}`);
+      }
     },
     [
       setNeedClearSelectedRows,
