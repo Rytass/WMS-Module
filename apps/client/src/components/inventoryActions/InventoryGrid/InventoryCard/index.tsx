@@ -39,13 +39,10 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
     [inventory.id, inventorySignature],
   );
 
-  const isDisabledCard = useMemo(() => {
-    if (targetAction) {
-      return !isEnableActionStatus(inventory.status, targetAction.status);
-    }
-
-    return true;
-  }, [inventory.status, targetAction]);
+  const isDisabledCard = useMemo(
+    () => !isEnableActionStatus(inventory.status, targetAction?.status),
+    [inventory.status, targetAction],
+  );
 
   const currentErrorSignature = useMemo(
     () => errorSignature[inventory.id],

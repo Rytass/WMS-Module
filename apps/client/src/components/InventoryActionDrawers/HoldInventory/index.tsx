@@ -8,6 +8,7 @@ import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useClearAll } from '../hooks';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
+import { isEnableActionStatus } from '../../../utils/inventoryActions';
 import { useHoldInventory } from '../useApi';
 
 interface HoldInventoryProps {
@@ -30,8 +31,13 @@ const HoldInventory: FC<HoldInventoryProps> = ({
   bottomPrimaryActionIcon,
 }) => {
   const methods = useForm();
-  const { errorSignature, inventorySignature, targetInventoryIds, resetAll } =
-    useInventoryActions();
+  const {
+    targetAction,
+    errorSignature,
+    inventorySignature,
+
+    resetAll,
+  } = useInventoryActions();
   const { holdInventory } = useHoldInventory();
   const onClearAll = useClearAll();
 
@@ -46,8 +52,11 @@ const HoldInventory: FC<HoldInventoryProps> = ({
         try {
           const { data } = await holdInventory({
             variables: {
-              items: targetInventoryIds
-                .map((inventoryId) => inventorySignature[inventoryId])
+              items: inventoryList
+                .filter((item) =>
+                  isEnableActionStatus(item.status, targetAction?.status),
+                )
+                .map((item) => inventorySignature[item.id])
                 .map((s) => ({
                   aggregatedKey: s.id,
                   unitId: s.unitId,

@@ -29,7 +29,7 @@ const ScrapInventory: FC<ScrapInventoryProps> = ({
   bottomPrimaryActionIcon,
 }) => {
   const methods = useForm();
-  const { errorSignature, inventorySignature, targetInventoryIds, resetAll } =
+  const { errorSignature, inventorySignature, resetAll } =
     useInventoryActions();
   const onClearAll = useClearAll();
 

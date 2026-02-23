@@ -40,7 +40,7 @@ const MergeBatch: FC<MergeBatchProps> = ({
     },
   });
 
-  const { errorSignature, inventorySignature, targetInventoryIds, resetAll } =
+  const { errorSignature, inventorySignature, resetAll } =
     useInventoryActions();
 
   const onClearAll = useClearAll();
