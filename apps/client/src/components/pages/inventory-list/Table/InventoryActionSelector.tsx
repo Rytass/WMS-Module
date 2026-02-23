@@ -128,7 +128,7 @@ function InventoryActionSelector({
         size="sub"
         icon={ChevronDownIcon}
         iconType="trailing"
-        disabled={targetStocks.length === 0}
+        disabled={targetStocks.length === 0 || availableOptions.length === 0}
       >
         執行操作
       </Button>
