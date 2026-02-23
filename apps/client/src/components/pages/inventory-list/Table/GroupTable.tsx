@@ -230,6 +230,21 @@ function InventoryGroupTable({
         return keys.join(',');
       },
     },
+    {
+      key: 'quantity',
+      title: '數量',
+      width: 100,
+      align: 'end',
+      render: (source) =>
+        source.aggregatedStock?.reduce((prev, curr) => prev + curr.quantity, 0),
+    },
+    {
+      key: 'baseUnit',
+      title: '單位',
+      width: 100,
+      align: 'center',
+      render: (source) => source.material?.baseUnit?.key,
+    },
   ];
 
   const subColumns: TableColumn<DataType>[] = [
@@ -268,6 +283,20 @@ function InventoryGroupTable({
       title: '載具',
       width: 100,
       render: (source) => source.loader?.serialId,
+    },
+    {
+      key: 'quantity',
+      title: '數量',
+      width: 100,
+      align: 'end',
+      render: (source) => source.quantity,
+    },
+    {
+      key: 'baseUnit',
+      title: '單位',
+      width: 100,
+      align: 'center',
+      render: (source) => source.material?.baseUnit?.key,
     },
   ];
 
