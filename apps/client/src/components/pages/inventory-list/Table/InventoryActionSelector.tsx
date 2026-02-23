@@ -61,10 +61,10 @@ function InventoryActionSelector({
 
       if (duplicateItem) {
         Message.error(`料號：${duplicateItem.material.key} / 批號：${duplicateItem.batch.key} / 儲存位置：${duplicateItem.location.key}
-      此項目已在清單中，無法重複加入。`);
+此項目已在清單中，無法重複加入。`);
       } else if (invalidStock) {
         Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
-      無法執行作業：料號，資料不符作業條件。`);
+無法執行作業：料號，資料不符作業條件。`);
       } else if (
         currentAction &&
         isNumber(currentAction.maxDataLength) &&
