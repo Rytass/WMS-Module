@@ -31,13 +31,8 @@ const HoldInventory: FC<HoldInventoryProps> = ({
   bottomPrimaryActionIcon,
 }) => {
   const methods = useForm();
-  const {
-    targetAction,
-    errorSignature,
-    inventorySignature,
-
-    resetAll,
-  } = useInventoryActions();
+  const { targetAction, errorSignature, inventorySignature, resetAll } =
+    useInventoryActions();
   const { holdInventory } = useHoldInventory();
   const onClearAll = useClearAll();
 

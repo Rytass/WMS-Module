@@ -39,6 +39,20 @@ function ChangeHistoryTable() {
       width: 140,
       render: (source) => source.location?.key,
     },
+    {
+      key: 'quantity',
+      title: '數量',
+      width: 100,
+      align: 'end',
+      render: (source) => source.quantity,
+    },
+    {
+      key: 'baseUnit',
+      title: '單位',
+      width: 100,
+      align: 'center',
+      render: (source) => source.material?.baseUnit?.key,
+    },
   ];
 
   return (
