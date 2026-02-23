@@ -13,6 +13,11 @@
     spacing.semantic-variable(padding, horizontal, comfort);
   border: 1px solid palette.semantic-variable(border, neutral-faint);
 
+  &.isDisabled {
+    border-color: palette.semantic-variable(border, neutral-light);
+    background-color: palette.semantic-variable(background, neutral-subtle);
+  }
+
   .titleWrapper {
     display: flex;
     align-self: stretch;

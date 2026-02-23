@@ -81,6 +81,13 @@ export function inventoryActionsEnableStatus(
   }
 }
 
+export function isEnableActionStatus(
+  inventoryStatus: StockStatus,
+  conditionStatus: StockStatus[],
+): boolean {
+  return conditionStatus.includes(inventoryStatus);
+}
+
 export function inventoryActionsSpec(
   action: InventoryActions,
 ): InventoryActionItem | null {

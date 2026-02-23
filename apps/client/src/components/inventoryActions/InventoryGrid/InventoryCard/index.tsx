@@ -8,10 +8,12 @@ import {
   FormField,
   Input,
   Message,
+  cx,
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../useInventoryActions';
+import { isEnableActionStatus } from '../../../../utils/inventoryActions';
 import classes from './index.module.scss';
 
 interface InventoryCardProps {
@@ -36,6 +38,14 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
     () => inventorySignature[inventory.id],
     [inventory.id, inventorySignature],
   );
+
+  const isDisabledCard = useMemo(() => {
+    if (targetAction) {
+      return !isEnableActionStatus(inventory.status, targetAction.status);
+    }
+
+    return true;
+  }, [inventory.status, targetAction]);
 
   const currentErrorSignature = useMemo(
     () => errorSignature[inventory.id],
@@ -133,7 +143,11 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
   ]);
 
   return (
-    <div className={classes.host}>
+    <div
+      className={cx(classes.host, {
+        [classes.isDisabled]: isDisabledCard,
+      })}
+    >
       <div className={classes.titleWrapper}>
         <div className={classes.leftTitleWrapper}>
           <Typography variant="body-highlight" color="text-neutral-solid">
@@ -205,6 +219,7 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
                 textAlign: 'right',
               },
             }}
+            disabled={isDisabledCard || undefined}
           />
         </FormField>
       </div>
