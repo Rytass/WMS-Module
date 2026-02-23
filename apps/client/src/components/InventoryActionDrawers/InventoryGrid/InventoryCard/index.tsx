@@ -11,7 +11,7 @@ import {
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
-import { useInventoryActions } from '../../../inventoryActions/utils';
+import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import classes from './index.module.scss';
 
 interface InventoryCardProps {
