@@ -1,12 +1,21 @@
 import { Typography, Button } from '@mezzanine-ui/react';
 import PageWrapper from '../../../PageWrapper';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { inventoryActionOptions } from '../../../../utils/inventoryActions';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import OperateArea from '../OperateArea';
 import classes from './index.module.scss';
 
-function LabelSearchPage() {
-  const { targetInventoryIds } = useInventoryActions();
+interface LabelSearchPageProps {
+  inventoryList: AggregatedStockFragment[];
+  queryInventoryListLoading: boolean;
+}
+
+function LabelSearchPage({
+  inventoryList,
+  queryInventoryListLoading,
+}: LabelSearchPageProps) {
+  const { setTargetAction } = useInventoryActions();
 
   return (
     <PageWrapper title="標籤查詢" moreGap>
@@ -17,17 +26,24 @@ function LabelSearchPage() {
         <div className={classes.actionsWrapper}>
           {inventoryActionOptions.map((option) => (
             <Button
+              key={option.id}
               type="button"
               variant="base-secondary"
               icon={option.icon}
               iconType="leading"
+              onClick={() => {
+                setTargetAction(option);
+              }}
             >
               {option.name}
             </Button>
           ))}
         </div>
       </div>
-      <OperateArea />
+      <OperateArea
+        inventoryList={inventoryList}
+        queryInventoryListLoading={queryInventoryListLoading}
+      />
     </PageWrapper>
   );
 }

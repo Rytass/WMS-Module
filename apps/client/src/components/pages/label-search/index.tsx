@@ -1,13 +1,15 @@
-import { useMemo } from 'react';
-import { useForm } from 'react-hook-form';
-import { FormWrapper } from '../../fields/FormWrapper';
+import { useMemo, useCallback } from 'react';
+import {
+  InventoryActionItem,
+  InventoryActions,
+} from '../../../utils/inventoryActions';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 import { useQueryInventoryList } from '../../inventoryActions/useApi';
 import LabelSearchPage from './Page';
+import HoldInventory from './HoldInventory';
 
 function LabelSearch() {
-  const { targetInventoryIds } = useInventoryActions();
-  const methods = useForm();
+  const { targetAction, targetInventoryIds } = useInventoryActions();
 
   const { data, loading: queryInventoryListLoading } =
     useQueryInventoryList(targetInventoryIds);
@@ -17,22 +19,27 @@ function LabelSearch() {
     [data?.aggregatedStocks.items],
   );
 
-  console.log('inventoryList', inventoryList);
-
-  return (
-    <FormWrapper
-      methods={methods}
-      havePageFooter
-      submitText="Go"
-      haveCancelButton={false}
-      supportingActionName="重置全部"
-      supportingActionOnClick={() => {
-        console.log('重置全部');
-      }}
-    >
-      <LabelSearchPage />
-    </FormWrapper>
+  const baseProps = useCallback(
+    (currentTargetAction: InventoryActionItem) => ({
+      inventoryList,
+      queryInventoryListLoading,
+      submitText: currentTargetAction.submitText,
+    }),
+    [inventoryList, queryInventoryListLoading],
   );
+
+  switch (targetAction?.id) {
+    case InventoryActions.HoldInventory:
+      return <HoldInventory {...baseProps(targetAction)} />;
+
+    default:
+      return (
+        <LabelSearchPage
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      );
+  }
 }
 
 export default LabelSearch;

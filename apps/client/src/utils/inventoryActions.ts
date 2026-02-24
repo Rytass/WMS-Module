@@ -44,7 +44,8 @@ export enum InventoryActions {
   ScrapInventory = 'ScrapInventory',
 }
 
-export type InventoryActionItem = DropdownOption & {
+export type InventoryActionItem = Omit<DropdownOption, 'id'> & {
+  id: InventoryActions;
   status: StockStatus[];
   title: string;
   submitText: string;
@@ -186,3 +187,7 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   submitText: inventoryActionsSpec(action)?.submitText ?? '',
   maxDataLength: inventoryActionsSpec(action)?.maxDataLength,
 }));
+
+export function haveAdditionalFields(currentAction: InventoryActions) {
+  return [InventoryActions.MergeBatch].includes(currentAction);
+}
