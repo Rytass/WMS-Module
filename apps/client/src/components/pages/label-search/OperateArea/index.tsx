@@ -7,6 +7,7 @@ import {
   haveAdditionalFields,
   isEnableActionStatus,
 } from '../../../../utils/inventoryActions';
+import AdditionalBlock from './AdditionalBlock';
 import classes from './index.module.scss';
 
 interface OperateAreaProps {
@@ -92,21 +93,7 @@ const OperateArea: FC<OperateAreaProps> = ({
           </div>
         )}
       </div>
-      {haveAdditionalBlock && (
-        <div className={classes.block}>
-          <Typography variant="h3" color="text-neutral-solid">
-            操作設定
-          </Typography>
-          <div className={classes.placeholderWrapper}>
-            <Empty
-              title="尚未選擇操作功能"
-              description="請先選擇上方的功能，以顯示可設定的項目。"
-              size="main"
-              type="system"
-            />
-          </div>
-        </div>
-      )}
+      {haveAdditionalBlock && <AdditionalBlock />}
     </div>
   );
 };
