@@ -1,3 +1,4 @@
+import { isNumber } from 'lodash';
 import { Typography, Button } from '@mezzanine-ui/react';
 import PageWrapper from '../../../PageWrapper';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
@@ -15,7 +16,7 @@ function LabelSearchPage({
   inventoryList,
   queryInventoryListLoading,
 }: LabelSearchPageProps) {
-  const { setTargetAction } = useInventoryActions();
+  const { setTargetAction, targetInventoryIds } = useInventoryActions();
 
   return (
     <PageWrapper title="標籤查詢" moreGap>
@@ -31,6 +32,10 @@ function LabelSearchPage({
               variant="base-secondary"
               icon={option.icon}
               iconType="leading"
+              disabled={
+                isNumber(option.maxDataLength) &&
+                targetInventoryIds.length > option.maxDataLength
+              }
               onClick={() => {
                 setTargetAction(option);
               }}

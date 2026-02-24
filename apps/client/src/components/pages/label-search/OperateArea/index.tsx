@@ -18,11 +18,19 @@ const OperateArea: FC<OperateAreaProps> = ({
   inventoryList,
   queryInventoryListLoading,
 }) => {
-  const { targetAction, removeInventoryByIds } = useInventoryActions();
+  const { targetAction, targetInventoryIds, removeInventoryByIds } =
+    useInventoryActions();
   const haveAdditionalBlock = useMemo(
     () =>
       (targetAction && haveAdditionalFields(targetAction.id)) || !targetAction,
     [targetAction],
+  );
+  const notEnableInventory = useMemo(
+    () =>
+      inventoryList.filter(
+        (item) => !isEnableActionStatus(item.status, targetAction?.status),
+      ),
+    [inventoryList, targetAction?.status],
   );
 
   return (
@@ -54,17 +62,10 @@ const OperateArea: FC<OperateAreaProps> = ({
                 type="button"
                 variant="base-secondary"
                 size="minor"
+                disabled={notEnableInventory.length === 0}
                 onClick={() => {
                   removeInventoryByIds(
-                    inventoryList
-                      .filter(
-                        (item) =>
-                          !isEnableActionStatus(
-                            item.status,
-                            targetAction?.status,
-                          ),
-                      )
-                      .map((item) => item.id),
+                    notEnableInventory.map((item) => item.id),
                   );
                 }}
               >
@@ -73,7 +74,7 @@ const OperateArea: FC<OperateAreaProps> = ({
             </div>
           )}
         </div>
-        {inventoryList.length > 0 ? (
+        {targetInventoryIds.length > 0 ? (
           <InventoryGrid
             inventoryList={inventoryList}
             queryInventoryListLoading={queryInventoryListLoading}
