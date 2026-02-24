@@ -1,6 +1,7 @@
 import { Typography, Button } from '@mezzanine-ui/react';
 import PageWrapper from '../../PageWrapper';
 import { inventoryActionOptions } from '../../../utils/inventoryActions';
+import OperateArea from './OperateArea';
 import classes from './index.module.scss';
 
 function LabelSearch() {
@@ -23,6 +24,7 @@ function LabelSearch() {
           ))}
         </div>
       </div>
+      <OperateArea />
     </PageWrapper>
   );
 }
