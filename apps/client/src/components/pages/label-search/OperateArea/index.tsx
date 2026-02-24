@@ -3,7 +3,10 @@ import { Typography, Button, Empty, cx } from '@mezzanine-ui/react';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import InventoryGrid from '../../../inventoryActions/InventoryGrid';
-import { haveAdditionalFields } from '../../../../utils/inventoryActions';
+import {
+  haveAdditionalFields,
+  isEnableActionStatus,
+} from '../../../../utils/inventoryActions';
 import classes from './index.module.scss';
 
 interface OperateAreaProps {
@@ -15,7 +18,7 @@ const OperateArea: FC<OperateAreaProps> = ({
   inventoryList,
   queryInventoryListLoading,
 }) => {
-  const { targetAction } = useInventoryActions();
+  const { targetAction, removeInventoryByIds } = useInventoryActions();
   const haveAdditionalBlock = useMemo(
     () =>
       (targetAction && haveAdditionalFields(targetAction.id)) || !targetAction,
@@ -37,10 +40,34 @@ const OperateArea: FC<OperateAreaProps> = ({
           </Typography>
           {inventoryList.length > 0 && (
             <div className={classes.clearButtons}>
-              <Button type="button" variant="base-secondary" size="minor">
+              <Button
+                type="button"
+                variant="base-secondary"
+                size="minor"
+                onClick={() => {
+                  removeInventoryByIds(inventoryList.map((item) => item.id));
+                }}
+              >
                 清空所有項目
               </Button>
-              <Button type="button" variant="base-secondary" size="minor">
+              <Button
+                type="button"
+                variant="base-secondary"
+                size="minor"
+                onClick={() => {
+                  removeInventoryByIds(
+                    inventoryList
+                      .filter(
+                        (item) =>
+                          !isEnableActionStatus(
+                            item.status,
+                            targetAction?.status,
+                          ),
+                      )
+                      .map((item) => item.id),
+                  );
+                }}
+              >
                 清空未通過項目
               </Button>
             </div>

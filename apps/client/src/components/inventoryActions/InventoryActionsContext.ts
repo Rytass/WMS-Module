@@ -10,6 +10,7 @@ export interface InventoryActionsContextValues {
   updateInventoryQuantity: (id: string, quantity: number) => void;
   updateInventoryUnitId: (id: string, unitId: string | null) => void;
   removeTargetInventory: (id: string) => void;
+  removeInventoryByIds: (ids: string[]) => void;
   resetAll: VoidFunction;
   targetAction: InventoryActionItem | null;
   setTargetAction: Dispatch<SetStateAction<InventoryActionItem | null>>;
@@ -26,6 +27,7 @@ export const InventoryActionsContext =
     updateInventoryQuantity: () => {},
     updateInventoryUnitId: () => {},
     removeTargetInventory: () => {},
+    removeInventoryByIds: () => {},
     resetAll: () => {},
     targetAction: null,
     setTargetAction: () => {},

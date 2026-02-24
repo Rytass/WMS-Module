@@ -1,5 +1,5 @@
 import { useState, memo, useCallback } from 'react';
-import { omit } from 'lodash';
+import { omit, difference } from 'lodash';
 import { InventoryActionItem } from '../../utils/inventoryActions';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
 import { InventorySignature, ErrorSignature } from './typing';
@@ -87,6 +87,12 @@ const InventoryActionsProvider: FC = ({ children }) => {
     setErrorSignature((prevSignature) => omit(prevSignature, id));
   }, []);
 
+  const removeInventoryByIds = useCallback((ids: string[]) => {
+    setInventorySignature((prevSignature) => omit(prevSignature, ids));
+    setErrorSignature((prevSignature) => omit(prevSignature, ids));
+    setTargetInventoryIds((prevIds) => difference(prevIds, ids));
+  }, []);
+
   const resetAll = useCallback(() => {
     setInventorySignature({});
     setErrorSignature({});
@@ -103,6 +109,7 @@ const InventoryActionsProvider: FC = ({ children }) => {
         updateInventoryQuantity,
         updateInventoryUnitId,
         removeTargetInventory,
+        removeInventoryByIds,
         resetAll,
         targetAction,
         setTargetAction,
