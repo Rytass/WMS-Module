@@ -7,6 +7,7 @@ import { useInventoryActions } from '../../inventoryActions/useInventoryActions'
 import { useQueryInventoryList } from '../../inventoryActions/useApi';
 import LabelSearchPage from './Page';
 import HoldInventory from './HoldInventory';
+import MergeBatch from './MergeBatch';
 
 function LabelSearch() {
   const { targetAction, targetInventoryIds } = useInventoryActions();
@@ -31,6 +32,9 @@ function LabelSearch() {
   switch (targetAction?.id) {
     case InventoryActions.HoldInventory:
       return <HoldInventory {...baseProps(targetAction)} />;
+
+    case InventoryActions.MergeBatch:
+      return <MergeBatch {...baseProps(targetAction)} />;
 
     default:
       return (
