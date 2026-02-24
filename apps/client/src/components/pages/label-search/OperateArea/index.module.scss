@@ -1,0 +1,41 @@
+@use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/radius';
+@use '@mezzanine-ui/system/palette';
+
+.host {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  column-gap: spacing.semantic-variable(gap, calm);
+
+  &.haveAdditionalBlock {
+    grid-template-columns: 3fr 2fr;
+  }
+
+  .block {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.semantic-variable(gap, calm);
+    border-radius: radius.variable(roomy);
+    padding: spacing.semantic-variable(padding, vertical, comfort)
+      spacing.semantic-variable(padding, horizontal, spacious);
+    background-color: #fff;
+
+    .titleWrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .clearButtons {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: spacing.semantic-variable(gap, base);
+      }
+    }
+
+    .placeholderWrapper {
+      flex: 1;
+    }
+  }
+}

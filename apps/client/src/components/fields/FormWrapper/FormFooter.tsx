@@ -9,6 +9,8 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
   cancelText?: string;
+  supportingActionName?: string;
+  supportingActionOnClick?: VoidFunction;
   haveCancelButton: boolean;
 }
 
@@ -17,6 +19,8 @@ export const FormFooter = <T extends FieldValues>({
   disableCancelButton = () => false,
   submitText,
   cancelText = '取消',
+  supportingActionName,
+  supportingActionOnClick,
   haveCancelButton,
 }: FormFooterProps<T>): ReactNode => {
   const onFormCancel = useFormCancel({});
@@ -35,6 +39,10 @@ export const FormFooter = <T extends FieldValues>({
     <PageFooter
       className={classes.footer}
       type="standard"
+      supportingActionType="button"
+      supportingActionVariant="destructive-ghost"
+      supportingActionName={supportingActionName}
+      supportingActionOnClick={supportingActionOnClick}
       actions={{
         primaryButton: {
           children: submitText,

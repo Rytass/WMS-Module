@@ -23,7 +23,7 @@ export function useRoutes() {
         },
         {
           title: '標籤查詢',
-          href: '/1-3',
+          href: NextPath.LABELSEARCH,
         },
       ],
     },

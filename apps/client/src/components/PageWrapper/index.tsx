@@ -1,6 +1,6 @@
 import { ReactElement, ReactNode } from 'react';
 import { useRouter } from 'next/router';
-import { Breadcrumb, PageFooter, ButtonProps } from '@mezzanine-ui/react';
+import { Breadcrumb, PageFooter, ButtonProps, cx } from '@mezzanine-ui/react';
 import ContentHeader from '@mezzanine-ui/react/ContentHeader';
 import { Url } from 'next/dist/shared/lib/router/router';
 import classes from './index.module.scss';
@@ -13,6 +13,7 @@ interface PageWrapperProps {
   haveBack?: boolean;
   onBack?: (() => void) | (() => Promise<void>);
   haveFooter?: boolean;
+  moreGap?: boolean;
 }
 
 function PageWrapper({
@@ -23,12 +24,17 @@ function PageWrapper({
   haveBack = false,
   onBack,
   haveFooter = false,
+  moreGap = false,
 }: PageWrapperProps) {
   const { back, replace } = useRouter();
 
   return (
     <>
-      <div className={classes.host}>
+      <div
+        className={cx(classes.host, {
+          [classes.moreGap]: moreGap,
+        })}
+      >
         <div className={classes.pageHeader}>
           {breadcrumb && (
             <Breadcrumb

@@ -7,7 +7,7 @@ import HoldInventory from './HoldInventory';
 import MergeBatch from './MergeBatch';
 import ScrapInventory from './ScrapInventory';
 import { useInventoryActions } from '../inventoryActions/useInventoryActions';
-import { useQueryInventoryList } from './useApi';
+import { useLazyQueryInventoryList } from '../inventoryActions/useApi';
 
 interface InventoryActionDrawersProps {
   onClose: VoidFunction;
@@ -22,7 +22,7 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     fetchInventoryList,
     data,
     loading: queryInventoryListLoading,
-  } = useQueryInventoryList();
+  } = useLazyQueryInventoryList();
   const { targetInventoryIds, targetAction, resetAll } = useInventoryActions();
 
   useEffect(() => {

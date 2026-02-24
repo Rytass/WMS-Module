@@ -37,6 +37,7 @@ query StocksGroupedByMaterial(
   $batchId: ID
   $locationId: ID
   $loaderId: ID
+  $status: StockStatus
   $description: String
   $materialKey: String
   $batchKey: String
@@ -50,6 +51,7 @@ query StocksGroupedByMaterial(
     batchId: $batchId
     locationId: $locationId
     loaderId: $loaderId
+    status: $status
     description: $description
     materialKey: $materialKey
     batchKey: $batchKey
@@ -71,6 +73,7 @@ query AggregatedStocks(
   $batchId: ID
   $locationId: ID
   $loaderId: ID
+  $status: StockStatus
   $description: String
   $materialKey: String
   $batchKey: String
@@ -84,6 +87,7 @@ query AggregatedStocks(
     batchId: $batchId
     locationId: $locationId
     loaderId: $loaderId
+    status: $status
     description: $description
     materialKey: $materialKey
     batchKey: $batchKey
@@ -98,8 +102,8 @@ query AggregatedStocks(
   }
 }
 
-query AggregatedStocksForInventoryActions($ids: [ID!]) {
-  aggregatedStocks(offset: null, limit: null, ids: $ids) {
+query AggregatedStocksForInventoryActions($ids: [ID!], $status: StockStatus) {
+  aggregatedStocks(offset: null, limit: null, ids: $ids, status: $status) {
     id
     items {
       ...AggregatedStock

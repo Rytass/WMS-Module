@@ -21,9 +21,11 @@ import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql'
 import { useQueryStocksGrouped } from '../useApi';
 import { FilterValues } from '../typing';
 import classes from './group-table.module.scss';
+import { FilterType } from '../../../FilterWrapper/typing';
 
 type DataType = AggregatedStockFragment & {
   aggregatedStock?: AggregatedStockFragment[];
+  filteredAggregatedStock?: AggregatedStockFragment[];
 };
 
 interface InventoryGroupTableProps {
@@ -46,7 +48,7 @@ function InventoryGroupTable({
     getChildSelectedRowKeys,
     getChildOnChange,
   } = useTableRowSelection<DataType>({
-    getSubData: (record) => record.aggregatedStock,
+    getSubData: (record) => record.filteredAggregatedStock,
   });
 
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
@@ -98,8 +100,26 @@ function InventoryGroupTable({
         key: item.key,
         id: item.id,
         aggregatedStock: item.aggregatedStock,
+        filteredAggregatedStock: item.aggregatedStock.filter(
+          (stock) =>
+            stock.batch.key.includes(
+              currentFilter?.[FilterType.batch] ||
+                currentFilter?.['batch-search'] ||
+                '',
+            ) &&
+            stock.location.key.includes(
+              currentFilter?.[FilterType.location] ||
+                currentFilter?.['location-search'] ||
+                '',
+            ) &&
+            stock.loader.serialId.includes(
+              currentFilter?.[FilterType.loader] ||
+                currentFilter?.['loader-search'] ||
+                '',
+            ),
+        ),
       })),
-    [data?.stocksGroupedByMaterial.items],
+    [data?.stocksGroupedByMaterial.items, currentFilter],
   );
 
   useEffect(() => {
@@ -230,6 +250,21 @@ function InventoryGroupTable({
         return keys.join(',');
       },
     },
+    {
+      key: 'quantity',
+      title: '數量',
+      width: 100,
+      align: 'end',
+      render: (source) =>
+        source.aggregatedStock?.reduce((prev, curr) => prev + curr.quantity, 0),
+    },
+    {
+      key: 'baseUnit',
+      title: '單位',
+      width: 100,
+      align: 'center',
+      render: (source) => source.material?.baseUnit?.key,
+    },
   ];
 
   const subColumns: TableColumn<DataType>[] = [
@@ -269,6 +304,20 @@ function InventoryGroupTable({
       width: 100,
       render: (source) => source.loader?.serialId,
     },
+    {
+      key: 'quantity',
+      title: '數量',
+      width: 100,
+      align: 'end',
+      render: (source) => source.quantity,
+    },
+    {
+      key: 'baseUnit',
+      title: '單位',
+      width: 100,
+      align: 'center',
+      render: (source) => source.material?.baseUnit?.key,
+    },
   ];
 
   return (
@@ -281,7 +330,7 @@ function InventoryGroupTable({
           <MznTable<DataType>
             fullWidth
             columns={subColumns}
-            dataSource={record.aggregatedStock || []}
+            dataSource={record.filteredAggregatedStock || []}
             rowSelection={{
               mode: 'checkbox',
               onChange: getChildOnChange(record),
@@ -290,7 +339,8 @@ function InventoryGroupTable({
             }}
           />
         ),
-        rowExpandable: (record) => (record.aggregatedStock?.length ?? 0) >= 2,
+        rowExpandable: (record) =>
+          (record.filteredAggregatedStock?.length ?? 0) >= 2,
         onExpandedRowsChange: (keys) => {
           setExpandedRowKeys(keys);
         },
