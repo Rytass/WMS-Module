@@ -1,4 +1,4 @@
-import { useLazyQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
 import {
   StocksGroupedByMaterialDocument,
   AggregatedStocksDocument,
@@ -21,6 +21,24 @@ export function useLazyQueryInventoryList() {
 
   return {
     fetchInventoryList,
+    data,
+    loading,
+  };
+}
+
+export function useQueryInventoryList(ids: string[]) {
+  const { data, loading } = useQuery(
+    AggregatedStocksForInventoryActionsDocument,
+    {
+      variables: {
+        ids,
+      },
+      skip: ids.length === 0,
+      fetchPolicy: 'cache-and-network',
+    },
+  );
+
+  return {
     data,
     loading,
   };
