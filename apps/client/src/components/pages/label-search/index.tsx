@@ -1,5 +1,6 @@
 import { Typography, Button } from '@mezzanine-ui/react';
 import PageWrapper from '../../PageWrapper';
+import { inventoryActionOptions } from '../../../utils/inventoryActions';
 import classes from './index.module.scss';
 
 function LabelSearch() {
@@ -10,30 +11,16 @@ function LabelSearch() {
           功能操作
         </Typography>
         <div className={classes.actionsWrapper}>
-          <Button type="button" variant="base-secondary">
-            凍結
-          </Button>
-          <Button type="button" variant="base-secondary">
-            凍結
-          </Button>
-          <Button type="button" variant="base-secondary">
-            凍結
-          </Button>
-          <Button type="button" variant="base-secondary">
-            凍結
-          </Button>
-          <Button type="button" variant="base-secondary">
-            凍結
-          </Button>
-          <Button type="button" variant="base-secondary">
-            凍結
-          </Button>
-          <Button type="button" variant="base-secondary">
-            凍結
-          </Button>
-          <Button type="button" variant="base-secondary">
-            凍結
-          </Button>
+          {inventoryActionOptions.map((option) => (
+            <Button
+              type="button"
+              variant="base-secondary"
+              icon={option.icon}
+              iconType="leading"
+            >
+              {option.name}
+            </Button>
+          ))}
         </div>
       </div>
     </PageWrapper>
