@@ -1,10 +1,9 @@
-import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { IconDefinition } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../fields/FormWrapper';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { useHoldInventory } from '../../../inventoryActions/useApi';
+import { useClearAll } from '../hooks';
 import LabelSearchPage from '../Page';
 
 interface HoldInventoryProps {
@@ -22,6 +21,7 @@ function HoldInventory({
   const { targetAction, errorSignature, inventorySignature, resetAll } =
     useInventoryActions();
   const { holdInventory } = useHoldInventory();
+  const onClearAll = useClearAll();
 
   return (
     <FormWrapper
@@ -30,9 +30,7 @@ function HoldInventory({
       submitText={submitText}
       haveCancelButton={false}
       supportingActionName="重置全部"
-      supportingActionOnClick={() => {
-        console.log('重置全部');
-      }}
+      supportingActionOnClick={onClearAll}
     >
       <LabelSearchPage
         inventoryList={inventoryList}

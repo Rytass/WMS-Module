@@ -29,9 +29,13 @@ const OperateArea: FC<OperateAreaProps> = ({
       })}
     >
       <div className={classes.block}>
-        <Typography variant="h3" color="text-neutral-solid">
-          已選項目
-        </Typography>
+        <div>
+          <Typography variant="h3" color="text-neutral-solid">
+            {targetInventoryIds.length > 0
+              ? `已選項目 (${targetInventoryIds.length})`
+              : '已選項目'}
+          </Typography>
+        </div>
         {targetInventoryIds.length > 0 ? (
           <InventoryGrid
             inventoryList={inventoryList}
