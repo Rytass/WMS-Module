@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Typography, Empty, cx } from '@mezzanine-ui/react';
+import { Typography, Button, Empty, cx } from '@mezzanine-ui/react';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import InventoryGrid from '../../../inventoryActions/InventoryGrid';
@@ -15,7 +15,7 @@ const OperateArea: FC<OperateAreaProps> = ({
   inventoryList,
   queryInventoryListLoading,
 }) => {
-  const { targetAction, targetInventoryIds } = useInventoryActions();
+  const { targetAction } = useInventoryActions();
   const haveAdditionalBlock = useMemo(
     () =>
       (targetAction && haveAdditionalFields(targetAction.id)) || !targetAction,
@@ -29,14 +29,24 @@ const OperateArea: FC<OperateAreaProps> = ({
       })}
     >
       <div className={classes.block}>
-        <div>
+        <div className={classes.titleWrapper}>
           <Typography variant="h3" color="text-neutral-solid">
-            {targetInventoryIds.length > 0
-              ? `已選項目 (${targetInventoryIds.length})`
+            {inventoryList.length > 0
+              ? `已選項目 (${inventoryList.length})`
               : '已選項目'}
           </Typography>
+          {inventoryList.length > 0 && (
+            <div className={classes.clearButtons}>
+              <Button type="button" variant="base-secondary" size="minor">
+                清空所有項目
+              </Button>
+              <Button type="button" variant="base-secondary" size="minor">
+                清空未通過項目
+              </Button>
+            </div>
+          )}
         </div>
-        {targetInventoryIds.length > 0 ? (
+        {inventoryList.length > 0 ? (
           <InventoryGrid
             inventoryList={inventoryList}
             queryInventoryListLoading={queryInventoryListLoading}

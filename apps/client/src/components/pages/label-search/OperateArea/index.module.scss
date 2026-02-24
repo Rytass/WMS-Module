@@ -21,6 +21,19 @@
       spacing.semantic-variable(padding, horizontal, spacious);
     background-color: #fff;
 
+    .titleWrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .clearButtons {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: spacing.semantic-variable(gap, base);
+      }
+    }
+
     .placeholderWrapper {
       flex: 1;
     }
