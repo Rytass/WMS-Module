@@ -5,8 +5,12 @@
 .host {
   flex: 1;
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: 1fr;
   column-gap: spacing.semantic-variable(gap, calm);
+
+  &.haveAdditionalBlock {
+    grid-template-columns: 3fr 2fr;
+  }
 
   .block {
     display: flex;

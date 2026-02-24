@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Typography, Empty } from '@mezzanine-ui/react';
+import { Typography, Empty, cx } from '@mezzanine-ui/react';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import InventoryGrid from '../../../inventoryActions/InventoryGrid';
@@ -23,7 +23,11 @@ const OperateArea: FC<OperateAreaProps> = ({
   );
 
   return (
-    <div className={classes.host}>
+    <div
+      className={cx(classes.host, {
+        [classes.haveAdditionalBlock]: haveAdditionalBlock,
+      })}
+    >
       <div className={classes.block}>
         <Typography variant="h3" color="text-neutral-solid">
           已選項目
@@ -32,6 +36,7 @@ const OperateArea: FC<OperateAreaProps> = ({
           <InventoryGrid
             inventoryList={inventoryList}
             queryInventoryListLoading={queryInventoryListLoading}
+            haveTitle={false}
           />
         ) : (
           <div className={classes.placeholderWrapper}>

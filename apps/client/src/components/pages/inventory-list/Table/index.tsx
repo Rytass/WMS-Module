@@ -24,7 +24,7 @@ interface InventoryTableProps {
 function InventoryTable({ currentFilter }: InventoryTableProps) {
   const { openDialog } = useDialog();
   const { replace, pathname } = useRouter();
-  const { targetAction } = useInventoryActions();
+  const { targetAction, targetInventoryIds } = useInventoryActions();
 
   const [mode, setMode] = useState<Mode>(Mode.group);
   const [open, setOpen] = useState<boolean>(false);
@@ -124,7 +124,7 @@ function InventoryTable({ currentFilter }: InventoryTableProps) {
       >
         {tableComponent}
       </TableWrapper>
-      {targetAction ? (
+      {targetAction && targetInventoryIds.length > 0 ? (
         <Button
           icon={targetAction.icon}
           className={classes.actionButton}

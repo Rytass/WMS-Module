@@ -1,8 +1,8 @@
 @use '@mezzanine-ui/system/spacing';
 
 .host {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   align-items: flex-start;
   gap: spacing.semantic-variable(gap, calm);
 }
