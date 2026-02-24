@@ -9,6 +9,10 @@
   padding: spacing.semantic-variable(padding, vertical, spacious)
     spacing.semantic-variable(padding, horizontal, comfort-fixed);
 
+  &.moreGap {
+    row-gap: spacing.semantic-variable(gap, spacious);
+  }
+
   .pageHeader {
     box-sizing: border-box;
     display: grid;
