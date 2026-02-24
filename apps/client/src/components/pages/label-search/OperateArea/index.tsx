@@ -37,6 +37,7 @@ const OperateArea: FC<OperateAreaProps> = ({
             inventoryList={inventoryList}
             queryInventoryListLoading={queryInventoryListLoading}
             haveTitle={false}
+            expandedLayout
           />
         ) : (
           <div className={classes.placeholderWrapper}>

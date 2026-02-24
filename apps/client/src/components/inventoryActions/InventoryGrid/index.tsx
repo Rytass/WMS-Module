@@ -1,4 +1,4 @@
-import { Typography } from '@mezzanine-ui/react';
+import { Typography, cx } from '@mezzanine-ui/react';
 import InventoryCard from './InventoryCard';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import Loading from '../../Loading';
@@ -8,12 +8,14 @@ interface InventoryGridProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
   haveTitle?: boolean;
+  expandedLayout?: boolean;
 }
 
 const InventoryGrid: FC<InventoryGridProps> = ({
   inventoryList,
   queryInventoryListLoading,
   haveTitle = true,
+  expandedLayout = false,
 }) => {
   return (
     <div className={classes.host}>
@@ -25,9 +27,15 @@ const InventoryGrid: FC<InventoryGridProps> = ({
       {queryInventoryListLoading ? (
         <Loading />
       ) : (
-        inventoryList.map((inventory) => (
-          <InventoryCard key={inventory.id} inventory={inventory} />
-        ))
+        <div
+          className={cx(classes.cardsWrapper, {
+            [classes.expandedLayout]: expandedLayout,
+          })}
+        >
+          {inventoryList.map((inventory) => (
+            <InventoryCard key={inventory.id} inventory={inventory} />
+          ))}
+        </div>
       )}
     </div>
   );
