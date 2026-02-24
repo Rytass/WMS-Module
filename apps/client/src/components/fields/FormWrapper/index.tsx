@@ -28,6 +28,8 @@ interface WithPageFooter<T extends FieldValues = FieldValues> {
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
   cancelText?: string;
+  supportingActionName?: string;
+  supportingActionOnClick?: VoidFunction;
   haveCancelButton?: boolean;
 }
 
@@ -37,6 +39,8 @@ interface WithoutPageFooter {
   disableCancelButton?: never;
   submitText?: never;
   cancelText?: never;
+  supportingActionName?: never;
+  supportingActionOnClick?: never;
   haveCancelButton?: never;
 }
 
@@ -55,6 +59,8 @@ export const FormWrapper = <T extends FieldValues>({
   disableCancelButton,
   submitText,
   cancelText = '取消',
+  supportingActionName,
+  supportingActionOnClick,
   haveCancelButton = true,
   ...other
 }: FormWrapperProps<T>): ReactNode => {
@@ -74,6 +80,8 @@ export const FormWrapper = <T extends FieldValues>({
             disableCancelButton={disableCancelButton}
             submitText={submitText}
             cancelText={cancelText}
+            supportingActionName={supportingActionName}
+            supportingActionOnClick={supportingActionOnClick}
             haveCancelButton={haveCancelButton}
           />
         )}
