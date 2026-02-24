@@ -9,7 +9,7 @@ import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useClearAll } from '../hooks';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 import { isEnableActionStatus } from '../../../utils/inventoryActions';
-import { useHoldInventory } from '../useApi';
+import { useHoldInventory } from '../../inventoryActions/useApi';
 
 interface HoldInventoryProps {
   inventoryList: AggregatedStockFragment[];

@@ -11,7 +11,7 @@ const refetchQueriesAfterInventoryActions = [
   AggregatedStocksDocument,
 ];
 
-export function useQueryInventoryList() {
+export function useLazyQueryInventoryList() {
   const [fetchInventoryList, { data, loading }] = useLazyQuery(
     AggregatedStocksForInventoryActionsDocument,
     {

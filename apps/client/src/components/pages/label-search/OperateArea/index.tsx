@@ -1,7 +1,10 @@
 import { Typography, Empty } from '@mezzanine-ui/react';
+import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import classes from './index.module.scss';
 
 const OperateArea: FC = () => {
+  const { targetInventoryIds } = useInventoryActions();
+
   return (
     <div className={classes.host}>
       <div className={classes.block}>

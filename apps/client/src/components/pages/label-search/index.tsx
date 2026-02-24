@@ -1,13 +1,28 @@
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { Typography, Button } from '@mezzanine-ui/react';
 import PageWrapper from '../../PageWrapper';
 import { FormWrapper } from '../../fields/FormWrapper';
 import { inventoryActionOptions } from '../../../utils/inventoryActions';
+import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
+import { useLazyQueryInventoryList } from '../../inventoryActions/useApi';
 import OperateArea from './OperateArea';
 import classes from './index.module.scss';
 
 function LabelSearch() {
   const methods = useForm();
+
+  const {
+    fetchInventoryList,
+    data,
+    loading: queryInventoryListLoading,
+  } = useLazyQueryInventoryList();
+  const { targetInventoryIds, targetAction, resetAll } = useInventoryActions();
+
+  const inventoryList = useMemo(
+    () => data?.aggregatedStocks.items ?? [],
+    [data?.aggregatedStocks.items],
+  );
 
   return (
     <FormWrapper
