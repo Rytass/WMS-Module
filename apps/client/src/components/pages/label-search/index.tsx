@@ -1,16 +1,10 @@
-import { useMemo, useCallback } from 'react';
-import {
-  InventoryActionItem,
-  InventoryActions,
-} from '../../../utils/inventoryActions';
+import { useMemo } from 'react';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 import { useQueryInventoryList } from '../../inventoryActions/useApi';
 import LabelSearchPage from './Page';
-import HoldInventory from './HoldInventory';
-import MergeBatch from './MergeBatch';
 
 function LabelSearch() {
-  const { targetAction, targetInventoryIds } = useInventoryActions();
+  const { targetInventoryIds } = useInventoryActions();
 
   const { data, loading: queryInventoryListLoading } =
     useQueryInventoryList(targetInventoryIds);
@@ -20,30 +14,12 @@ function LabelSearch() {
     [data?.aggregatedStocks.items],
   );
 
-  const baseProps = useCallback(
-    (currentTargetAction: InventoryActionItem) => ({
-      inventoryList,
-      queryInventoryListLoading,
-      submitText: currentTargetAction.submitText,
-    }),
-    [inventoryList, queryInventoryListLoading],
+  return (
+    <LabelSearchPage
+      inventoryList={inventoryList}
+      queryInventoryListLoading={queryInventoryListLoading}
+    />
   );
-
-  switch (targetAction?.id) {
-    case InventoryActions.HoldInventory:
-      return <HoldInventory {...baseProps(targetAction)} />;
-
-    case InventoryActions.MergeBatch:
-      return <MergeBatch {...baseProps(targetAction)} />;
-
-    default:
-      return (
-        <LabelSearchPage
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
-  }
 }
 
 export default LabelSearch;

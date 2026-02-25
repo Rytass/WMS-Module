@@ -1,11 +1,18 @@
+import { useMemo, useCallback } from 'react';
 import { isNumber } from 'lodash';
 import { Typography, Button } from '@mezzanine-ui/react';
 import PageWrapper from '../../../PageWrapper';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
-import { inventoryActionOptions } from '../../../../utils/inventoryActions';
+import {
+  InventoryActions,
+  inventoryActionOptions,
+  InventoryActionItem,
+} from '../../../../utils/inventoryActions';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import LabelInput from '../LabelInput';
 import OperateArea from '../OperateArea';
+import HoldInventory from '../HoldInventory';
+import MergeBatch from '../MergeBatch';
 import classes from './index.module.scss';
 
 interface LabelSearchPageProps {
@@ -17,7 +24,35 @@ function LabelSearchPage({
   inventoryList,
   queryInventoryListLoading,
 }: LabelSearchPageProps) {
-  const { setTargetAction, targetInventoryIds } = useInventoryActions();
+  const { targetAction, setTargetAction, targetInventoryIds } =
+    useInventoryActions();
+
+  const baseProps = useCallback(
+    (currentTargetAction: InventoryActionItem) => ({
+      inventoryList,
+      queryInventoryListLoading,
+      submitText: currentTargetAction.submitText,
+    }),
+    [inventoryList, queryInventoryListLoading],
+  );
+
+  const operateFields = useMemo(() => {
+    switch (targetAction?.id) {
+      case InventoryActions.HoldInventory:
+        return <HoldInventory {...baseProps(targetAction)} />;
+
+      case InventoryActions.MergeBatch:
+        return <MergeBatch {...baseProps(targetAction)} />;
+
+      default:
+        return (
+          <OperateArea
+            inventoryList={inventoryList}
+            queryInventoryListLoading={queryInventoryListLoading}
+          />
+        );
+    }
+  }, [baseProps, inventoryList, queryInventoryListLoading, targetAction]);
 
   return (
     <PageWrapper title="標籤查詢" moreGap>
@@ -47,10 +82,7 @@ function LabelSearchPage({
         </div>
       </div>
       <LabelInput />
-      <OperateArea
-        inventoryList={inventoryList}
-        queryInventoryListLoading={queryInventoryListLoading}
-      />
+      {operateFields}
     </PageWrapper>
   );
 }

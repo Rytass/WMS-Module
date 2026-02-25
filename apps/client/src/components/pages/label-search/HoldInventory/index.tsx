@@ -4,7 +4,7 @@ import { FormWrapper } from '../../../fields/FormWrapper';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { useHoldInventory } from '../../../inventoryActions/useApi';
 import { useClearAll } from '../hooks';
-import LabelSearchPage from '../Page';
+import OperateArea from '../OperateArea';
 
 interface HoldInventoryProps {
   inventoryList: AggregatedStockFragment[];
@@ -32,7 +32,7 @@ function HoldInventory({
       supportingActionName="重置全部"
       supportingActionOnClick={onClearAll}
     >
-      <LabelSearchPage
+      <OperateArea
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
       />

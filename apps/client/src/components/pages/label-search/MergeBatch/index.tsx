@@ -4,7 +4,7 @@ import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql'
 import { FormWrapper } from '../../../fields/FormWrapper';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { useClearAll } from '../hooks';
-import LabelSearchPage from '../Page';
+import OperateArea from '../OperateArea';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 
@@ -39,7 +39,7 @@ function MergeBatch({
       supportingActionName="重置全部"
       supportingActionOnClick={onClearAll}
     >
-      <LabelSearchPage
+      <OperateArea
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
       />
