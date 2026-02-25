@@ -10,6 +10,7 @@ function Maps() {
 
   return (
     <PageWrapper title="地圖清單">
+      <div>map area</div>
       <FilterWrapper<FilterValues>
         defaultValues={{
           material: '',
@@ -27,7 +28,7 @@ function Maps() {
           setCurrentFilter(values);
         }}
       />
-      <InventoryTable currentFilter={currentFilter} />
+      <InventoryTable currentFilter={currentFilter} onlyListMode />
     </PageWrapper>
   );
 }
