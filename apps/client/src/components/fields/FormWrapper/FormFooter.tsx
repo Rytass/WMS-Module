@@ -1,6 +1,6 @@
 import { ReactNode, useCallback, useMemo } from 'react';
 import { FieldValues, useFormState, useWatch } from 'react-hook-form';
-import { PageFooter } from '@mezzanine-ui/react';
+import { ButtonVariant, PageFooter } from '@mezzanine-ui/react';
 import { useFormCancel } from '../../../hooks/useFormCancel';
 import classes from './index.module.scss';
 
@@ -8,6 +8,7 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
   disableSubmitButton?: (values: T) => boolean;
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
+  primaryButtonVariant?: ButtonVariant;
   cancelText?: string;
   supportingActionName?: string;
   supportingActionOnClick?: VoidFunction;
@@ -18,6 +19,7 @@ export const FormFooter = <T extends FieldValues>({
   disableSubmitButton = () => false,
   disableCancelButton = () => false,
   submitText,
+  primaryButtonVariant,
   cancelText = '取消',
   supportingActionName,
   supportingActionOnClick,
@@ -47,6 +49,7 @@ export const FormFooter = <T extends FieldValues>({
         primaryButton: {
           children: submitText,
           type: 'submit',
+          variant: primaryButtonVariant,
           disabled: disableSubmitButton(values) || loading,
         },
         secondaryButton: haveCancelButton

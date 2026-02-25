@@ -5,7 +5,7 @@ import {
   SubmitHandler,
   UseFormReturn,
 } from 'react-hook-form';
-import { cx } from '@mezzanine-ui/react';
+import { ButtonVariant, cx } from '@mezzanine-ui/react';
 import { FormFooter } from './FormFooter';
 import classes from './index.module.scss';
 
@@ -27,6 +27,7 @@ interface WithPageFooter<T extends FieldValues = FieldValues> {
   disableSubmitButton?: (values: T) => boolean;
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
+  primaryButtonVariant?: ButtonVariant;
   cancelText?: string;
   supportingActionName?: string;
   supportingActionOnClick?: VoidFunction;
@@ -38,6 +39,7 @@ interface WithoutPageFooter {
   disableSubmitButton?: never;
   disableCancelButton?: never;
   submitText?: never;
+  primaryButtonVariant?: never;
   cancelText?: never;
   supportingActionName?: never;
   supportingActionOnClick?: never;
@@ -58,6 +60,7 @@ export const FormWrapper = <T extends FieldValues>({
   disableSubmitButton,
   disableCancelButton,
   submitText,
+  primaryButtonVariant,
   cancelText = '取消',
   supportingActionName,
   supportingActionOnClick,
@@ -79,6 +82,7 @@ export const FormWrapper = <T extends FieldValues>({
             disableSubmitButton={disableSubmitButton}
             disableCancelButton={disableCancelButton}
             submitText={submitText}
+            primaryButtonVariant={primaryButtonVariant}
             cancelText={cancelText}
             supportingActionName={supportingActionName}
             supportingActionOnClick={supportingActionOnClick}
