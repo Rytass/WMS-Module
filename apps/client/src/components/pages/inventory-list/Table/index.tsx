@@ -19,9 +19,13 @@ enum Mode {
 
 interface InventoryTableProps {
   currentFilter?: FilterValues;
+  onlyListMode?: boolean;
 }
 
-function InventoryTable({ currentFilter }: InventoryTableProps) {
+function InventoryTable({
+  currentFilter,
+  onlyListMode = false,
+}: InventoryTableProps) {
   const { openDialog } = useDialog();
   const { replace, pathname } = useRouter();
   const { targetAction, targetInventoryIds } = useInventoryActions();
