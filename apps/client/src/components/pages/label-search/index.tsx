@@ -12,6 +12,7 @@ import LabelInput from './LabelInput';
 import OperateArea from './OperateArea';
 import HoldInventory from './HoldInventory';
 import MergeBatch from './MergeBatch';
+import ScrapInventory from './ScrapInventory';
 import classes from './index.module.scss';
 
 function LabelSearch() {
@@ -32,6 +33,9 @@ function LabelSearch() {
 
       case InventoryActions.MergeBatch:
         return <MergeBatch {...baseProps(targetAction)} />;
+
+      case InventoryActions.ScrapInventory:
+        return <ScrapInventory {...baseProps(targetAction)} />;
 
       default:
         return <OperateArea />;
