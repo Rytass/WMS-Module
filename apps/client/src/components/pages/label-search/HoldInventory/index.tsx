@@ -1,5 +1,4 @@
 import { useForm } from 'react-hook-form';
-import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../fields/FormWrapper';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { useHoldInventory } from '../../../inventoryActions/useApi';
@@ -7,16 +6,10 @@ import { useClearAll } from '../hooks';
 import OperateArea from '../OperateArea';
 
 interface HoldInventoryProps {
-  inventoryList: AggregatedStockFragment[];
-  queryInventoryListLoading: boolean;
   submitText: string;
 }
 
-function HoldInventory({
-  inventoryList,
-  queryInventoryListLoading,
-  submitText,
-}: HoldInventoryProps) {
+function HoldInventory({ submitText }: HoldInventoryProps) {
   const methods = useForm();
   const { targetAction, errorSignature, inventorySignature, resetAll } =
     useInventoryActions();
@@ -32,10 +25,7 @@ function HoldInventory({
       supportingActionName="重置全部"
       supportingActionOnClick={onClearAll}
     >
-      <OperateArea
-        inventoryList={inventoryList}
-        queryInventoryListLoading={queryInventoryListLoading}
-      />
+      <OperateArea />
     </FormWrapper>
   );
 }

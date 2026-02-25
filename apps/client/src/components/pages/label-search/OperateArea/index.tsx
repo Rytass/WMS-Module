@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Typography, Button, Empty, cx } from '@mezzanine-ui/react';
-import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import { useQueryInventoryList } from '../../../inventoryActions/useApi';
 import InventoryGrid from '../../../inventoryActions/InventoryGrid';
 import {
   haveAdditionalFields,
@@ -10,17 +10,18 @@ import {
 import AdditionalBlock from './AdditionalBlock';
 import classes from './index.module.scss';
 
-interface OperateAreaProps {
-  inventoryList: AggregatedStockFragment[];
-  queryInventoryListLoading: boolean;
-}
-
-const OperateArea: FC<OperateAreaProps> = ({
-  inventoryList,
-  queryInventoryListLoading,
-}) => {
+const OperateArea: FC = () => {
   const { targetAction, targetInventoryIds, removeInventoryByIds } =
     useInventoryActions();
+
+  const { data, loading: queryInventoryListLoading } =
+    useQueryInventoryList(targetInventoryIds);
+
+  const inventoryList = useMemo(
+    () => data?.aggregatedStocks.items ?? [],
+    [data?.aggregatedStocks.items],
+  );
+
   const haveAdditionalBlock = useMemo(
     () =>
       (targetAction && haveAdditionalFields(targetAction.id)) || !targetAction,
