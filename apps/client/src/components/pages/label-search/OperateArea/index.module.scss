@@ -6,7 +6,9 @@
   flex: 1;
   display: grid;
   grid-template-columns: 1fr;
-  column-gap: spacing.semantic-variable(gap, calm);
+  grid-column-gap: spacing.semantic-variable(gap, calm);
+  padding: 0 spacing.semantic-variable(padding, horizontal, comfort-fixed)
+    spacing.semantic-variable(padding, vertical, spacious);
 
   &.haveAdditionalBlock {
     grid-template-columns: 3fr 2fr;

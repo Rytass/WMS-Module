@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { isNumber } from 'lodash';
 import { Typography, Button } from '@mezzanine-ui/react';
-import PageWrapper from '../../../PageWrapper';
+import ContentHeader from '@mezzanine-ui/react/ContentHeader';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import {
   InventoryActions,
@@ -55,35 +55,38 @@ function LabelSearchPage({
   }, [baseProps, inventoryList, queryInventoryListLoading, targetAction]);
 
   return (
-    <PageWrapper title="標籤查詢" moreGap>
-      <div className={classes.actionsSection}>
-        <Typography variant="h3" color="text-neutral-solid">
-          功能操作
-        </Typography>
-        <div className={classes.actionsWrapper}>
-          {inventoryActionOptions.map((option) => (
-            <Button
-              key={option.id}
-              type="button"
-              variant="base-secondary"
-              icon={option.icon}
-              iconType="leading"
-              disabled={
-                isNumber(option.maxDataLength) &&
-                targetInventoryIds.length > option.maxDataLength
-              }
-              onClick={() => {
-                setTargetAction(option);
-              }}
-            >
-              {option.name}
-            </Button>
-          ))}
+    <div className={classes.host}>
+      <div className={classes.inputSection}>
+        <ContentHeader title="標籤查詢" />
+        <div className={classes.actionsSection}>
+          <Typography variant="h3" color="text-neutral-solid">
+            功能操作
+          </Typography>
+          <div className={classes.actionsWrapper}>
+            {inventoryActionOptions.map((option) => (
+              <Button
+                key={option.id}
+                type="button"
+                variant="base-secondary"
+                icon={option.icon}
+                iconType="leading"
+                disabled={
+                  isNumber(option.maxDataLength) &&
+                  targetInventoryIds.length > option.maxDataLength
+                }
+                onClick={() => {
+                  setTargetAction(option);
+                }}
+              >
+                {option.name}
+              </Button>
+            ))}
+          </div>
         </div>
+        <LabelInput />
       </div>
-      <LabelInput />
       {operateFields}
-    </PageWrapper>
+    </div>
   );
 }
 
