@@ -6,6 +6,7 @@
   flex-direction: column;
   row-gap: spacing.semantic-variable(gap, spacious);
   background-color: #f3f4f6;
+  max-height: 100vh;
 
   .inputSection {
     display: flex;

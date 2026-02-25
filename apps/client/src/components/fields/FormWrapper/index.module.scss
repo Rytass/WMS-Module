@@ -1,4 +1,6 @@
 .form {
+  min-height: 0;
+
   &.isFormPage {
     flex: 1;
     display: flex;
