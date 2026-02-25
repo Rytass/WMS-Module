@@ -4,6 +4,7 @@ import PageWrapper from '../../../PageWrapper';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { inventoryActionOptions } from '../../../../utils/inventoryActions';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import LabelInput from '../LabelInput';
 import OperateArea from '../OperateArea';
 import classes from './index.module.scss';
 
@@ -45,6 +46,7 @@ function LabelSearchPage({
           ))}
         </div>
       </div>
+      <LabelInput />
       <OperateArea
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
