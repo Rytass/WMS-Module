@@ -1,5 +1,18 @@
-import { LockIcon, UnlockIcon, LinkIcon, TrashIcon } from '@mezzanine-ui/icons';
-import { SplitIcon, MergeIcon, UnlinkIcon } from '../../icons';
+import {
+  LockIcon,
+  UnlockIcon,
+  LinkIcon,
+  BoxIcon,
+  DoubleChevronLeftIcon,
+  TrashIcon,
+} from '@mezzanine-ui/icons';
+import {
+  CarIcon,
+  SplitIcon,
+  MergeIcon,
+  UnlinkIcon,
+  UpRightIcon,
+} from '../../icons';
 import { DropdownOption } from '@mezzanine-ui/react';
 import { StockStatus } from '../../graphql/generated/.graphql';
 
@@ -100,76 +113,92 @@ export function isEnableActionStatus(
 export function inventoryActionsSpec(
   action: InventoryActions,
 ): InventoryActionItem | null {
+  const baseProps = {
+    id: action,
+    status: inventoryActionsEnableStatus(action),
+  };
+
   switch (action) {
     case InventoryActions.HoldInventory:
       return {
-        id: action,
+        ...baseProps,
         name: '凍結',
         icon: LockIcon,
         title: '待凍結清單',
         submitText: '凍結',
-        status: inventoryActionsEnableStatus(action),
       };
 
     case InventoryActions.ReleaseInventoryHold:
       return {
-        id: action,
+        ...baseProps,
         name: '解除凍結',
         icon: UnlockIcon,
         title: '待解除凍結清單',
         submitText: '解除凍結',
-        status: inventoryActionsEnableStatus(action),
       };
 
     case InventoryActions.AllocateInventory:
       return {
-        id: action,
+        ...baseProps,
         name: '綁定銷售訂單',
         icon: LinkIcon,
         title: '待綁定銷售訂單',
         submitText: '綁定訂單',
-        status: inventoryActionsEnableStatus(action),
       };
 
     case InventoryActions.DeallocateInventory:
       return {
-        id: action,
+        ...baseProps,
         name: '解除綁定銷售訂單',
         icon: UnlinkIcon,
         title: '待解除綁定銷售訂單',
         submitText: '解除綁定',
-        status: inventoryActionsEnableStatus(action),
       };
 
     case InventoryActions.SplitBatch:
       return {
-        id: action,
+        ...baseProps,
         name: '拆分批號',
         icon: SplitIcon,
         title: '待拆分批號清單',
         submitText: '拆分批號',
-        status: inventoryActionsEnableStatus(action),
         maxDataLength: 1,
       };
 
     case InventoryActions.MergeBatch:
       return {
-        id: action,
+        ...baseProps,
         name: '合併批號',
         icon: MergeIcon,
         title: '待合併批號清單',
         submitText: '合併批號',
-        status: inventoryActionsEnableStatus(action),
+      };
+
+    case InventoryActions.DeliverToCustomer:
+      return {
+        ...baseProps,
+        name: '發至客戶倉',
+        icon: BoxIcon,
+        title: '待發至客戶倉清單',
+        submitText: '發至客戶倉',
+      };
+
+    case InventoryActions.ReturnFromCustomer:
+      return {
+        ...baseProps,
+        name: '客戶倉回廠',
+        icon: DoubleChevronLeftIcon,
+        title: '待客戶倉回廠清單',
+        submitText: '客戶倉回廠',
       };
 
     case InventoryActions.ScrapInventory:
       return {
-        id: action,
+        ...baseProps,
         name: '報廢',
         icon: TrashIcon,
         title: '待報廢清單',
         submitText: '報廢',
-        status: inventoryActionsEnableStatus(action),
       };
 
     default:
@@ -179,11 +208,13 @@ export function inventoryActionsSpec(
 
 export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.HoldInventory,
-  // InventoryActions.ReleaseInventoryHold,
-  // InventoryActions.AllocateInventory,
-  // InventoryActions.DeallocateInventory,
-  // InventoryActions.SplitBatch,
+  InventoryActions.ReleaseInventoryHold,
+  InventoryActions.AllocateInventory,
+  InventoryActions.DeallocateInventory,
+  InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
+  InventoryActions.DeliverToCustomer,
+  InventoryActions.ReturnFromCustomer,
   InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,
