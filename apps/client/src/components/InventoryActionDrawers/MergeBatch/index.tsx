@@ -1,12 +1,10 @@
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { IconDefinition } from '@mezzanine-ui/icons';
-import { Message } from '@mezzanine-ui/react';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
-import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 import MergeBatchField from '../../inventoryActions/fields/MergeBatchField';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
@@ -37,8 +35,6 @@ const MergeBatch: FC<MergeBatchProps> = ({
       newKey: '',
     },
   });
-
-  const { inventorySignature, resetAll } = useInventoryActions();
 
   const formFooterProps = useShareFooterProps({
     inventoryList,

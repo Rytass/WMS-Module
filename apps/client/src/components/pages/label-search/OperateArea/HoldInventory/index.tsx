@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../../fields/FormWrapper';
-import { useInventoryActions } from '../../../../inventoryActions/useInventoryActions';
 import { useHoldInventory } from '../../../../inventoryActions/useApi';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
@@ -18,9 +17,7 @@ function HoldInventory({
   submitText,
 }: HoldInventoryProps) {
   const methods = useForm();
-  const { targetAction, errorSignature, inventorySignature, resetAll } =
-    useInventoryActions();
-  const { holdInventory } = useHoldInventory();
+  const { onSubmit } = useHoldInventory(inventoryList);
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (

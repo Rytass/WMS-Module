@@ -1,11 +1,9 @@
 import { useForm } from 'react-hook-form';
 import { IconDefinition } from '@mezzanine-ui/icons';
-import { Message } from '@mezzanine-ui/react';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
-import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 
 interface ScrapInventoryProps {
   inventoryList: AggregatedStockFragment[];
@@ -27,7 +25,6 @@ const ScrapInventory: FC<ScrapInventoryProps> = ({
   bottomPrimaryActionIcon,
 }) => {
   const methods = useForm();
-  const { inventorySignature, resetAll } = useInventoryActions();
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,

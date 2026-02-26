@@ -1,7 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../../fields/FormWrapper';
-import { useInventoryActions } from '../../../../inventoryActions/useInventoryActions';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
 
@@ -17,8 +16,6 @@ function ScrapInventory({
   submitText,
 }: ScrapInventoryProps) {
   const methods = useForm();
-  const { targetAction, errorSignature, inventorySignature, resetAll } =
-    useInventoryActions();
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
