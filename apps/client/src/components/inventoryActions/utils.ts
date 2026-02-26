@@ -1,9 +1,13 @@
 import {
+  PlusIcon,
   LockIcon,
   UnlockIcon,
   LinkIcon,
+  RefreshCwIcon,
   BoxIcon,
   DoubleChevronLeftIcon,
+  ReverseRightIcon,
+  CheckedOutlineIcon,
   TrashIcon,
 } from '@mezzanine-ui/icons';
 import {
@@ -48,12 +52,18 @@ export function stockStatusName(status?: StockStatus): string {
 }
 
 export enum InventoryActions {
+  PendingTransferInventory = 'PendingTransferInventory',
   HoldInventory = 'HoldInventory',
   ReleaseInventoryHold = 'ReleaseInventoryHold',
   AllocateInventory = 'AllocateInventory',
   DeallocateInventory = 'DeallocateInventory',
+  ShipInventory = 'ShipInventory',
   SplitBatch = 'SplitBatch',
   MergeBatch = 'MergeBatch',
+  ReclassifyInventory = 'ReclassifyInventory',
+  TransferToVendor = 'TransferToVendor',
+  ReturnFromVendor = 'ReturnFromVendor',
+  QualityInspection = 'QualityInspection',
   DeliverToCustomer = 'DeliverToCustomer',
   ReturnFromCustomer = 'ReturnFromCustomer',
   ScrapInventory = 'ScrapInventory',
@@ -71,6 +81,14 @@ export function inventoryActionsEnableStatus(
   action: InventoryActions,
 ): StockStatus[] {
   switch (action) {
+    case InventoryActions.PendingTransferInventory:
+      return [
+        StockStatus.FREE,
+        StockStatus.PENDING_INSPECTION,
+        StockStatus.INSPECTION_FAILED,
+        StockStatus.ALLOCATED,
+      ];
+
     case InventoryActions.HoldInventory:
       return [StockStatus.FREE];
 
@@ -83,11 +101,32 @@ export function inventoryActionsEnableStatus(
     case InventoryActions.DeallocateInventory:
       return [StockStatus.ALLOCATED];
 
+    case InventoryActions.ShipInventory:
+      return [
+        StockStatus.FREE,
+        StockStatus.INSPECTION_FAILED,
+        StockStatus.ALLOCATED,
+        StockStatus.VENDOR_INVENTORY,
+        StockStatus.CUSTOMER_INVENTORY,
+      ];
+
     case InventoryActions.SplitBatch:
       return [StockStatus.FREE];
 
     case InventoryActions.MergeBatch:
       return [StockStatus.FREE];
+
+    case InventoryActions.ReclassifyInventory:
+      return [StockStatus.FREE, StockStatus.INSPECTION_FAILED];
+
+    case InventoryActions.TransferToVendor:
+      return [StockStatus.FREE];
+
+    case InventoryActions.ReturnFromVendor:
+      return [StockStatus.VENDOR_INVENTORY];
+
+    case InventoryActions.QualityInspection:
+      return [StockStatus.PENDING_INSPECTION];
 
     case InventoryActions.DeliverToCustomer:
       return [StockStatus.FREE, StockStatus.ALLOCATED];
@@ -119,6 +158,15 @@ export function inventoryActionsSpec(
   };
 
   switch (action) {
+    case InventoryActions.PendingTransferInventory:
+      return {
+        ...baseProps,
+        name: '加入待調撥清單',
+        icon: PlusIcon,
+        title: '待調撥清單',
+        submitText: '建立調撥',
+      };
+
     case InventoryActions.HoldInventory:
       return {
         ...baseProps,
@@ -155,6 +203,15 @@ export function inventoryActionsSpec(
         submitText: '解除綁定',
       };
 
+    case InventoryActions.ShipInventory:
+      return {
+        ...baseProps,
+        name: '出庫',
+        icon: CarIcon,
+        title: '待出庫清單',
+        submitText: '建立出庫',
+      };
+
     case InventoryActions.SplitBatch:
       return {
         ...baseProps,
@@ -172,6 +229,42 @@ export function inventoryActionsSpec(
         icon: MergeIcon,
         title: '待合併批號清單',
         submitText: '合併批號',
+      };
+
+    case InventoryActions.ReclassifyInventory:
+      return {
+        ...baseProps,
+        name: '轉料號',
+        icon: RefreshCwIcon,
+        title: '待轉料號清單',
+        submitText: '轉料號',
+      };
+
+    case InventoryActions.TransferToVendor:
+      return {
+        ...baseProps,
+        name: '調撥至供應商',
+        icon: UpRightIcon,
+        title: '待調撥至供應商清單',
+        submitText: '調撥至供應商',
+      };
+
+    case InventoryActions.ReturnFromVendor:
+      return {
+        ...baseProps,
+        name: '供應商庫存回廠',
+        icon: ReverseRightIcon,
+        title: '待供應商庫存回廠清單',
+        submitText: '供應商庫存回廠',
+      };
+
+    case InventoryActions.QualityInspection:
+      return {
+        ...baseProps,
+        name: '檢驗',
+        icon: CheckedOutlineIcon,
+        title: '待檢驗清單',
+        submitText: '通過',
       };
 
     case InventoryActions.DeliverToCustomer:
@@ -207,12 +300,18 @@ export function inventoryActionsSpec(
 }
 
 export const inventoryActionOptions: InventoryActionItem[] = [
+  InventoryActions.PendingTransferInventory,
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   InventoryActions.AllocateInventory,
   InventoryActions.DeallocateInventory,
+  InventoryActions.ShipInventory,
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
+  InventoryActions.ReclassifyInventory,
+  InventoryActions.TransferToVendor,
+  InventoryActions.ReturnFromVendor,
+  InventoryActions.QualityInspection,
   InventoryActions.DeliverToCustomer,
   InventoryActions.ReturnFromCustomer,
   InventoryActions.ScrapInventory,
