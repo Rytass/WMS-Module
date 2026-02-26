@@ -3,7 +3,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useInventoryActions } from '../../../../inventoryActions/useInventoryActions';
-import { useClearAll } from '../../hooks';
+import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
@@ -28,17 +28,10 @@ function MergeBatch({
 
   const { targetAction, errorSignature, inventorySignature, resetAll } =
     useInventoryActions();
-  const onClearAll = useClearAll();
+  const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper
-      methods={methods}
-      havePageFooter
-      submitText={submitText}
-      haveCancelButton={false}
-      supportingActionName="重置全部"
-      supportingActionOnClick={onClearAll}
-    >
+    <FormWrapper methods={methods} submitText={submitText} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}

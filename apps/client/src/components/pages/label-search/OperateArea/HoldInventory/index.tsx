@@ -3,7 +3,7 @@ import { AggregatedStockFragment } from '../../../../../graphql/generated/.graph
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useInventoryActions } from '../../../../inventoryActions/useInventoryActions';
 import { useHoldInventory } from '../../../../inventoryActions/useApi';
-import { useClearAll } from '../../hooks';
+import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
 
 interface HoldInventoryProps {
@@ -21,17 +21,10 @@ function HoldInventory({
   const { targetAction, errorSignature, inventorySignature, resetAll } =
     useInventoryActions();
   const { holdInventory } = useHoldInventory();
-  const onClearAll = useClearAll();
+  const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper
-      methods={methods}
-      havePageFooter
-      submitText={submitText}
-      haveCancelButton={false}
-      supportingActionName="重置全部"
-      supportingActionOnClick={onClearAll}
-    >
+    <FormWrapper methods={methods} submitText={submitText} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
