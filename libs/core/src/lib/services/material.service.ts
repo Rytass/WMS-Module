@@ -52,12 +52,12 @@ export class MaterialService<
         this.materialUnitEntity,
       );
 
+    if (!unitId) return 1;
+
     const materialUnit = await materialUnitRepository.findOneByOrFail({
       materialId,
-      unit: unitId,
+      id: unitId,
     });
-
-    if (!unitId) return 1;
 
     return materialUnit.conversionFactor;
   }
@@ -78,7 +78,6 @@ export class MaterialService<
     const baseUnit = await unitRepository
       .findOneBy({ key: options.baseUnit })
       .then((unit) => {
-        console.log([unit]);
         return unit
           ? unit
           : unitRepository.save(
