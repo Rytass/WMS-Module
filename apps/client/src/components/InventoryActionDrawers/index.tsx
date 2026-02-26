@@ -1,10 +1,11 @@
 import { useEffect, useMemo } from 'react';
 import { InventoryActions } from '../inventoryActions/utils';
-import HoldInventory from './HoldInventory';
-import MergeBatch from './MergeBatch';
-import ScrapInventory from './ScrapInventory';
 import { useInventoryActions } from '../inventoryActions/useInventoryActions';
 import { useLazyQueryInventoryList } from '../inventoryActions/useApi';
+import HoldInventory from './HoldInventory';
+import ReleaseHoldInventory from './ReleaseHoldInventory';
+import MergeBatch from './MergeBatch';
+import ScrapInventory from './ScrapInventory';
 
 interface InventoryActionDrawersProps {
   onClose: VoidFunction;
@@ -56,6 +57,9 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
   switch (targetAction?.id) {
     case InventoryActions.HoldInventory:
       return <HoldInventory {...baseProps} />;
+
+    case InventoryActions.ReleaseInventoryHold:
+      return <ReleaseHoldInventory {...baseProps} />;
 
     case InventoryActions.MergeBatch:
       return <MergeBatch {...baseProps} />;

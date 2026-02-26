@@ -4,6 +4,7 @@ import { InventoryActions } from '../../../inventoryActions/utils';
 import { useQueryInventoryList } from '../../../inventoryActions/useApi';
 import HostSection from './HostSection';
 import HoldInventory from './HoldInventory';
+import ReleaseHoldInventory from './ReleaseHoldInventory';
 import MergeBatch from './MergeBatch';
 import ScrapInventory from './ScrapInventory';
 
@@ -22,6 +23,14 @@ const OperateArea: FC = () => {
     case InventoryActions.HoldInventory:
       return (
         <HoldInventory
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      );
+
+    case InventoryActions.ReleaseInventoryHold:
+      return (
+        <ReleaseHoldInventory
           inventoryList={inventoryList}
           queryInventoryListLoading={queryInventoryListLoading}
         />
