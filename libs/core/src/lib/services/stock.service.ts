@@ -12,7 +12,7 @@ import {
   MaterialEntity,
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
-import { StockStatus } from '../constants/stock-status';
+import { ChangeType, StockStatus } from '../constants/stock-status';
 import { AggregatedStock, ChangeLog } from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import { LoadersEntityClass, LocationEntityClass } from '../models';
@@ -79,6 +79,20 @@ export class StockService<
                 END`,
                 'status',
               )
+              .addSelect(
+                `CASE
+                WHEN rio_changes.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
+                WHEN sio_changes.id IS NOT NULL THEN '${ChangeType.SHIPPED}'
+                WHEN to_changes.id IS NOT NULL AND s.quantity < 0 THEN '${ChangeType.IN_TRANSFER}'
+                WHEN to_changes.id IS NOT NULL AND s.quantity > 0 THEN '${ChangeType.TRANSFERRED}'
+                WHEN hi_changes.id IS NOT NULL AND s.quantity < 0 THEN '${ChangeType.HELD}'
+                WHEN hi_changes.id IS NOT NULL AND s.quantity > 0 THEN '${ChangeType.RELEASED}'
+                WHEN sbo_changes.id IS NOT NULL THEN '${ChangeType.SPLITTED}'
+                WHEN mbo_changes.id IS NOT NULL THEN '${ChangeType.MERGED}'
+                ELSE NULL
+                END`,
+                'changeType',
+              )
               .addSelect('s.id', 'stockId')
               .from('stocks', 's')
               .innerJoin('orders', 'o', 's."orderId" = o.id')
@@ -122,6 +136,36 @@ export class StockService<
                 'transfer_customer_order_changes',
                 'tc_changes',
                 'tc_changes.id = o.id',
+              )
+              // Receive Inventory Order
+              .leftJoin(
+                'receive_inventory_order_changes',
+                'rio_changes',
+                'rio_changes.id = o.id',
+              )
+              // Ship Inventory Order
+              .leftJoin(
+                'ship_inventory_order_changes',
+                'sio_changes',
+                'sio_changes.id = o.id',
+              )
+              // Split Batch Order
+              .leftJoin(
+                'split_batch_order_changes',
+                'sbo_changes',
+                'sbo_changes.id = o.id',
+              )
+              // Merge Batch Order
+              .leftJoin(
+                'merge_batch_order_changes',
+                'mbo_changes',
+                'mbo_changes.id = o.id',
+              )
+              // Reclassify Inventory Order
+              .leftJoin(
+                'reclassify_inventory_order_changes',
+                'rci_changes',
+                'rci_changes.id = o.id',
               ),
           'stock_status',
           `stock_status."stockId" = ${alias}.id`,
