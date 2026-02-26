@@ -10,6 +10,7 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
   submitText: string;
   primaryButtonVariant?: ButtonVariant;
   cancelText?: string;
+  secondaryButtonVariant?: ButtonVariant;
   supportingActionName?: string;
   supportingActionOnClick?: VoidFunction;
   haveCancelButton: boolean;
@@ -21,6 +22,7 @@ export const FormFooter = <T extends FieldValues>({
   submitText,
   primaryButtonVariant,
   cancelText = '取消',
+  secondaryButtonVariant,
   supportingActionName,
   supportingActionOnClick,
   haveCancelButton,
@@ -51,15 +53,18 @@ export const FormFooter = <T extends FieldValues>({
           type: 'submit',
           variant: primaryButtonVariant,
           disabled: disableSubmitButton(values) || loading,
+          loading,
         },
         secondaryButton: haveCancelButton
           ? {
               children: cancelText,
               type: 'button',
+              variant: secondaryButtonVariant ?? 'base-secondary',
               disabled: disableCancelButton(values) || loading,
               onClick: async () => {
                 await onCancel();
               },
+              loading,
             }
           : undefined,
       }}

@@ -1,4 +1,5 @@
 @use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/palette';
 
 .host {
   flex: 1;
@@ -25,6 +26,15 @@
         grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
         gap: spacing.semantic-variable(gap, calm)
           spacing.semantic-variable(gap, base);
+
+        .actionButton {
+          &.active {
+            background-color: palette.semantic-variable(
+              background,
+              neutral-faint
+            );
+          }
+        }
       }
     }
   }

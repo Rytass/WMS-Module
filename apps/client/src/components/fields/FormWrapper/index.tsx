@@ -29,6 +29,7 @@ interface WithPageFooter<T extends FieldValues = FieldValues> {
   submitText: string;
   primaryButtonVariant?: ButtonVariant;
   cancelText?: string;
+  secondaryButtonVariant?: ButtonVariant;
   supportingActionName?: string;
   supportingActionOnClick?: VoidFunction;
   haveCancelButton?: boolean;
@@ -41,6 +42,7 @@ interface WithoutPageFooter {
   submitText?: never;
   primaryButtonVariant?: never;
   cancelText?: never;
+  secondaryButtonVariant?: never;
   supportingActionName?: never;
   supportingActionOnClick?: never;
   haveCancelButton?: never;
@@ -62,6 +64,7 @@ export const FormWrapper = <T extends FieldValues>({
   submitText,
   primaryButtonVariant,
   cancelText = '取消',
+  secondaryButtonVariant,
   supportingActionName,
   supportingActionOnClick,
   haveCancelButton = true,
@@ -84,6 +87,7 @@ export const FormWrapper = <T extends FieldValues>({
             submitText={submitText}
             primaryButtonVariant={primaryButtonVariant}
             cancelText={cancelText}
+            secondaryButtonVariant={secondaryButtonVariant}
             supportingActionName={supportingActionName}
             supportingActionOnClick={supportingActionOnClick}
             haveCancelButton={haveCancelButton}

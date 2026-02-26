@@ -41,6 +41,8 @@ export enum InventoryActions {
   DeallocateInventory = 'DeallocateInventory',
   SplitBatch = 'SplitBatch',
   MergeBatch = 'MergeBatch',
+  DeliverToCustomer = 'DeliverToCustomer',
+  ReturnFromCustomer = 'ReturnFromCustomer',
   ScrapInventory = 'ScrapInventory',
 }
 
@@ -73,6 +75,12 @@ export function inventoryActionsEnableStatus(
 
     case InventoryActions.MergeBatch:
       return [StockStatus.FREE];
+
+    case InventoryActions.DeliverToCustomer:
+      return [StockStatus.FREE, StockStatus.ALLOCATED];
+
+    case InventoryActions.ReturnFromCustomer:
+      return [StockStatus.CUSTOMER_INVENTORY];
 
     case InventoryActions.ScrapInventory:
       return [StockStatus.FREE, StockStatus.INSPECTION_FAILED];
