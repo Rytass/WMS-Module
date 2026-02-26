@@ -1,46 +1,14 @@
-import { useMemo, useCallback } from 'react';
 import { isNumber } from 'lodash';
 import { Typography, Button } from '@mezzanine-ui/react';
 import ContentHeader from '@mezzanine-ui/react/ContentHeader';
-import {
-  InventoryActions,
-  inventoryActionOptions,
-  InventoryActionItem,
-} from '../../../utils/inventoryActions';
+import { inventoryActionOptions } from '../../../utils/inventoryActions';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 import LabelInput from './LabelInput';
 import OperateArea from './OperateArea';
-import HoldInventory from './HoldInventory';
-import MergeBatch from './MergeBatch';
-import ScrapInventory from './ScrapInventory';
 import classes from './index.module.scss';
 
 function LabelSearch() {
-  const { targetAction, setTargetAction, targetInventoryIds } =
-    useInventoryActions();
-
-  const baseProps = useCallback(
-    (currentTargetAction: InventoryActionItem) => ({
-      submitText: currentTargetAction.submitText,
-    }),
-    [],
-  );
-
-  const operateFields = useMemo(() => {
-    switch (targetAction?.id) {
-      case InventoryActions.HoldInventory:
-        return <HoldInventory {...baseProps(targetAction)} />;
-
-      case InventoryActions.MergeBatch:
-        return <MergeBatch {...baseProps(targetAction)} />;
-
-      case InventoryActions.ScrapInventory:
-        return <ScrapInventory {...baseProps(targetAction)} />;
-
-      default:
-        return <OperateArea />;
-    }
-  }, [baseProps, targetAction]);
+  const { setTargetAction, targetInventoryIds } = useInventoryActions();
 
   return (
     <div className={classes.host}>
@@ -73,7 +41,7 @@ function LabelSearch() {
         </div>
         <LabelInput />
       </div>
-      {operateFields}
+      <OperateArea />
     </div>
   );
 }
