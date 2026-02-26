@@ -19,7 +19,7 @@ function HoldInventory({
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} {...formFooterProps}>
+    <FormWrapper methods={methods} onSubmit={onSubmit} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}

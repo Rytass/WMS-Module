@@ -64,6 +64,7 @@ export function useHoldInventory(inventoryList: AggregatedStockFragment[]) {
               isEnableActionStatus(item.status, targetAction?.status),
             )
             .map((item) => inventorySignature[item.id])
+            .filter((item) => item.quantity > 0)
             .map((s) => ({
               aggregatedKey: s.id,
               unitId: s.unitId,
