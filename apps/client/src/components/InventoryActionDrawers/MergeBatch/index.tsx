@@ -1,13 +1,11 @@
-import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { isEmpty } from 'lodash';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { Message } from '@mezzanine-ui/react';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
-import { useClearAll } from '../hooks';
+import { useShareFooterProps } from '../hooks';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 import MergeBatchField from '../../inventoryActions/fields/MergeBatchField';
 import { formSchema } from './schema';
@@ -40,26 +38,24 @@ const MergeBatch: FC<MergeBatchProps> = ({
     },
   });
 
-  const { errorSignature, inventorySignature, resetAll } =
-    useInventoryActions();
+  const { inventorySignature, resetAll } = useInventoryActions();
 
-  const onClearAll = useClearAll();
-
-  const haveError = useMemo(() => !isEmpty(errorSignature), [errorSignature]);
+  const formFooterProps = useShareFooterProps({
+    inventoryList,
+    onClose,
+    open,
+    headerTitle,
+    bottomPrimaryActionText,
+    bottomPrimaryActionIcon,
+  });
 
   return (
     <FormDrawerWrapper
-      onClose={onClose}
-      open={open}
       methods={methods}
       onSubmit={async (values) => {
         console.log('values', values);
       }}
-      headerTitle={headerTitle}
-      bottomPrimaryActionText={bottomPrimaryActionText}
-      bottomPrimaryActionIcon={bottomPrimaryActionIcon}
-      bottomPrimaryActionDisabled={haveError}
-      bottomOnGhostActionClick={onClearAll}
+      {...formFooterProps}
     >
       <div className={classes.wrapper}>
         <div className={classes.fieldsWrapper}>

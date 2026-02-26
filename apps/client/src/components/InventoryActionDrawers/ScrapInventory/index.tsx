@@ -1,12 +1,10 @@
-import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { isEmpty } from 'lodash';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { Message } from '@mezzanine-ui/react';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
-import { useClearAll } from '../hooks';
+import { useShareFooterProps } from '../hooks';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 
 interface ScrapInventoryProps {
@@ -29,26 +27,24 @@ const ScrapInventory: FC<ScrapInventoryProps> = ({
   bottomPrimaryActionIcon,
 }) => {
   const methods = useForm();
-  const { errorSignature, inventorySignature, resetAll } =
-    useInventoryActions();
-  const onClearAll = useClearAll();
-
-  const haveError = useMemo(() => !isEmpty(errorSignature), [errorSignature]);
+  const { inventorySignature, resetAll } = useInventoryActions();
+  const formFooterProps = useShareFooterProps({
+    inventoryList,
+    onClose,
+    open,
+    headerTitle,
+    bottomPrimaryActionText,
+    bottomPrimaryActionIcon,
+  });
 
   return (
     <FormDrawerWrapper
-      onClose={onClose}
-      open={open}
       methods={methods}
       onSubmit={async () => {
         //
       }}
-      headerTitle={headerTitle}
-      bottomPrimaryActionText={bottomPrimaryActionText}
-      bottomPrimaryActionIcon={bottomPrimaryActionIcon}
-      bottomPrimaryActionDisabled={haveError}
-      bottomOnGhostActionClick={onClearAll}
       bottomPrimaryActionVariant="destructive-primary"
+      {...formFooterProps}
     >
       <InventoryGrid
         inventoryList={inventoryList}

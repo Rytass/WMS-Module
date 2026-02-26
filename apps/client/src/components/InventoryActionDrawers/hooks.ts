@@ -1,6 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import { isEmpty } from 'lodash';
+import { IconDefinition } from '@mezzanine-ui/icons';
 import { useDialog } from '../dialog/useDialog';
 import { useInventoryActions } from '../inventoryActions/useInventoryActions';
+import { isEnableActionStatus } from '../inventoryActions/utils';
+import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
 
 export function useClearAll() {
   const { resetAll } = useInventoryActions();
@@ -24,4 +28,47 @@ export function useClearAll() {
   }, [resetAll, openDialog]);
 
   return onClearAll;
+}
+
+export function useShareFooterProps({
+  inventoryList,
+  onClose,
+  open,
+  headerTitle,
+  bottomPrimaryActionText,
+  bottomPrimaryActionIcon,
+}: {
+  inventoryList: AggregatedStockFragment[];
+  onClose: VoidFunction;
+  open: boolean;
+  headerTitle: string;
+  bottomPrimaryActionText: string;
+  bottomPrimaryActionIcon?: IconDefinition;
+}): {
+  onClose: VoidFunction;
+  open: boolean;
+  headerTitle: string;
+  bottomPrimaryActionText: string;
+  bottomPrimaryActionIcon?: IconDefinition;
+  bottomPrimaryActionDisabled: boolean;
+  bottomOnGhostActionClick: () => Promise<void>;
+} {
+  const { targetAction, errorSignature } = useInventoryActions();
+  const onClearAll = useClearAll();
+
+  const haveError = useMemo(() => !isEmpty(errorSignature), [errorSignature]);
+
+  return {
+    onClose,
+    open,
+    headerTitle,
+    bottomPrimaryActionText,
+    bottomPrimaryActionIcon,
+    bottomPrimaryActionDisabled:
+      haveError ||
+      inventoryList.filter((item) =>
+        isEnableActionStatus(item.status, targetAction?.status),
+      ).length === 0,
+    bottomOnGhostActionClick: onClearAll,
+  };
 }
