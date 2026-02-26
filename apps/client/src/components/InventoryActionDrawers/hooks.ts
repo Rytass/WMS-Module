@@ -34,16 +34,10 @@ export function useShareFooterProps({
   inventoryList,
   onClose,
   open,
-  headerTitle,
-  bottomPrimaryActionText,
-  bottomPrimaryActionIcon,
 }: {
   inventoryList: AggregatedStockFragment[];
   onClose: VoidFunction;
   open: boolean;
-  headerTitle: string;
-  bottomPrimaryActionText: string;
-  bottomPrimaryActionIcon?: IconDefinition;
 }): {
   onClose: VoidFunction;
   open: boolean;
@@ -61,9 +55,9 @@ export function useShareFooterProps({
   return {
     onClose,
     open,
-    headerTitle,
-    bottomPrimaryActionText,
-    bottomPrimaryActionIcon,
+    headerTitle: targetAction?.title ?? '',
+    bottomPrimaryActionText: targetAction?.submitText ?? '',
+    bottomPrimaryActionIcon: targetAction?.icon,
     bottomPrimaryActionDisabled:
       haveError ||
       inventoryList.filter((item) =>

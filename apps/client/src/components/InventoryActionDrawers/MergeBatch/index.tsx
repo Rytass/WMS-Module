@@ -1,6 +1,5 @@
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { IconDefinition } from '@mezzanine-ui/icons';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
@@ -15,9 +14,6 @@ interface MergeBatchProps {
   queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;
-  headerTitle: string;
-  bottomPrimaryActionText: string;
-  bottomPrimaryActionIcon?: IconDefinition;
 }
 
 const MergeBatch: FC<MergeBatchProps> = ({
@@ -25,9 +21,6 @@ const MergeBatch: FC<MergeBatchProps> = ({
   queryInventoryListLoading,
   onClose,
   open,
-  headerTitle,
-  bottomPrimaryActionText,
-  bottomPrimaryActionIcon,
 }) => {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
@@ -40,9 +33,6 @@ const MergeBatch: FC<MergeBatchProps> = ({
     inventoryList,
     onClose,
     open,
-    headerTitle,
-    bottomPrimaryActionText,
-    bottomPrimaryActionIcon,
   });
 
   return (
