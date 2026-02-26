@@ -3,7 +3,7 @@ import { useInventoryActions } from '../../../inventoryActions/useInventoryActio
 import {
   InventoryActionItem,
   InventoryActions,
-} from '../../../../utils/inventoryActions';
+} from '../../../inventoryActions/utils';
 import { useQueryInventoryList } from '../../../inventoryActions/useApi';
 import HostSection from './HostSection';
 import HoldInventory from './HoldInventory';

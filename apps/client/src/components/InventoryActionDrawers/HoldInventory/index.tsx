@@ -8,7 +8,7 @@ import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useClearAll } from '../hooks';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
-import { isEnableActionStatus } from '../../../utils/inventoryActions';
+import { isEnableActionStatus } from '../../inventoryActions/utils';
 import { useHoldInventory } from '../../inventoryActions/useApi';
 
 interface HoldInventoryProps {

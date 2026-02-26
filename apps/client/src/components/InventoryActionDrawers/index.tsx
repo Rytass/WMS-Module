@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import {
   InventoryActionItem,
   InventoryActions,
-} from '../../utils/inventoryActions';
+} from '../inventoryActions/utils';
 import HoldInventory from './HoldInventory';
 import MergeBatch from './MergeBatch';
 import ScrapInventory from './ScrapInventory';

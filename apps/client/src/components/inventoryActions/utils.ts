@@ -1,7 +1,7 @@
 import { LockIcon, UnlockIcon, LinkIcon, TrashIcon } from '@mezzanine-ui/icons';
-import { SplitIcon, MergeIcon, UnlinkIcon } from '../icons';
+import { SplitIcon, MergeIcon, UnlinkIcon } from '../../icons';
 import { DropdownOption } from '@mezzanine-ui/react';
-import { StockStatus } from '../graphql/generated/.graphql';
+import { StockStatus } from '../../graphql/generated/.graphql';
 
 export function stockStatusName(status?: StockStatus): string {
   switch (status) {

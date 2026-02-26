@@ -6,7 +6,7 @@ import InventoryGrid from '../../../inventoryActions/InventoryGrid';
 import {
   haveAdditionalFields,
   isEnableActionStatus,
-} from '../../../../utils/inventoryActions';
+} from '../../../inventoryActions/utils';
 import AdditionalBlock from './AdditionalBlock';
 import classes from './index.module.scss';
 

@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { isEmpty } from 'lodash';
 import { useDialog } from '../../dialog/useDialog';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
-import { isEnableActionStatus } from '../../../utils/inventoryActions';
+import { isEnableActionStatus } from '../../inventoryActions/utils';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 
 export function useClearAll() {

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Typography, Empty } from '@mezzanine-ui/react';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import MergeBatchField from '../../../inventoryActions/fields/MergeBatchField';
-import { InventoryActions } from '../../../../utils/inventoryActions';
+import { InventoryActions } from '../../../inventoryActions/utils';
 import classes from './index.module.scss';
 
 const AdditionalBlock: FC = () => {

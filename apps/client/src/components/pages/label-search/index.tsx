@@ -1,7 +1,7 @@
 import { isNumber } from 'lodash';
 import { Typography, Button } from '@mezzanine-ui/react';
 import ContentHeader from '@mezzanine-ui/react/ContentHeader';
-import { inventoryActionOptions } from '../../../utils/inventoryActions';
+import { inventoryActionOptions } from '../../inventoryActions/utils';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 import LabelInput from './LabelInput';
 import OperateArea from './OperateArea';
