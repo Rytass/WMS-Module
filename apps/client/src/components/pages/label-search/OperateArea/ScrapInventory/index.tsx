@@ -7,13 +7,11 @@ import HostSection from '../HostSection';
 interface ScrapInventoryProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
-  submitText: string;
 }
 
 function ScrapInventory({
   inventoryList,
   queryInventoryListLoading,
-  submitText,
 }: ScrapInventoryProps) {
   const methods = useForm();
   const formFooterProps = useShareFooterProps(inventoryList);
@@ -21,7 +19,6 @@ function ScrapInventory({
   return (
     <FormWrapper
       methods={methods}
-      submitText={submitText}
       primaryButtonVariant="destructive-primary"
       {...formFooterProps}
     >

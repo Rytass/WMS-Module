@@ -10,13 +10,11 @@ import { FormValues } from './typing';
 interface MergeBatchProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
-  submitText: string;
 }
 
 function MergeBatch({
   inventoryList,
   queryInventoryListLoading,
-  submitText,
 }: MergeBatchProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
@@ -28,7 +26,7 @@ function MergeBatch({
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} submitText={submitText} {...formFooterProps}>
+    <FormWrapper methods={methods} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}

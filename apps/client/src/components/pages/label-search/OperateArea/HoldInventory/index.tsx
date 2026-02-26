@@ -8,20 +8,18 @@ import HostSection from '../HostSection';
 interface HoldInventoryProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
-  submitText: string;
 }
 
 function HoldInventory({
   inventoryList,
   queryInventoryListLoading,
-  submitText,
 }: HoldInventoryProps) {
   const methods = useForm();
   const { onSubmit } = useHoldInventory(inventoryList);
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} submitText={submitText} {...formFooterProps}>
+    <FormWrapper methods={methods} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}

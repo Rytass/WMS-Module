@@ -30,6 +30,7 @@ export function useClearAll() {
 }
 
 export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
+  submitText: string;
   havePageFooter: true;
   haveCancelButton: boolean;
   supportingActionName: string;
@@ -42,6 +43,7 @@ export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
   const haveError = useMemo(() => !isEmpty(errorSignature), [errorSignature]);
 
   return {
+    submitText: targetAction?.submitText ?? '',
     havePageFooter: true,
     haveCancelButton: false,
     supportingActionName: '重置全部',

@@ -1,9 +1,6 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
-import {
-  InventoryActionItem,
-  InventoryActions,
-} from '../../../inventoryActions/utils';
+import { InventoryActions } from '../../../inventoryActions/utils';
 import { useQueryInventoryList } from '../../../inventoryActions/useApi';
 import HostSection from './HostSection';
 import HoldInventory from './HoldInventory';
@@ -21,24 +18,30 @@ const OperateArea: FC = () => {
     [data?.aggregatedStocks.items],
   );
 
-  const baseProps = useCallback(
-    (currentTargetAction: InventoryActionItem) => ({
-      inventoryList,
-      queryInventoryListLoading,
-      submitText: currentTargetAction.submitText,
-    }),
-    [inventoryList, queryInventoryListLoading],
-  );
-
   switch (targetAction?.id) {
     case InventoryActions.HoldInventory:
-      return <HoldInventory {...baseProps(targetAction)} />;
+      return (
+        <HoldInventory
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      );
 
     case InventoryActions.MergeBatch:
-      return <MergeBatch {...baseProps(targetAction)} />;
+      return (
+        <MergeBatch
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      );
 
     case InventoryActions.ScrapInventory:
-      return <ScrapInventory {...baseProps(targetAction)} />;
+      return (
+        <ScrapInventory
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      );
 
     default:
       return (
