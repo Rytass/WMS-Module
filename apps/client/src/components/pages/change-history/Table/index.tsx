@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { TableColumn } from '@mezzanine-ui/react';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
-import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { ChangeLogFragment } from '../../../../graphql/generated/.graphql';
 import { useQueryChangeLogs } from '../useApi';
 
 function ChangeHistoryTable() {
@@ -10,11 +10,11 @@ function ChangeHistoryTable() {
     useQueryChangeLogs();
 
   const dataSource = useMemo(
-    (): AggregatedStockFragment[] => data?.changeLogs.items ?? [],
+    (): ChangeLogFragment[] => data?.changeLogs.items ?? [],
     [data?.changeLogs.items],
   );
 
-  const columns: TableColumn<AggregatedStockFragment>[] = [
+  const columns: TableColumn<ChangeLogFragment>[] = [
     {
       key: 'key',
       title: '料號',
@@ -39,11 +39,25 @@ function ChangeHistoryTable() {
       width: 140,
       render: (source) => source.location?.key,
     },
+    {
+      key: 'quantity',
+      title: '數量',
+      width: 100,
+      align: 'end',
+      render: (source) => source.quantity,
+    },
+    {
+      key: 'baseUnit',
+      title: '單位',
+      width: 100,
+      align: 'center',
+      render: (source) => source.material?.baseUnit?.key,
+    },
   ];
 
   return (
     <TableWrapper title="異動項目">
-      <Table<AggregatedStockFragment>
+      <Table<ChangeLogFragment>
         columns={columns}
         dataSource={dataSource}
         loading={loading}

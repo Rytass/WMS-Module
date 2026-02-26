@@ -1,6 +1,7 @@
 import { ReactNode, useCallback, useMemo } from 'react';
 import { FieldValues, useFormState, useWatch } from 'react-hook-form';
-import { PageFooter } from '@mezzanine-ui/react';
+import { ButtonVariant, PageFooter } from '@mezzanine-ui/react';
+import { IconDefinition } from '@mezzanine-ui/icons';
 import { useFormCancel } from '../../../hooks/useFormCancel';
 import classes from './index.module.scss';
 
@@ -8,7 +9,12 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
   disableSubmitButton?: (values: T) => boolean;
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
+  primaryButtonVariant?: ButtonVariant;
+  primaryButtonIcon?: IconDefinition;
   cancelText?: string;
+  secondaryButtonVariant?: ButtonVariant;
+  supportingActionName?: string;
+  supportingActionOnClick?: VoidFunction;
   haveCancelButton: boolean;
 }
 
@@ -16,7 +22,12 @@ export const FormFooter = <T extends FieldValues>({
   disableSubmitButton = () => false,
   disableCancelButton = () => false,
   submitText,
+  primaryButtonVariant,
+  primaryButtonIcon,
   cancelText = '取消',
+  secondaryButtonVariant,
+  supportingActionName,
+  supportingActionOnClick,
   haveCancelButton,
 }: FormFooterProps<T>): ReactNode => {
   const onFormCancel = useFormCancel({});
@@ -35,20 +46,30 @@ export const FormFooter = <T extends FieldValues>({
     <PageFooter
       className={classes.footer}
       type="standard"
+      supportingActionType="button"
+      supportingActionVariant="destructive-ghost"
+      supportingActionName={supportingActionName}
+      supportingActionOnClick={supportingActionOnClick}
       actions={{
         primaryButton: {
           children: submitText,
           type: 'submit',
+          variant: primaryButtonVariant,
+          iconType: 'leading',
+          icon: primaryButtonIcon,
           disabled: disableSubmitButton(values) || loading,
+          loading,
         },
         secondaryButton: haveCancelButton
           ? {
               children: cancelText,
               type: 'button',
+              variant: secondaryButtonVariant ?? 'base-secondary',
               disabled: disableCancelButton(values) || loading,
               onClick: async () => {
                 await onCancel();
               },
+              loading,
             }
           : undefined,
       }}

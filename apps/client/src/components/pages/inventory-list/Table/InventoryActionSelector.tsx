@@ -11,7 +11,7 @@ import { Dropdown, Button, Message } from '@mezzanine-ui/react';
 import {
   InventoryActionItem,
   inventoryActionOptions,
-} from '../../../../utils/inventoryActions';
+} from '../../../inventoryActions/utils';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 
@@ -128,7 +128,7 @@ function InventoryActionSelector({
         size="sub"
         icon={ChevronDownIcon}
         iconType="trailing"
-        disabled={targetStocks.length === 0}
+        disabled={targetStocks.length === 0 || availableOptions.length === 0}
       >
         執行操作
       </Button>

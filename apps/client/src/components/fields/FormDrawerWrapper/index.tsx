@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useState, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { ButtonVariant, Drawer } from '@mezzanine-ui/react';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { UseFormReturn, SubmitHandler, FieldValues } from 'react-hook-form';
@@ -11,7 +11,7 @@ type FormDrawerWrapperProps<T extends FieldValues = FieldValues> = {
   methods: UseFormReturn<T>;
   onSubmit: SubmitHandler<T>;
   bottomOnGhostActionClick: VoidFunction;
-  bottomOnSecondaryActionClick?: (values: T) => Promise<void>;
+  bottomOnSecondaryActionClick?: SubmitHandler<T>;
   bottomGhostActionText?: string;
   bottomSecondaryActionText?: string;
   bottomPrimaryActionText: string;
@@ -37,15 +37,9 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
   bottomPrimaryActionDisabled = false,
   headerTitle,
 }: FormDrawerWrapperProps<T>) {
-  const [acting, setActing] = useState<boolean>(false);
-  const onConfirm = useCallback(async () => {
-    methods.handleSubmit(onSubmit)();
-  }, [methods, onSubmit]);
-
-  const values = methods.watch();
   const isSubmitting = methods.formState.isSubmitting;
 
-  const loading = useMemo(() => acting || isSubmitting, [acting, isSubmitting]);
+  const loading = useMemo(() => isSubmitting, [isSubmitting]);
 
   return (
     <Drawer
@@ -55,13 +49,15 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
       bottomGhostActionDisabled={loading}
       bottomSecondaryActionText={bottomSecondaryActionText}
       bottomOnSecondaryActionClick={async () => {
-        setActing(true);
-        await bottomOnSecondaryActionClick?.(values);
-        setActing(false);
+        if (bottomOnSecondaryActionClick) {
+          methods.handleSubmit(bottomOnSecondaryActionClick)();
+        }
       }}
       bottomSecondaryActionDisabled={loading}
       bottomPrimaryActionText={bottomPrimaryActionText}
-      bottomOnPrimaryActionClick={onConfirm}
+      bottomOnPrimaryActionClick={async () => {
+        methods.handleSubmit(onSubmit)();
+      }}
       bottomPrimaryActionIconType="leading"
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}
       bottomPrimaryActionVariant={bottomPrimaryActionVariant}

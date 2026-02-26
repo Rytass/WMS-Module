@@ -1,0 +1,15 @@
+fragment ChangeLog on ChangeLogDto {
+  id
+  quantity
+  status
+  material {
+    ...SimpleMaterial
+  }
+  batch {
+    ...Batch
+  }
+  location {
+    id
+    key
+  }
+}

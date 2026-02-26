@@ -41,3 +41,23 @@ registerEnumType(StockStatus, {
 
 @ObjectType()
 export class AggregatedStocks extends PaginatedResponse(AggregatedStockDto) {}
+
+@ObjectType()
+export class ChangeLogDto {
+  @Field(() => Int)
+  quantity!: number;
+
+  @Field(() => StockStatus)
+  status!: StockStatus;
+
+  materialId!: string;
+  batchId!: string;
+  locationId!: string;
+  loaderId!: string;
+
+  @Field(() => ID)
+  id!: string;
+}
+
+@ObjectType()
+export class ChangeLogs extends PaginatedResponse(ChangeLogDto) {}

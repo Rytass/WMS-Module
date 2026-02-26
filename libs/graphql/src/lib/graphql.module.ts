@@ -29,6 +29,7 @@ import { HoldInventoryOrderMutation } from './mutations/hold-inventory-order.mut
 import { HoldInventoryOrderQuery } from './queries/hold-inventory-order.query';
 import { HoldInventoryOrderResolver } from './resolvers/hold-inventory-order.resolver';
 import { BatchQuery } from './queries/batch.query';
+import { ChangeLogResolver } from './resolvers/change-log.resolver';
 
 const exportDependencies = [
   UnitQuery,
@@ -42,6 +43,7 @@ const exportDependencies = [
   BatchQuery,
   StockQuery,
   StockResolver,
+  ChangeLogResolver,
   AggregatedStockResolver,
 
   ReceiveInventoryOrderMutation,

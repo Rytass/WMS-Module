@@ -20,7 +20,7 @@ query ChangeLogs(
   ) {
     id
     items {
-      ...AggregatedStock
+      ...ChangeLog
     }
     total
   }
