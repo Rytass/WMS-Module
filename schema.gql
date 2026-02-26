@@ -89,6 +89,7 @@ enum StockStatus {
   INSPECTION_FAILED
   HELD
   IN_TRANSFER
+  IN_SHIPMENT
   ALLOCATED
   VENDOR_INVENTORY
   CUSTOMER_INVENTORY
@@ -168,7 +169,6 @@ type ReceiveInventoryOrders {
 
 type ShipInventoryOrderItemDto {
   id: ID!
-  description: String
   unitId: ID
   targetShippedQuantity: Float!
   orderId: ID!
@@ -394,7 +394,6 @@ input UpdateReceiveInventoryOrderItemArgs {
 }
 
 input CreateShipInventoryOrderItemArgs {
-  description: String!
   unitId: ID!
   batchId: ID!
   materialId: ID!
@@ -402,7 +401,6 @@ input CreateShipInventoryOrderItemArgs {
 }
 
 input UpdateShipInventoryOrderItemArgs {
-  description: String
   unitId: ID
   batchId: ID
   materialId: ID
