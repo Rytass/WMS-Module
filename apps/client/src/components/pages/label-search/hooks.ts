@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { isEmpty } from 'lodash';
+import { IconDefinition } from '@mezzanine-ui/icons';
 import { useDialog } from '../../dialog/useDialog';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 import { isEnableActionStatus } from '../../inventoryActions/utils';
@@ -31,6 +32,7 @@ export function useClearAll() {
 
 export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
   submitText: string;
+  primaryButtonIcon?: IconDefinition;
   havePageFooter: true;
   haveCancelButton: boolean;
   supportingActionName: string;
@@ -44,6 +46,7 @@ export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
 
   return {
     submitText: targetAction?.submitText ?? '',
+    primaryButtonIcon: targetAction?.icon,
     havePageFooter: true,
     haveCancelButton: false,
     supportingActionName: '重置全部',
