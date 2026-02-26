@@ -1,14 +1,8 @@
-import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
-import { isEmpty } from 'lodash';
-import { IconDefinition } from '@mezzanine-ui/icons';
-import { Message } from '@mezzanine-ui/react';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
-import { useClearAll } from '../hooks';
-import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
-import { isEnableActionStatus } from '../../../utils/inventoryActions';
+import { useShareFooterProps } from '../hooks';
 import { useHoldInventory } from '../../inventoryActions/useApi';
 
 interface HoldInventoryProps {
@@ -16,9 +10,6 @@ interface HoldInventoryProps {
   queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;
-  headerTitle: string;
-  bottomPrimaryActionText: string;
-  bottomPrimaryActionIcon?: IconDefinition;
 }
 
 const HoldInventory: FC<HoldInventoryProps> = ({
@@ -26,53 +17,20 @@ const HoldInventory: FC<HoldInventoryProps> = ({
   queryInventoryListLoading,
   onClose,
   open,
-  headerTitle,
-  bottomPrimaryActionText,
-  bottomPrimaryActionIcon,
 }) => {
   const methods = useForm();
-  const { targetAction, errorSignature, inventorySignature, resetAll } =
-    useInventoryActions();
-  const { holdInventory } = useHoldInventory();
-  const onClearAll = useClearAll();
-
-  const haveError = useMemo(() => !isEmpty(errorSignature), [errorSignature]);
+  const { onSubmit } = useHoldInventory(inventoryList);
+  const formFooterProps = useShareFooterProps({
+    inventoryList,
+    onClose,
+    open,
+  });
 
   return (
     <FormDrawerWrapper
-      onClose={onClose}
-      open={open}
       methods={methods}
-      onSubmit={async () => {
-        try {
-          const { data } = await holdInventory({
-            variables: {
-              items: inventoryList
-                .filter((item) =>
-                  isEnableActionStatus(item.status, targetAction?.status),
-                )
-                .map((item) => inventorySignature[item.id])
-                .map((s) => ({
-                  aggregatedKey: s.id,
-                  unitId: s.unitId,
-                  targetHeldQuantity: s.quantity,
-                })),
-            },
-          });
-
-          if (data?.createHoldInventoryOrder.id) {
-            Message.success(`${bottomPrimaryActionText}成功`);
-            resetAll();
-          }
-        } catch (error) {
-          console.error(error);
-        }
-      }}
-      headerTitle={headerTitle}
-      bottomPrimaryActionText={bottomPrimaryActionText}
-      bottomPrimaryActionIcon={bottomPrimaryActionIcon}
-      bottomPrimaryActionDisabled={haveError}
-      bottomOnGhostActionClick={onClearAll}
+      onSubmit={onSubmit}
+      {...formFooterProps}
     >
       <InventoryGrid
         inventoryList={inventoryList}

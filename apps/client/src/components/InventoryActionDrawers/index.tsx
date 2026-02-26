@@ -1,13 +1,11 @@
-import { useCallback, useEffect, useMemo } from 'react';
-import {
-  InventoryActionItem,
-  InventoryActions,
-} from '../../utils/inventoryActions';
-import HoldInventory from './HoldInventory';
-import MergeBatch from './MergeBatch';
-import ScrapInventory from './ScrapInventory';
+import { useEffect, useMemo } from 'react';
+import { InventoryActions } from '../inventoryActions/utils';
 import { useInventoryActions } from '../inventoryActions/useInventoryActions';
 import { useLazyQueryInventoryList } from '../inventoryActions/useApi';
+import HoldInventory from './HoldInventory';
+import ReleaseHoldInventory from './ReleaseHoldInventory';
+import MergeBatch from './MergeBatch';
+import ScrapInventory from './ScrapInventory';
 
 interface InventoryActionDrawersProps {
   onClose: VoidFunction;
@@ -46,28 +44,28 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     [data?.aggregatedStocks.items],
   );
 
-  const baseProps = useCallback(
-    (currentTargetAction: InventoryActionItem) => ({
+  const baseProps = useMemo(
+    () => ({
       inventoryList,
       queryInventoryListLoading,
       onClose,
       open,
-      headerTitle: currentTargetAction.title,
-      bottomPrimaryActionText: currentTargetAction.submitText,
-      bottomPrimaryActionIcon: currentTargetAction.icon,
     }),
     [inventoryList, onClose, open, queryInventoryListLoading],
   );
 
   switch (targetAction?.id) {
     case InventoryActions.HoldInventory:
-      return <HoldInventory {...baseProps(targetAction)} />;
+      return <HoldInventory {...baseProps} />;
+
+    case InventoryActions.ReleaseInventoryHold:
+      return <ReleaseHoldInventory {...baseProps} />;
 
     case InventoryActions.MergeBatch:
-      return <MergeBatch {...baseProps(targetAction)} />;
+      return <MergeBatch {...baseProps} />;
 
     case InventoryActions.ScrapInventory:
-      return <ScrapInventory {...baseProps(targetAction)} />;
+      return <ScrapInventory {...baseProps} />;
 
     default:
       return null;

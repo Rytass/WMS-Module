@@ -11,7 +11,7 @@ import { Dropdown, Button, Message } from '@mezzanine-ui/react';
 import {
   InventoryActionItem,
   inventoryActionOptions,
-} from '../../../../utils/inventoryActions';
+} from '../../../inventoryActions/utils';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { createContext, Dispatch, SetStateAction } from 'react';
-import { InventoryActionItem } from '../../utils/inventoryActions';
+import { InventoryActionItem } from './utils';
 import { InventorySignature, ErrorSignature } from './typing';
 
 export interface InventoryActionsContextValues {

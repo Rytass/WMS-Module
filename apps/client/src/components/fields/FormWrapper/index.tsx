@@ -5,7 +5,8 @@ import {
   SubmitHandler,
   UseFormReturn,
 } from 'react-hook-form';
-import { cx } from '@mezzanine-ui/react';
+import { IconDefinition } from '@mezzanine-ui/icons';
+import { ButtonVariant, cx } from '@mezzanine-ui/react';
 import { FormFooter } from './FormFooter';
 import classes from './index.module.scss';
 
@@ -27,7 +28,10 @@ interface WithPageFooter<T extends FieldValues = FieldValues> {
   disableSubmitButton?: (values: T) => boolean;
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
+  primaryButtonVariant?: ButtonVariant;
+  primaryButtonIcon?: IconDefinition;
   cancelText?: string;
+  secondaryButtonVariant?: ButtonVariant;
   supportingActionName?: string;
   supportingActionOnClick?: VoidFunction;
   haveCancelButton?: boolean;
@@ -38,7 +42,10 @@ interface WithoutPageFooter {
   disableSubmitButton?: never;
   disableCancelButton?: never;
   submitText?: never;
+  primaryButtonVariant?: never;
+  primaryButtonIcon?: never;
   cancelText?: never;
+  secondaryButtonVariant?: never;
   supportingActionName?: never;
   supportingActionOnClick?: never;
   haveCancelButton?: never;
@@ -58,7 +65,10 @@ export const FormWrapper = <T extends FieldValues>({
   disableSubmitButton,
   disableCancelButton,
   submitText,
+  primaryButtonVariant,
+  primaryButtonIcon,
   cancelText = '取消',
+  secondaryButtonVariant,
   supportingActionName,
   supportingActionOnClick,
   haveCancelButton = true,
@@ -79,7 +89,10 @@ export const FormWrapper = <T extends FieldValues>({
             disableSubmitButton={disableSubmitButton}
             disableCancelButton={disableCancelButton}
             submitText={submitText}
+            primaryButtonVariant={primaryButtonVariant}
+            primaryButtonIcon={primaryButtonIcon}
             cancelText={cancelText}
+            secondaryButtonVariant={secondaryButtonVariant}
             supportingActionName={supportingActionName}
             supportingActionOnClick={supportingActionOnClick}
             haveCancelButton={haveCancelButton}

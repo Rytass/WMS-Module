@@ -6,7 +6,10 @@
   flex: 1;
   display: grid;
   grid-template-columns: 1fr;
-  column-gap: spacing.semantic-variable(gap, calm);
+  grid-column-gap: spacing.semantic-variable(gap, calm);
+  padding: 0 spacing.semantic-variable(padding, horizontal, comfort-fixed)
+    spacing.semantic-variable(padding, vertical, spacious);
+  min-height: 0;
 
   &.haveAdditionalBlock {
     grid-template-columns: 3fr 2fr;
@@ -20,6 +23,7 @@
     padding: spacing.semantic-variable(padding, vertical, comfort)
       spacing.semantic-variable(padding, horizontal, spacious);
     background-color: #fff;
+    overflow-y: auto;
 
     .titleWrapper {
       display: flex;

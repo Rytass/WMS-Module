@@ -1,6 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import { isEmpty } from 'lodash';
+import { IconDefinition } from '@mezzanine-ui/icons';
 import { useDialog } from '../../dialog/useDialog';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
+import { isEnableActionStatus } from '../../inventoryActions/utils';
+import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 
 export function useClearAll() {
   const { resetAll } = useInventoryActions();
@@ -24,4 +28,33 @@ export function useClearAll() {
   }, [resetAll, openDialog]);
 
   return onClearAll;
+}
+
+export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
+  submitText: string;
+  primaryButtonIcon?: IconDefinition;
+  havePageFooter: true;
+  haveCancelButton: boolean;
+  supportingActionName: string;
+  supportingActionOnClick: () => Promise<void>;
+  disableSubmitButton: () => boolean;
+} {
+  const { targetAction, errorSignature } = useInventoryActions();
+  const onClearAll = useClearAll();
+
+  const haveError = useMemo(() => !isEmpty(errorSignature), [errorSignature]);
+
+  return {
+    submitText: targetAction?.submitText ?? '',
+    primaryButtonIcon: targetAction?.icon,
+    havePageFooter: true,
+    haveCancelButton: false,
+    supportingActionName: '重置全部',
+    supportingActionOnClick: onClearAll,
+    disableSubmitButton: () =>
+      haveError ||
+      inventoryList.filter((item) =>
+        isEnableActionStatus(item.status, targetAction?.status),
+      ).length === 0,
+  };
 }

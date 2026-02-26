@@ -1,0 +1,41 @@
+@use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/palette';
+
+.host {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  row-gap: spacing.semantic-variable(gap, spacious);
+  background-color: #f3f4f6;
+  max-height: 100vh;
+
+  .inputSection {
+    display: flex;
+    flex-direction: column;
+    row-gap: spacing.semantic-variable(gap, spacious);
+    padding: spacing.semantic-variable(padding, vertical, spacious)
+      spacing.semantic-variable(padding, horizontal, comfort-fixed) 0;
+
+    .actionsSection {
+      display: flex;
+      flex-direction: column;
+      row-gap: spacing.semantic-variable(gap, calm);
+
+      .actionsWrapper {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+        gap: spacing.semantic-variable(gap, calm)
+          spacing.semantic-variable(gap, base);
+
+        .actionButton {
+          &.active {
+            background-color: palette.semantic-variable(
+              background,
+              neutral-faint
+            );
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import { useState, memo, useCallback } from 'react';
 import { omit, difference } from 'lodash';
-import { InventoryActionItem } from '../../utils/inventoryActions';
+import { InventoryActionItem } from './utils';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
 import { InventorySignature, ErrorSignature } from './typing';
 
