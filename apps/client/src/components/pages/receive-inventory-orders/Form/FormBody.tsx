@@ -4,6 +4,7 @@ import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
 import InputField from '../../../fields/InputField';
 import { useFormCancel } from '../../../../hooks/useFormCancel';
+import AddFields from './AddFields';
 import classes from './index.module.scss';
 
 interface ReceiveInventoryOrderFormBodyProps {
@@ -58,7 +59,9 @@ function ReceiveInventoryOrderFormBody({
           <InputField name="remark" label="備註" placeholder="輸入備註" />
         </div>
       </SectionWrapper>
-      <SectionWrapper title="列表">section</SectionWrapper>
+      <SectionWrapper title="列表">
+        <AddFields />
+      </SectionWrapper>
     </PageWrapper>
   );
 }
