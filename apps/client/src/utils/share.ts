@@ -3,6 +3,8 @@ import {
   ReceiveInventoryOrderStatus,
 } from '../graphql/generated/.graphql';
 
+export const BASE_UNIT = 'BASE_UNIT';
+
 export function shipInventoryOrderStatusName(
   status?: ShipInventoryOrderStatus,
 ) {

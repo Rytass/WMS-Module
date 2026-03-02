@@ -14,13 +14,12 @@ import { TrashIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../useInventoryActions';
 import { isEnableActionStatus } from '../../utils';
+import { BASE_UNIT } from '../../../../utils/share';
 import classes from './index.module.scss';
 
 interface InventoryCardProps {
   inventory: AggregatedStockFragment;
 }
-
-const BASE_UNIT = 'BASE_UNIT';
 
 const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
   const {
