@@ -31,6 +31,7 @@ function ReceiveInventoryOrderForm({
       havePageFooter
       submitText={submitText}
       onSubmit={onSubmit}
+      pureFormProvider
     >
       <ReceiveInventoryOrderFormBody
         title={title}
