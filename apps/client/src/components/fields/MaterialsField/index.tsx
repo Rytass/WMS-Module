@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import { MaterialOptionsQuery } from '../../../graphql/generated/.graphql';
-import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
+import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryMaterials } from './useApi';
 
 interface MaterialsFieldProps {

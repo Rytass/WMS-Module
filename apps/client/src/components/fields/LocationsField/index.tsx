@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import { LocationOptionsQuery } from '../../../graphql/generated/.graphql';
-import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
+import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLocations } from './useApi';
 
 interface LocationsFieldProps {
