@@ -75,7 +75,7 @@ export class StockService<
                   WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
                   WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
                   WHEN tc_changes.id IS NOT NULL THEN '${StockStatus.CUSTOMER_INVENTORY}'
-                  ELSE '${StockStatus.FREE}'
+                  WHEN rio_changes.id IS NOT NULL THEN '${StockStatus.FREE}'
                 END`,
                 'status',
               )

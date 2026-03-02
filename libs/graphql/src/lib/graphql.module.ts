@@ -30,6 +30,7 @@ import { HoldInventoryOrderQuery } from './queries/hold-inventory-order.query';
 import { HoldInventoryOrderResolver } from './resolvers/hold-inventory-order.resolver';
 import { BatchQuery } from './queries/batch.query';
 import { ChangeLogResolver } from './resolvers/change-log.resolver';
+import { ReceiveInventoryOrderResolver } from './resolvers/receive-inventory-order.resolver';
 
 const exportDependencies = [
   UnitQuery,
@@ -48,6 +49,7 @@ const exportDependencies = [
 
   ReceiveInventoryOrderMutation,
   ReceiveInventoryOrderQuery,
+  ReceiveInventoryOrderResolver,
 
   ShipInventoryOrderMutation,
   ShipInventoryOrderQuery,

@@ -15,14 +15,15 @@ export class HelperService {
     try {
       const [{ seq_num }] = await manager.query(
         `SELECT nextval($1) as seq_num`,
-        [seqName],
+        [`"${seqName}"`],
       );
       const serialNumber = String(seq_num).padStart(4, '0');
 
       return `${dateStr}${serialNumber}`;
     } catch (error) {
       if (/does\snot\sexist/.test((error as QueryFailedError).message)) {
-        await this.dataSource.query(`CREATE SEQUENCE ${seqName} START 1`);
+        const quotedSeqName = `"${seqName}"`;
+        await this.dataSource.query(`CREATE SEQUENCE ${quotedSeqName} START 1`);
 
         return this.getSeq(prefix, manager);
       }

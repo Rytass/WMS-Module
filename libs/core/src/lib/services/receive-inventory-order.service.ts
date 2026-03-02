@@ -19,12 +19,18 @@ import {
   CreateReceiveInventoryOrderInput,
   UpdateReceiveInventoryOrderInput,
 } from '../typings/create-receive-inventory-order.input';
-import { OrderEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
+import { BatchEntity, OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   FindReceiveInventoryOrderInput,
   ReceiveInventoryOrderStatus,
 } from '../typings/find-receive-inventory-order.input';
-import { ReceiveInventoryOrderChangeEntityClass } from '../models';
+import {
+  LoadersEntityClass,
+  LocationEntityClass,
+  MaterialEntityClass,
+  ReceiveInventoryOrderChangeEntityClass,
+  StockEntityClass,
+} from '../models';
 import { ReceiveInventoryOrderInput } from '../typings/receive-inventory-order.input';
 import { MaterialService } from './material.service';
 
@@ -98,6 +104,11 @@ export class ReceiveInventoryOrderService<
           'order_status',
           `${alias}.id = order_status."orderId"`,
         )
+        .select('orders.id', 'id')
+        .addSelect('orders.key', 'key')
+        .addSelect('orders.description', 'description')
+        .addSelect('orders."createdBy"', 'createdBy')
+        .addSelect('orders."createdAt"', 'createdAt')
         .addSelect('order_status.status', `status`);
     };
   }
@@ -117,6 +128,13 @@ export class ReceiveInventoryOrderService<
       manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
         this.receiveInventoryOrderItemEntity,
       );
+    const materialRepository =
+      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
+    const batchRepository = manager.getRepository<BatchEntity>(BatchEntity);
+    const locationRepository =
+      manager.getRepository<LocationEntityClass>(LocationEntityClass);
+    const loaderRepository =
+      manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
 
     // create base order
     const { id } = await orderRepository.save(orderRepository.create());
@@ -128,12 +146,43 @@ export class ReceiveInventoryOrderService<
 
     // create receive inventory order items
     if (options.items && options.items.length > 0) {
-      const items = receiveInventoryOrderItemRepository.create(
-        options.items.map((item) => ({
-          ...item,
-          orderId: order.id,
-        })),
-      );
+      const items: ReceiveInventoryOrderItemEntityClass[] =
+        receiveInventoryOrderItemRepository.create(
+          await Promise.all(
+            options.items.map(async (item) => {
+              const material = await materialRepository.findOneByOrFail({
+                key: item.materialKey,
+              });
+              const batch = await batchRepository
+                .findOneBy({ key: item.batchKey, materialId: material.id })
+                .then(
+                  async (batch) =>
+                    batch ||
+                    (await batchRepository.save(
+                      batchRepository.create({
+                        materialId: material.id,
+                        key: item.batchKey,
+                      }),
+                    )),
+                );
+              const location = await locationRepository.findOneByOrFail({
+                key: item.locationKey,
+              });
+              const loader = await loaderRepository.findOneByOrFail({
+                serialId: item.loaderKey,
+              });
+
+              return {
+                ...item,
+                orderId: order.id,
+                materialId: material.id,
+                batchId: batch.id,
+                locationId: location.id,
+                loaderId: loader.id,
+              };
+            }),
+          ),
+        );
       await receiveInventoryOrderItemRepository.save(items);
     }
 
@@ -213,7 +262,9 @@ export class ReceiveInventoryOrderService<
       .then(({ affected }) => !!affected && affected > 0);
   }
 
-  findMany(options: FindReceiveInventoryOrderInput): Promise<[T[], number]> {
+  async findMany(
+    options: FindReceiveInventoryOrderInput,
+  ): Promise<[T[], number]> {
     const queryBuilder = this.selectQueryBuilder('orders');
 
     if (options.id)
@@ -240,13 +291,17 @@ export class ReceiveInventoryOrderService<
         status: options.status,
       });
 
+    const total = await queryBuilder.getCount();
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
     if (options.limit !== undefined && options.limit > 0)
       queryBuilder.take(options.limit);
 
-    return queryBuilder.getManyAndCount();
+    const items = await queryBuilder.getRawMany();
+
+    return [items, total];
   }
 
   receive(
@@ -264,7 +319,8 @@ export class ReceiveInventoryOrderService<
           this.receiveInventoryOrderItemEntity,
         );
       const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
-      const stockRepository = manager.getRepository<StockEntity>(StockEntity);
+      const stockRepository =
+        manager.getRepository<StockEntityClass>(StockEntityClass);
 
       const items = await itemRepository.find({
         where: { id: In(options.map((o) => o.itemId)) },
@@ -309,7 +365,9 @@ export class ReceiveInventoryOrderService<
             ),
             stockRepository.save(
               stockRepository.create({
-                batchId: option.batchId ?? item.batchId,
+                batchId: option.batchId || item.batchId || undefined,
+                locationId: item.locationId || undefined,
+                loaderId: item.loaderId || undefined,
                 materialId: item.materialId,
                 quantity: option.quantity * conversionFactor,
                 orderId: newOrder.id,

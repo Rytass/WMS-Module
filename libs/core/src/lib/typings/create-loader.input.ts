@@ -1,6 +1,5 @@
 export type CreateLoaderInput = {
   typeId: string;
-  serialId: string;
   locationId: string;
   quantity: number;
   length?: number | null;
@@ -13,7 +12,7 @@ export type CreateLoaderInput = {
 };
 
 export type UpdateLoaderInput = Partial<
-  Omit<CreateLoaderInput, 'locationId' | 'typeId' | 'serialId'>
+  Omit<CreateLoaderInput, 'locationId' | 'typeId'>
 > & {
   id: string;
 };

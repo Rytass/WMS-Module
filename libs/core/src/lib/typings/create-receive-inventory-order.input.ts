@@ -1,8 +1,11 @@
 export type CreateReceiveInventoryOrderItemInput = {
   description?: string;
-  unitId: string;
-  batchId?: string;
-  materialId: string;
+  unitId?: string;
+  serial: string;
+  loaderKey?: string;
+  locationKey?: string;
+  batchKey?: string;
+  materialKey: string;
   targetReceivedQuantity: number;
 };
 
