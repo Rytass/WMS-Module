@@ -4,4 +4,5 @@ import { FormValues } from './typing';
 export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
   material: Yup.string().required('必填'),
   location: Yup.string().required('必填'),
+  quantity: Yup.string().required('必填'),
 });

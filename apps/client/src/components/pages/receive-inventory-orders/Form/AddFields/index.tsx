@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormActionButtons from '../../../../FormActionButtons';
+import NumberInputField from '../../../../fields/NumberInputField';
 import MaterialsField from '../../../../fields/MaterialsField';
 import LocationsField from '../../../../fields/LocationsField';
 import { formSchema } from './schema';
@@ -30,7 +31,12 @@ const AddFields: FC = () => {
           <div>1</div>
           <LocationsField name="location" fuzzySearch={false} required />
           <div>1</div>
-          <div>1</div>
+          <NumberInputField
+            name="quantity"
+            label="入庫數量"
+            placeholder="輸入入庫數量"
+            required
+          />
           <div>1</div>
         </div>
         <FormActionButtons
