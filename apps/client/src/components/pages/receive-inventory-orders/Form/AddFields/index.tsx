@@ -3,6 +3,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormActionButtons from '../../../../FormActionButtons';
 import MaterialsField from '../../../../fields/MaterialsField';
+import LocationsField from '../../../../fields/LocationsField';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import classes from './index.module.scss';
@@ -27,7 +28,7 @@ const AddFields: FC = () => {
           <div>1</div>
           <div>1</div>
           <div>1</div>
-          <div>1</div>
+          <LocationsField name="location" fuzzySearch={false} required />
           <div>1</div>
           <div>1</div>
           <div>1</div>

@@ -6,10 +6,15 @@ import { useLazyQueryBatches } from './useApi';
 
 interface BatchesFieldProps {
   name: string;
+  fuzzySearch?: boolean;
   required?: boolean;
 }
 
-const BatchesField: FC<BatchesFieldProps> = ({ name, required }) => {
+const BatchesField: FC<BatchesFieldProps> = ({
+  name,
+  fuzzySearch = true,
+  required,
+}) => {
   const { fetchBatches } = useLazyQueryBatches();
 
   const getNewOptions = useCallback(
@@ -32,7 +37,7 @@ const BatchesField: FC<BatchesFieldProps> = ({ name, required }) => {
       name={name}
       label="批號"
       placeholder="輸入批號"
-      fuzzySearch
+      fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}
       onVisibilityChange={onVisibilityChange}
