@@ -2,9 +2,6 @@ import { Field, ID, InputType, PartialType } from '@nestjs/graphql';
 
 @InputType()
 export class CreateShipInventoryOrderItemArgs {
-  @Field(() => String)
-  description!: string;
-
   @Field(() => ID)
   unitId!: string;
 

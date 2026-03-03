@@ -5,14 +5,23 @@ export class CreateReceiveInventoryOrderItemArgs {
   @Field(() => String)
   description!: string;
 
-  @Field(() => ID)
-  unitId!: string;
+  @Field(() => ID, { nullable: true })
+  unitId?: string;
+
+  @Field(() => ID, { nullable: true })
+  locationKey?: string;
+
+  @Field(() => ID, { nullable: true })
+  loaderKey?: string;
+
+  @Field(() => String)
+  serial!: string;
 
   @Field(() => ID)
-  batchId!: string;
+  batchKey!: string;
 
   @Field(() => ID)
-  materialId!: string;
+  materialKey!: string;
 
   @Field(() => Number)
   targetReceivedQuantity!: number;

@@ -12,9 +12,6 @@ export class CreateLoaderArgs {
   @Field(() => ID)
   typeId!: string;
 
-  @Field(() => String)
-  serialId!: string;
-
   @Field(() => ID)
   locationId!: string;
 
@@ -45,7 +42,7 @@ export class CreateLoaderArgs {
 
 @ArgsType()
 export class UpdateLoaderArgs extends PartialType(
-  OmitType(CreateLoaderArgs, ['locationId', 'typeId', 'serialId'] as const)
+  OmitType(CreateLoaderArgs, ['locationId', 'typeId'] as const),
 ) {
   @Field(() => ID)
   id!: string;

@@ -32,9 +32,6 @@ export class ShipInventoryOrderItemEntityClass {
   @Column({ type: 'int', nullable: true })
   serial!: number;
 
-  @Column({ type: 'text', nullable: true })
-  description!: string | null;
-
   @Column({ type: 'uuid', nullable: true })
   unitId!: string | null;
 
