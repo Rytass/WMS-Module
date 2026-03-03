@@ -1,6 +1,5 @@
 mutation CreateLoader(
   $typeId: ID!
-  $serialId: String!
   $locationId: ID!
   $quantity: Int!
   $length: Float
@@ -13,7 +12,6 @@ mutation CreateLoader(
 ) {
   createLoader(
     typeId: $typeId
-    serialId: $serialId
     locationId: $locationId
     quantity: $quantity
     length: $length
@@ -30,7 +28,6 @@ mutation CreateLoader(
 
 mutation CreateBatchLoader(
   $typeId: ID!
-  $serialId: String!
   $locationId: ID!
   $quantity: Int!
   $length: Float
@@ -43,7 +40,6 @@ mutation CreateBatchLoader(
 ) {
   createBatchLoader(
     typeId: $typeId
-    serialId: $serialId
     locationId: $locationId
     quantity: $quantity
     length: $length
