@@ -142,6 +142,8 @@ type ReceiveInventoryOrderItemDto {
   materialId: ID!
   batchId: ID
   removedAt: DateTime
+  material: MaterialDto!
+  receivedQuantity: Int!
 }
 
 type ReceiveInventoryOrderDto {
