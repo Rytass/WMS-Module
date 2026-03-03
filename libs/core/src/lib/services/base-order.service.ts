@@ -31,7 +31,7 @@ export abstract class BaseOrderService {
    * @param params Stock entry parameters (materialId, batchId, quantity, locationId?, loaderId?, unitId?)
    * @returns Created order ID
    */
-  protected async addEntry(
+  protected async add(
     repos: Repositories,
     params: StockEntryParams,
   ): Promise<string> {
@@ -69,13 +69,14 @@ export abstract class BaseOrderService {
    * @param sourceOrderId The order ID to link the deduction to (typically an existing allocated/transferred order)
    * @param params Stock entry parameters (materialId, batchId, quantity, locationId?, loaderId?, unitId?)
    */
-  protected async deductEntry(
+  protected async deduct(
     repos: Repositories,
-    sourceOrderId: string,
     params: StockEntryParams,
   ): Promise<void> {
     const { materialId, batchId, quantity, locationId, loaderId, unitId } =
       params;
+
+    const order = await repos.order.save({});
 
     // Get conversion factor if unitId is provided
     const conversionFactor = await this.materialService.getConversionFactor(
@@ -87,7 +88,7 @@ export abstract class BaseOrderService {
     // This allows the status calculation to determine what status is being deducted from
     await repos.stock.save(
       repos.stock.create({
-        orderId: sourceOrderId,
+        orderId: order.id,
         materialId,
         batchId,
         locationId: locationId || undefined,
