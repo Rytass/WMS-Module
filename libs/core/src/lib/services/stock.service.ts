@@ -68,17 +68,22 @@ export class StockService<
             subQuery
               .select(
                 `CASE
-                  WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.PENDING_INSPECTION}'
-                  WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
-                  
+                  WHEN qi_changes.id IS NOT NULL AND qi_changes."result" IS NULL THEN '${StockStatus.PENDING_INSPECTION}'
+                  WHEN qi_failed.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
+
                   WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") > 0 THEN '${StockStatus.HELD}'
-                  WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") < 0 THEN hi.changes.source
+                  WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") < 0 THEN hi_changes."source"
 
                   WHEN to_changes.id IS NOT NULL AND (s.quantity * to_changes."quantityChanged") > 0 THEN '${StockStatus.IN_TRANSFER}'
-                  WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
+                  WHEN to_changes.id IS NOT NULL AND (s.quantity * to_changes."quantityChanged") < 0 THEN to_changes."source"
+
+                  WHEN ai_changes.id IS NOT NULL AND (s.quantity * ai_changes."quantityChanged") > 0 THEN '${StockStatus.ALLOCATED}'
+                  WHEN ai_changes.id IS NOT NULL AND (s.quantity * ai_changes."quantityChanged") < 0 THEN ai_changes."source"
+
                   WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
                   WHEN tc_changes.id IS NOT NULL THEN '${StockStatus.CUSTOMER_INVENTORY}'
                   WHEN rio_changes.id IS NOT NULL THEN '${StockStatus.FREE}'
+                  ELSE '${StockStatus.FREE}'
                 END`,
                 'status',
               )

@@ -8,12 +8,13 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { AllocateInventoryOrderItemEntityClass } from './allocate-inventory-order-item.entity';
+import { BaseOrderChangeEntityClass } from '../base-order-change.entity';
 
 export const AllocateInventoryOrderChangeEntity = Symbol(
   'AllocateInventoryOrderChangeEntity',
 );
 @Entity('allocate_inventory_order_changes')
-export class AllocateInventoryOrderChangeEntityClass {
+export class AllocateInventoryOrderChangeEntityClass extends BaseOrderChangeEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

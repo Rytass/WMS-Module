@@ -76,6 +76,7 @@ export class AllocateInventoryOrderService<
             item,
             order: base,
             quantityChanged: item.targetAllocatedQuantity * conversionFactor,
+            source: data.status,
           }),
         );
 
@@ -168,9 +169,11 @@ export class AllocateInventoryOrderService<
       if (newItems.length)
         await this.processAllocateInventoryOrderItems(newItems, repos);
       if (existingItems.length)
-        await Promise.all(
-          existingItems.map((item) =>
-            repos.allocateInventoryOrderItem.create(item),
+        await repos.allocateInventoryOrderItem.save(
+          await Promise.all(
+            existingItems.map((item) =>
+              repos.allocateInventoryOrderItem.create(item),
+            ),
           ),
         );
     }
@@ -225,6 +228,7 @@ export class AllocateInventoryOrderService<
                 itemId: item.id,
                 id: base.id,
                 quantityChanged: -1 * option.quantity * conversionFactor,
+                source: item.status,
               }),
             ),
             repos.stock.save(

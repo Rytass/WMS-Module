@@ -281,6 +281,7 @@ export class HoldInventoryOrderService<
                 itemId: item.id,
                 id: base.id,
                 quantityChanged: -1 * option.quantity * conversionFactor,
+                source: item.status,
               }),
             ),
 
