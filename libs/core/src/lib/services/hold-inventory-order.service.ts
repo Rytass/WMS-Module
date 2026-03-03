@@ -75,6 +75,7 @@ export class HoldInventoryOrderService<
             itemId: item.id,
             id: base.id,
             quantityChanged: item.targetHeldQuantity * conversionFactor,
+            source: data.status,
           }),
         );
 
@@ -158,9 +159,11 @@ export class HoldInventoryOrderService<
       if (newItems.length)
         await this.processHoldInventoryOrderItems(newItems, repos);
       if (existingItems.length)
-        await Promise.all(
-          existingItems.map((item) =>
-            repos.holdInventoryOrderItem.create(item),
+        repos.holdInventoryOrderItem.save(
+          await Promise.all(
+            existingItems.map((item) =>
+              repos.holdInventoryOrderItem.create(item),
+            ),
           ),
         );
     }

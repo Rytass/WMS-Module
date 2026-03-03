@@ -11,13 +11,14 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { HoldInventoryOrderEntityClass } from './hold-inventory-order.entity';
 import { HoldInventoryOrderChangeEntityClass } from './hold-inventory-order-change.entity';
+import { BaseOrderItemEntityClass } from '../base-order-item.entity';
 
 export const HoldInventoryOrderItemEntity = Symbol(
   'HoldInventoryOrderItemEntity',
 );
 @Entity('hold_inventory_order_items')
 @TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
-export class HoldInventoryOrderItemEntityClass {
+export class HoldInventoryOrderItemEntityClass extends BaseOrderItemEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

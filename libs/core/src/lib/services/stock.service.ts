@@ -70,7 +70,10 @@ export class StockService<
                 `CASE
                   WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.PENDING_INSPECTION}'
                   WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
+                  
                   WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") > 0 THEN '${StockStatus.HELD}'
+                  WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") < 0 THEN hi.changes.source
+
                   WHEN to_changes.id IS NOT NULL AND (s.quantity * to_changes."quantityChanged") > 0 THEN '${StockStatus.IN_TRANSFER}'
                   WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
                   WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
