@@ -1,15 +1,20 @@
 import { useCallback } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import { LoaderOptionsQuery } from '../../../graphql/generated/.graphql';
-import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
+import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLoaders } from './useApi';
 
 interface LoadersFieldProps {
   name: string;
+  fuzzySearch?: boolean;
   required?: boolean;
 }
 
-const LoadersField: FC<LoadersFieldProps> = ({ name, required }) => {
+const LoadersField: FC<LoadersFieldProps> = ({
+  name,
+  fuzzySearch = true,
+  required,
+}) => {
   const { fetchLoaders } = useLazyQueryLoaders();
 
   const getNewOptions = useCallback(
@@ -32,7 +37,7 @@ const LoadersField: FC<LoadersFieldProps> = ({ name, required }) => {
       name={name}
       label="載具"
       placeholder="輸入載具"
-      fuzzySearch
+      fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}
       onVisibilityChange={onVisibilityChange}

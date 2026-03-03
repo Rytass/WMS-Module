@@ -31,6 +31,7 @@ function ShipInventoryOrderForm({
       havePageFooter
       submitText={submitText}
       onSubmit={onSubmit}
+      pureFormProvider
     >
       <ShipInventoryOrderFormBody
         title={title}

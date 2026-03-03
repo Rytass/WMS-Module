@@ -1,15 +1,20 @@
 import { useCallback } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import { LocationOptionsQuery } from '../../../graphql/generated/.graphql';
-import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
+import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLocations } from './useApi';
 
 interface LocationsFieldProps {
   name: string;
+  fuzzySearch?: boolean;
   required?: boolean;
 }
 
-const LocationsField: FC<LocationsFieldProps> = ({ name, required }) => {
+const LocationsField: FC<LocationsFieldProps> = ({
+  name,
+  fuzzySearch = true,
+  required,
+}) => {
   const { fetchLocations } = useLazyQueryLocations();
 
   const getNewOptions = useCallback(
@@ -32,7 +37,7 @@ const LocationsField: FC<LocationsFieldProps> = ({ name, required }) => {
       name={name}
       label="儲存位置"
       placeholder="輸入儲存位置"
-      fuzzySearch
+      fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}
       onVisibilityChange={onVisibilityChange}

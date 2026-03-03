@@ -1,11 +1,19 @@
 import { ReactNode, useCallback, useMemo } from 'react';
-import { FieldValues, useFormState, useWatch } from 'react-hook-form';
+import {
+  FieldValues,
+  SubmitHandler,
+  useFormContext,
+  useFormState,
+  useWatch,
+} from 'react-hook-form';
 import { ButtonVariant, PageFooter } from '@mezzanine-ui/react';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { useFormCancel } from '../../../hooks/useFormCancel';
 import classes from './index.module.scss';
 
 interface FormFooterProps<T extends FieldValues = FieldValues> {
+  onSubmit: SubmitHandler<T>;
+  pureFormProvider: boolean;
   disableSubmitButton?: (values: T) => boolean;
   disableCancelButton?: (values: T) => boolean;
   submitText: string;
@@ -19,6 +27,8 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
 }
 
 export const FormFooter = <T extends FieldValues>({
+  onSubmit,
+  pureFormProvider,
   disableSubmitButton = () => false,
   disableCancelButton = () => false,
   submitText,
@@ -31,6 +41,7 @@ export const FormFooter = <T extends FieldValues>({
   haveCancelButton,
 }: FormFooterProps<T>): ReactNode => {
   const onFormCancel = useFormCancel({});
+  const { handleSubmit } = useFormContext<T>();
   const { isSubmitting } = useFormState<T>();
   const watchValues = useWatch<T>();
 
@@ -53,11 +64,12 @@ export const FormFooter = <T extends FieldValues>({
       actions={{
         primaryButton: {
           children: submitText,
-          type: 'submit',
+          type: pureFormProvider ? 'button' : 'submit',
           variant: primaryButtonVariant,
           iconType: 'leading',
           icon: primaryButtonIcon,
           disabled: disableSubmitButton(values) || loading,
+          onClick: pureFormProvider ? handleSubmit(onSubmit) : undefined,
           loading,
         },
         secondaryButton: haveCancelButton

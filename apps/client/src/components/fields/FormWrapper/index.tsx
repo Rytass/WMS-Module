@@ -21,6 +21,7 @@ interface BaseFormWrapperProps<T extends FieldValues = FieldValues>
   methods: UseFormReturn<T>;
   children: ReactNode;
   onSubmit?: SubmitHandler<T>;
+  pureFormProvider?: boolean;
 }
 
 interface WithPageFooter<T extends FieldValues = FieldValues> {
@@ -61,6 +62,7 @@ export const FormWrapper = <T extends FieldValues>({
   onSubmit = (): void => {
     //
   },
+  pureFormProvider = false,
   havePageFooter,
   disableSubmitButton,
   disableCancelButton,
@@ -74,6 +76,36 @@ export const FormWrapper = <T extends FieldValues>({
   haveCancelButton = true,
   ...other
 }: FormWrapperProps<T>): ReactNode => {
+  if (pureFormProvider) {
+    return (
+      <FormProvider {...methods}>
+        <div
+          className={cx(classes.form, className, {
+            [classes.isFormPage]: havePageFooter,
+          })}
+        >
+          {children}
+          {havePageFooter && (
+            <FormFooter<T>
+              onSubmit={onSubmit}
+              pureFormProvider={pureFormProvider}
+              disableSubmitButton={disableSubmitButton}
+              disableCancelButton={disableCancelButton}
+              submitText={submitText}
+              primaryButtonVariant={primaryButtonVariant}
+              primaryButtonIcon={primaryButtonIcon}
+              cancelText={cancelText}
+              secondaryButtonVariant={secondaryButtonVariant}
+              supportingActionName={supportingActionName}
+              supportingActionOnClick={supportingActionOnClick}
+              haveCancelButton={haveCancelButton}
+            />
+          )}
+        </div>
+      </FormProvider>
+    );
+  }
+
   return (
     <FormProvider {...methods}>
       <form
@@ -86,6 +118,8 @@ export const FormWrapper = <T extends FieldValues>({
         {children}
         {havePageFooter && (
           <FormFooter<T>
+            onSubmit={onSubmit}
+            pureFormProvider={pureFormProvider}
             disableSubmitButton={disableSubmitButton}
             disableCancelButton={disableCancelButton}
             submitText={submitText}

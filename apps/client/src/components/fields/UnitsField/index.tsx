@@ -1,7 +1,7 @@
-import { useCallback } from 'react';
+import { TextFieldSize } from '@mezzanine-ui/react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import { useInsertOption } from '../../../hooks/useSelectorOptions';
 import { useQueryUnits } from './useApi';
-import { SelectValue, TextFieldSize } from '@mezzanine-ui/react';
 
 interface UnitsFieldProps {
   name: string;
@@ -23,21 +23,7 @@ const UnitsField: FC<UnitsFieldProps> = ({
   disabled = false,
 }) => {
   const { currentOptions, setCurrentOptions } = useQueryUnits();
-
-  const handleInsert = useCallback(
-    (text: string, cOptions: SelectValue[]): SelectValue[] => {
-      const newOption: SelectValue = {
-        id: text,
-        name: text,
-      };
-      const updatedOptions = [...cOptions, newOption];
-
-      setCurrentOptions((prev) => [...prev, newOption]);
-
-      return updatedOptions;
-    },
-    [setCurrentOptions],
-  );
+  const handleInsert = useInsertOption(setCurrentOptions);
 
   return (
     <SingleAutoCompleteField

@@ -3,7 +3,6 @@ import { NextPath } from '../../../../utils/nextpath';
 import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
 import InputField from '../../../fields/InputField';
-import FormActionButtons from '../../../FormActionButtons';
 import { useFormCancel } from '../../../../hooks/useFormCancel';
 import classes from './index.module.scss';
 
@@ -60,18 +59,6 @@ function ShipInventoryOrderFormBody({
         </div>
       </SectionWrapper>
       <SectionWrapper title="列表">
-        <div className={classes.fieldsSection}>
-          <FormActionButtons
-            onReset={() => {
-              console.log('reset');
-            }}
-            onClickSubmit={() => {
-              console.log('create');
-            }}
-            submitText="新增"
-            submitButtonType="button"
-          />
-        </div>
         <div>table</div>
       </SectionWrapper>
     </PageWrapper>

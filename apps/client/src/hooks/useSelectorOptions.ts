@@ -1,4 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import {
+  Dispatch,
+  SetStateAction,
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
 import { SelectValue } from '@mezzanine-ui/react';
 import { useLazyQuery } from '@apollo/client/react';
 import { Exact, InputMaybe, Scalars } from '../graphql/generated/.graphql';
@@ -136,4 +142,25 @@ export function useFetchMoreOptions<T>({
     onSearch,
     onReachBottom,
   };
+}
+
+export function useInsertOption(
+  setOptions: Dispatch<SetStateAction<SelectValue<string>[]>>,
+) {
+  const handleInsert = useCallback(
+    (text: string, currentOptions: SelectValue[]): SelectValue[] => {
+      const newOption: SelectValue = {
+        id: text,
+        name: text,
+      };
+      const updatedOptions = [...currentOptions, newOption];
+
+      setOptions((prev) => [...prev, newOption]);
+
+      return updatedOptions;
+    },
+    [setOptions],
+  );
+
+  return handleInsert;
 }

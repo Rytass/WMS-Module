@@ -6,6 +6,7 @@ import { formSchema } from './schema';
 import { FormValues } from './typing';
 
 interface ReceiveInventoryOrderFormProps {
+  defaultValues: FormValues;
   onSubmit: (values: FormValues) => Promise<void>;
   title: string;
   breadcrumbTitle: string;
@@ -13,6 +14,7 @@ interface ReceiveInventoryOrderFormProps {
 }
 
 function ReceiveInventoryOrderForm({
+  defaultValues,
   onSubmit,
   title,
   breadcrumbTitle,
@@ -20,9 +22,7 @@ function ReceiveInventoryOrderForm({
 }: ReceiveInventoryOrderFormProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      demo: '',
-    },
+    defaultValues,
   });
 
   return (
@@ -31,6 +31,7 @@ function ReceiveInventoryOrderForm({
       havePageFooter
       submitText={submitText}
       onSubmit={onSubmit}
+      pureFormProvider
     >
       <ReceiveInventoryOrderFormBody
         title={title}
