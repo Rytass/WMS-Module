@@ -25,6 +25,9 @@ export class ReceiveInventoryOrderItemDto {
 
   @Field(() => Date, { nullable: true })
   removedAt!: Date | null;
+
+  @Field(() => Boolean)
+  requireInspection!: boolean;
 }
 
 @ObjectType()

@@ -25,6 +25,9 @@ export class CreateReceiveInventoryOrderItemArgs {
 
   @Field(() => Number)
   targetReceivedQuantity!: number;
+
+  @Field(() => Boolean, { nullable: true })
+  requireInspection?: boolean;
 }
 
 @InputType()
