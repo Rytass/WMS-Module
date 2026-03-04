@@ -1,6 +1,6 @@
 import { YesOrNo } from '../../../../../utils/share';
 
-export type FormValues = {
+export type AddFormValues = {
   inspection: YesOrNo;
   material: string;
   description?: string;

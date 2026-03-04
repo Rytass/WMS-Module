@@ -1,10 +1,17 @@
-import { Description, DescriptionContent, Badge } from '@mezzanine-ui/react';
+import { useCallback } from 'react';
+import {
+  Description,
+  DescriptionContent,
+  Badge,
+  SelectValue,
+} from '@mezzanine-ui/react';
 import { NextPath } from '../../../../utils/nextpath';
 import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
 import InputField from '../../../fields/InputField';
 import { useFormCancel } from '../../../../hooks/useFormCancel';
 import AddFields from './AddFields';
+import { AddFormValues } from './AddFields/typing';
 import classes from './index.module.scss';
 
 interface ReceiveInventoryOrderFormBodyProps {
@@ -17,6 +24,13 @@ function ReceiveInventoryOrderFormBody({
   breadcrumbTitle,
 }: ReceiveInventoryOrderFormBodyProps) {
   const onFormCancel = useFormCancel({});
+
+  const onCreate = useCallback(
+    (values: AddFormValues, unitOptions: SelectValue[]) => {
+      console.log('onCreate', values, unitOptions);
+    },
+    [],
+  );
 
   return (
     <PageWrapper
@@ -60,7 +74,7 @@ function ReceiveInventoryOrderFormBody({
         </div>
       </SectionWrapper>
       <SectionWrapper title="列表">
-        <AddFields />
+        <AddFields onCreate={onCreate} />
       </SectionWrapper>
     </PageWrapper>
   );

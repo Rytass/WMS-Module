@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
+import { SelectValue } from '@mezzanine-ui/react';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormActionButtons from '../../../../FormActionButtons';
 import YesNoField from '../../../../fields/YesNoField';
@@ -10,25 +11,66 @@ import MaterialsField from '../../../../fields/MaterialsField';
 import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
 import LoadersField from '../../../../fields/LoadersField';
-import { YesOrNo } from '../../../../../utils/share';
+import { BASE_UNIT, YesOrNo } from '../../../../../utils/share';
 import { useLazyQueryMaterial } from '../useApi';
 import { formSchema } from './schema';
-import { FormValues } from './typing';
+import { AddFormValues } from './typing';
 import classes from './index.module.scss';
 
-const AddFields: FC = () => {
-  const methods = useForm<FormValues>({
+interface AddFieldsProps {
+  onCreate: (values: AddFormValues, unitOptions: SelectValue[]) => void;
+}
+
+const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
+  const [unitOptions, setUnitOptions] = useState<SelectValue[]>([]);
+  const methods = useForm<AddFormValues>({
     resolver: yupResolver(formSchema),
     defaultValues: {
       inspection: YesOrNo.YES,
     },
   });
 
-  const { fetchMaterial, data, loading } = useLazyQueryMaterial();
+  const materialKey = methods.watch('material');
 
-  const onSubmit = useCallback((values: FormValues) => {
-    console.log('values', values);
-  }, []);
+  const { fetchMaterial } = useLazyQueryMaterial();
+
+  const doFetchMaterial = useCallback(async () => {
+    const { data } = await fetchMaterial({
+      variables: {
+        key: materialKey,
+      },
+    });
+
+    if (data?.material.id) {
+      const material = data.material;
+
+      methods.setValue('description', material.description);
+
+      setUnitOptions([
+        {
+          id: BASE_UNIT,
+          name: material.baseUnit.key,
+        },
+        ...material.materialUnits.map((u) => ({
+          id: u.id,
+          name: u.unit,
+        })),
+      ]);
+    }
+  }, [fetchMaterial, materialKey, methods]);
+
+  useEffect(() => {
+    if (materialKey) {
+      doFetchMaterial();
+    }
+  }, [doFetchMaterial, materialKey]);
+
+  const onSubmit = useCallback(
+    (values: AddFormValues) => {
+      onCreate(values, unitOptions);
+    },
+    [onCreate, unitOptions],
+  );
 
   return (
     <FormProvider {...methods}>
@@ -42,7 +84,7 @@ const AddFields: FC = () => {
           />
           <MaterialsField name="material" fuzzySearch={false} required />
           <InputField name="description" label="物料說明" disabled />
-          <BatchesField name="batch" addable fuzzySearch={false} />
+          <BatchesField name="batch" addable fuzzySearch={false} required />
           <LocationsField
             name="location"
             label="目標位置"
@@ -64,9 +106,10 @@ const AddFields: FC = () => {
           <SingleSelectField
             name="unit"
             label="使用單位"
-            options={[]}
+            placeholder="使用單位"
+            options={unitOptions}
             size="sub"
-            disabled
+            disabled={!materialKey}
             required
           />
         </div>

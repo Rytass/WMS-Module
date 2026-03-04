@@ -1,8 +1,8 @@
 import * as Yup from 'yup';
 import { YesOrNo } from '../../../../../utils/share';
-import { FormValues } from './typing';
+import { AddFormValues } from './typing';
 
-export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
+export const formSchema: Yup.ObjectSchema<AddFormValues> = Yup.object({
   inspection: Yup.string<YesOrNo>().required('必填'),
   material: Yup.string().required('必填'),
   description: Yup.string(),
