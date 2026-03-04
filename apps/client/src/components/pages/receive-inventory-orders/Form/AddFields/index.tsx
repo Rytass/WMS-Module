@@ -45,6 +45,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
       const material = data.material;
 
       methods.setValue('description', material.description);
+      methods.setValue('unit', '');
 
       setUnitOptions([
         {
@@ -62,8 +63,11 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   useEffect(() => {
     if (materialKey) {
       doFetchMaterial();
+    } else {
+      methods.setValue('description', '');
+      methods.setValue('unit', '');
     }
-  }, [doFetchMaterial, materialKey]);
+  }, [doFetchMaterial, materialKey, methods]);
 
   const onSubmit = useCallback(
     (values: AddFormValues) => {

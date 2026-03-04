@@ -5,6 +5,7 @@ import {
   Badge,
   SelectValue,
 } from '@mezzanine-ui/react';
+import { useFieldArray } from 'react-hook-form';
 import { NextPath } from '../../../../utils/nextpath';
 import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
@@ -12,6 +13,7 @@ import InputField from '../../../fields/InputField';
 import { useFormCancel } from '../../../../hooks/useFormCancel';
 import AddFields from './AddFields';
 import { AddFormValues } from './AddFields/typing';
+import { FormValues } from './typing';
 import classes from './index.module.scss';
 
 interface ReceiveInventoryOrderFormBodyProps {
@@ -24,6 +26,14 @@ function ReceiveInventoryOrderFormBody({
   breadcrumbTitle,
 }: ReceiveInventoryOrderFormBodyProps) {
   const onFormCancel = useFormCancel({});
+
+  const { fields, append, update, remove } = useFieldArray<FormValues, 'items'>(
+    {
+      name: 'items',
+    },
+  );
+
+  console.log('fields', fields);
 
   const onCreate = useCallback(
     (values: AddFormValues, unitOptions: SelectValue[]) => {
