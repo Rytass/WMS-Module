@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { SelectValue } from '@mezzanine-ui/react';
 import { useLazyQuery } from '@apollo/client/react';
+import { usePreviousValue } from './usePreviousValue';
 import { Exact, InputMaybe, Scalars } from '../graphql/generated/.graphql';
 
 export function useFetchAllOptions<T>({
@@ -85,6 +86,7 @@ export function useFetchMoreOptions<T>({
   const [page, setPage] = useState<number>(0);
   const [currentOptions, setOptions] = useState<SelectValue[]>([]);
   const [isEnd, setIsEnd] = useState<boolean>(false);
+  const preSearchTerm = usePreviousValue(searchTerm);
 
   const fetch = useCallback(async () => {
     try {
@@ -116,25 +118,25 @@ export function useFetchMoreOptions<T>({
 
   const onVisibilityChange = useCallback(
     (open: boolean) => {
-      if (open) {
-        if (page === 0) {
-          setPage(1);
-        }
-      } else {
-        setPage(0);
-        setOptions([]);
-        setIsEnd(false);
+      if (open && page === 0) {
+        setPage(1);
       }
     },
     [page],
   );
 
-  const onSearch = useCallback((input: string) => {
-    setSearchTerm(input);
-    setPage(1);
-    setOptions([]);
-    setIsEnd(false);
-  }, []);
+  const onSearch = useCallback(
+    (input: string) => {
+      setSearchTerm(input);
+      setPage(1);
+      setIsEnd(false);
+
+      if (!(!preSearchTerm && !input)) {
+        setOptions([]);
+      }
+    },
+    [preSearchTerm],
+  );
 
   const onReachBottom = useCallback(() => {
     if (!isEnd) {
@@ -144,6 +146,7 @@ export function useFetchMoreOptions<T>({
 
   return {
     currentOptions,
+    setOptions,
     onVisibilityChange,
     onSearch,
     onReachBottom,

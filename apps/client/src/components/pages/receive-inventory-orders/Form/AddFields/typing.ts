@@ -1,7 +1,6 @@
 export type FormValues = {
   material: string;
-  batch?: string;
-  'batch-search'?: string;
+  batch: string;
   location: string;
   loader: string;
   quantity: string;

@@ -30,7 +30,7 @@ const AddFields: FC = () => {
           <div>1</div>
           <MaterialsField name="material" fuzzySearch={false} required />
           <div>1</div>
-          <BatchesField name="batch" />
+          <BatchesField name="batch" addable fuzzySearch={false} />
           <LocationsField
             name="location"
             label="目標位置"
