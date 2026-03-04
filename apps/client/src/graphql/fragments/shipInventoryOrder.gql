@@ -1,6 +1,5 @@
 fragment ShipInventoryOrderItem on ShipInventoryOrderItemDto {
   id
-  description
   unitId
   targetShippedQuantity
   orderId
@@ -12,7 +11,6 @@ fragment ShipInventoryOrderItem on ShipInventoryOrderItemDto {
 fragment ShipInventoryOrder on ShipInventoryOrderDto {
   id
   key
-  description
   createdBy
   removedAt
   status
@@ -23,7 +21,6 @@ fragment ShipInventoryOrder on ShipInventoryOrderDto {
 
 fragment SimpleShipInventoryOrder on ShipInventoryOrderDto {
   id
-  description
   createdBy
   removedAt
   status
