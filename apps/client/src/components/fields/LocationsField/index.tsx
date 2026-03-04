@@ -6,12 +6,14 @@ import { useLazyQueryLocations } from './useApi';
 
 interface LocationsFieldProps {
   name: string;
+  label?: string;
   fuzzySearch?: boolean;
   required?: boolean;
 }
 
 const LocationsField: FC<LocationsFieldProps> = ({
   name,
+  label = '儲存位置',
   fuzzySearch = true,
   required,
 }) => {
@@ -35,8 +37,8 @@ const LocationsField: FC<LocationsFieldProps> = ({
   return (
     <SingleAutoCompleteField
       name={name}
-      label="儲存位置"
-      placeholder="輸入儲存位置"
+      label={label}
+      placeholder={`輸入${label}`}
       fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}

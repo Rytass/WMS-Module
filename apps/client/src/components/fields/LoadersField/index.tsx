@@ -6,12 +6,14 @@ import { useLazyQueryLoaders } from './useApi';
 
 interface LoadersFieldProps {
   name: string;
+  label?: string;
   fuzzySearch?: boolean;
   required?: boolean;
 }
 
 const LoadersField: FC<LoadersFieldProps> = ({
   name,
+  label = '載具',
   fuzzySearch = true,
   required,
 }) => {
@@ -35,8 +37,8 @@ const LoadersField: FC<LoadersFieldProps> = ({
   return (
     <SingleAutoCompleteField
       name={name}
-      label="載具"
-      placeholder="輸入載具"
+      label={label}
+      placeholder={`輸入${label}`}
       fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}

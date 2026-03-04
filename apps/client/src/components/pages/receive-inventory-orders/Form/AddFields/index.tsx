@@ -25,11 +25,16 @@ const AddFields: FC = () => {
     <FormProvider {...methods}>
       <div className={classes.host}>
         <div className={classes.fieldsWrapper}>
+          <div>1</div>
           <MaterialsField name="material" fuzzySearch={false} required />
           <div>1</div>
           <div>1</div>
-          <div>1</div>
-          <LocationsField name="location" fuzzySearch={false} required />
+          <LocationsField
+            name="location"
+            label="目標位置"
+            fuzzySearch={false}
+            required
+          />
           <div>1</div>
           <NumberInputField
             name="quantity"
