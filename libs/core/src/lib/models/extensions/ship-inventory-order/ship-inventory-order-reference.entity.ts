@@ -9,8 +9,8 @@ import {
 import { MaterialEntityClass, MaterialUnitEntityClass } from '../../metadata';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 
-@Entity('ship_inventory_order_templates')
-export class ShipInventoryOrderTemplateEntity {
+@Entity('ship_inventory_order_references')
+export class ShipInventoryOrderReferenceEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

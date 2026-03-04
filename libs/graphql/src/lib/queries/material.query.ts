@@ -8,8 +8,15 @@ import { FindMaterialArgs } from '../inputs/find-material.args';
 export class MaterialQuery {
   constructor(private readonly materialService: MaterialService) {}
   @Query(() => MaterialDto)
-  material(@Args('id', { type: () => ID }) id: string): Promise<MaterialDto> {
-    return this.materialService.materialRepository.findOneByOrFail({ id });
+  material(
+    @Args('id', { type: () => ID, nullable: true }) id?: string,
+    @Args('key', { type: () => String, nullable: true }) key?: string,
+  ): Promise<MaterialDto> {
+    const where = id ? { id } : key ? { key } : undefined;
+    if (!where) {
+      throw new Error('Either id or key must be provided');
+    }
+    return this.materialService.materialRepository.findOneByOrFail(where);
   }
 
   @Query(() => Materials)

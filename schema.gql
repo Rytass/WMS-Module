@@ -328,7 +328,7 @@ type Query {
   loaders(offset: Int, limit: Int, key: String, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String): Loaders!
   loaderType(id: ID!): LoaderTypeDto!
   loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, serial: String): LoaderTypes!
-  material(id: ID!): MaterialDto!
+  material(id: ID, key: String): MaterialDto!
   materials(offset: Int, limit: Int, key: String, description: String): Materials!
   batches(offset: Int, limit: Int, key: String): Batches!
   stock(id: ID!): StockDto!
