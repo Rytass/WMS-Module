@@ -1,14 +1,14 @@
+import dayjs from 'dayjs';
 import { FieldArrayWithId } from 'react-hook-form';
 import {
-  Typography,
   Table,
   TableColumn,
   TableDataSourceWithId,
   Button,
-  Input,
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
-import UnitsField from '../../../../fields/UnitsField';
+import NumberInputField from '../../../../fields/NumberInputField';
+import SingleSelectField from '../../../../fields/SingleSelectField';
 import YesNoField from '../../../../fields/YesNoField';
 import { yesNoName } from '../../../../../utils/share';
 import { FormValues, ItemFieldValues } from '../typing';
@@ -46,10 +46,75 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
       width: 84,
       render: (source, index) =>
         source.isExisted ? (
-          <YesNoField name={`items.${index}.inspection`} />
+          <YesNoField
+            name={`items.${index}.inspection`}
+            disabled={source.receivedQuantity > 0}
+          />
         ) : (
           yesNoName(source.inspection)
         ),
+    },
+    {
+      key: 'quantity',
+      title: '入庫數量',
+      width: 120,
+      align: 'end',
+      render: (source, index) =>
+        source.isExisted ? (
+          <NumberInputField
+            name={`items.${index}.quantity`}
+            placeholder="入庫數量"
+          />
+        ) : (
+          source.quantity
+        ),
+    },
+    {
+      key: 'receivedQuantity',
+      title: '已入數量',
+      width: 120,
+      align: 'end',
+      render: (source) => source.receivedQuantity,
+    },
+    {
+      key: 'unit',
+      title: '單位',
+      width: 100,
+      align: 'center',
+      render: (source, index) => {
+        if (source.isExisted) {
+          return (
+            <SingleSelectField
+              name={`items.${index}.unit`}
+              placeholder="使用單位"
+              options={source.unitOptions}
+              size="sub"
+              disabled={source.receivedQuantity > 0}
+            />
+          );
+        }
+
+        return source.unitOptions.find((o) => o.id === source.unit)?.name;
+      },
+    },
+    {
+      key: 'material',
+      title: '料號',
+      width: 140,
+      render: (source) => source.material,
+    },
+    {
+      key: 'description',
+      title: '物料說明',
+      width: 120,
+      render: (source) => source.description,
+    },
+    {
+      key: 'removedAt',
+      title: '刪除時間',
+      width: 140,
+      render: (source) =>
+        source.removedAt ? dayjs(source.removedAt).format('YYYY-MM-DD') : '-',
     },
   ];
 
