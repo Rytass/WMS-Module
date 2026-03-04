@@ -10,6 +10,9 @@ import { TrashIcon } from '@mezzanine-ui/icons';
 import NumberInputField from '../../../../fields/NumberInputField';
 import SingleSelectField from '../../../../fields/SingleSelectField';
 import YesNoField from '../../../../fields/YesNoField';
+import BatchesField from '../../../../fields/BatchesField';
+import LocationsField from '../../../../fields/LocationsField';
+import LoadersField from '../../../../fields/LoadersField';
 import { yesNoName } from '../../../../../utils/share';
 import { FormValues, ItemFieldValues } from '../typing';
 
@@ -108,6 +111,27 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
       title: '物料說明',
       width: 120,
       render: (source) => source.description,
+    },
+    {
+      key: 'batch',
+      title: '批號',
+      width: 180,
+      render: (source, index) => {
+        if (source.isExisted) {
+          return (
+            <BatchesField
+              name={`items.${index}.batch`}
+              addable
+              label=""
+              placeholder="輸入批號"
+              fuzzySearch={false}
+              disabled={source.receivedQuantity > 0}
+            />
+          );
+        }
+
+        return source.batch;
+      },
     },
     {
       key: 'removedAt',

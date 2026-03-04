@@ -6,12 +6,16 @@ import { useLazyQueryMaterials } from './useApi';
 
 interface MaterialsFieldProps {
   name: string;
+  label?: string;
+  placeholder?: string;
   fuzzySearch?: boolean;
   required?: boolean;
 }
 
 const MaterialsField: FC<MaterialsFieldProps> = ({
   name,
+  label = '料號',
+  placeholder,
   fuzzySearch = true,
   required,
 }) => {
@@ -35,8 +39,8 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
   return (
     <SingleAutoCompleteField
       name={name}
-      label="料號"
-      placeholder="輸入料號"
+      label={label}
+      placeholder={placeholder || `輸入${label}`}
       fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}

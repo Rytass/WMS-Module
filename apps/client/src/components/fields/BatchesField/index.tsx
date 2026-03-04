@@ -9,16 +9,22 @@ import { useLazyQueryBatches } from './useApi';
 
 interface BatchesFieldProps {
   name: string;
+  label?: string;
+  placeholder?: string;
   addable?: boolean;
   fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
 }
 
 const BatchesField: FC<BatchesFieldProps> = ({
   name,
+  label = '批號',
+  placeholder,
   addable,
   fuzzySearch = true,
   required,
+  disabled,
 }) => {
   const { fetchBatches } = useLazyQueryBatches();
 
@@ -48,11 +54,12 @@ const BatchesField: FC<BatchesFieldProps> = ({
     <SingleAutoCompleteField
       name={name}
       addable={addable}
-      label="批號"
-      placeholder="輸入批號"
+      label={label}
+      placeholder={placeholder || `輸入${label}`}
       fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}
+      disabled={disabled}
       onVisibilityChange={onVisibilityChange}
       useNameToValue
       onInsert={handleInsert}
