@@ -51,7 +51,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
         source.isExisted ? (
           <YesNoField
             name={`items.${index}.inspection`}
-            disabled={source.receivedQuantity > 0}
+            disabled={source.receivedQuantity > 0 || !!source.removedAt}
           />
         ) : (
           yesNoName(source.inspection)
@@ -67,6 +67,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
           <NumberInputField
             name={`items.${index}.quantity`}
             placeholder="入庫數量"
+            disabled={!!source.removedAt || undefined}
           />
         ) : (
           source.quantity
@@ -92,7 +93,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
               placeholder="使用單位"
               options={source.unitOptions}
               size="sub"
-              disabled={source.receivedQuantity > 0}
+              disabled={source.receivedQuantity > 0 || !!source.removedAt}
             />
           );
         }
@@ -125,7 +126,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
               label=""
               placeholder="輸入批號"
               fuzzySearch={false}
-              disabled={source.receivedQuantity > 0}
+              disabled={source.receivedQuantity > 0 || !!source.removedAt}
             />
           );
         }
