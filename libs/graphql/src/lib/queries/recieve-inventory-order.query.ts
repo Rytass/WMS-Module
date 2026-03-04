@@ -12,11 +12,11 @@ export class ReceiveInventoryOrderQuery {
 
   @Query(() => ReceiveInventoryOrderDto)
   async receiveInventoryOrder(
-    @Args('key', { type: () => ID }) key: string,
+    @Args('id', { type: () => ID }) id: string,
   ): Promise<ReceiveInventoryOrderDto> {
     return this.receiveInventoryOrderService
       .selectQueryBuilder('orders')
-      .where('orders.key = :key', { key })
+      .where('orders.id = :id', { id })
       .getRawOne() as Promise<ReceiveInventoryOrderDto>;
   }
 

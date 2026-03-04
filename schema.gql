@@ -139,10 +139,11 @@ type ReceiveInventoryOrderItemDto {
   unitId: ID
   targetReceivedQuantity: Float!
   orderId: ID!
-  materialId: ID!
-  batchId: ID
   removedAt: DateTime
   material: MaterialDto!
+  batch: BatchDto
+  location: LocationDto
+  loader: LoaderDto
   receivedQuantity: Int!
 }
 
@@ -334,7 +335,7 @@ type Query {
   stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): Materials!
   aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): AggregatedStocks!
   changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): ChangeLogs!
-  receiveInventoryOrder(key: ID!): ReceiveInventoryOrderDto!
+  receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
   shipInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ShipInventoryOrderStatus, dateRange: DateRangeArgs, description: String): ShipInventoryOrders!
