@@ -12,7 +12,7 @@ export type ItemFieldValues = {
   unit: string;
 
   // for field array
-  id?: string;
+  itemId?: string;
   receivedQuantity: number;
   unitOptions: SelectValue[];
   isExisted: boolean;

@@ -1,8 +1,16 @@
-import { useMemo, useCallback } from 'react';
+import {
+  useMemo,
+  useCallback,
+  useRef,
+  Dispatch,
+  SetStateAction,
+  useEffect,
+} from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
 import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import { AutoComplete, SelectValue } from '@mezzanine-ui/react';
 import type { AutoCompleteSingleProps } from '@mezzanine-ui/react/AutoComplete';
+import { usePreviousValue } from '../../../hooks/usePreviousValue';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
 export type SingleAutoCompleteFieldProps = AutoCompleteSingleProps &
@@ -35,10 +43,18 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
     setValue,
   } = useFormContext();
 
+  const searchTextControlRef = useRef<
+    { setSearchText: Dispatch<SetStateAction<string>> } | undefined
+  >(undefined);
+
   const isError = useMemo(() => get(errors, name), [errors, name]);
 
   const watchValue = useWatch({
     name,
+  });
+
+  const searchValue = useWatch({
+    name: `${name}-search`,
   });
 
   const watchValueInOptions = useMemo(
@@ -48,6 +64,17 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
       ) ?? null,
     [options, watchValue, useNameToValue],
   );
+
+  const prevWatchValueInOptions = usePreviousValue(watchValueInOptions);
+
+  useEffect(() => {
+    if (
+      (prevWatchValueInOptions && !watchValueInOptions) ||
+      (fuzzySearch && !searchValue)
+    ) {
+      searchTextControlRef.current?.setSearchText('');
+    }
+  }, [fuzzySearch, searchValue, prevWatchValueInOptions, watchValueInOptions]);
 
   const onChange = useCallback(
     (newValue: SelectValue) => {
@@ -110,6 +137,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
     >
       <AutoComplete
         {...rest}
+        searchTextControlRef={searchTextControlRef}
         error={isError}
         className={className}
         size={size}

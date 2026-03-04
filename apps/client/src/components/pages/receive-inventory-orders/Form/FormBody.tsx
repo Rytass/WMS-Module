@@ -33,11 +33,8 @@ function ReceiveInventoryOrderFormBody({
     },
   );
 
-  console.log('fields', fields);
-
   const onCreate = useCallback(
     (values: AddFormValues, unitOptions: SelectValue[]) => {
-      console.log('onCreate', values, unitOptions);
       append({
         ...values,
         receivedQuantity: 0,
