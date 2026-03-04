@@ -389,6 +389,7 @@ input CreateReceiveInventoryOrderItemArgs {
   batchKey: ID!
   materialKey: ID!
   targetReceivedQuantity: Float!
+  requireInspection: Boolean
 }
 
 input UpdateReceiveInventoryOrderItemArgs {
@@ -400,6 +401,7 @@ input UpdateReceiveInventoryOrderItemArgs {
   batchKey: ID
   materialKey: ID
   targetReceivedQuantity: Float
+  requireInspection: Boolean
   id: ID
   removedAt: DateTime
 }
