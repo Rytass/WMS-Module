@@ -4,6 +4,21 @@ import {
 } from '../graphql/generated/.graphql';
 
 export const BASE_UNIT = 'BASE_UNIT';
+export enum YesOrNo {
+  YES = 'YES',
+  NO = 'NO',
+}
+
+export const yesNoOptions = [
+  {
+    id: YesOrNo.YES,
+    name: '是',
+  },
+  {
+    id: YesOrNo.NO,
+    name: '否',
+  },
+];
 
 export function shipInventoryOrderStatusName(
   status?: ShipInventoryOrderStatus,
