@@ -45,7 +45,7 @@ function ReceiveInventoryOrderFormBody({
         isExisted: false,
       });
     },
-    [],
+    [append],
   );
 
   return (

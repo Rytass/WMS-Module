@@ -11,6 +11,7 @@ export type ItemFieldValues = {
   quantity: number;
   unit: string;
 
+  // for field array
   id?: string;
   receivedQuantity: number;
   unitOptions: SelectValue[];

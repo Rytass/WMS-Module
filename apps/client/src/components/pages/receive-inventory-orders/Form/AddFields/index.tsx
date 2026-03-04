@@ -119,7 +119,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
         </div>
         <FormActionButtons
           onReset={() => {
-            console.log('reset');
+            methods.reset();
           }}
           onClickSubmit={() => {
             methods.handleSubmit(onSubmit)();
