@@ -3,14 +3,27 @@ fragment ReceiveInventoryOrderItem on ReceiveInventoryOrderItemDto {
   unitId
   targetReceivedQuantity
   orderId
-  materialId
-  batchId
   removedAt
+  material {
+    ...SimpleMaterial
+  }
+  batch {
+    ...Batch
+  }
+  location {
+    id
+    key
+  }
+  loader {
+    ...Loader
+  }
+  receivedQuantity
 }
 
 fragment ReceiveInventoryOrder on ReceiveInventoryOrderDto {
   id
   key
+  description
   createdBy
   removedAt
   status
@@ -21,6 +34,8 @@ fragment ReceiveInventoryOrder on ReceiveInventoryOrderDto {
 
 fragment SimpleReceiveInventoryOrder on ReceiveInventoryOrderDto {
   id
+  key
+  description
   createdBy
   removedAt
   status

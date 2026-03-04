@@ -58,7 +58,7 @@ function ReceiveInventoryOrdersTable() {
       key: 'createdBy',
       title: '建立者',
       width: 165,
-      render: (source) => source.createdBy,
+      render: (source) => source.createdBy || '-',
     },
     {
       key: 'description',
