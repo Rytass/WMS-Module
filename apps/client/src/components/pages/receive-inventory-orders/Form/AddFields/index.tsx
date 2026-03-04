@@ -11,6 +11,7 @@ import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
 import LoadersField from '../../../../fields/LoadersField';
 import { YesOrNo } from '../../../../../utils/share';
+import { useLazyQueryMaterial } from '../useApi';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import classes from './index.module.scss';
@@ -22,6 +23,8 @@ const AddFields: FC = () => {
       inspection: YesOrNo.YES,
     },
   });
+
+  const { fetchMaterial, data, loading } = useLazyQueryMaterial();
 
   const onSubmit = useCallback((values: FormValues) => {
     console.log('values', values);
