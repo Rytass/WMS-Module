@@ -116,8 +116,14 @@ export function useFetchMoreOptions<T>({
 
   const onVisibilityChange = useCallback(
     (open: boolean) => {
-      if (open && page === 0) {
-        setPage(1);
+      if (open) {
+        if (page === 0) {
+          setPage(1);
+        }
+      } else {
+        setPage(0);
+        setOptions([]);
+        setIsEnd(false);
       }
     },
     [page],
