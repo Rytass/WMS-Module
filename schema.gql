@@ -140,6 +140,7 @@ type ReceiveInventoryOrderItemDto {
   targetReceivedQuantity: Float!
   orderId: ID!
   removedAt: DateTime
+  requireInspection: Boolean!
   material: MaterialDto!
   batch: BatchDto
   location: LocationDto

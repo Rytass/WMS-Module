@@ -7,6 +7,7 @@ export type CreateReceiveInventoryOrderItemInput = {
   batchKey?: string;
   materialKey: string;
   targetReceivedQuantity: number;
+  requireInspection?: boolean;
 };
 
 export type CreateReceiveInventoryOrderInput = {
