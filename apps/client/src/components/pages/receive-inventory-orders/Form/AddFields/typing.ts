@@ -7,6 +7,6 @@ export type AddFormValues = {
   batch: string;
   location: string;
   loader: string;
-  quantity: string;
+  quantity: number;
   unit: string;
 };

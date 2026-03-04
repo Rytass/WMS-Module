@@ -9,6 +9,6 @@ export const formSchema: Yup.ObjectSchema<AddFormValues> = Yup.object({
   batch: Yup.string().required('必填'),
   location: Yup.string().required('必填'),
   loader: Yup.string().required('必填'),
-  quantity: Yup.string().required('必填'),
+  quantity: Yup.number().required('必填'),
   unit: Yup.string().required('必填'),
 });
