@@ -4,7 +4,9 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import FormActionButtons from '../../../../FormActionButtons';
 import NumberInputField from '../../../../fields/NumberInputField';
 import MaterialsField from '../../../../fields/MaterialsField';
+import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
+import LoadersField from '../../../../fields/LoadersField';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import classes from './index.module.scss';
@@ -28,14 +30,19 @@ const AddFields: FC = () => {
           <div>1</div>
           <MaterialsField name="material" fuzzySearch={false} required />
           <div>1</div>
-          <div>1</div>
+          <BatchesField name="batch" />
           <LocationsField
             name="location"
             label="目標位置"
             fuzzySearch={false}
             required
           />
-          <div>1</div>
+          <LoadersField
+            name="loader"
+            label="目標載具"
+            fuzzySearch={false}
+            required
+          />
           <NumberInputField
             name="quantity"
             label="入庫數量"
