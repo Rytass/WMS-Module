@@ -139,9 +139,12 @@ type ReceiveInventoryOrderItemDto {
   unitId: ID
   targetReceivedQuantity: Float!
   orderId: ID!
-  materialId: ID!
-  batchId: ID
   removedAt: DateTime
+  material: MaterialDto!
+  batch: BatchDto
+  location: LocationDto
+  loader: LoaderDto
+  receivedQuantity: Int!
 }
 
 type ReceiveInventoryOrderDto {

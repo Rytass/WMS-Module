@@ -9,6 +9,7 @@ import {
 } from '../models/extensions/receive-inventory-order/receive-inventory-order-item.entity';
 import {
   DataSource,
+  DeepPartial,
   EntityManager,
   In,
   IsNull,
@@ -17,6 +18,7 @@ import {
 } from 'typeorm';
 import {
   CreateReceiveInventoryOrderInput,
+  CreateReceiveInventoryOrderItemInput,
   UpdateReceiveInventoryOrderInput,
 } from '../typings/create-receive-inventory-order.input';
 import { BatchEntity, OrderEntity } from '@rytass/wms-base-nestjs-module';
@@ -113,6 +115,73 @@ export class ReceiveInventoryOrderService<
     };
   }
 
+  private processReceiveInventoryOrderItems(
+    items: Partial<CreateReceiveInventoryOrderItemInput>[],
+    orderId: string,
+    manager: EntityManager,
+  ): Promise<DeepPartial<ReceiveInventoryOrderItemEntityClass>[]> {
+    const materialRepository =
+      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
+    const batchRepository = manager.getRepository<BatchEntity>(BatchEntity);
+    const locationRepository =
+      manager.getRepository<LocationEntityClass>(LocationEntityClass);
+    const loaderRepository =
+      manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
+
+    return items.reduce(
+      async (accPromise, item) => {
+        const acc = await accPromise;
+
+        try {
+          const material = await materialRepository.findOneBy({
+            key: item.materialKey,
+          });
+          if (!material) return acc;
+
+          const batch = await batchRepository
+            .findOneBy({ key: item.batchKey, materialId: material.id })
+            .then(
+              async (batch) =>
+                batch ||
+                (await batchRepository.save(
+                  batchRepository.create({
+                    materialId: material.id,
+                    key: item.batchKey,
+                  }),
+                )),
+            );
+
+          const location = await locationRepository.findOneBy({
+            key: item.locationKey,
+          });
+          if (!location) return acc;
+
+          const loader = await loaderRepository.findOneBy({
+            serialId: item.loaderKey,
+          });
+          if (!loader) return acc;
+
+          return [
+            ...acc,
+            {
+              ...item,
+              orderId,
+              materialId: material.id,
+              batchId: batch.id,
+              locationId: location.id,
+              loaderId: loader.id,
+            },
+          ];
+        } catch {
+          return acc;
+        }
+      },
+      Promise.resolve(
+        [] as DeepPartial<ReceiveInventoryOrderItemEntityClass>[],
+      ),
+    );
+  }
+
   async createReceiveInventoryOrder({
     manager = this.dataSource.manager,
     ...options
@@ -128,13 +197,6 @@ export class ReceiveInventoryOrderService<
       manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
         this.receiveInventoryOrderItemEntity,
       );
-    const materialRepository =
-      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
-    const batchRepository = manager.getRepository<BatchEntity>(BatchEntity);
-    const locationRepository =
-      manager.getRepository<LocationEntityClass>(LocationEntityClass);
-    const loaderRepository =
-      manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
 
     // create base order
     const { id } = await orderRepository.save(orderRepository.create());
@@ -148,39 +210,10 @@ export class ReceiveInventoryOrderService<
     if (options.items && options.items.length > 0) {
       const items: ReceiveInventoryOrderItemEntityClass[] =
         receiveInventoryOrderItemRepository.create(
-          await Promise.all(
-            options.items.map(async (item) => {
-              const material = await materialRepository.findOneByOrFail({
-                key: item.materialKey,
-              });
-              const batch = await batchRepository
-                .findOneBy({ key: item.batchKey, materialId: material.id })
-                .then(
-                  async (batch) =>
-                    batch ||
-                    (await batchRepository.save(
-                      batchRepository.create({
-                        materialId: material.id,
-                        key: item.batchKey,
-                      }),
-                    )),
-                );
-              const location = await locationRepository.findOneByOrFail({
-                key: item.locationKey,
-              });
-              const loader = await loaderRepository.findOneByOrFail({
-                serialId: item.loaderKey,
-              });
-
-              return {
-                ...item,
-                orderId: order.id,
-                materialId: material.id,
-                batchId: batch.id,
-                locationId: location.id,
-                loaderId: loader.id,
-              };
-            }),
+          await this.processReceiveInventoryOrderItems(
+            options.items,
+            id,
+            manager,
           ),
         );
       await receiveInventoryOrderItemRepository.save(items);
@@ -221,7 +254,7 @@ export class ReceiveInventoryOrderService<
     );
 
     if (options.items?.length) {
-      const newItems: Partial<ReceiveInventoryOrderItemEntityClass>[] = [];
+      const newItems: Partial<CreateReceiveInventoryOrderItemInput>[] = [];
       const existingItems: Partial<ReceiveInventoryOrderItemEntityClass>[] = [];
 
       await receiveInventoryOrderItemRepository
@@ -229,8 +262,6 @@ export class ReceiveInventoryOrderService<
         .then((items) => {
           const itemSet = new Set(items.map((i) => i.id));
           options.items?.forEach((item) => {
-            if (item.removedAt) return;
-
             if (!item.id) newItems.push(item);
             else if (itemSet.has(item.id)) existingItems.push(item);
           });
@@ -239,9 +270,10 @@ export class ReceiveInventoryOrderService<
       if (newItems.length)
         await receiveInventoryOrderItemRepository.save(
           receiveInventoryOrderItemRepository.create(
-            newItems.map((item) => ({ ...item, orderId: id })),
+            await this.processReceiveInventoryOrderItems(newItems, id, manager),
           ),
         );
+
       if (existingItems.length)
         await Promise.all(
           existingItems.map(async (item) =>
