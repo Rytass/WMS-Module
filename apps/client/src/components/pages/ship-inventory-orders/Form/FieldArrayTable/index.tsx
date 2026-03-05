@@ -60,20 +60,20 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
     },
     {
       key: 'index',
-      title: '入庫單項次',
+      title: '出庫單項次',
       minWidth: 100,
       render: (_, index) => `${(index + 1) * 10}`,
     },
     {
       key: 'quantity',
-      title: '入庫數量',
+      title: '應出數量',
       minWidth: 120,
       align: 'end',
       render: (source, index) =>
         source.isExisted && !viewMode ? (
           <NumberInputField
             name={`items.${index}.quantity`}
-            placeholder="入庫數量"
+            placeholder="應出數量"
             disabled={!!source.removedAt || undefined}
           />
         ) : (
