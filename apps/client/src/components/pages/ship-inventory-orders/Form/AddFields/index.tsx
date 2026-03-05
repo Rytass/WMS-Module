@@ -8,8 +8,6 @@ import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import MaterialsField from '../../../../fields/MaterialsField';
 import BatchesField from '../../../../fields/BatchesField';
-import LocationsField from '../../../../fields/LocationsField';
-import LoadersField from '../../../../fields/LoadersField';
 import { BASE_UNIT } from '../../../../../utils/share';
 import { useLazyQueryMaterial } from '../useApi';
 import { formSchema } from './schema';
@@ -86,40 +84,28 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
           <InputField name="description" label="物料說明" disabled />
           <BatchesField
             name="batch"
-            addable
             fuzzySearch={false}
             selectValueMode
             required
           />
-          <LocationsField
-            name="location"
-            label="目標位置"
-            fuzzySearch={false}
-            selectValueMode
-            required
-          />
-          <LoadersField
-            name="loader"
-            label="目標載具"
-            fuzzySearch={false}
-            selectValueMode
-            required
-          />
+          <div />
           <NumberInputField
             name="quantity"
-            label="入庫數量"
-            placeholder="輸入入庫數量"
+            label="應出數量"
+            placeholder="輸入應出數量"
             required
           />
           <SingleSelectByIdField
             name="unit"
-            label="使用單位"
-            placeholder="使用單位"
+            label="出庫單位"
+            placeholder="出庫單位"
             options={unitOptions}
             size="sub"
             disabled={!materialSelectValue}
             required
           />
+          <div />
+          <div />
         </div>
         <FormActionButtons
           onReset={() => {

@@ -4,14 +4,12 @@ export type ItemFieldValues = {
   material: SelectValue | null;
   description?: string;
   batch: SelectValue | null;
-  location: SelectValue | null;
-  loader: SelectValue | null;
   quantity: number;
   unit: string;
 
   // for field array
   itemId?: string;
-  receivedQuantity: number;
+  shippedQuantity: number;
   unitOptions: SelectValue[];
   isExisted: boolean;
   removedAt?: string;

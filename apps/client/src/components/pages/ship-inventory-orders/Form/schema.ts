@@ -16,21 +16,13 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
           id: Yup.string<YesOrNo>().required('必填'),
           name: Yup.string<YesOrNo>().required('必填'),
         }).required('必填'),
-        location: Yup.object({
-          id: Yup.string<YesOrNo>().required('必填'),
-          name: Yup.string<YesOrNo>().required('必填'),
-        }).required('必填'),
-        loader: Yup.object({
-          id: Yup.string<YesOrNo>().required('必填'),
-          name: Yup.string<YesOrNo>().required('必填'),
-        }).required('必填'),
         quantity: Yup.number()
           .required('必填')
-          .min(Yup.ref('receivedQuantity'), '不得小於已入數量'),
+          .min(Yup.ref('shippedQuantity'), '不得小於已出數量'),
         unit: Yup.string().required('必填'),
 
         itemId: Yup.string(),
-        receivedQuantity: Yup.number().required('必填'),
+        shippedQuantity: Yup.number().required('必填'),
         unitOptions: Yup.array()
           .of(
             Yup.object({

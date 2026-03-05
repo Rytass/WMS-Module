@@ -49,7 +49,7 @@ function ShipInventoryOrderFormBody({
     (values: AddFormValues, unitOptions: SelectValue[]) => {
       append({
         ...values,
-        receivedQuantity: 0,
+        shippedQuantity: 0,
         unitOptions,
         isExisted: false,
       });
