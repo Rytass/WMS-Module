@@ -1,5 +1,5 @@
 import { TextFieldSize } from '@mezzanine-ui/react';
-import SingleSelectField from '../SingleSelectField';
+import SingleSelectByIdField from '../SingleSelectByIdField';
 import { yesNoOptions } from '../../../utils/share';
 
 interface YesNoFieldProps {
@@ -22,7 +22,7 @@ const YesNoField: FC<YesNoFieldProps> = ({
   disabled = false,
 }) => {
   return (
-    <SingleSelectField
+    <SingleSelectByIdField
       name={name}
       label={label}
       placeholder={placeholder}

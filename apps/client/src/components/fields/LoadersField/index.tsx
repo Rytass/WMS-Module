@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { LoaderOptionsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLoaders } from './useApi';
@@ -37,7 +37,7 @@ const LoadersField: FC<LoadersFieldProps> = ({
     });
 
   return (
-    <SingleAutoCompleteField
+    <SingleAutoCompleteByIdField
       name={name}
       label={label}
       placeholder={placeholder || `輸入${label}`}

@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormModalWrapper } from '../../../../fields/FormModalWrapper';
 import InputField from '../../../../fields/InputField';
-import SingleSelectField from '../../../../fields/SingleSelectField';
+import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import { formSchema } from './schema';
 import { FormValues, ActiveValue } from './typing';
 import classes from './index.module.scss';
@@ -61,7 +61,7 @@ function LoaderTypeForm({
           disabled={mode === 'edit' || undefined}
         />
         {mode === 'edit' && (
-          <SingleSelectField
+          <SingleSelectByIdField
             name="isActive"
             label="狀態"
             options={[

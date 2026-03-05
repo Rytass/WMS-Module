@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { BatchOptionsQuery } from '../../../graphql/generated/.graphql';
 import {
   useFetchMoreOptions,
@@ -51,7 +51,7 @@ const BatchesField: FC<BatchesFieldProps> = ({
   const handleInsert = useInsertOption(setOptions);
 
   return (
-    <SingleAutoCompleteField
+    <SingleAutoCompleteByIdField
       name={name}
       addable={addable}
       label={label}

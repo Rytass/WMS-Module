@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { LocationOptionsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLocations } from './useApi';
@@ -37,7 +37,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
     });
 
   return (
-    <SingleAutoCompleteField
+    <SingleAutoCompleteByIdField
       name={name}
       label={label}
       placeholder={placeholder || `輸入${label}`}

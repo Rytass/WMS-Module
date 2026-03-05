@@ -1,5 +1,5 @@
 import { TextFieldSize } from '@mezzanine-ui/react';
-import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { useInsertOption } from '../../../hooks/useSelectorOptions';
 import { useQueryUnits } from './useApi';
 
@@ -26,7 +26,7 @@ const UnitsField: FC<UnitsFieldProps> = ({
   const handleInsert = useInsertOption(setCurrentOptions);
 
   return (
-    <SingleAutoCompleteField
+    <SingleAutoCompleteByIdField
       addable
       name={name}
       label={label}

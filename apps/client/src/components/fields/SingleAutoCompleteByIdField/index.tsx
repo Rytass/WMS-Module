@@ -1,16 +1,27 @@
-import { useMemo, useCallback } from 'react';
+import {
+  useMemo,
+  useCallback,
+  useRef,
+  Dispatch,
+  SetStateAction,
+  useEffect,
+} from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
 import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
-import { Select, SelectValue } from '@mezzanine-ui/react';
-import type { SelectSingleProps } from '@mezzanine-ui/react/Select/Select';
+import { AutoComplete, SelectValue } from '@mezzanine-ui/react';
+import type { AutoCompleteSingleProps } from '@mezzanine-ui/react/AutoComplete';
+import { usePreviousValue } from '../../../hooks/usePreviousValue';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
-export type SingleSelectFieldProps = SelectSingleProps &
+export type SingleAutoCompleteByIdFieldProps = AutoCompleteSingleProps &
   Omit<BaseFieldProps, 'children'> & {
+    fuzzySearch?: boolean;
     useNameToValue?: boolean;
   };
 
-export const SingleSelectField: FC<SingleSelectFieldProps> = ({
+export const SingleAutoCompleteByIdField: FC<
+  SingleAutoCompleteByIdFieldProps
+> = ({
   className,
   fieldClassName,
   name,
@@ -23,6 +34,8 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
   size = 'sub',
   menuMaxHeight = 300,
   options,
+  onSearch: onSearchProps,
+  fuzzySearch = false,
   useNameToValue = false,
   ...rest
 }) => {
@@ -32,10 +45,18 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
     setValue,
   } = useFormContext();
 
+  const searchTextControlRef = useRef<
+    { setSearchText: Dispatch<SetStateAction<string>> } | undefined
+  >(undefined);
+
   const isError = useMemo(() => get(errors, name), [errors, name]);
 
   const watchValue = useWatch({
     name,
+  });
+
+  const searchValue = useWatch({
+    name: `${name}-search`,
   });
 
   const watchValueInOptions = useMemo(
@@ -45,6 +66,33 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
       ) ?? null,
     [options, watchValue, useNameToValue],
   );
+
+  // const watchValueInOptions = useMemo(() => {
+  //   const target =
+  //     options?.find((o) =>
+  //       useNameToValue ? o.name === watchValue : o.id === watchValue,
+  //     ) ?? null;
+
+  //   if (useNameToValue && watchValue && !target) {
+  //     return {
+  //       id: watchValue,
+  //       name: watchValue,
+  //     };
+  //   }
+
+  //   return target;
+  // }, [options, watchValue, useNameToValue]);
+
+  const prevWatchValueInOptions = usePreviousValue(watchValueInOptions);
+
+  useEffect(() => {
+    if (
+      (prevWatchValueInOptions && !watchValueInOptions) ||
+      (fuzzySearch && !searchValue)
+    ) {
+      searchTextControlRef.current?.setSearchText('');
+    }
+  }, [fuzzySearch, searchValue, prevWatchValueInOptions, watchValueInOptions]);
 
   const onChange = useCallback(
     (newValue: SelectValue) => {
@@ -65,11 +113,30 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
     [clearErrors, errors, name, setValue, useNameToValue],
   );
 
+  const onSearch = useCallback(
+    (input: string) => {
+      onSearchProps?.(input);
+
+      if (fuzzySearch) {
+        setValue(`${name}-search`, input, {
+          shouldDirty: true,
+        });
+      }
+    },
+    [fuzzySearch, name, onSearchProps, setValue],
+  );
+
   const onClear = useCallback(() => {
     setValue(name, '', {
       shouldDirty: true,
     });
-  }, [name, setValue]);
+
+    if (fuzzySearch) {
+      setValue(`${name}-search`, '', {
+        shouldDirty: true,
+      });
+    }
+  }, [name, setValue, fuzzySearch]);
 
   return (
     <BaseField
@@ -86,23 +153,26 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
           : ControlFieldSlotLayout.MAIN
       }
     >
-      <Select
+      <AutoComplete
         {...rest}
+        searchTextControlRef={searchTextControlRef}
         error={isError}
         className={className}
         size={size}
         placeholder={placeholder}
         fullWidth
         mode="single"
+        onSearch={onSearch}
         onChange={onChange}
         onClear={onClear}
         value={watchValueInOptions}
         options={options}
         menuMaxHeight={menuMaxHeight}
+        clearSearchText={false}
         dropdownZIndex={1004}
       />
     </BaseField>
   );
 };
 
-export default SingleSelectField;
+export default SingleAutoCompleteByIdField;

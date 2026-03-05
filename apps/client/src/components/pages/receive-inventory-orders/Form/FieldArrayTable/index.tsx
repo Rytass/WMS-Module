@@ -8,7 +8,7 @@ import {
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import NumberInputField from '../../../../fields/NumberInputField';
-import SingleSelectField from '../../../../fields/SingleSelectField';
+import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import YesNoField from '../../../../fields/YesNoField';
 import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
@@ -88,7 +88,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
       render: (source, index) => {
         if (source.isExisted) {
           return (
-            <SingleSelectField
+            <SingleSelectByIdField
               name={`items.${index}.unit`}
               placeholder="使用單位"
               options={source.unitOptions}
