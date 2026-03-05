@@ -3,6 +3,7 @@ import { TableColumn } from '@mezzanine-ui/react';
 import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
+import Actions from './Actions';
 import { SimpleReceiveInventoryOrderFragment } from '../../../../graphql/generated/.graphql';
 import {
   useQueryReceiveInventoryOrders,
@@ -55,6 +56,12 @@ function ReceiveInventoryOrdersTable() {
   );
 
   const columns: TableColumn<SimpleReceiveInventoryOrderFragment>[] = [
+    {
+      key: 'actions',
+      title: '操作',
+      width: 140,
+      render: (source) => <Actions source={source} />,
+    },
     {
       key: 'status',
       title: '狀態',
