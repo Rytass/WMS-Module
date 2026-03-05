@@ -34,6 +34,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
           icon={TrashIcon}
           iconType="icon-only"
           variant="destructive-ghost"
+          disabled={!!source.removedAt}
         />
       ),
     },
@@ -105,7 +106,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
       key: 'material',
       title: '料號',
       width: 140,
-      render: (source) => source.material,
+      render: (source) => source.material?.name,
     },
     {
       key: 'description',
@@ -126,12 +127,13 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
               label=""
               placeholder="輸入批號"
               fuzzySearch={false}
+              selectValueMode
               disabled={source.receivedQuantity > 0 || !!source.removedAt}
             />
           );
         }
 
-        return source.batch;
+        return source.batch?.name;
       },
     },
     {

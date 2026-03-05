@@ -1,12 +1,13 @@
+import { SelectValue } from '@mezzanine-ui/react';
 import { YesOrNo } from '../../../../../utils/share';
 
 export type AddFormValues = {
   inspection: YesOrNo;
-  material: string;
+  material: SelectValue | null;
   description?: string;
-  batch: string;
-  location: string;
-  loader: string;
+  batch: SelectValue | null;
+  location: SelectValue | null;
+  loader: SelectValue | null;
   quantity: number;
   unit: string;
 };
