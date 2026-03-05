@@ -3,8 +3,8 @@ import { StockStatus } from '../constants';
 export type CreateShipInventoryOrderReferenceInput = {
   description?: string;
   unitId?: string;
-  batchId?: string;
-  materialId: string;
+  batchKey?: string;
+  materialKey: string;
   targetShippedQuantity: number;
   serialId: number;
 };

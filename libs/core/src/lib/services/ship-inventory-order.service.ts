@@ -23,14 +23,19 @@ import {
   FindShipInventoryOrderInput,
   ShipInventoryOrderStatus,
 } from '../typings/find-ship-inventory-order.input';
-import { OrderEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
+import { OrderEntity, StockEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
   ShipInventoryOrderChangeEntityClass,
   ShipInventoryOrderReferenceEntity,
   ShipInventoryOrderReferenceEntityClass,
+  MaterialEntityClass,
 } from '../models';
 import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
 import { MaterialService } from './material.service';
+import {
+  CreateShipInventoryOrderReferenceInput,
+} from '../typings/create-ship-inventory-order.input';
+import { DeepPartial } from 'typeorm';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -109,6 +114,48 @@ export class ShipInventoryOrderService<
     };
   }
 
+  private processShipInventoryOrderReferences(
+    references: Partial<CreateShipInventoryOrderReferenceInput>[],
+    manager: EntityManager,
+  ): Promise<DeepPartial<ShipInventoryOrderReferenceEntityClass>[]> {
+    const materialRepository =
+      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
+    const batchRepository = manager.getRepository<BatchEntity>(BatchEntity);
+
+    return references.reduce(
+      async (accPromise, reference) => {
+        const acc = await accPromise;
+
+        try {
+          const material = await materialRepository.findOneBy({
+            key: reference.materialKey,
+          });
+          if (!material) return acc;
+
+          let batch: BatchEntity | null = null;
+          if (reference.batchKey) {
+            batch = await batchRepository.findOneBy({
+              key: reference.batchKey,
+              materialId: material.id,
+            });
+          }
+
+          return [
+            ...acc,
+            {
+              ...reference,
+              materialId: material.id,
+              batchId: batch?.id || null,
+            },
+          ];
+        } catch {
+          return acc;
+        }
+      },
+      Promise.resolve([] as DeepPartial<ShipInventoryOrderReferenceEntityClass>[]),
+    );
+  }
+
   async createShipInventoryOrder({
     manager = this.dataSource.manager,
     ...options
@@ -133,13 +180,20 @@ export class ShipInventoryOrderService<
 
     // create ship inventory order references
     if (options.references && options.references.length > 0) {
-      const references = shipInventoryOrderReferenceRepository.create(
-        options.references.map((reference) => ({
-          ...reference,
-          orderId: order.id,
-        })),
-      );
-      await shipInventoryOrderReferenceRepository.save(references);
+      const processedReferences =
+        await this.processShipInventoryOrderReferences(
+          options.references,
+          manager,
+        );
+      if (processedReferences.length > 0) {
+        const references = shipInventoryOrderReferenceRepository.create(
+          processedReferences.map((reference) => ({
+            ...reference,
+            orderId: order.id,
+          })),
+        );
+        await shipInventoryOrderReferenceRepository.save(references);
+      }
     }
 
     return order as T;
@@ -176,7 +230,7 @@ export class ShipInventoryOrderService<
     );
 
     if (options.references?.length) {
-      const newItems: Partial<ShipInventoryOrderReferenceEntityClass>[] = [];
+      const newItems: Partial<CreateShipInventoryOrderReferenceInput>[] = [];
       const existingItems: Partial<ShipInventoryOrderReferenceEntityClass>[] =
         [];
 
@@ -192,12 +246,17 @@ export class ShipInventoryOrderService<
           });
         });
 
-      if (newItems.length)
-        await shipInventoryOrderReferenceRepository.save(
-          shipInventoryOrderReferenceRepository.create(
-            newItems.map((item) => ({ ...item, orderId: id })),
-          ),
-        );
+      if (newItems.length) {
+        const processedNewItems =
+          await this.processShipInventoryOrderReferences(newItems, manager);
+        if (processedNewItems.length > 0) {
+          await shipInventoryOrderReferenceRepository.save(
+            shipInventoryOrderReferenceRepository.create(
+              processedNewItems.map((item) => ({ ...item, orderId: id })),
+            ),
+          );
+        }
+      }
       if (existingItems.length)
         await Promise.all(
           existingItems.map(async (item) =>

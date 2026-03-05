@@ -24,10 +24,10 @@ export class ShipInventoryOrderReferenceEntityClass {
   serialId!: number;
 
   @Column({ type: 'varchar', nullable: true })
-  saleId!: string;
+  saleId!: string | null;
 
   @Column({ type: 'varchar', nullable: true })
-  saleSerialId!: string;
+  saleSerialId!: string | null;
 
   @Column({ type: 'uuid', nullable: true })
   unitId!: string | null;

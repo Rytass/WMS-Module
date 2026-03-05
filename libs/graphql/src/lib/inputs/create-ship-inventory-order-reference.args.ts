@@ -6,13 +6,13 @@ export class CreateShipInventoryOrderReferenceArgs {
   description?: string;
 
   @Field(() => String, { nullable: true })
-  unitId!: string;
+  unitId?: string;
 
   @Field(() => String, { nullable: true })
-  batchId?: string;
+  batchKey?: string;
 
   @Field(() => String)
-  materialId!: string;
+  materialKey!: string;
 
   @Field(() => Number)
   targetShippedQuantity!: number;

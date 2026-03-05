@@ -12,11 +12,13 @@ import {
   ShipInventoryOrderChangeEntityClass,
   ShipInventoryOrderEntityClass,
   ShipInventoryOrderItemEntityClass,
+  ShipInventoryOrderReferenceEntityClass,
 } from '@wms-module/core';
 import { type LoaderType } from '../helpers';
 import { BatchDto } from '../dto/batch.dto';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import { LocationDto } from '../dto/location.dto';
+import { ShipInventoryOrderReferenceDto } from '../dto/ship-inventory-order-reference.dto';
 
 @Resolver(() => ShipInventoryOrderDto)
 export class ShipInventoryOrderResolver {
@@ -27,6 +29,17 @@ export class ShipInventoryOrderResolver {
   ): Promise<ShipInventoryOrderItemDto[]> {
     return loaders.batchMany.load({
       __entity: ShipInventoryOrderItemEntityClass,
+      __from: { orderId: id },
+    });
+  }
+
+  @ResolveField(() => [ShipInventoryOrderReferenceDto])
+  references(
+    @Parent() { id }: ShipInventoryOrderEntityClass,
+    @Context() { loaders }: LoaderType<ShipInventoryOrderReferenceEntityClass>,
+  ): Promise<ShipInventoryOrderReferenceDto[]> {
+    return loaders.batchMany.load({
+      __entity: ShipInventoryOrderReferenceEntityClass,
       __from: { orderId: id },
     });
   }
@@ -96,5 +109,31 @@ export class ShipInventoryOrderItemResolver {
 
       return acc;
     }, 0);
+  }
+}
+
+@Resolver(() => ShipInventoryOrderReferenceDto)
+export class ShipInventoryOrderReferenceResolver {
+  @ResolveField(() => MaterialDto)
+  material(
+    @Parent() { materialId }: ShipInventoryOrderReferenceEntityClass,
+    @Context() { loaders }: LoaderType<MaterialEntityClass>,
+  ): Promise<MaterialDto> {
+    return loaders.batchSingle.load({
+      __entity: MaterialEntityClass,
+      __from: { id: materialId },
+    });
+  }
+
+  @ResolveField(() => BatchDto, { nullable: true })
+  async batch(
+    @Parent() { batchId }: ShipInventoryOrderReferenceEntityClass,
+    @Context() { loaders }: LoaderType<BatchEntity>,
+  ): Promise<BatchDto | null> {
+    if (!batchId) return null;
+    return loaders.batchSingle.load({
+      __entity: BatchEntity,
+      __from: { id: batchId },
+    });
   }
 }

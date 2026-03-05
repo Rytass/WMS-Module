@@ -196,6 +196,7 @@ type ShipInventoryOrderDto {
   removedAt: DateTime
   items: [ShipInventoryOrderItemDto!]!
   status: ShipInventoryOrderStatus!
+  references: [ShipInventoryOrderReferenceDto!]!
 }
 
 enum ShipInventoryOrderStatus {
@@ -351,6 +352,15 @@ type AllocateInventoryOrderItemDto {
   serial: String!
 }
 
+type ShipInventoryOrderReferenceDto {
+  id: ID!
+  serialId: Int!
+  saleId: String
+  saleSerialId: String
+  unitId: ID
+  targetShippedQuantity: Int!
+}
+
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
@@ -445,8 +455,8 @@ input ReceiveOrderArgs {
 input CreateShipInventoryOrderReferenceArgs {
   description: String
   unitId: String
-  batchId: String
-  materialId: String!
+  batchKey: String
+  materialKey: String!
   targetShippedQuantity: Float!
   serialId: Float!
 }
@@ -454,8 +464,8 @@ input CreateShipInventoryOrderReferenceArgs {
 input UpdateShipInventoryOrderReferenceArgs {
   description: String
   unitId: String
-  batchId: String
-  materialId: String
+  batchKey: String
+  materialKey: String
   targetShippedQuantity: Float
   serialId: Float
   id: String!
