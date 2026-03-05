@@ -9,6 +9,7 @@ import {
   useCreateReceiveInventoryOrder,
 } from '../useApi';
 import CreateReceiveInventoryOrderForm from '../CreateForm';
+import Status from '../Status';
 import { FormValues } from '../CreateForm/typing';
 import { NextPath } from '../../../../utils/nextpath';
 import { nextDynamicPath } from '../../../../utils/path';
@@ -54,6 +55,18 @@ function ReceiveInventoryOrdersTable() {
   );
 
   const columns: TableColumn<SimpleReceiveInventoryOrderFragment>[] = [
+    {
+      key: 'status',
+      title: '狀態',
+      width: 165,
+      render: (source) => <Status status={source.status} />,
+    },
+    {
+      key: 'key',
+      title: '入庫單號',
+      width: 165,
+      render: (source) => source.key,
+    },
     {
       key: 'createdBy',
       title: '建立者',
