@@ -1,5 +1,9 @@
 import dayjs from 'dayjs';
-import { FieldArrayWithId } from 'react-hook-form';
+import {
+  FieldArrayWithId,
+  UseFieldArrayRemove,
+  useFormContext,
+} from 'react-hook-form';
 import {
   Table,
   TableColumn,
@@ -18,22 +22,32 @@ import { FormValues, ItemFieldValues } from '../typing';
 
 interface FieldArrayTableProps {
   fields: FieldArrayWithId<FormValues, 'items', 'id'>[];
+  remove: UseFieldArrayRemove;
 }
 
-const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
+const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields, remove }) => {
+  const { setValue } = useFormContext();
+
   const columns: TableColumn<ItemFieldValues & TableDataSourceWithId>[] = [
     {
       key: 'actions',
       title: '操作',
-      width: 54,
+      minWidth: 54,
       align: 'center',
-      render: (source) => (
+      render: (source, index) => (
         <Button
           type="button"
           size="sub"
           icon={TrashIcon}
           iconType="icon-only"
           variant="destructive-ghost"
+          onClick={() => {
+            if (source.isExisted) {
+              setValue(`items.${index}.removedAt`, dayjs().toISOString());
+            } else {
+              remove(index);
+            }
+          }}
           disabled={!!source.removedAt}
         />
       ),
@@ -41,13 +55,13 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'index',
       title: '入庫單項次',
-      width: 100,
+      minWidth: 100,
       render: (_, index) => `${(index + 1) * 10}`,
     },
     {
       key: 'inspection',
       title: '是否要檢驗',
-      width: 84,
+      minWidth: 84,
       render: (source, index) =>
         source.isExisted ? (
           <YesNoField
@@ -61,7 +75,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'quantity',
       title: '入庫數量',
-      width: 120,
+      minWidth: 120,
       align: 'end',
       render: (source, index) =>
         source.isExisted ? (
@@ -77,14 +91,14 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'receivedQuantity',
       title: '已入數量',
-      width: 120,
+      minWidth: 120,
       align: 'end',
       render: (source) => source.receivedQuantity,
     },
     {
       key: 'unit',
       title: '單位',
-      width: 100,
+      minWidth: 100,
       align: 'center',
       render: (source, index) => {
         if (source.isExisted) {
@@ -105,19 +119,19 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'material',
       title: '料號',
-      width: 140,
+      minWidth: 140,
       render: (source) => source.material?.name,
     },
     {
       key: 'description',
       title: '物料說明',
-      width: 120,
+      minWidth: 120,
       render: (source) => source.description,
     },
     {
       key: 'batch',
       title: '批號',
-      width: 180,
+      minWidth: 180,
       render: (source, index) => {
         if (source.isExisted) {
           return (
@@ -139,7 +153,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'location',
       title: '目標位置',
-      width: 180,
+      minWidth: 180,
       render: (source, index) => {
         if (source.isExisted) {
           return (
@@ -160,7 +174,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'loader',
       title: '目標載具',
-      width: 180,
+      minWidth: 180,
       render: (source, index) => {
         if (source.isExisted) {
           return (
@@ -181,7 +195,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'removedAt',
       title: '刪除時間',
-      width: 140,
+      minWidth: 140,
       render: (source) =>
         source.removedAt ? dayjs(source.removedAt).format('YYYY-MM-DD') : '-',
     },
