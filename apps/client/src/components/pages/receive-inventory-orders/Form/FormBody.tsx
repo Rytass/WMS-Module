@@ -2,10 +2,10 @@ import { useCallback } from 'react';
 import {
   Description,
   DescriptionContent,
-  Badge,
   SelectValue,
 } from '@mezzanine-ui/react';
 import { useFieldArray } from 'react-hook-form';
+import { ReceiveInventoryOrderStatus } from '../../../../graphql/generated/.graphql';
 import { NextPath } from '../../../../utils/nextpath';
 import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
@@ -13,6 +13,7 @@ import InputField from '../../../fields/InputField';
 import { useFormCancel } from '../../../../hooks/useFormCancel';
 import AddFields from './AddFields';
 import FieldArrayTable from './FieldArrayTable';
+import Status from '../Status';
 import { AddFormValues } from './AddFields/typing';
 import { FormValues } from './typing';
 import classes from './index.module.scss';
@@ -20,11 +21,17 @@ import classes from './index.module.scss';
 interface ReceiveInventoryOrderFormBodyProps {
   title: string;
   breadcrumbTitle: string;
+  createdBy: string;
+  createdAt: string;
+  status: ReceiveInventoryOrderStatus;
 }
 
 function ReceiveInventoryOrderFormBody({
   title,
   breadcrumbTitle,
+  createdBy,
+  createdAt,
+  status,
 }: ReceiveInventoryOrderFormBodyProps) {
   const onFormCancel = useFormCancel({});
 
@@ -72,17 +79,17 @@ function ReceiveInventoryOrderFormBody({
             orientation="vertical"
             title="建立者"
           >
-            <DescriptionContent>Ting</DescriptionContent>
+            <DescriptionContent>{createdBy || '-'}</DescriptionContent>
           </Description>
           <Description
             widthType="stretch"
             orientation="vertical"
             title="建立日期"
           >
-            <DescriptionContent>2025-12-25</DescriptionContent>
+            <DescriptionContent>{createdAt}</DescriptionContent>
           </Description>
           <Description widthType="stretch" orientation="vertical" title="狀態">
-            <Badge variant="dot-inactive" text="尚未執行" />
+            <Status status={status} />
           </Description>
           <InputField name="remark" label="備註" placeholder="輸入備註" />
         </div>

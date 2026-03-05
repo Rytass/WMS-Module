@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { ReceiveInventoryOrderStatus } from '../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../fields/FormWrapper';
 import ReceiveInventoryOrderFormBody from './FormBody';
 import { formSchema } from './schema';
@@ -10,6 +11,9 @@ interface ReceiveInventoryOrderFormProps {
   onSubmit: (values: FormValues) => Promise<void>;
   title: string;
   breadcrumbTitle: string;
+  createdBy: string;
+  createdAt: string;
+  status: ReceiveInventoryOrderStatus;
   submitText: string;
 }
 
@@ -18,6 +22,9 @@ function ReceiveInventoryOrderForm({
   onSubmit,
   title,
   breadcrumbTitle,
+  createdBy,
+  createdAt,
+  status,
   submitText,
 }: ReceiveInventoryOrderFormProps) {
   const methods = useForm<FormValues>({
@@ -36,6 +43,9 @@ function ReceiveInventoryOrderForm({
       <ReceiveInventoryOrderFormBody
         title={title}
         breadcrumbTitle={breadcrumbTitle}
+        createdBy={createdBy}
+        createdAt={createdAt}
+        status={status}
       />
     </FormWrapper>
   );
