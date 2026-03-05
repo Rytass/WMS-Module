@@ -16,7 +16,6 @@ import BaseField, { BaseFieldProps } from '../BaseField';
 export type SingleAutoCompleteFieldProps = AutoCompleteSingleProps &
   Omit<BaseFieldProps, 'children'> & {
     fuzzySearch?: boolean;
-    useNameToValue?: boolean;
   };
 
 export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
@@ -34,7 +33,6 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   options,
   onSearch: onSearchProps,
   fuzzySearch = false,
-  useNameToValue = false,
   ...rest
 }) => {
   const {
@@ -57,24 +55,13 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
     name: `${name}-search`,
   });
 
-  const watchValueInOptions = useMemo(
-    () =>
-      options?.find((o) =>
-        useNameToValue ? o.name === watchValue : o.id === watchValue,
-      ) ?? null,
-    [options, watchValue, useNameToValue],
-  );
-
-  const prevWatchValueInOptions = usePreviousValue(watchValueInOptions);
+  const prevWatchValue = usePreviousValue(watchValue);
 
   useEffect(() => {
-    if (
-      (prevWatchValueInOptions && !watchValueInOptions) ||
-      (fuzzySearch && !searchValue)
-    ) {
+    if ((prevWatchValue && !watchValue) || (fuzzySearch && !searchValue)) {
       searchTextControlRef.current?.setSearchText('');
     }
-  }, [fuzzySearch, searchValue, prevWatchValueInOptions, watchValueInOptions]);
+  }, [fuzzySearch, searchValue, prevWatchValue, watchValue]);
 
   const onChange = useCallback(
     (newValue: SelectValue) => {
@@ -83,16 +70,16 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
       }
 
       if (newValue) {
-        setValue(name, useNameToValue ? newValue.name : newValue.id, {
+        setValue(name, newValue, {
           shouldDirty: true,
         });
       } else {
-        setValue(name, '', {
+        setValue(name, null, {
           shouldDirty: true,
         });
       }
     },
-    [clearErrors, errors, name, setValue, useNameToValue],
+    [clearErrors, errors, name, setValue],
   );
 
   const onSearch = useCallback(
@@ -109,7 +96,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   );
 
   const onClear = useCallback(() => {
-    setValue(name, '', {
+    setValue(name, null, {
       shouldDirty: true,
     });
 
@@ -147,7 +134,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
         onSearch={onSearch}
         onChange={onChange}
         onClear={onClear}
-        value={watchValueInOptions}
+        value={watchValue ?? null}
         options={options}
         menuMaxHeight={menuMaxHeight}
         clearSearchText={false}

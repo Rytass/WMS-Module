@@ -28,9 +28,11 @@ function ReceiveInventoryOrderFormBody({
 }: ReceiveInventoryOrderFormBodyProps) {
   const onFormCancel = useFormCancel({});
 
-  const { fields, append } = useFieldArray<FormValues, 'items'>({
-    name: 'items',
-  });
+  const { fields, append, update, remove } = useFieldArray<FormValues, 'items'>(
+    {
+      name: 'items',
+    },
+  );
 
   const onCreate = useCallback(
     (values: AddFormValues, unitOptions: SelectValue[]) => {
@@ -87,7 +89,7 @@ function ReceiveInventoryOrderFormBody({
       </SectionWrapper>
       <SectionWrapper title="列表">
         <AddFields onCreate={onCreate} />
-        <FieldArrayTable fields={fields} />
+        <FieldArrayTable fields={fields} update={update} remove={remove} />
       </SectionWrapper>
     </PageWrapper>
   );

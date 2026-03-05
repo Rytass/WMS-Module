@@ -5,7 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import FormActionButtons from '../../../../FormActionButtons';
 import YesNoField from '../../../../fields/YesNoField';
 import InputField from '../../../../fields/InputField';
-import SingleSelectField from '../../../../fields/SingleSelectField';
+import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import MaterialsField from '../../../../fields/MaterialsField';
 import BatchesField from '../../../../fields/BatchesField';
@@ -30,14 +30,14 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
     },
   });
 
-  const materialKey = methods.watch('material');
+  const materialSelectValue = methods.watch('material');
 
   const { fetchMaterial } = useLazyQueryMaterial();
 
   const doFetchMaterial = useCallback(async () => {
     const { data } = await fetchMaterial({
       variables: {
-        key: materialKey,
+        key: materialSelectValue?.name,
       },
     });
 
@@ -58,22 +58,23 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
         })),
       ]);
     }
-  }, [fetchMaterial, materialKey, methods]);
+  }, [fetchMaterial, materialSelectValue?.name, methods]);
 
   useEffect(() => {
-    if (materialKey) {
+    if (materialSelectValue) {
       doFetchMaterial();
     } else {
       methods.setValue('description', '');
       methods.setValue('unit', '');
     }
-  }, [doFetchMaterial, materialKey, methods]);
+  }, [doFetchMaterial, materialSelectValue, methods]);
 
   const onSubmit = useCallback(
     (values: AddFormValues) => {
       onCreate(values, unitOptions);
+      methods.reset();
     },
-    [onCreate, unitOptions],
+    [onCreate, unitOptions, methods],
   );
 
   return (
@@ -86,19 +87,32 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             placeholder="是否要檢驗"
             required
           />
-          <MaterialsField name="material" fuzzySearch={false} required />
+          <MaterialsField
+            name="material"
+            fuzzySearch={false}
+            selectValueMode
+            required
+          />
           <InputField name="description" label="物料說明" disabled />
-          <BatchesField name="batch" addable fuzzySearch={false} required />
+          <BatchesField
+            name="batch"
+            addable
+            fuzzySearch={false}
+            selectValueMode
+            required
+          />
           <LocationsField
             name="location"
             label="目標位置"
             fuzzySearch={false}
+            selectValueMode
             required
           />
           <LoadersField
             name="loader"
             label="目標載具"
             fuzzySearch={false}
+            selectValueMode
             required
           />
           <NumberInputField
@@ -107,13 +121,13 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             placeholder="輸入入庫數量"
             required
           />
-          <SingleSelectField
+          <SingleSelectByIdField
             name="unit"
             label="使用單位"
             placeholder="使用單位"
             options={unitOptions}
             size="sub"
-            disabled={!materialKey}
+            disabled={!materialSelectValue}
             required
           />
         </div>

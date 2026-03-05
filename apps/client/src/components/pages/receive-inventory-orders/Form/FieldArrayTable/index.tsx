@@ -1,5 +1,9 @@
 import dayjs from 'dayjs';
-import { FieldArrayWithId } from 'react-hook-form';
+import {
+  FieldArrayWithId,
+  UseFieldArrayUpdate,
+  UseFieldArrayRemove,
+} from 'react-hook-form';
 import {
   Table,
   TableColumn,
@@ -8,7 +12,7 @@ import {
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import NumberInputField from '../../../../fields/NumberInputField';
-import SingleSelectField from '../../../../fields/SingleSelectField';
+import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import YesNoField from '../../../../fields/YesNoField';
 import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
@@ -18,35 +22,52 @@ import { FormValues, ItemFieldValues } from '../typing';
 
 interface FieldArrayTableProps {
   fields: FieldArrayWithId<FormValues, 'items', 'id'>[];
+  update: UseFieldArrayUpdate<FormValues, 'items'>;
+  remove: UseFieldArrayRemove;
 }
 
-const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
+const FieldArrayTable: FC<FieldArrayTableProps> = ({
+  fields,
+  update,
+  remove,
+}) => {
   const columns: TableColumn<ItemFieldValues & TableDataSourceWithId>[] = [
     {
       key: 'actions',
       title: '操作',
-      width: 54,
+      minWidth: 54,
       align: 'center',
-      render: (source) => (
+      render: (source, index) => (
         <Button
           type="button"
           size="sub"
           icon={TrashIcon}
           iconType="icon-only"
           variant="destructive-ghost"
+          onClick={() => {
+            if (source.isExisted) {
+              update(index, {
+                ...source,
+                removedAt: dayjs().toISOString(),
+              });
+            } else {
+              remove(index);
+            }
+          }}
+          disabled={!!source.removedAt}
         />
       ),
     },
     {
       key: 'index',
       title: '入庫單項次',
-      width: 100,
+      minWidth: 100,
       render: (_, index) => `${(index + 1) * 10}`,
     },
     {
       key: 'inspection',
       title: '是否要檢驗',
-      width: 84,
+      minWidth: 84,
       render: (source, index) =>
         source.isExisted ? (
           <YesNoField
@@ -60,7 +81,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'quantity',
       title: '入庫數量',
-      width: 120,
+      minWidth: 120,
       align: 'end',
       render: (source, index) =>
         source.isExisted ? (
@@ -76,19 +97,19 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'receivedQuantity',
       title: '已入數量',
-      width: 120,
+      minWidth: 120,
       align: 'end',
       render: (source) => source.receivedQuantity,
     },
     {
       key: 'unit',
       title: '單位',
-      width: 100,
+      minWidth: 100,
       align: 'center',
       render: (source, index) => {
         if (source.isExisted) {
           return (
-            <SingleSelectField
+            <SingleSelectByIdField
               name={`items.${index}.unit`}
               placeholder="使用單位"
               options={source.unitOptions}
@@ -104,19 +125,19 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
     {
       key: 'material',
       title: '料號',
-      width: 140,
-      render: (source) => source.material,
+      minWidth: 140,
+      render: (source) => source.material?.name,
     },
     {
       key: 'description',
       title: '物料說明',
-      width: 120,
+      minWidth: 120,
       render: (source) => source.description,
     },
     {
       key: 'batch',
       title: '批號',
-      width: 180,
+      minWidth: 180,
       render: (source, index) => {
         if (source.isExisted) {
           return (
@@ -126,18 +147,61 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
               label=""
               placeholder="輸入批號"
               fuzzySearch={false}
+              selectValueMode
               disabled={source.receivedQuantity > 0 || !!source.removedAt}
             />
           );
         }
 
-        return source.batch;
+        return source.batch?.name;
+      },
+    },
+    {
+      key: 'location',
+      title: '目標位置',
+      minWidth: 180,
+      render: (source, index) => {
+        if (source.isExisted) {
+          return (
+            <LocationsField
+              name={`items.${index}.location`}
+              label=""
+              placeholder="輸入目標位置"
+              fuzzySearch={false}
+              selectValueMode
+              disabled={source.receivedQuantity > 0 || !!source.removedAt}
+            />
+          );
+        }
+
+        return source.location?.name;
+      },
+    },
+    {
+      key: 'loader',
+      title: '目標載具',
+      minWidth: 180,
+      render: (source, index) => {
+        if (source.isExisted) {
+          return (
+            <LoadersField
+              name={`items.${index}.loader`}
+              label=""
+              placeholder="輸入目標載具"
+              fuzzySearch={false}
+              selectValueMode
+              disabled={source.receivedQuantity > 0 || !!source.removedAt}
+            />
+          );
+        }
+
+        return source.loader?.name;
       },
     },
     {
       key: 'removedAt',
       title: '刪除時間',
-      width: 140,
+      minWidth: 140,
       render: (source) =>
         source.removedAt ? dayjs(source.removedAt).format('YYYY-MM-DD') : '-',
     },
