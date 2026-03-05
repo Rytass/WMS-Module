@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
 import {
   FieldArrayWithId,
+  UseFieldArrayUpdate,
   UseFieldArrayRemove,
-  useFormContext,
 } from 'react-hook-form';
 import {
   Table,
@@ -22,12 +22,15 @@ import { FormValues, ItemFieldValues } from '../typing';
 
 interface FieldArrayTableProps {
   fields: FieldArrayWithId<FormValues, 'items', 'id'>[];
+  update: UseFieldArrayUpdate<FormValues, 'items'>;
   remove: UseFieldArrayRemove;
 }
 
-const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields, remove }) => {
-  const { setValue } = useFormContext();
-
+const FieldArrayTable: FC<FieldArrayTableProps> = ({
+  fields,
+  update,
+  remove,
+}) => {
   const columns: TableColumn<ItemFieldValues & TableDataSourceWithId>[] = [
     {
       key: 'actions',
@@ -43,7 +46,10 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields, remove }) => {
           variant="destructive-ghost"
           onClick={() => {
             if (source.isExisted) {
-              setValue(`items.${index}.removedAt`, dayjs().toISOString());
+              update(index, {
+                ...source,
+                removedAt: dayjs().toISOString(),
+              });
             } else {
               remove(index);
             }
