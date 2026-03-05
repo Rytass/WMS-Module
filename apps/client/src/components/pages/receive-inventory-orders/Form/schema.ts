@@ -26,7 +26,9 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
           id: Yup.string<YesOrNo>().required('必填'),
           name: Yup.string<YesOrNo>().required('必填'),
         }).required('必填'),
-        quantity: Yup.number().required('必填'),
+        quantity: Yup.number()
+          .required('必填')
+          .min(Yup.ref('receivedQuantity'), '必須大於等於已入數量'),
         receivedQuantity: Yup.number().required('必填'),
         unit: Yup.string().required('必填'),
         unitOptions: Yup.array()
