@@ -324,6 +324,28 @@ type HoldInventoryOrders {
   total: Int!
 }
 
+type AllocateInventoryOrderDto {
+  id: ID!
+  key: String!
+  description: String!
+  reason: String!
+  createdAt: DateTime!
+  items: [AllocateInventoryOrderItemDto!]!
+}
+
+type AllocateInventoryOrders {
+  id: ID!
+  items: [AllocateInventoryOrderDto!]!
+  total: Int!
+}
+
+type AllocateInventoryOrderItemDto {
+  id: ID!
+  targetAllocatedQuantity: Int!
+  saleId: String!
+  serial: String!
+}
+
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
@@ -346,6 +368,7 @@ type Query {
   holdInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): HoldInventoryOrders!
   location(id: ID!): LocationDto!
   locations(offset: Int, limit: Int, description: String, key: String): Locations!
+  allocateInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): AllocateInventoryOrders!
 }
 
 input DateRangeArgs {

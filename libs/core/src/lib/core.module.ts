@@ -16,6 +16,7 @@ import {
   HelperService,
   TransferOrderService,
   HoldInventoryOrderService,
+  AllocateInventoryOrderService,
 } from './services';
 import { BatchService } from './services/batch.service';
 
@@ -27,6 +28,7 @@ const exportDependencies = [
   ShipInventoryOrderService,
   TransferOrderService,
   HoldInventoryOrderService,
+  AllocateInventoryOrderService,
   StockService,
   LocationService,
   UnitService,
