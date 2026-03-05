@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { LocationOptionsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
@@ -10,6 +11,7 @@ interface LocationsFieldProps {
   placeholder?: string;
   fuzzySearch?: boolean;
   required?: boolean;
+  selectValueMode?: boolean;
 }
 
 const LocationsField: FC<LocationsFieldProps> = ({
@@ -18,6 +20,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
   placeholder,
   fuzzySearch = true,
   required,
+  selectValueMode = false,
 }) => {
   const { fetchLocations } = useLazyQueryLocations();
 
@@ -35,6 +38,22 @@ const LocationsField: FC<LocationsFieldProps> = ({
       fetchData: fetchLocations,
       getNewOptions,
     });
+
+  if (selectValueMode) {
+    return (
+      <SingleAutoCompleteField
+        name={name}
+        label={label}
+        placeholder={placeholder || `輸入${label}`}
+        fuzzySearch={fuzzySearch}
+        options={currentOptions}
+        required={required}
+        onVisibilityChange={onVisibilityChange}
+        onSearch={onSearch}
+        onReachBottom={onReachBottom}
+      />
+    );
+  }
 
   return (
     <SingleAutoCompleteByIdField
