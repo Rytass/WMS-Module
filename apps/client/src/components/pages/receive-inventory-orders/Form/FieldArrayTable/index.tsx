@@ -21,12 +21,14 @@ import { yesNoName } from '../../../../../utils/share';
 import { FormValues, ItemFieldValues } from '../typing';
 
 interface FieldArrayTableProps {
+  viewMode: boolean;
   fields: FieldArrayWithId<FormValues, 'items', 'id'>[];
   update: UseFieldArrayUpdate<FormValues, 'items'>;
   remove: UseFieldArrayRemove;
 }
 
 const FieldArrayTable: FC<FieldArrayTableProps> = ({
+  viewMode,
   fields,
   update,
   remove,
@@ -54,7 +56,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
               remove(index);
             }
           }}
-          disabled={!!source.removedAt}
+          disabled={viewMode || !!source.removedAt}
         />
       ),
     },
@@ -69,7 +71,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       title: '是否要檢驗',
       minWidth: 84,
       render: (source, index) =>
-        source.isExisted ? (
+        source.isExisted && !viewMode ? (
           <YesNoField
             name={`items.${index}.inspection`}
             disabled={source.receivedQuantity > 0 || !!source.removedAt}
@@ -84,7 +86,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       minWidth: 120,
       align: 'end',
       render: (source, index) =>
-        source.isExisted ? (
+        source.isExisted && !viewMode ? (
           <NumberInputField
             name={`items.${index}.quantity`}
             placeholder="入庫數量"
@@ -107,7 +109,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       minWidth: 100,
       align: 'center',
       render: (source, index) => {
-        if (source.isExisted) {
+        if (source.isExisted && !viewMode) {
           return (
             <SingleSelectByIdField
               name={`items.${index}.unit`}
@@ -139,7 +141,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       title: '批號',
       minWidth: 180,
       render: (source, index) => {
-        if (source.isExisted) {
+        if (source.isExisted && !viewMode) {
           return (
             <BatchesField
               name={`items.${index}.batch`}
@@ -161,7 +163,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       title: '目標位置',
       minWidth: 180,
       render: (source, index) => {
-        if (source.isExisted) {
+        if (source.isExisted && !viewMode) {
           return (
             <LocationsField
               name={`items.${index}.location`}
@@ -182,7 +184,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       title: '目標載具',
       minWidth: 180,
       render: (source, index) => {
-        if (source.isExisted) {
+        if (source.isExisted && !viewMode) {
           return (
             <LoadersField
               name={`items.${index}.loader`}

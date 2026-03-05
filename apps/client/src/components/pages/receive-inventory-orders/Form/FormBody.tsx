@@ -21,6 +21,7 @@ import classes from './index.module.scss';
 interface ReceiveInventoryOrderFormBodyProps {
   title: string;
   breadcrumbTitle: string;
+  description: string;
   createdBy: string;
   createdAt: string;
   status: ReceiveInventoryOrderStatus;
@@ -30,6 +31,7 @@ interface ReceiveInventoryOrderFormBodyProps {
 function ReceiveInventoryOrderFormBody({
   title,
   breadcrumbTitle,
+  description,
   createdBy,
   createdAt,
   status,
@@ -94,12 +96,27 @@ function ReceiveInventoryOrderFormBody({
           <Description widthType="stretch" orientation="vertical" title="狀態">
             <Status status={status} />
           </Description>
-          <InputField name="remark" label="備註" placeholder="輸入備註" />
+          {viewMode ? (
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="備註"
+            >
+              <DescriptionContent>{description}</DescriptionContent>
+            </Description>
+          ) : (
+            <InputField name="remark" label="備註" placeholder="輸入備註" />
+          )}
         </div>
       </SectionWrapper>
       <SectionWrapper title="列表">
-        <AddFields onCreate={onCreate} />
-        <FieldArrayTable fields={fields} update={update} remove={remove} />
+        {!viewMode && <AddFields onCreate={onCreate} />}
+        <FieldArrayTable
+          viewMode={viewMode}
+          fields={fields}
+          update={update}
+          remove={remove}
+        />
       </SectionWrapper>
     </PageWrapper>
   );

@@ -10,6 +10,7 @@ interface ReceiveInventoryOrderFormBaseProps {
   defaultValues: FormValues;
   title: string;
   breadcrumbTitle: string;
+  description: string;
   createdBy: string;
   createdAt: string;
   status: ReceiveInventoryOrderStatus;
@@ -32,6 +33,7 @@ function ReceiveInventoryOrderForm({
   onSubmit,
   title,
   breadcrumbTitle,
+  description,
   createdBy,
   createdAt,
   status,
@@ -49,6 +51,7 @@ function ReceiveInventoryOrderForm({
         <ReceiveInventoryOrderFormBody
           title={title}
           breadcrumbTitle={breadcrumbTitle}
+          description={description}
           createdBy={createdBy}
           createdAt={createdAt}
           status={status}
@@ -69,6 +72,7 @@ function ReceiveInventoryOrderForm({
       <ReceiveInventoryOrderFormBody
         title={title}
         breadcrumbTitle={breadcrumbTitle}
+        description={description}
         createdBy={createdBy}
         createdAt={createdAt}
         status={status}

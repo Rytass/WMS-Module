@@ -86,6 +86,7 @@ function EditReceiveInventoryOrder() {
       onSubmit={onSubmit}
       title={`入庫單號：${receiveInventoryOrder.key}`}
       breadcrumbTitle={receiveInventoryOrder.key}
+      description={receiveInventoryOrder.description}
       createdBy={receiveInventoryOrder.createdBy ?? ''}
       createdAt="今天"
       status={receiveInventoryOrder.status}
