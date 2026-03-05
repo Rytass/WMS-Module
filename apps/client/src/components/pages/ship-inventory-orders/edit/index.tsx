@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import EditShipInventoryOrderForm from '../Form';
+import ShipInventoryOrderForm from '../Form';
 import { FormValues } from '../Form/typing';
 
 function EditShipInventoryOrder() {
@@ -19,7 +19,7 @@ function EditShipInventoryOrder() {
   );
 
   return (
-    <EditShipInventoryOrderForm
+    <ShipInventoryOrderForm
       defaultValues={defaultValues}
       onSubmit={onSubmit}
       title={`出庫單號：${id}`}
