@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import ShipInventoryOrderForm from '../Form';
+import { ShipInventoryOrderStatus } from '../../../../graphql/generated/.graphql';
 import { FormValues } from '../Form/typing';
 
 function EditShipInventoryOrder() {
@@ -14,6 +15,7 @@ function EditShipInventoryOrder() {
   const defaultValues = useMemo(
     (): FormValues => ({
       remark: '',
+      items: [],
     }),
     [],
   );
@@ -24,7 +26,12 @@ function EditShipInventoryOrder() {
       onSubmit={onSubmit}
       title={`出庫單號：${id}`}
       breadcrumbTitle={id}
+      description="描述"
+      createdBy="叮叮"
+      createdAt="今天"
+      status={ShipInventoryOrderStatus.PENDING}
       submitText="儲存"
+      viewMode={false}
     />
   );
 }
