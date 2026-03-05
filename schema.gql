@@ -153,6 +153,7 @@ type ReceiveInventoryOrderDto {
   key: String!
   description: String!
   createdBy: String
+  createdAt: DateTime!
   removedAt: DateTime
   items: [ReceiveInventoryOrderItemDto!]!
   status: ReceiveInventoryOrderStatus!
@@ -186,6 +187,7 @@ type ShipInventoryOrderDto {
   key: String!
   description: String!
   createdBy: String
+  createdAt: DateTime!
   removedAt: DateTime
   items: [ShipInventoryOrderItemDto!]!
   status: ShipInventoryOrderStatus!
@@ -360,10 +362,10 @@ type Mutation {
   createMaterial(key: String!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
   updateMaterial(description: String, isActive: Boolean, id: ID!, units: [CreateMaterialUnitArgs!]): MaterialDto!
   createReceiveInventoryOrder(key: ID!, description: String!, items: [CreateReceiveInventoryOrderItemArgs!]!): ReceiveInventoryOrderDto!
-  updateReceiveInventoryOrder(description: String, id: ID!, createdBy: String, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!
+  updateReceiveInventoryOrder(description: String, id: ID!, createdBy: String, items: [UpdateReceiveInventoryOrderItemArgs!], removedAt: DateTime): ReceiveInventoryOrderDto!
   receive(items: [ReceiveOrderArgs!]!): Boolean!
-  createShipInventoryOrder(key: ID!, description: String!, createdBy: String, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
-  updateShipInventoryOrder(description: String, createdBy: String, id: ID!, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
+  createShipInventoryOrder(key: ID!, description: String!, createdBy: String, references: [CreateShipInventoryOrderReferenceArgs!]!): ShipInventoryOrderDto!
+  updateShipInventoryOrder(description: String, createdBy: String, id: ID!, references: [UpdateShipInventoryOrderReferenceArgs!], removedAt: DateTime): ShipInventoryOrderDto!
   createTransferOrder(description: String, locationId: ID!, loaderId: ID, receiver: String, createdBy: String, items: [CreateTransferOrderItemArgs!]!): TransferOrderDto!
   updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
   transfer(items: [TransferOrderArgs!]!): Boolean!
@@ -412,19 +414,23 @@ input ReceiveOrderArgs {
   quantity: Int!
 }
 
-input CreateShipInventoryOrderItemArgs {
-  unitId: ID!
-  batchId: ID!
-  materialId: ID!
+input CreateShipInventoryOrderReferenceArgs {
+  description: String
+  unitId: String
+  batchId: String
+  materialId: String!
   targetShippedQuantity: Float!
+  serialId: Float!
 }
 
-input UpdateShipInventoryOrderItemArgs {
-  unitId: ID
-  batchId: ID
-  materialId: ID
+input UpdateShipInventoryOrderReferenceArgs {
+  description: String
+  unitId: String
+  batchId: String
+  materialId: String
   targetShippedQuantity: Float
-  id: ID
+  serialId: Float
+  id: String!
   removedAt: DateTime
 }
 

@@ -24,7 +24,11 @@ import {
   ShipInventoryOrderStatus,
 } from '../typings/find-ship-inventory-order.input';
 import { OrderEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
-import { ShipInventoryOrderChangeEntityClass } from '../models';
+import {
+  ShipInventoryOrderChangeEntityClass,
+  ShipInventoryOrderReferenceEntity,
+  ShipInventoryOrderReferenceEntityClass,
+} from '../models';
 import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
 import { MaterialService } from './material.service';
 
@@ -49,6 +53,8 @@ export class ShipInventoryOrderService<
     readonly shipInventoryOrderEntity: EntityTarget<T>,
     @Inject(ShipInventoryOrderItemEntity)
     readonly shipInventoryOrderItemEntity: EntityTarget<K>,
+    @Inject(ShipInventoryOrderReferenceEntity)
+    readonly shipInventoryOrderReferenceEntity: EntityTarget<ShipInventoryOrderReferenceEntityClass>,
   ) {
     this.selectQueryBuilder = (alias: string) => {
       return this.dataSource
@@ -112,9 +118,9 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderEntityClass>(
         this.shipInventoryOrderEntity,
       );
-    const shipInventoryOrderItemRepository =
-      manager.getRepository<ShipInventoryOrderItemEntityClass>(
-        this.shipInventoryOrderItemEntity,
+    const shipInventoryOrderReferenceRepository =
+      manager.getRepository<ShipInventoryOrderReferenceEntityClass>(
+        this.shipInventoryOrderReferenceEntity,
       );
 
     // create base order
@@ -125,15 +131,15 @@ export class ShipInventoryOrderService<
       shipInventoryOrderRepository.create({ id, ...options }),
     );
 
-    // create ship inventory order items
-    if (options.items && options.items.length > 0) {
-      const items = shipInventoryOrderItemRepository.create(
-        options.items.map((item) => ({
-          ...item,
+    // create ship inventory order references
+    if (options.references && options.references.length > 0) {
+      const references = shipInventoryOrderReferenceRepository.create(
+        options.references.map((reference) => ({
+          ...reference,
           orderId: order.id,
         })),
       );
-      await shipInventoryOrderItemRepository.save(items);
+      await shipInventoryOrderReferenceRepository.save(references);
     }
 
     return order as T;
@@ -152,9 +158,10 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderEntityClass>(
         this.shipInventoryOrderEntity,
       );
-    const shipInventoryOrderItemRepository =
-      manager.getRepository<ShipInventoryOrderItemEntityClass>(
-        this.shipInventoryOrderItemEntity,
+
+    const shipInventoryOrderReferenceRepository =
+      manager.getRepository<ShipInventoryOrderReferenceEntityClass>(
+        this.shipInventoryOrderReferenceEntity,
       );
 
     const order = await shipInventoryOrderRepository.findOneByOrFail({
@@ -168,15 +175,16 @@ export class ShipInventoryOrderService<
       }),
     );
 
-    if (options.items?.length) {
-      const newItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
-      const existingItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
+    if (options.references?.length) {
+      const newItems: Partial<ShipInventoryOrderReferenceEntityClass>[] = [];
+      const existingItems: Partial<ShipInventoryOrderReferenceEntityClass>[] =
+        [];
 
-      await shipInventoryOrderItemRepository
+      await shipInventoryOrderReferenceRepository
         .find({ where: { orderId: id } })
         .then((items) => {
           const itemSet = new Set(items.map((i) => i.id));
-          options.items?.forEach((item) => {
+          options.references?.forEach((item) => {
             if (item.removedAt) return;
 
             if (!item.id) newItems.push(item);
@@ -185,15 +193,15 @@ export class ShipInventoryOrderService<
         });
 
       if (newItems.length)
-        await shipInventoryOrderItemRepository.save(
-          shipInventoryOrderItemRepository.create(
+        await shipInventoryOrderReferenceRepository.save(
+          shipInventoryOrderReferenceRepository.create(
             newItems.map((item) => ({ ...item, orderId: id })),
           ),
         );
       if (existingItems.length)
         await Promise.all(
           existingItems.map(async (item) =>
-            shipInventoryOrderItemRepository.update({ id: item.id }, item),
+            shipInventoryOrderReferenceRepository.update({ id: item.id }, item),
           ),
         );
     }

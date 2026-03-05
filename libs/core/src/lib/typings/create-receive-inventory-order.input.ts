@@ -28,4 +28,5 @@ export type UpdateReceiveInventoryOrderInput = Partial<
   id: string;
   createdBy?: string;
   items?: UpdateReceiveInventoryOrderItemInput[];
+  removedAt?: Date;
 };

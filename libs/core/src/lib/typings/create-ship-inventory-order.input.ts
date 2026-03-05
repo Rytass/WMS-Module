@@ -1,27 +1,47 @@
-export type CreateShipInventoryOrderItemInput = {
+import { StockStatus } from '../constants';
+
+export type CreateShipInventoryOrderReferenceInput = {
   description?: string;
-  unitId: string;
+  unitId?: string;
   batchId?: string;
   materialId: string;
   targetShippedQuantity: number;
+  serialId: number;
 };
 
 export type CreateShipInventoryOrderInput = {
   key: string;
   description: string;
-  items: CreateShipInventoryOrderItemInput[];
+  references: CreateShipInventoryOrderReferenceInput[];
 };
 
-export type UpdateShipInventoryOrderItemInput =
-  Partial<CreateShipInventoryOrderItemInput> & {
+export type UpdateShipInventoryOrderReferenceInput =
+  Partial<CreateShipInventoryOrderReferenceInput> & {
     id?: string;
     removedAt?: Date;
   };
 
 export type UpdateShipInventoryOrderInput = Partial<
-  Omit<CreateShipInventoryOrderInput, 'items'>
+  Omit<CreateShipInventoryOrderInput, 'references'>
 > & {
   id: string;
   createdBy?: string;
-  items?: UpdateShipInventoryOrderItemInput[];
+  references?: UpdateShipInventoryOrderReferenceInput[];
+  removedAt?: Date;
+};
+
+export type CreateShipInventoryOrderItemInput = {
+  materialId: string;
+  batchId: string;
+  locationId?: string;
+  loaderId?: string;
+  unitId?: string;
+  targetShippedQuantity: number;
+  status: StockStatus;
+  serialId: number;
+};
+
+export type CreateShipInventoryOrderItemsInput = {
+  orderId: string;
+  items: CreateShipInventoryOrderItemInput[];
 };
