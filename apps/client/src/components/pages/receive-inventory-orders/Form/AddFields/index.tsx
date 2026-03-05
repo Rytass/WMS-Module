@@ -72,8 +72,9 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   const onSubmit = useCallback(
     (values: AddFormValues) => {
       onCreate(values, unitOptions);
+      methods.reset();
     },
-    [onCreate, unitOptions],
+    [onCreate, unitOptions, methods],
   );
 
   return (

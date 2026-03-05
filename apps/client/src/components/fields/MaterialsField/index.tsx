@@ -11,6 +11,7 @@ interface MaterialsFieldProps {
   placeholder?: string;
   fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
   selectValueMode?: boolean;
 }
 
@@ -20,6 +21,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
   placeholder,
   fuzzySearch = true,
   required,
+  disabled,
   selectValueMode = false,
 }) => {
   const { fetchMaterials } = useLazyQueryMaterials();
@@ -48,6 +50,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
         fuzzySearch={fuzzySearch}
         options={currentOptions}
         required={required}
+        disabled={disabled}
         onVisibilityChange={onVisibilityChange}
         onSearch={onSearch}
         onReachBottom={onReachBottom}
@@ -63,6 +66,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
       fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}
+      disabled={disabled}
       onVisibilityChange={onVisibilityChange}
       useNameToValue
       onSearch={onSearch}

@@ -11,6 +11,7 @@ interface LocationsFieldProps {
   placeholder?: string;
   fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
   selectValueMode?: boolean;
 }
 
@@ -20,6 +21,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
   placeholder,
   fuzzySearch = true,
   required,
+  disabled,
   selectValueMode = false,
 }) => {
   const { fetchLocations } = useLazyQueryLocations();
@@ -48,6 +50,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
         fuzzySearch={fuzzySearch}
         options={currentOptions}
         required={required}
+        disabled={disabled}
         onVisibilityChange={onVisibilityChange}
         onSearch={onSearch}
         onReachBottom={onReachBottom}
@@ -63,6 +66,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
       fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}
+      disabled={disabled}
       onVisibilityChange={onVisibilityChange}
       useNameToValue
       onSearch={onSearch}

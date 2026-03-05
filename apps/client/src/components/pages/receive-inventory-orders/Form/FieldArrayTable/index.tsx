@@ -137,6 +137,48 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields }) => {
       },
     },
     {
+      key: 'location',
+      title: '目標位置',
+      width: 180,
+      render: (source, index) => {
+        if (source.isExisted) {
+          return (
+            <LocationsField
+              name={`items.${index}.location`}
+              label=""
+              placeholder="輸入目標位置"
+              fuzzySearch={false}
+              selectValueMode
+              disabled={source.receivedQuantity > 0 || !!source.removedAt}
+            />
+          );
+        }
+
+        return source.location?.name;
+      },
+    },
+    {
+      key: 'loader',
+      title: '目標載具',
+      width: 180,
+      render: (source, index) => {
+        if (source.isExisted) {
+          return (
+            <LoadersField
+              name={`items.${index}.loader`}
+              label=""
+              placeholder="輸入目標載具"
+              fuzzySearch={false}
+              selectValueMode
+              disabled={source.receivedQuantity > 0 || !!source.removedAt}
+            />
+          );
+        }
+
+        return source.loader?.name;
+      },
+    },
+    {
       key: 'removedAt',
       title: '刪除時間',
       width: 140,
