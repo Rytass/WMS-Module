@@ -6,7 +6,7 @@ export type CreateShipInventoryOrderReferenceInput = {
   batchKey?: string;
   materialKey: string;
   targetShippedQuantity: number;
-  serialId: number;
+  serialId: string;
 };
 
 export type CreateShipInventoryOrderInput = {

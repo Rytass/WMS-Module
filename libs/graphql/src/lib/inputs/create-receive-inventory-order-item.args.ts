@@ -15,7 +15,7 @@ export class CreateReceiveInventoryOrderItemArgs {
   loaderKey?: string;
 
   @Field(() => String)
-  serial!: string;
+  serialId!: string;
 
   @Field(() => ID)
   batchKey!: string;

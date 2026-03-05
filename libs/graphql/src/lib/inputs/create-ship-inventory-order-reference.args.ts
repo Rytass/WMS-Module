@@ -1,4 +1,4 @@
-import { Field, InputType, PartialType } from '@nestjs/graphql';
+import { Field, InputType, Int, PartialType } from '@nestjs/graphql';
 
 @InputType()
 export class CreateShipInventoryOrderReferenceArgs {
@@ -14,11 +14,11 @@ export class CreateShipInventoryOrderReferenceArgs {
   @Field(() => String)
   materialKey!: string;
 
-  @Field(() => Number)
+  @Field(() => Int)
   targetShippedQuantity!: number;
 
-  @Field(() => Number)
-  serialId!: number;
+  @Field(() => String)
+  serialId!: string;
 }
 
 @InputType()

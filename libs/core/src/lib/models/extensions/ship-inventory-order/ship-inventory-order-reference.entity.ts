@@ -20,8 +20,8 @@ export class ShipInventoryOrderReferenceEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'int' })
-  serialId!: number;
+  @Column({ type: 'varchar' })
+  serialId!: string;
 
   @Column({ type: 'varchar', nullable: true })
   saleId!: string | null;

@@ -138,6 +138,7 @@ type ReceiveInventoryOrderItemDto {
   description: String
   unitId: ID
   targetReceivedQuantity: Float!
+  serialId: String!
   orderId: ID!
   removedAt: DateTime
   requireInspection: Boolean!
@@ -354,7 +355,7 @@ type AllocateInventoryOrderItemDto {
 
 type ShipInventoryOrderReferenceDto {
   id: ID!
-  serialId: Int!
+  serialId: String!
   saleId: String
   saleSerialId: String
   unitId: ID
@@ -425,7 +426,7 @@ input CreateReceiveInventoryOrderItemArgs {
   unitId: ID
   locationKey: ID
   loaderKey: ID
-  serial: String!
+  serialId: String!
   batchKey: ID!
   materialKey: ID!
   targetReceivedQuantity: Float!
@@ -437,7 +438,7 @@ input UpdateReceiveInventoryOrderItemArgs {
   unitId: ID
   locationKey: ID
   loaderKey: ID
-  serial: String
+  serialId: String
   batchKey: ID
   materialKey: ID
   targetReceivedQuantity: Float
@@ -457,8 +458,8 @@ input CreateShipInventoryOrderReferenceArgs {
   unitId: String
   batchKey: String
   materialKey: String!
-  targetShippedQuantity: Float!
-  serialId: Float!
+  targetShippedQuantity: Int!
+  serialId: String!
 }
 
 input UpdateShipInventoryOrderReferenceArgs {
@@ -466,8 +467,8 @@ input UpdateShipInventoryOrderReferenceArgs {
   unitId: String
   batchKey: String
   materialKey: String
-  targetShippedQuantity: Float
-  serialId: Float
+  targetShippedQuantity: Int
+  serialId: String
   id: String!
   removedAt: DateTime
 }

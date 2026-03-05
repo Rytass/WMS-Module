@@ -15,6 +15,9 @@ export class ReceiveInventoryOrderItemDto {
   @Field(() => Float)
   targetReceivedQuantity!: number;
 
+  @Field(() => String)
+  serialId!: string;
+
   @Field(() => ID)
   orderId!: string;
 

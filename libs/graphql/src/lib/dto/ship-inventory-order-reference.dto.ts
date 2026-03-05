@@ -5,8 +5,8 @@ export class ShipInventoryOrderReferenceDto {
   @Field(() => ID)
   id!: string;
 
-  @Field(() => Int)
-  serialId!: number;
+  @Field(() => String)
+  serialId!: string;
 
   @Field(() => String, { nullable: true })
   saleId!: string | null;

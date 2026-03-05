@@ -22,7 +22,7 @@ export class ReceiveInventoryOrderItemEntityClass {
   id!: string;
 
   @Column({ type: 'varchar' })
-  serial!: string;
+  serialId!: string;
 
   @Column({ type: 'text', nullable: true })
   description!: string | null;
