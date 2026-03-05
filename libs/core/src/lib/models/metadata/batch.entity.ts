@@ -9,9 +9,6 @@ export class BatchEntityClass extends BaseBatchEntity {
   @Column({ type: 'varchar' })
   groupId!: string;
 
-  @Column({ type: 'varchar', default: '-' })
-  declare key: string;
-
   @ManyToOne(() => BatchGroupEntityClass, (batchGroup) => batchGroup.batches, {
     onDelete: 'CASCADE',
     orphanedRowAction: 'delete',
