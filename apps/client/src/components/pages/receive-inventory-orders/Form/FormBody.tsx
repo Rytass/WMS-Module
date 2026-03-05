@@ -24,6 +24,7 @@ interface ReceiveInventoryOrderFormBodyProps {
   createdBy: string;
   createdAt: string;
   status: ReceiveInventoryOrderStatus;
+  viewMode: boolean;
 }
 
 function ReceiveInventoryOrderFormBody({
@@ -32,6 +33,7 @@ function ReceiveInventoryOrderFormBody({
   createdBy,
   createdAt,
   status,
+  viewMode,
 }: ReceiveInventoryOrderFormBodyProps) {
   const onFormCancel = useFormCancel({});
 
@@ -70,7 +72,8 @@ function ReceiveInventoryOrderFormBody({
       ]}
       title={title}
       haveBack
-      onBack={onFormCancel}
+      haveFooter={viewMode}
+      onBack={viewMode ? undefined : onFormCancel}
     >
       <SectionWrapper title="單號資訊">
         <div className={classes.headSectionWrapper}>

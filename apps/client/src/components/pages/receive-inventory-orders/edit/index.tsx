@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Loading from '../../../Loading';
-import EditReceiveInventoryOrderForm from '../Form';
+import ReceiveInventoryOrderForm from '../Form';
 import { FormValues } from '../Form/typing';
 import { useQueryReceiveInventoryOrder } from '../useApi';
 import { YesOrNo, BASE_UNIT } from '../../../../utils/share';
@@ -81,7 +81,7 @@ function EditReceiveInventoryOrder() {
   }
 
   return (
-    <EditReceiveInventoryOrderForm
+    <ReceiveInventoryOrderForm
       defaultValues={defaultValues}
       onSubmit={onSubmit}
       title={`入庫單號：${receiveInventoryOrder.key}`}
@@ -90,6 +90,7 @@ function EditReceiveInventoryOrder() {
       createdAt="今天"
       status={receiveInventoryOrder.status}
       submitText="儲存"
+      viewMode={false}
     />
   );
 }
