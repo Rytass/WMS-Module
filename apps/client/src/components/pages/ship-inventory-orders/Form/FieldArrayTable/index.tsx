@@ -13,11 +13,9 @@ import {
 import { TrashIcon } from '@mezzanine-ui/icons';
 import NumberInputField from '../../../../fields/NumberInputField';
 import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
-import YesNoField from '../../../../fields/YesNoField';
 import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
 import LoadersField from '../../../../fields/LoadersField';
-import { yesNoName } from '../../../../../utils/share';
 import { FormValues, ItemFieldValues } from '../typing';
 
 interface FieldArrayTableProps {
@@ -65,20 +63,6 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       title: '入庫單項次',
       minWidth: 100,
       render: (_, index) => `${(index + 1) * 10}`,
-    },
-    {
-      key: 'inspection',
-      title: '是否要檢驗',
-      minWidth: 84,
-      render: (source, index) =>
-        source.isExisted && !viewMode ? (
-          <YesNoField
-            name={`items.${index}.inspection`}
-            disabled={source.receivedQuantity > 0 || !!source.removedAt}
-          />
-        ) : (
-          yesNoName(source.inspection)
-        ),
     },
     {
       key: 'quantity',

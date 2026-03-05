@@ -3,7 +3,6 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { SelectValue } from '@mezzanine-ui/react';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormActionButtons from '../../../../FormActionButtons';
-import YesNoField from '../../../../fields/YesNoField';
 import InputField from '../../../../fields/InputField';
 import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import NumberInputField from '../../../../fields/NumberInputField';
@@ -11,7 +10,7 @@ import MaterialsField from '../../../../fields/MaterialsField';
 import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
 import LoadersField from '../../../../fields/LoadersField';
-import { BASE_UNIT, YesOrNo } from '../../../../../utils/share';
+import { BASE_UNIT } from '../../../../../utils/share';
 import { useLazyQueryMaterial } from '../useApi';
 import { formSchema } from './schema';
 import { AddFormValues } from './typing';
@@ -25,9 +24,6 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   const [unitOptions, setUnitOptions] = useState<SelectValue[]>([]);
   const methods = useForm<AddFormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      inspection: YesOrNo.YES,
-    },
   });
 
   const materialSelectValue = methods.watch('material');
@@ -81,12 +77,6 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
     <FormProvider {...methods}>
       <div className={classes.host}>
         <div className={classes.fieldsWrapper}>
-          <YesNoField
-            name="inspection"
-            label="是否要檢驗"
-            placeholder="是否要檢驗"
-            required
-          />
           <MaterialsField
             name="material"
             fuzzySearch={false}

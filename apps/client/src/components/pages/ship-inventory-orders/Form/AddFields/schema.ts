@@ -3,7 +3,6 @@ import { YesOrNo } from '../../../../../utils/share';
 import { AddFormValues } from './typing';
 
 export const formSchema: Yup.ObjectSchema<AddFormValues> = Yup.object({
-  inspection: Yup.string<YesOrNo>().required('必填'),
   material: Yup.object({
     id: Yup.string<YesOrNo>().required('必填'),
     name: Yup.string<YesOrNo>().required('必填'),

@@ -1,8 +1,6 @@
 import { SelectValue } from '@mezzanine-ui/react';
-import { YesOrNo } from '../../../../utils/share';
 
 export type ItemFieldValues = {
-  inspection: YesOrNo;
   material: SelectValue | null;
   description?: string;
   batch: SelectValue | null;
