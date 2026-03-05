@@ -5,6 +5,7 @@ import {
 } from '../../../hooks/useTablePagination';
 import {
   ReceiveInventoryOrdersDocument,
+  ReceiveInventoryOrderDocument,
   CreateReceiveInventoryOrderDocument,
 } from '../../../graphql/generated/.graphql';
 
@@ -34,6 +35,20 @@ export function useQueryReceiveInventoryOrders() {
     setPage,
     limit,
     setLimit,
+  };
+}
+
+export function useQueryReceiveInventoryOrder(id: string) {
+  const { data, loading } = useQuery(ReceiveInventoryOrderDocument, {
+    variables: {
+      receiveInventoryOrderId: id,
+    },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  return {
+    data,
+    loading,
   };
 }
 
