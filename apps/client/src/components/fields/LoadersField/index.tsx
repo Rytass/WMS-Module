@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { LoaderOptionsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLoaders } from './useApi';
@@ -7,15 +8,21 @@ import { useLazyQueryLoaders } from './useApi';
 interface LoadersFieldProps {
   name: string;
   label?: string;
+  placeholder?: string;
   fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
+  selectValueMode?: boolean;
 }
 
 const LoadersField: FC<LoadersFieldProps> = ({
   name,
   label = '載具',
+  placeholder,
   fuzzySearch = true,
   required,
+  disabled,
+  selectValueMode = false,
 }) => {
   const { fetchLoaders } = useLazyQueryLoaders();
 
@@ -34,14 +41,32 @@ const LoadersField: FC<LoadersFieldProps> = ({
       getNewOptions,
     });
 
+  if (selectValueMode) {
+    return (
+      <SingleAutoCompleteField
+        name={name}
+        label={label}
+        placeholder={placeholder || `輸入${label}`}
+        fuzzySearch={fuzzySearch}
+        options={currentOptions}
+        required={required}
+        disabled={disabled}
+        onVisibilityChange={onVisibilityChange}
+        onSearch={onSearch}
+        onReachBottom={onReachBottom}
+      />
+    );
+  }
+
   return (
-    <SingleAutoCompleteField
+    <SingleAutoCompleteByIdField
       name={name}
       label={label}
-      placeholder={`輸入${label}`}
+      placeholder={placeholder || `輸入${label}`}
       fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}
+      disabled={disabled}
       onVisibilityChange={onVisibilityChange}
       useNameToValue
       onSearch={onSearch}

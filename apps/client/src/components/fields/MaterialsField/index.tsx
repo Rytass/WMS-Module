@@ -1,19 +1,28 @@
 import { useCallback } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { MaterialOptionsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryMaterials } from './useApi';
 
 interface MaterialsFieldProps {
   name: string;
+  label?: string;
+  placeholder?: string;
   fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
+  selectValueMode?: boolean;
 }
 
 const MaterialsField: FC<MaterialsFieldProps> = ({
   name,
+  label = '料號',
+  placeholder,
   fuzzySearch = true,
   required,
+  disabled,
+  selectValueMode = false,
 }) => {
   const { fetchMaterials } = useLazyQueryMaterials();
 
@@ -32,14 +41,32 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
       getNewOptions,
     });
 
+  if (selectValueMode) {
+    return (
+      <SingleAutoCompleteField
+        name={name}
+        label={label}
+        placeholder={placeholder || `輸入${label}`}
+        fuzzySearch={fuzzySearch}
+        options={currentOptions}
+        required={required}
+        disabled={disabled}
+        onVisibilityChange={onVisibilityChange}
+        onSearch={onSearch}
+        onReachBottom={onReachBottom}
+      />
+    );
+  }
+
   return (
-    <SingleAutoCompleteField
+    <SingleAutoCompleteByIdField
       name={name}
-      label="料號"
-      placeholder="輸入料號"
+      label={label}
+      placeholder={placeholder || `輸入${label}`}
       fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}
+      disabled={disabled}
       onVisibilityChange={onVisibilityChange}
       useNameToValue
       onSearch={onSearch}

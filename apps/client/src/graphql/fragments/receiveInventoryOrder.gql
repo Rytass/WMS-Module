@@ -4,6 +4,7 @@ fragment ReceiveInventoryOrderItem on ReceiveInventoryOrderItemDto {
   targetReceivedQuantity
   orderId
   removedAt
+  requireInspection
   material {
     ...SimpleMaterial
   }

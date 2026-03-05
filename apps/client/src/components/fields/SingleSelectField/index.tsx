@@ -6,9 +6,7 @@ import type { SelectSingleProps } from '@mezzanine-ui/react/Select/Select';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
 export type SingleSelectFieldProps = SelectSingleProps &
-  Omit<BaseFieldProps, 'children'> & {
-    useNameToValue?: boolean;
-  };
+  Omit<BaseFieldProps, 'children'>;
 
 export const SingleSelectField: FC<SingleSelectFieldProps> = ({
   className,
@@ -23,7 +21,6 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
   size = 'sub',
   menuMaxHeight = 300,
   options,
-  useNameToValue = false,
   ...rest
 }) => {
   const {
@@ -38,14 +35,6 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
     name,
   });
 
-  const watchValueInOptions = useMemo(
-    () =>
-      options?.find((o) =>
-        useNameToValue ? o.name === watchValue : o.id === watchValue,
-      ) ?? null,
-    [options, watchValue, useNameToValue],
-  );
-
   const onChange = useCallback(
     (newValue: SelectValue) => {
       if (errors?.[name]) {
@@ -53,20 +42,20 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
       }
 
       if (newValue) {
-        setValue(name, useNameToValue ? newValue.name : newValue.id, {
+        setValue(name, newValue, {
           shouldDirty: true,
         });
       } else {
-        setValue(name, '', {
+        setValue(name, null, {
           shouldDirty: true,
         });
       }
     },
-    [clearErrors, errors, name, setValue, useNameToValue],
+    [clearErrors, errors, name, setValue],
   );
 
   const onClear = useCallback(() => {
-    setValue(name, '', {
+    setValue(name, null, {
       shouldDirty: true,
     });
   }, [name, setValue]);
@@ -96,7 +85,7 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
         mode="single"
         onChange={onChange}
         onClear={onClear}
-        value={watchValueInOptions}
+        value={watchValue}
         options={options}
         menuMaxHeight={menuMaxHeight}
         dropdownZIndex={1004}

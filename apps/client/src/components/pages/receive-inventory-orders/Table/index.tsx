@@ -3,12 +3,14 @@ import { TableColumn } from '@mezzanine-ui/react';
 import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
+import Actions from './Actions';
 import { SimpleReceiveInventoryOrderFragment } from '../../../../graphql/generated/.graphql';
 import {
   useQueryReceiveInventoryOrders,
   useCreateReceiveInventoryOrder,
 } from '../useApi';
 import CreateReceiveInventoryOrderForm from '../CreateForm';
+import Status from '../Status';
 import { FormValues } from '../CreateForm/typing';
 import { NextPath } from '../../../../utils/nextpath';
 import { nextDynamicPath } from '../../../../utils/path';
@@ -54,6 +56,24 @@ function ReceiveInventoryOrdersTable() {
   );
 
   const columns: TableColumn<SimpleReceiveInventoryOrderFragment>[] = [
+    {
+      key: 'actions',
+      title: '操作',
+      width: 140,
+      render: (source) => <Actions source={source} />,
+    },
+    {
+      key: 'status',
+      title: '狀態',
+      width: 165,
+      render: (source) => <Status status={source.status} />,
+    },
+    {
+      key: 'key',
+      title: '入庫單號',
+      width: 165,
+      render: (source) => source.key,
+    },
     {
       key: 'createdBy',
       title: '建立者',

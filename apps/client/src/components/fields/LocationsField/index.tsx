@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { LocationOptionsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLocations } from './useApi';
@@ -7,15 +8,21 @@ import { useLazyQueryLocations } from './useApi';
 interface LocationsFieldProps {
   name: string;
   label?: string;
+  placeholder?: string;
   fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
+  selectValueMode?: boolean;
 }
 
 const LocationsField: FC<LocationsFieldProps> = ({
   name,
   label = '儲存位置',
+  placeholder,
   fuzzySearch = true,
   required,
+  disabled,
+  selectValueMode = false,
 }) => {
   const { fetchLocations } = useLazyQueryLocations();
 
@@ -34,14 +41,32 @@ const LocationsField: FC<LocationsFieldProps> = ({
       getNewOptions,
     });
 
+  if (selectValueMode) {
+    return (
+      <SingleAutoCompleteField
+        name={name}
+        label={label}
+        placeholder={placeholder || `輸入${label}`}
+        fuzzySearch={fuzzySearch}
+        options={currentOptions}
+        required={required}
+        disabled={disabled}
+        onVisibilityChange={onVisibilityChange}
+        onSearch={onSearch}
+        onReachBottom={onReachBottom}
+      />
+    );
+  }
+
   return (
-    <SingleAutoCompleteField
+    <SingleAutoCompleteByIdField
       name={name}
       label={label}
-      placeholder={`輸入${label}`}
+      placeholder={placeholder || `輸入${label}`}
       fuzzySearch={fuzzySearch}
       options={currentOptions}
       required={required}
+      disabled={disabled}
       onVisibilityChange={onVisibilityChange}
       useNameToValue
       onSearch={onSearch}

@@ -21,6 +21,7 @@ interface BaseFormWrapperProps<T extends FieldValues = FieldValues>
   methods: UseFormReturn<T>;
   children: ReactNode;
   onSubmit?: SubmitHandler<T>;
+  isFormPage?: boolean;
   pureFormProvider?: boolean;
 }
 
@@ -62,6 +63,7 @@ export const FormWrapper = <T extends FieldValues>({
   onSubmit = (): void => {
     //
   },
+  isFormPage = false,
   pureFormProvider = false,
   havePageFooter,
   disableSubmitButton,
@@ -81,7 +83,7 @@ export const FormWrapper = <T extends FieldValues>({
       <FormProvider {...methods}>
         <div
           className={cx(classes.form, className, {
-            [classes.isFormPage]: havePageFooter,
+            [classes.isFormPage]: isFormPage || havePageFooter,
           })}
         >
           {children}
@@ -111,7 +113,7 @@ export const FormWrapper = <T extends FieldValues>({
       <form
         {...other}
         className={cx(classes.form, className, {
-          [classes.isFormPage]: havePageFooter,
+          [classes.isFormPage]: isFormPage || havePageFooter,
         })}
         onSubmit={methods.handleSubmit(onSubmit)}
       >
