@@ -180,6 +180,11 @@ type ShipInventoryOrderItemDto {
   materialId: ID!
   batchId: ID
   removedAt: DateTime
+  material: MaterialDto!
+  batch: BatchDto
+  location: LocationDto
+  loader: LoaderDto
+  shippedQuantity: Int!
 }
 
 type ShipInventoryOrderDto {
