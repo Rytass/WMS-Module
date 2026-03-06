@@ -1,5 +1,6 @@
+import dayjs from 'dayjs';
 import { useRouter } from 'next/router';
-import { Button, ButtonGroup } from '@mezzanine-ui/react';
+import { Button, ButtonGroup, Message } from '@mezzanine-ui/react';
 import {
   SimpleReceiveInventoryOrderFragment,
   ReceiveInventoryOrderStatus,
@@ -7,6 +8,7 @@ import {
 import { NextPath } from '../../../../utils/nextpath';
 import { nextDynamicPath } from '../../../../utils/path';
 import { useDialog } from '../../../dialog/useDialog';
+import { useUpdateReceiveInventoryOrder } from '../useApi';
 
 interface ActionsProps {
   source: SimpleReceiveInventoryOrderFragment;
@@ -15,6 +17,7 @@ interface ActionsProps {
 const Actions: FC<ActionsProps> = ({ source }) => {
   const { push } = useRouter();
   const { openDialog } = useDialog();
+  const { updateReceiveInventoryOrder } = useUpdateReceiveInventoryOrder();
 
   return (
     <ButtonGroup>
@@ -70,7 +73,20 @@ const Actions: FC<ActionsProps> = ({ source }) => {
           });
 
           if (isConfirm) {
-            //
+            try {
+              const { data } = await updateReceiveInventoryOrder({
+                variables: {
+                  updateReceiveInventoryOrderId: source.id,
+                  removedAt: dayjs().toISOString(),
+                },
+              });
+
+              if (data?.updateReceiveInventoryOrder.id) {
+                Message.success('已成功移除項目');
+              }
+            } catch (error) {
+              console.error(error);
+            }
           }
         }}
       >

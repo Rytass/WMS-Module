@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from 'react';
+import dayjs from 'dayjs';
 import { TableColumn } from '@mezzanine-ui/react';
 import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
@@ -81,9 +82,16 @@ function ReceiveInventoryOrdersTable() {
       render: (source) => source.createdBy || '-',
     },
     {
+      key: 'createdAt',
+      title: '建立日期',
+      width: 165,
+      render: (source) =>
+        source.createdAt ? dayjs(source.createdAt).format('YYYY-MM-DD') : '-',
+    },
+    {
       key: 'description',
       title: '備註',
-      render: (source) => source.description,
+      render: (source) => source.description || '-',
     },
   ];
 
