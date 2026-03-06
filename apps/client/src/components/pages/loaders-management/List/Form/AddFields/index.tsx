@@ -1,6 +1,5 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { SelectValue, Message } from '@mezzanine-ui/react';
 import { yupResolver } from '@hookform/resolvers/yup';
 import InputField from '../../../../../fields/InputField';
 import NumberInputField from '../../../../../fields/NumberInputField';
@@ -9,23 +8,31 @@ import { formSchema } from './schema';
 import { AddFormValues } from './typing';
 import classes from './index.module.scss';
 
-const AddFields: FC = () => {
+interface AddFieldsProps {
+  onCreate: (values: AddFormValues) => void;
+}
+
+const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   const methods = useForm<AddFormValues>({
     resolver: yupResolver(formSchema),
   });
 
-  const onSubmit = useCallback((values: AddFormValues) => {
-    console.log('values', values);
-  }, []);
+  const onSubmit = useCallback(
+    (values: AddFormValues) => {
+      onCreate(values);
+      methods.reset();
+    },
+    [methods, onCreate],
+  );
 
   return (
     <FormProvider {...methods}>
       <div className={classes.host}>
         <div className={classes.fieldsWrapper}>
           <div className={classes.baseFieldsWrapper}>
-            <div>1</div>
-            <div>1</div>
-            <div>1</div>
+            <div>載具類型</div>
+            <div>類型代碼</div>
+            <div>儲存位置</div>
             <NumberInputField
               name="quantity"
               label="數量"
@@ -49,13 +56,13 @@ const AddFields: FC = () => {
               label="高度"
               placeholder="輸入高度"
             />
-            <div>1</div>
+            <div>尺寸單位</div>
             <NumberInputField
               name="volume"
               label="容積"
               placeholder="輸入容積"
             />
-            <div>1</div>
+            <div>容積單位</div>
           </div>
           <InputField name="remark" placeholder="輸入備註" label="備註" />
         </div>
