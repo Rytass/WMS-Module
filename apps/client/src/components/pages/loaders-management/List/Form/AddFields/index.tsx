@@ -32,7 +32,13 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
       <div className={classes.host}>
         <div className={classes.fieldsWrapper}>
           <div className={classes.baseFieldsWrapper}>
-            <div>載具類型</div>
+            <LoaderTypesField
+              name="loaderType"
+              label="載具類型"
+              fuzzySearch={false}
+              selectValueMode
+              required
+            />
             <InputField
               name="typeKey"
               placeholder="類型代碼"
