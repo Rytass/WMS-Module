@@ -5,6 +5,7 @@ import PageWrapper from '../../../../PageWrapper';
 import SectionWrapper from '../../../../SectionWrapper';
 import { useFormCancel } from '../../../../../hooks/useFormCancel';
 import AddFields from './AddFields';
+import FieldArrayTable from './FieldArrayTable';
 import { AddFormValues } from './AddFields/typing';
 import { FormValues } from './typing';
 
@@ -16,11 +17,9 @@ interface LoaderFormBodyProps {
 function LoaderFormBody({ title, breadcrumbTitle }: LoaderFormBodyProps) {
   const onFormCancel = useFormCancel({});
 
-  const { fields, append, update, remove } = useFieldArray<FormValues, 'items'>(
-    {
-      name: 'items',
-    },
-  );
+  const { fields, append, remove } = useFieldArray<FormValues, 'items'>({
+    name: 'items',
+  });
 
   const onCreate = useCallback(
     (values: AddFormValues) => {
@@ -49,7 +48,9 @@ function LoaderFormBody({ title, breadcrumbTitle }: LoaderFormBodyProps) {
       <SectionWrapper title="載具設定">
         <AddFields onCreate={onCreate} />
       </SectionWrapper>
-      <SectionWrapper title="待建立列表">section</SectionWrapper>
+      <SectionWrapper title="待建立列表">
+        <FieldArrayTable fields={fields} remove={remove} />
+      </SectionWrapper>
     </PageWrapper>
   );
 }
