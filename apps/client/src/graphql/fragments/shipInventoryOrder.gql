@@ -5,6 +5,13 @@ fragment ShipInventoryOrderReference on ShipInventoryOrderReferenceDto {
   saleSerialId
   unitId
   targetShippedQuantity
+  material {
+    ...SimpleMaterial
+  }
+  batch {
+    ...Batch
+  }
+  shippedQuantity
 }
 
 fragment ShipInventoryOrderItem on ShipInventoryOrderItemDto {
