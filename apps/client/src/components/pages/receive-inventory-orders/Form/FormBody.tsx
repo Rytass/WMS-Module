@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import dayjs from 'dayjs';
 import {
   Description,
   DescriptionContent,
@@ -91,7 +92,9 @@ function ReceiveInventoryOrderFormBody({
             orientation="vertical"
             title="建立日期"
           >
-            <DescriptionContent>{createdAt}</DescriptionContent>
+            <DescriptionContent>
+              {dayjs(createdAt).format('YYYY-MM-DD')}
+            </DescriptionContent>
           </Description>
           <Description widthType="stretch" orientation="vertical" title="狀態">
             <Status status={status} />

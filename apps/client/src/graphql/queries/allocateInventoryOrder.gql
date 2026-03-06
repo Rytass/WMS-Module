@@ -1,0 +1,27 @@
+query AllocateInventoryOrders(
+  $offset: Int
+  $limit: Int
+  $key: String
+  $dateRange: DateRangeArgs
+  $materialId: ID
+  $batchId: ID
+  $locationId: ID
+  $loaderId: ID
+) {
+  allocateInventoryOrders(
+    offset: $offset
+    limit: $limit
+    key: $key
+    dateRange: $dateRange
+    materialId: $materialId
+    batchId: $batchId
+    locationId: $locationId
+    loaderId: $loaderId
+  ) {
+    id
+    items {
+      ...SimplerAllocateInventoryOrder
+    }
+    total
+  }
+}

@@ -1,12 +1,12 @@
 mutation CreateShipInventoryOrder(
   $key: ID!
   $description: String!
-  $items: [CreateShipInventoryOrderItemArgs!]!
+  $references: [CreateShipInventoryOrderReferenceArgs!]!
 ) {
   createShipInventoryOrder(
     key: $key
     description: $description
-    items: $items
+    references: $references
   ) {
     ...ShipInventoryOrder
   }
@@ -15,12 +15,14 @@ mutation CreateShipInventoryOrder(
 mutation UpdateShipInventoryOrder(
   $updateShipInventoryOrderId: ID!
   $description: String
-  $items: [UpdateShipInventoryOrderItemArgs!]
+  $removedAt: DateTime
+  $references: [UpdateShipInventoryOrderReferenceArgs!]
 ) {
   updateShipInventoryOrder(
     id: $updateShipInventoryOrderId
     description: $description
-    items: $items
+    removedAt: $removedAt
+    references: $references
   ) {
     ...ShipInventoryOrder
   }

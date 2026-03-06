@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import {
   FieldValues,
   FormProvider,
@@ -78,6 +78,41 @@ export const FormWrapper = <T extends FieldValues>({
   haveCancelButton = true,
   ...other
 }: FormWrapperProps<T>): ReactNode => {
+  const formFooter = useMemo(
+    () =>
+      havePageFooter && (
+        <FormFooter<T>
+          onSubmit={onSubmit}
+          pureFormProvider={pureFormProvider}
+          disableSubmitButton={disableSubmitButton}
+          disableCancelButton={disableCancelButton}
+          submitText={submitText}
+          primaryButtonVariant={primaryButtonVariant}
+          primaryButtonIcon={primaryButtonIcon}
+          cancelText={cancelText}
+          secondaryButtonVariant={secondaryButtonVariant}
+          supportingActionName={supportingActionName}
+          supportingActionOnClick={supportingActionOnClick}
+          haveCancelButton={haveCancelButton}
+        />
+      ),
+    [
+      cancelText,
+      disableCancelButton,
+      disableSubmitButton,
+      haveCancelButton,
+      havePageFooter,
+      onSubmit,
+      primaryButtonIcon,
+      primaryButtonVariant,
+      pureFormProvider,
+      secondaryButtonVariant,
+      submitText,
+      supportingActionName,
+      supportingActionOnClick,
+    ],
+  );
+
   if (pureFormProvider) {
     return (
       <FormProvider {...methods}>
@@ -87,22 +122,7 @@ export const FormWrapper = <T extends FieldValues>({
           })}
         >
           {children}
-          {havePageFooter && (
-            <FormFooter<T>
-              onSubmit={onSubmit}
-              pureFormProvider={pureFormProvider}
-              disableSubmitButton={disableSubmitButton}
-              disableCancelButton={disableCancelButton}
-              submitText={submitText}
-              primaryButtonVariant={primaryButtonVariant}
-              primaryButtonIcon={primaryButtonIcon}
-              cancelText={cancelText}
-              secondaryButtonVariant={secondaryButtonVariant}
-              supportingActionName={supportingActionName}
-              supportingActionOnClick={supportingActionOnClick}
-              haveCancelButton={haveCancelButton}
-            />
-          )}
+          {formFooter}
         </div>
       </FormProvider>
     );
@@ -118,22 +138,7 @@ export const FormWrapper = <T extends FieldValues>({
         onSubmit={methods.handleSubmit(onSubmit)}
       >
         {children}
-        {havePageFooter && (
-          <FormFooter<T>
-            onSubmit={onSubmit}
-            pureFormProvider={pureFormProvider}
-            disableSubmitButton={disableSubmitButton}
-            disableCancelButton={disableCancelButton}
-            submitText={submitText}
-            primaryButtonVariant={primaryButtonVariant}
-            primaryButtonIcon={primaryButtonIcon}
-            cancelText={cancelText}
-            secondaryButtonVariant={secondaryButtonVariant}
-            supportingActionName={supportingActionName}
-            supportingActionOnClick={supportingActionOnClick}
-            haveCancelButton={haveCancelButton}
-          />
-        )}
+        {formFooter}
       </form>
     </FormProvider>
   );

@@ -1,3 +1,12 @@
+fragment ShipInventoryOrderReference on ShipInventoryOrderReferenceDto {
+  id
+  serialId
+  saleId
+  saleSerialId
+  unitId
+  targetShippedQuantity
+}
+
 fragment ShipInventoryOrderItem on ShipInventoryOrderItemDto {
   id
   unitId
@@ -6,15 +15,33 @@ fragment ShipInventoryOrderItem on ShipInventoryOrderItemDto {
   materialId
   batchId
   removedAt
+  material {
+    ...SimpleMaterial
+  }
+  batch {
+    ...Batch
+  }
+  location {
+    id
+    key
+  }
+  loader {
+    ...Loader
+  }
+  shippedQuantity
 }
 
 fragment ShipInventoryOrder on ShipInventoryOrderDto {
   id
   key
   description
+  createdAt
   createdBy
   removedAt
   status
+  references {
+    ...ShipInventoryOrderReference
+  }
   items {
     ...ShipInventoryOrderItem
   }
@@ -24,6 +51,7 @@ fragment SimpleShipInventoryOrder on ShipInventoryOrderDto {
   id
   key
   description
+  createdAt
   createdBy
   removedAt
   status

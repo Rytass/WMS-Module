@@ -118,7 +118,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       key: 'description',
       title: '物料說明',
       minWidth: 120,
-      render: (source) => source.description,
+      render: (source) => source.description || '-',
     },
     {
       key: 'batch',
@@ -155,6 +155,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
     <Table
       columns={columns}
       dataSource={fields}
+      rowState={(source) => (source.removedAt ? 'disabled' : undefined)}
       emptyProps={{
         title: '無資料',
       }}

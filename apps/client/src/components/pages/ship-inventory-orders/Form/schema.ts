@@ -1,5 +1,4 @@
 import * as Yup from 'yup';
-import { YesOrNo } from '../../../../utils/share';
 import { FormValues } from './typing';
 
 export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
@@ -8,15 +7,16 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
     .of(
       Yup.object({
         material: Yup.object({
-          id: Yup.string<YesOrNo>().required('必填'),
-          name: Yup.string<YesOrNo>().required('必填'),
+          id: Yup.string().required('必填'),
+          name: Yup.string().required('必填'),
         }).required('必填'),
         description: Yup.string(),
         batch: Yup.object({
-          id: Yup.string<YesOrNo>().required('必填'),
-          name: Yup.string<YesOrNo>().required('必填'),
+          id: Yup.string().required('必填'),
+          name: Yup.string().required('必填'),
         }).required('必填'),
         quantity: Yup.number()
+          .integer('必須為整數')
           .required('必填')
           .min(Yup.ref('shippedQuantity'), '不得小於已出數量'),
         unit: Yup.string().required('必填'),

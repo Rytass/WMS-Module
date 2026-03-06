@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { MaterialOptionsQuery } from '../../../graphql/generated/.graphql';
@@ -41,38 +41,38 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
       getNewOptions,
     });
 
+  const baseProps = useMemo(
+    () => ({
+      name,
+      label,
+      placeholder: placeholder || `輸入${label}`,
+      fuzzySearch,
+      options: currentOptions,
+      required,
+      disabled,
+      onVisibilityChange,
+      onSearch,
+      onReachBottom,
+    }),
+    [
+      currentOptions,
+      disabled,
+      fuzzySearch,
+      label,
+      name,
+      onReachBottom,
+      onSearch,
+      onVisibilityChange,
+      placeholder,
+      required,
+    ],
+  );
+
   if (selectValueMode) {
-    return (
-      <SingleAutoCompleteField
-        name={name}
-        label={label}
-        placeholder={placeholder || `輸入${label}`}
-        fuzzySearch={fuzzySearch}
-        options={currentOptions}
-        required={required}
-        disabled={disabled}
-        onVisibilityChange={onVisibilityChange}
-        onSearch={onSearch}
-        onReachBottom={onReachBottom}
-      />
-    );
+    return <SingleAutoCompleteField {...baseProps} />;
   }
 
-  return (
-    <SingleAutoCompleteByIdField
-      name={name}
-      label={label}
-      placeholder={placeholder || `輸入${label}`}
-      fuzzySearch={fuzzySearch}
-      options={currentOptions}
-      required={required}
-      disabled={disabled}
-      onVisibilityChange={onVisibilityChange}
-      useNameToValue
-      onSearch={onSearch}
-      onReachBottom={onReachBottom}
-    />
-  );
+  return <SingleAutoCompleteByIdField {...baseProps} useNameToValue />;
 };
 
 export default MaterialsField;

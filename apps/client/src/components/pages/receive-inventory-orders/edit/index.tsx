@@ -42,7 +42,7 @@ function EditReceiveInventoryOrder() {
       breadcrumbTitle={receiveInventoryOrder.key}
       description={receiveInventoryOrder.description}
       createdBy={receiveInventoryOrder.createdBy ?? ''}
-      createdAt="今天"
+      createdAt={receiveInventoryOrder.createdAt}
       status={receiveInventoryOrder.status}
       submitText="儲存"
       viewMode={false}

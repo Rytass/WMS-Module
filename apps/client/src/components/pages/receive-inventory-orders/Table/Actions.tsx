@@ -6,6 +6,7 @@ import {
 } from '../../../../graphql/generated/.graphql';
 import { NextPath } from '../../../../utils/nextpath';
 import { nextDynamicPath } from '../../../../utils/path';
+import { useDialog } from '../../../dialog/useDialog';
 
 interface ActionsProps {
   source: SimpleReceiveInventoryOrderFragment;
@@ -13,6 +14,7 @@ interface ActionsProps {
 
 const Actions: FC<ActionsProps> = ({ source }) => {
   const { push } = useRouter();
+  const { openDialog } = useDialog();
 
   return (
     <ButtonGroup>
@@ -48,16 +50,29 @@ const Actions: FC<ActionsProps> = ({ source }) => {
           編輯
         </Button>
       )}
-
       <Button
         type="button"
         size="sub"
         variant="destructive-secondary"
         disabled={source.status !== ReceiveInventoryOrderStatus.PENDING}
         // loading={loading}
-        // onClick={async () => {
+        onClick={async () => {
+          const isConfirm = await openDialog({
+            modalStatusType: 'delete',
+            title: '刪除入庫單',
+            supportingText:
+              '刪除後所有內容將永久移除且無法復原。確認要刪除嗎？',
+            cancelText: '取消',
+            confirmText: '刪除',
+            confirmButtonProps: {
+              variant: 'destructive-primary',
+            },
+          });
 
-        // }}
+          if (isConfirm) {
+            //
+          }
+        }}
       >
         刪除
       </Button>

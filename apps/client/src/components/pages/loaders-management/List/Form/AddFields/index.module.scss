@@ -1,0 +1,29 @@
+@use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/radius';
+@use '@mezzanine-ui/system/palette';
+
+.host {
+  display: flex;
+  gap: spacing.semantic-variable(gap, base);
+
+  .fieldsWrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: spacing.semantic-variable(gap, base);
+
+    .baseFieldsWrapper {
+      align-self: stretch;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: spacing.semantic-variable(gap, base);
+    }
+
+    .sizeFieldsWrapper {
+      align-self: stretch;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+      gap: spacing.semantic-variable(gap, base);
+    }
+  }
+}

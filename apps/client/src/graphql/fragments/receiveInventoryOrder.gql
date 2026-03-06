@@ -2,6 +2,7 @@ fragment ReceiveInventoryOrderItem on ReceiveInventoryOrderItemDto {
   id
   unitId
   targetReceivedQuantity
+  serialId
   orderId
   removedAt
   requireInspection
@@ -25,6 +26,7 @@ fragment ReceiveInventoryOrder on ReceiveInventoryOrderDto {
   id
   key
   description
+  createdAt
   createdBy
   removedAt
   status
@@ -37,6 +39,7 @@ fragment SimpleReceiveInventoryOrder on ReceiveInventoryOrderDto {
   id
   key
   description
+  createdAt
   createdBy
   removedAt
   status
