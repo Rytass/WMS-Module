@@ -4,15 +4,15 @@ import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
 
-interface ReleaseHoldInventoryProps {
+interface ReleaseInventoryHoldProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
 }
 
-function ReleaseHoldInventory({
+function ReleaseInventoryHold({
   inventoryList,
   queryInventoryListLoading,
-}: ReleaseHoldInventoryProps) {
+}: ReleaseInventoryHoldProps) {
   const methods = useForm();
   const formFooterProps = useShareFooterProps(inventoryList);
 
@@ -26,4 +26,4 @@ function ReleaseHoldInventory({
   );
 }
 
-export default ReleaseHoldInventory;
+export default ReleaseInventoryHold;
