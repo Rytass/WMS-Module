@@ -39,6 +39,7 @@ const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
     useFetchMoreOptions<LoaderTypeOptionsQuery>({
       fetchData: fetchLoaderTypes,
       getNewOptions,
+      searchByDescription: true,
     });
 
   const baseProps = useMemo(

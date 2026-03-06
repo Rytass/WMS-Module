@@ -71,6 +71,7 @@ export function useFetchAllOptions<T>({
 export function useFetchMoreOptions<T>({
   fetchData,
   getNewOptions,
+  searchByDescription = false,
 }: {
   fetchData: useLazyQuery.ExecFunction<
     T,
@@ -78,9 +79,11 @@ export function useFetchMoreOptions<T>({
       offset?: InputMaybe<Scalars['Int']['input']>;
       limit?: InputMaybe<Scalars['Int']['input']>;
       key?: InputMaybe<Scalars['String']['input']>;
+      description?: InputMaybe<Scalars['String']['input']>;
     }>
   >;
   getNewOptions: (data: T | undefined) => SelectValue[];
+  searchByDescription?: boolean;
 }) {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [page, setPage] = useState<number>(0);
@@ -94,7 +97,13 @@ export function useFetchMoreOptions<T>({
         variables: {
           limit: 10,
           offset: (page - 1) * 10,
-          key: searchTerm,
+          ...(searchByDescription
+            ? {
+                description: searchTerm,
+              }
+            : {
+                key: searchTerm,
+              }),
         },
       });
 
@@ -108,7 +117,7 @@ export function useFetchMoreOptions<T>({
     } catch (error) {
       console.error('error', error);
     }
-  }, [fetchData, getNewOptions, page, searchTerm]);
+  }, [fetchData, getNewOptions, page, searchByDescription, searchTerm]);
 
   useEffect(() => {
     if (page) {

@@ -3,6 +3,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import InputField from '../../../../../fields/InputField';
 import NumberInputField from '../../../../../fields/NumberInputField';
+import LoaderTypesField from '../../../../../fields/LoaderTypesField';
 import LocationsField from '../../../../../fields/LocationsField';
 import FormActionButtons from '../../../../../FormActionButtons';
 import { formSchema } from './schema';
