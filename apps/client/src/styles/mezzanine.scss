@@ -30,3 +30,7 @@
 .mzn-input {
   min-width: unset !important;
 }
+
+.mzn-form-field--vertical .mzn-form-field__data-entry {
+  max-width: unset !important;
+}
