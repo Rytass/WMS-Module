@@ -17,6 +17,10 @@ interface AddFieldsProps {
 const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   const methods = useForm<AddFormValues>({
     resolver: yupResolver(formSchema),
+    defaultValues: {
+      loaderType: null,
+      location: null,
+    },
   });
 
   const onSubmit = useCallback(

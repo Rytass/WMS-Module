@@ -56,7 +56,9 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
               remove(index);
             }
           }}
-          disabled={viewMode || !!source.removedAt}
+          disabled={
+            viewMode || source.receivedQuantity > 0 || !!source.removedAt
+          }
         />
       ),
     },

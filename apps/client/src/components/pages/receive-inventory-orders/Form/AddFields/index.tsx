@@ -27,6 +27,10 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
     resolver: yupResolver(formSchema),
     defaultValues: {
       inspection: YesOrNo.YES,
+      material: null,
+      batch: null,
+      location: null,
+      loader: null,
     },
   });
 
