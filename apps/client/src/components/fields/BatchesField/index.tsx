@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { BatchOptionsQuery } from '../../../graphql/generated/.graphql';
@@ -53,42 +53,42 @@ const BatchesField: FC<BatchesFieldProps> = ({
 
   const handleInsert = useInsertOption(setOptions);
 
+  const baseProps = useMemo(
+    () => ({
+      name,
+      addable,
+      label,
+      placeholder: placeholder || `輸入${label}`,
+      fuzzySearch,
+      options: currentOptions,
+      required,
+      disabled,
+      onVisibilityChange,
+      onInsert: handleInsert,
+      onSearch,
+      onReachBottom,
+    }),
+    [
+      addable,
+      currentOptions,
+      disabled,
+      fuzzySearch,
+      handleInsert,
+      label,
+      name,
+      onReachBottom,
+      onSearch,
+      onVisibilityChange,
+      placeholder,
+      required,
+    ],
+  );
+
   if (selectValueMode) {
-    return (
-      <SingleAutoCompleteField
-        name={name}
-        addable={addable}
-        label={label}
-        placeholder={placeholder || `輸入${label}`}
-        fuzzySearch={fuzzySearch}
-        options={currentOptions}
-        required={required}
-        disabled={disabled}
-        onVisibilityChange={onVisibilityChange}
-        onInsert={handleInsert}
-        onSearch={onSearch}
-        onReachBottom={onReachBottom}
-      />
-    );
+    return <SingleAutoCompleteField {...baseProps} />;
   }
 
-  return (
-    <SingleAutoCompleteByIdField
-      name={name}
-      addable={addable}
-      label={label}
-      placeholder={placeholder || `輸入${label}`}
-      fuzzySearch={fuzzySearch}
-      options={currentOptions}
-      required={required}
-      disabled={disabled}
-      onVisibilityChange={onVisibilityChange}
-      useNameToValue
-      onInsert={handleInsert}
-      onSearch={onSearch}
-      onReachBottom={onReachBottom}
-    />
-  );
+  return <SingleAutoCompleteByIdField {...baseProps} useNameToValue />;
 };
 
 export default BatchesField;
