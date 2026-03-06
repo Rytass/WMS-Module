@@ -37,7 +37,7 @@ function ViewReceiveInventoryOrder() {
       breadcrumbTitle={receiveInventoryOrder.key}
       description={receiveInventoryOrder.description}
       createdBy={receiveInventoryOrder.createdBy ?? ''}
-      createdAt="今天"
+      createdAt={receiveInventoryOrder.createdAt}
       status={receiveInventoryOrder.status}
       viewMode
     />
