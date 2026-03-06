@@ -4,6 +4,7 @@ import { useInventoryActions } from '../inventoryActions/useInventoryActions';
 import { useLazyQueryInventoryList } from '../inventoryActions/useApi';
 import HoldInventory from './HoldInventory';
 import ReleaseHoldInventory from './ReleaseHoldInventory';
+import DeallocateInventory from './DeallocateInventory';
 import MergeBatch from './MergeBatch';
 import ScrapInventory from './ScrapInventory';
 
@@ -60,6 +61,9 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
 
     case InventoryActions.ReleaseInventoryHold:
       return <ReleaseHoldInventory {...baseProps} />;
+
+    case InventoryActions.DeallocateInventory:
+      return <DeallocateInventory {...baseProps} />;
 
     case InventoryActions.MergeBatch:
       return <MergeBatch {...baseProps} />;
