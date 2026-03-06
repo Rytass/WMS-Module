@@ -3,6 +3,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import InputField from '../../../../../fields/InputField';
 import NumberInputField from '../../../../../fields/NumberInputField';
+import LocationsField from '../../../../../fields/LocationsField';
 import FormActionButtons from '../../../../../FormActionButtons';
 import { formSchema } from './schema';
 import { AddFormValues } from './typing';
@@ -31,8 +32,19 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
         <div className={classes.fieldsWrapper}>
           <div className={classes.baseFieldsWrapper}>
             <div>載具類型</div>
-            <div>類型代碼</div>
-            <div>儲存位置</div>
+            <InputField
+              name="typeKey"
+              placeholder="類型代碼"
+              label="類型代碼"
+              disabled
+            />
+            <LocationsField
+              name="location"
+              label="儲存位置"
+              fuzzySearch={false}
+              selectValueMode
+              required
+            />
             <NumberInputField
               name="quantity"
               label="數量"

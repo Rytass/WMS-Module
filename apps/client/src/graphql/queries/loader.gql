@@ -80,3 +80,15 @@ query LoaderTypes(
     total
   }
 }
+
+query LoaderTypeOptions($offset: Int, $limit: Int, $description: String) {
+  loaderTypes(offset: $offset, limit: $limit, description: $description) {
+    id
+    items {
+      id
+      key
+      description
+    }
+    total
+  }
+}

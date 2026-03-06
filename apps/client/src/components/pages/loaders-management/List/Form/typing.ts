@@ -1,4 +1,8 @@
+import { SelectValue } from '@mezzanine-ui/react';
+
 export type ItemFieldValues = {
+  typeKey: string;
+  location: SelectValue | null;
   quantity: number;
   length?: number;
   width?: number;
