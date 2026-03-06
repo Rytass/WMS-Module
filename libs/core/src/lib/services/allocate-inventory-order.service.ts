@@ -17,6 +17,7 @@ import {
 import { HelperService } from './helper.service';
 import { DeallocateInventoryOrderItemInput } from '../typings/deallocate-inventory-order';
 import { MaterialService } from './material.service';
+import { FindAllocateInventoryOrderInput } from '../typings/find-allocate-inventory-order.input';
 
 @Injectable()
 export class AllocateInventoryOrderService<
@@ -258,5 +259,68 @@ export class AllocateInventoryOrderService<
       );
       return true;
     });
+  }
+
+  findMany(options: FindAllocateInventoryOrderInput): Promise<[T[], number]> {
+    const queryBuilder = this.dataSource
+      .getRepository<T>(this.allocateInventoryOrderEntity)
+      .createQueryBuilder('to');
+
+    if (options.key)
+      queryBuilder.andWhere('to.key ILIKE :key', { key: `%${options.key}%` });
+
+    if (options.dateRange)
+      queryBuilder.andWhere('to.createdAt BETWEEN :start AND :end', {
+        start: options.dateRange.from,
+        end: options.dateRange.to,
+      });
+
+    if (options.materialId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'm_items',
+        'm_items.materialId = :materialId',
+        {
+          materialId: options.materialId,
+        },
+      );
+
+    if (options.batchId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'b_items',
+        'b_items.batchId = :batchId',
+        {
+          batchId: options.batchId,
+        },
+      );
+
+    if (options.locationId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'l_items',
+        'l_items.locationId = :locationId',
+        {
+          locationId: options.locationId,
+        },
+      );
+
+    if (options.loaderId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'ld_items',
+        'ld_items.loaderId = :loaderId',
+        {
+          loaderId: options.loaderId,
+        },
+      );
+
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
+
+    return queryBuilder.getManyAndCount();
   }
 }

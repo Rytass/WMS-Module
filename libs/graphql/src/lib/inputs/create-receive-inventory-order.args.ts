@@ -28,4 +28,7 @@ export class UpdateReceiveInventoryOrderArgs extends PartialType(
 
   @Field(() => [UpdateReceiveInventoryOrderItemArgs], { nullable: true })
   items?: UpdateReceiveInventoryOrderItemArgs[];
+
+  @Field(() => Date, { nullable: true })
+  removedAt?: Date;
 }

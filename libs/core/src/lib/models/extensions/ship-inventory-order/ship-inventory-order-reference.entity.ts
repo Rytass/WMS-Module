@@ -5,20 +5,29 @@ import {
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
+  Unique,
 } from 'typeorm';
 import { MaterialEntityClass, MaterialUnitEntityClass } from '../../metadata';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 
+export const ShipInventoryOrderReferenceEntity = Symbol(
+  'ShipInventoryOrderReferenceEntity',
+);
+
 @Entity('ship_inventory_order_references')
-export class ShipInventoryOrderReferenceEntity {
+@Unique('UQ_order_serial', ['orderId', 'serialId'])
+export class ShipInventoryOrderReferenceEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'varchar', nullable: true })
-  saleId!: string;
+  @Column({ type: 'varchar' })
+  serialId!: string;
 
-  @Column({ type: 'int', nullable: true })
-  serial!: number;
+  @Column({ type: 'varchar', nullable: true })
+  saleId!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  saleSerialId!: string | null;
 
   @Column({ type: 'uuid', nullable: true })
   unitId!: string | null;

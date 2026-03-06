@@ -34,6 +34,8 @@ import {
   ShipInventoryOrderItemEntityClass,
   ShipInventoryOrderChangeEntity,
   ShipInventoryOrderChangeEntityClass,
+  ShipInventoryOrderReferenceEntity,
+  ShipInventoryOrderReferenceEntityClass,
   TransferOrderEntity,
   TransferOrderEntityClass,
   TransferOrderItemEntity,
@@ -90,11 +92,16 @@ import {
   TransferCustomerOrderChangeEntityClass,
 } from './extensions';
 import { BatchEntity, UnitEntity, UnitEntityClass } from './metadata';
+import {
+  BatchGroupEntity,
+  BatchGroupEntityClass,
+} from './metadata/batch-group.entity';
 
 const entities = [
   [UnitEntity, UnitEntityClass],
   [MaterialEntity, MaterialEntityClass],
   [BatchEntity, BatchEntityClass],
+  [BatchGroupEntity, BatchGroupEntityClass],
   [MaterialUnitEntity, MaterialUnitEntityClass],
   [LoadersEntity, LoadersEntityClass],
   [LoaderTypeEntity, LoaderTypeEntityClass],
@@ -106,6 +113,7 @@ const entities = [
   [ReceiveInventoryOrderChangeEntity, ReceiveInventoryOrderChangeEntityClass],
   [ShipInventoryOrderEntity, ShipInventoryOrderEntityClass],
   [ShipInventoryOrderItemEntity, ShipInventoryOrderItemEntityClass],
+  [ShipInventoryOrderReferenceEntity, ShipInventoryOrderReferenceEntityClass],
   [ShipInventoryOrderChangeEntity, ShipInventoryOrderChangeEntityClass],
   [TransferOrderEntity, TransferOrderEntityClass],
   [TransferOrderItemEntity, TransferOrderItemEntityClass],

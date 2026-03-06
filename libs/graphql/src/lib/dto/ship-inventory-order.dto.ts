@@ -17,6 +17,9 @@ export class ShipInventoryOrderDto {
   @Field(() => String, { nullable: true })
   createdBy!: string | null;
 
+  @Field(() => Date)
+  createdAt!: Date;
+
   @Field(() => Date, { nullable: true })
   removedAt!: Date | null;
 

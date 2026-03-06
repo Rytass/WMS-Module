@@ -1,7 +1,7 @@
 export type CreateReceiveInventoryOrderItemInput = {
   description?: string;
   unitId?: string;
-  serial: string;
+  serialId: string;
   loaderKey?: string;
   locationKey?: string;
   batchKey?: string;
@@ -28,4 +28,5 @@ export type UpdateReceiveInventoryOrderInput = Partial<
   id: string;
   createdBy?: string;
   items?: UpdateReceiveInventoryOrderItemInput[];
+  removedAt?: Date;
 };
