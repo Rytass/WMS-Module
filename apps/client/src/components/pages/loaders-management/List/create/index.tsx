@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import CreateLoaderForm from '../Form';
+import LoaderForm from '../Form';
 import { FormValues } from '../Form/typing';
 
 function CreateLoader() {
@@ -8,7 +8,7 @@ function CreateLoader() {
   }, []);
 
   return (
-    <CreateLoaderForm
+    <LoaderForm
       onSubmit={onSubmit}
       title="新增載具"
       breadcrumbTitle="新增載具"

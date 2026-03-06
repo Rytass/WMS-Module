@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
-import { SelectValue } from '@mezzanine-ui/react';
+import { SelectValue, Message } from '@mezzanine-ui/react';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormActionButtons from '../../../../FormActionButtons';
 import YesNoField from '../../../../fields/YesNoField';
@@ -73,6 +73,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
     (values: AddFormValues) => {
       onCreate(values, unitOptions);
       methods.reset();
+      Message.success('已成功新增項目');
     },
     [onCreate, unitOptions, methods],
   );
