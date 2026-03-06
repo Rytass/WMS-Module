@@ -3,6 +3,7 @@ import { FormProvider, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import InputField from '../../../../../fields/InputField';
 import NumberInputField from '../../../../../fields/NumberInputField';
+import LoaderTypesField from '../../../../../fields/LoaderTypesField';
 import LocationsField from '../../../../../fields/LocationsField';
 import FormActionButtons from '../../../../../FormActionButtons';
 import { formSchema } from './schema';
@@ -16,6 +17,10 @@ interface AddFieldsProps {
 const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   const methods = useForm<AddFormValues>({
     resolver: yupResolver(formSchema),
+    defaultValues: {
+      loaderType: null,
+      location: null,
+    },
   });
 
   const onSubmit = useCallback(
@@ -31,7 +36,13 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
       <div className={classes.host}>
         <div className={classes.fieldsWrapper}>
           <div className={classes.baseFieldsWrapper}>
-            <div>載具類型</div>
+            <LoaderTypesField
+              name="loaderType"
+              label="載具類型"
+              fuzzySearch={false}
+              selectValueMode
+              required
+            />
             <InputField
               name="typeKey"
               placeholder="類型代碼"

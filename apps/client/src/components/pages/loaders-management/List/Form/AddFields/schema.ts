@@ -2,6 +2,10 @@ import * as Yup from 'yup';
 import { AddFormValues } from './typing';
 
 export const formSchema: Yup.ObjectSchema<AddFormValues> = Yup.object({
+  loaderType: Yup.object({
+    id: Yup.string().required('必填'),
+    name: Yup.string().required('必填'),
+  }).required('必填'),
   typeKey: Yup.string().required('必填'),
   location: Yup.object({
     id: Yup.string().required('必填'),

@@ -35,6 +35,18 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields, remove }) => {
       ),
     },
     {
+      key: 'loaderType',
+      title: '載具類型',
+      minWidth: 120,
+      render: (source) => source.loaderType?.name,
+    },
+    {
+      key: 'location',
+      title: '儲存位置',
+      minWidth: 120,
+      render: (source) => source.location?.name,
+    },
+    {
       key: 'quantity',
       title: '數量',
       minWidth: 82,

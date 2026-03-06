@@ -22,6 +22,10 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   const [unitOptions, setUnitOptions] = useState<SelectValue[]>([]);
   const methods = useForm<AddFormValues>({
     resolver: yupResolver(formSchema),
+    defaultValues: {
+      material: null,
+      batch: null,
+    },
   });
 
   const materialSelectValue = methods.watch('material');
