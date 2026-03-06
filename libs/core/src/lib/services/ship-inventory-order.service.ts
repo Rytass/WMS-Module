@@ -23,7 +23,11 @@ import {
   FindShipInventoryOrderInput,
   ShipInventoryOrderStatus,
 } from '../typings/find-ship-inventory-order.input';
-import { OrderEntity, StockEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
+import {
+  OrderEntity,
+  StockEntity,
+  BatchEntity,
+} from '@rytass/wms-base-nestjs-module';
 import {
   ShipInventoryOrderChangeEntityClass,
   ShipInventoryOrderReferenceEntity,
@@ -32,9 +36,7 @@ import {
 } from '../models';
 import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
 import { MaterialService } from './material.service';
-import {
-  CreateShipInventoryOrderReferenceInput,
-} from '../typings/create-ship-inventory-order.input';
+import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
 import { DeepPartial } from 'typeorm';
 
 /**
@@ -110,6 +112,12 @@ export class ShipInventoryOrderService<
           'order_status',
           `${alias}.id = order_status."orderId"`,
         )
+        .select('orders.id', 'id')
+        .addSelect('orders.key', 'key')
+        .addSelect('orders.description', 'description')
+        .addSelect('orders."createdBy"', 'createdBy')
+        .addSelect('orders."createdAt"', 'createdAt')
+        .addSelect('orders."removedAt"', 'removedAt')
         .addSelect('order_status.status', `status`);
     };
   }
@@ -152,7 +160,9 @@ export class ShipInventoryOrderService<
           return acc;
         }
       },
-      Promise.resolve([] as DeepPartial<ShipInventoryOrderReferenceEntityClass>[]),
+      Promise.resolve(
+        [] as DeepPartial<ShipInventoryOrderReferenceEntityClass>[],
+      ),
     );
   }
 
@@ -277,7 +287,7 @@ export class ShipInventoryOrderService<
       .then(({ affected }) => !!affected && affected > 0);
   }
 
-  findMany(options: FindShipInventoryOrderInput): Promise<[T[], number]> {
+  async findMany(options: FindShipInventoryOrderInput): Promise<[T[], number]> {
     const queryBuilder = this.selectQueryBuilder('orders');
 
     if (options.id)
@@ -304,13 +314,17 @@ export class ShipInventoryOrderService<
         status: options.status,
       });
 
+    const total = await queryBuilder.getCount();
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
     if (options.limit !== undefined && options.limit > 0)
       queryBuilder.take(options.limit);
 
-    return queryBuilder.getManyAndCount();
+    const items = await queryBuilder.getRawMany();
+
+    return [items, total];
   }
 
   ship(

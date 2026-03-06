@@ -111,6 +111,7 @@ export class ReceiveInventoryOrderService<
         .addSelect('orders.description', 'description')
         .addSelect('orders."createdBy"', 'createdBy')
         .addSelect('orders."createdAt"', 'createdAt')
+        .addSelect('orders."removedAt"', 'removedAt')
         .addSelect('order_status.status', `status`);
     };
   }
