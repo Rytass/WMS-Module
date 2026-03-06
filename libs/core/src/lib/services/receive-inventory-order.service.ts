@@ -276,9 +276,12 @@ export class ReceiveInventoryOrderService<
         );
 
       if (existingItems.length)
-        await Promise.all(
-          existingItems.map(async (item) =>
-            receiveInventoryOrderItemRepository.update({ id: item.id }, item),
+        await receiveInventoryOrderItemRepository.save(
+          existingItems.map((item) =>
+            receiveInventoryOrderItemRepository.create({
+              ...item,
+              id: item.id,
+            }),
           ),
         );
     }

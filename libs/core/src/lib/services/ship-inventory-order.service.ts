@@ -268,9 +268,12 @@ export class ShipInventoryOrderService<
         }
       }
       if (existingItems.length)
-        await Promise.all(
-          existingItems.map(async (item) =>
-            shipInventoryOrderReferenceRepository.update({ id: item.id }, item),
+        await shipInventoryOrderReferenceRepository.save(
+          existingItems.map((item) =>
+            shipInventoryOrderReferenceRepository.create({
+              ...item,
+              id: item.id,
+            }),
           ),
         );
     }
