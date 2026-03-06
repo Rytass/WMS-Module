@@ -6,7 +6,7 @@ export function fragmentToDefaultValues(
   receiveInventoryOrder: ReceiveInventoryOrderFragment | null,
 ): FormValues {
   return {
-    remark: receiveInventoryOrder?.description,
+    remark: receiveInventoryOrder?.description ?? '',
     items: (receiveInventoryOrder?.items ?? []).map((item) => ({
       inspection: item.requireInspection ? YesOrNo.YES : YesOrNo.NO,
       material: {
@@ -49,7 +49,7 @@ export function fragmentToDefaultValues(
         })),
       ],
       isExisted: true,
-      removedAt: item.removedAt,
+      removedAt: item.removedAt || '',
     })),
   };
 }
