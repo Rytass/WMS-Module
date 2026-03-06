@@ -29,7 +29,7 @@ function ShipInventoryOrdersTable() {
           variables: {
             key: values.serial,
             description: values.description ?? '',
-            items: [],
+            references: [],
           },
         });
 
@@ -57,7 +57,7 @@ function ShipInventoryOrdersTable() {
     {
       key: 'description',
       title: '備註',
-      render: (source) => source.description,
+      render: (source) => source.description || '-',
     },
   ];
 

@@ -7,6 +7,7 @@ import {
   ReceiveInventoryOrdersDocument,
   ReceiveInventoryOrderDocument,
   CreateReceiveInventoryOrderDocument,
+  UpdateReceiveInventoryOrderDocument,
 } from '../../../graphql/generated/.graphql';
 
 export function useQueryReceiveInventoryOrders() {
@@ -59,5 +60,15 @@ export function useCreateReceiveInventoryOrder() {
 
   return {
     createReceiveInventoryOrder,
+  };
+}
+
+export function useUpdateReceiveInventoryOrder() {
+  const [updateReceiveInventoryOrder] = useMutation(
+    UpdateReceiveInventoryOrderDocument,
+  );
+
+  return {
+    updateReceiveInventoryOrder,
   };
 }
