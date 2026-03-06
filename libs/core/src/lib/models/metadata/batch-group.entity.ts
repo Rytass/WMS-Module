@@ -1,5 +1,5 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
-import { BatchEntityClass } from './batch.entity';
+import { type BatchEntityClass } from './batch.entity';
 
 export const BatchGroupEntity = Symbol('BatchGroupEntity');
 
@@ -14,6 +14,6 @@ export class BatchGroupEntityClass {
   @Column({ type: 'varchar' })
   materialId!: string;
 
-  @OneToMany(() => BatchEntityClass, (batch) => batch.batchGroup)
+  @OneToMany('batches', (batch: BatchEntityClass) => batch.batchGroup)
   batches: BatchEntityClass[];
 }

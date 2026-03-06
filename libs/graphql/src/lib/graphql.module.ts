@@ -38,6 +38,7 @@ import { AllocateInventoryOrderQuery } from './queries/allocate-inventory-order.
 import { AllocateInventoryOrderResolver } from './resolvers/allocate-inventory-order.resolver';
 import {
   ShipInventoryOrderItemResolver,
+  ShipInventoryOrderReferenceResolver,
   ShipInventoryOrderResolver,
 } from './resolvers/ship-inventory-order.resolver';
 
@@ -65,6 +66,7 @@ const exportDependencies = [
   ShipInventoryOrderQuery,
   ShipInventoryOrderResolver,
   ShipInventoryOrderItemResolver,
+  ShipInventoryOrderReferenceResolver,
 
   TransferOrderMutation,
   TransferOrderQuery,

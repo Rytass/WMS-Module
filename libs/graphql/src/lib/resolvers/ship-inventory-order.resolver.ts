@@ -114,6 +114,25 @@ export class ShipInventoryOrderItemResolver {
 
 @Resolver(() => ShipInventoryOrderReferenceDto)
 export class ShipInventoryOrderReferenceResolver {
+  @ResolveField(() => Int)
+  async shippedQuantity(
+    @Parent() { orderId, serialId }: ShipInventoryOrderReferenceEntityClass,
+    @Context() { loaders }: LoaderType<ShipInventoryOrderItemEntityClass>,
+  ): Promise<number> {
+    const items = await loaders.batchMany.load({
+      __entity: ShipInventoryOrderItemEntityClass,
+      __from: { orderId, serialId },
+      __conditions: (qb) => qb.leftJoinAndSelect('entity.changes', 'changes'),
+    });
+    const changes = items.flatMap((item) => item.changes);
+
+    return changes.reduce((acc, { quantityChanged }) => {
+      acc += quantityChanged;
+
+      return acc;
+    }, 0);
+  }
+
   @ResolveField(() => MaterialDto)
   material(
     @Parent() { materialId }: ShipInventoryOrderReferenceEntityClass,
