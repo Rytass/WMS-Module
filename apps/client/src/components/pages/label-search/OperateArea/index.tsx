@@ -7,6 +7,8 @@ import HoldInventory from './HoldInventory';
 import ReleaseInventoryHold from './ReleaseInventoryHold';
 import DeallocateInventory from './DeallocateInventory';
 import MergeBatch from './MergeBatch';
+import ReturnFromVendor from './ReturnFromVendor';
+import ReturnFromCustomer from './ReturnFromCustomer';
 import ScrapInventory from './ScrapInventory';
 
 const OperateArea: FC = () => {
@@ -48,6 +50,22 @@ const OperateArea: FC = () => {
     case InventoryActions.MergeBatch:
       return (
         <MergeBatch
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      );
+
+    case InventoryActions.ReturnFromVendor:
+      return (
+        <ReturnFromVendor
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      );
+
+    case InventoryActions.ReturnFromCustomer:
+      return (
+        <ReturnFromCustomer
           inventoryList={inventoryList}
           queryInventoryListLoading={queryInventoryListLoading}
         />

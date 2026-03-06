@@ -3,6 +3,8 @@ import { Typography, Empty } from '@mezzanine-ui/react';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import MergeBatchField from '../../../inventoryActions/fields/MergeBatchField';
+import ReturnFromVendorField from '../../../inventoryActions/fields/ReturnFromVendorField';
+import ReturnFromCustomerField from '../../../inventoryActions/fields/ReturnFromCustomerField';
 import { InventoryActions } from '../../../inventoryActions/utils';
 import classes from './index.module.scss';
 
@@ -18,6 +20,12 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
     switch (targetAction?.id) {
       case InventoryActions.MergeBatch:
         return <MergeBatchField />;
+
+      case InventoryActions.ReturnFromVendor:
+        return <ReturnFromVendorField />;
+
+      case InventoryActions.ReturnFromCustomer:
+        return <ReturnFromCustomerField />;
 
       default:
         return null;

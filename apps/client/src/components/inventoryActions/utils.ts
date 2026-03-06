@@ -327,5 +327,17 @@ export const inventoryActionOptions: InventoryActionItem[] = [
 }));
 
 export function haveAdditionalFields(currentAction: InventoryActions) {
-  return [InventoryActions.MergeBatch].includes(currentAction);
+  return [
+    InventoryActions.PendingTransferInventory,
+    InventoryActions.AllocateInventory,
+    InventoryActions.ShipInventory,
+    InventoryActions.SplitBatch,
+    InventoryActions.MergeBatch,
+    InventoryActions.ReclassifyInventory,
+    InventoryActions.TransferToVendor,
+    InventoryActions.ReturnFromVendor,
+    InventoryActions.QualityInspection,
+    InventoryActions.DeliverToCustomer,
+    InventoryActions.ReturnFromCustomer,
+  ].includes(currentAction);
 }
