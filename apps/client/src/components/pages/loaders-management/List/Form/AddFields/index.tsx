@@ -26,7 +26,12 @@ const AddFields: FC = () => {
             <div>1</div>
             <div>1</div>
             <div>1</div>
-            <div>1</div>
+            <NumberInputField
+              name="quantity"
+              label="數量"
+              placeholder="輸入數量"
+              required
+            />
           </div>
           <div className={classes.sizeFieldsWrapper}>
             <NumberInputField
