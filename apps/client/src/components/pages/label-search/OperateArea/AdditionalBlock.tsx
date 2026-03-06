@@ -1,11 +1,17 @@
 import { useMemo } from 'react';
 import { Typography, Empty } from '@mezzanine-ui/react';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import MergeBatchField from '../../../inventoryActions/fields/MergeBatchField';
 import { InventoryActions } from '../../../inventoryActions/utils';
 import classes from './index.module.scss';
 
-const AdditionalBlock: FC = () => {
+interface AdditionalBlockProps {
+  inventoryList: AggregatedStockFragment[];
+  queryInventoryListLoading: boolean;
+}
+
+const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
   const { targetAction } = useInventoryActions();
 
   const additionalFields = useMemo(() => {
