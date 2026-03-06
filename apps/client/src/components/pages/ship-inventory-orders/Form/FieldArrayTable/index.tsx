@@ -155,6 +155,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
     <Table
       columns={columns}
       dataSource={fields}
+      rowState={(source) => (source.removedAt ? 'disabled' : undefined)}
       emptyProps={{
         title: '無資料',
       }}
