@@ -20,7 +20,6 @@ import {
   WarehouseMapEntity,
 } from './metadata/location.entity';
 import { WarehouseMapEntity as WarehouseMapEntityClass } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
-import { BatchEntity as BatchEntityClass } from '@rytass/wms-base-nestjs-module';
 import {
   ReceiveInventoryOrderChangeEntity,
   ReceiveInventoryOrderChangeEntityClass,
@@ -91,7 +90,12 @@ import {
   TransferCustomerOrderChangeEntity,
   TransferCustomerOrderChangeEntityClass,
 } from './extensions';
-import { BatchEntity, UnitEntity, UnitEntityClass } from './metadata';
+import {
+  BatchEntity,
+  BatchEntityClass,
+  UnitEntity,
+  UnitEntityClass,
+} from './metadata';
 import {
   BatchGroupEntity,
   BatchGroupEntityClass,

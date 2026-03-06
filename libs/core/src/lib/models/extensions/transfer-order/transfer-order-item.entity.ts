@@ -11,12 +11,11 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { TransferOrderEntityClass } from './transfer-order.entity';
 import { TransferOrderChangeEntityClass } from './transfer-order-change.entity';
-import { BaseOrderItemEntityClass } from '../base-order-item.entity';
 
 export const TransferOrderItemEntity = Symbol('TransferOrderItemEntity');
 @Entity('transfer_order_items')
 @TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
-export class TransferOrderItemEntityClass extends BaseOrderItemEntityClass {
+export class TransferOrderItemEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

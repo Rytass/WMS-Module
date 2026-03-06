@@ -8,11 +8,10 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { TransferOrderItemEntityClass } from './transfer-order-item.entity';
-import { BaseOrderChangeEntityClass } from '../base-order-change.entity';
 
 export const TransferOrderChangeEntity = Symbol('TransferOrderChangeEntity');
 @Entity('transfer_order_changes')
-export class TransferOrderChangeEntityClass extends BaseOrderChangeEntityClass {
+export class TransferOrderChangeEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

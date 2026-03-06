@@ -350,7 +350,7 @@ type AllocateInventoryOrderItemDto {
   id: ID!
   targetAllocatedQuantity: Int!
   saleId: String!
-  serial: String!
+  saleSerialId: String!
 }
 
 type ShipInventoryOrderReferenceDto {

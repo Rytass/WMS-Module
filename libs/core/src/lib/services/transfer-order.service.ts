@@ -76,7 +76,6 @@ export class TransferOrderService<
             itemId: item.id,
             id: base.id,
             quantityChanged: item.targetTransferredQuantity * conversionFactor,
-            source: data.status,
           }),
         );
 
@@ -314,7 +313,6 @@ export class TransferOrderService<
                 itemId: item.id,
                 id: base.id,
                 quantityChanged: -1 * option.quantity * conversionFactor,
-                source: item.status,
               }),
             ),
             // Update stock levels
