@@ -1,0 +1,15 @@
+@use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/radius';
+@use '@mezzanine-ui/system/palette';
+
+.host {
+  display: flex;
+  gap: spacing.semantic-variable(gap, base);
+
+  .fieldsWrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: spacing.semantic-variable(gap, base);
+  }
+}

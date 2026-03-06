@@ -2,6 +2,7 @@ import { NextPath } from '../../../../../utils/nextpath';
 import PageWrapper from '../../../../PageWrapper';
 import SectionWrapper from '../../../../SectionWrapper';
 import { useFormCancel } from '../../../../../hooks/useFormCancel';
+import AddFields from './AddFields';
 
 interface LoaderFormBodyProps {
   title: string;
@@ -26,7 +27,9 @@ function LoaderFormBody({ title, breadcrumbTitle }: LoaderFormBodyProps) {
       haveBack
       onBack={onFormCancel}
     >
-      <SectionWrapper title="載具設定">載具設定</SectionWrapper>
+      <SectionWrapper title="載具設定">
+        <AddFields />
+      </SectionWrapper>
       <SectionWrapper title="待建立列表">section</SectionWrapper>
     </PageWrapper>
   );
