@@ -42,7 +42,8 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   } = useFormContext();
 
   const searchTextControlRef = useRef<
-    { setSearchText: Dispatch<SetStateAction<string>> } | undefined
+    | { reset: () => void; setSearchText: Dispatch<SetStateAction<string>> }
+    | undefined
   >(undefined);
 
   const isError = useMemo(() => get(errors, name), [errors, name]);
