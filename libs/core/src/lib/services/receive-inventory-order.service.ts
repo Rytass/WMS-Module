@@ -66,7 +66,7 @@ export class ReceiveInventoryOrderService<
             subQuery
               .select(
                 `CASE
-                  WHEN o."removedAt" IS NOT NULL THEN '${ReceiveInventoryOrderStatus.PENDING}'
+                  WHEN o."removedAt" IS NOT NULL THEN '${ReceiveInventoryOrderStatus.REMOVED}'
                   WHEN COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
                     FROM receive_inventory_order_changes c
