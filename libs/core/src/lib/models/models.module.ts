@@ -100,6 +100,10 @@ import {
   BatchGroupEntity,
   BatchGroupEntityClass,
 } from './metadata/batch-group.entity';
+import {
+  SaleOrderEntity,
+  SaleOrderEntityClass,
+} from './metadata/sale-order.entity';
 
 const entities = [
   [UnitEntity, UnitEntityClass],
@@ -112,6 +116,7 @@ const entities = [
   [StockEntity, StockEntityClass],
   [LocationEntity, LocationEntityClass],
   [WarehouseMapEntity, WarehouseMapEntityClass],
+  [SaleOrderEntity, SaleOrderEntityClass],
   [ReceiveInventoryOrderEntity, ReceiveInventoryOrderEntityClass],
   [ReceiveInventoryOrderItemEntity, ReceiveInventoryOrderItemEntityClass],
   [ReceiveInventoryOrderChangeEntity, ReceiveInventoryOrderChangeEntityClass],
