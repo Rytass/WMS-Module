@@ -35,6 +35,7 @@ import {
   ShipInventoryOrderReferenceEntity,
   ShipInventoryOrderReferenceEntityClass,
   MaterialEntityClass,
+  StockEntityClass,
 } from '../models';
 import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
 import { MaterialService } from './material.service';
@@ -181,7 +182,8 @@ export class ShipInventoryOrderService<
         ShipInventoryOrderChangeEntityClass,
       );
     const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
-    const stockRepository = manager.getRepository<StockEntity>(StockEntity);
+    const stockRepository =
+      manager.getRepository<StockEntityClass>(StockEntityClass);
 
     await Promise.all(
       items.map(async (data) => {
