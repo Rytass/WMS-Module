@@ -405,7 +405,7 @@ input DateRangeArgs {
 
 type Mutation {
   createLoader(typeId: ID!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
-  createBatchLoader(typeId: ID!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
+  createBatchLoader(items: [CreateLoadersArgs!]!): [LoaderDto!]!
   updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!): LoaderDto!
   createLoaderType(description: String!, key: String!): LoaderTypeDto!
   updateLoaderType(description: String, id: ID!, isActive: Boolean): LoaderTypeDto!
@@ -424,6 +424,19 @@ type Mutation {
   release(items: [ReleaseOrderArgs!]!): Boolean!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
+}
+
+input CreateLoadersArgs {
+  typeKey: ID!
+  locationId: ID!
+  quantity: Int!
+  length: Float
+  width: Float
+  height: Float
+  sizeUnit: String
+  volume: Float
+  volumeUnit: String
+  note: String
 }
 
 input CreateMaterialUnitArgs {
