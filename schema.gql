@@ -363,6 +363,7 @@ type ShipInventoryOrderReferenceDto {
   shippedQuantity: Int!
   material: MaterialDto!
   batch: BatchDto
+  items: [ShipInventoryOrderItemDto!]!
 }
 
 type Query {
@@ -407,7 +408,7 @@ type Mutation {
   updateReceiveInventoryOrder(description: String, id: ID!, createdBy: String, items: [UpdateReceiveInventoryOrderItemArgs!], removedAt: DateTime): ReceiveInventoryOrderDto!
   receive(items: [ReceiveOrderArgs!]!): Boolean!
   createShipInventoryOrder(key: ID!, description: String!, createdBy: String, references: [CreateShipInventoryOrderReferenceArgs!]!): ShipInventoryOrderDto!
-  updateShipInventoryOrder(description: String, createdBy: String, id: ID!, references: [UpdateShipInventoryOrderReferenceArgs!], removedAt: DateTime): ShipInventoryOrderDto!
+  updateShipInventoryOrder(description: String, createdBy: String, id: ID!, references: [UpdateShipInventoryOrderReferenceArgs!], items: [UpdateShipInventoryOrderItemArgs!], removedAt: DateTime): ShipInventoryOrderDto!
   createTransferOrder(description: String, locationId: ID!, loaderId: ID, receiver: String, createdBy: String, items: [CreateTransferOrderItemArgs!]!): TransferOrderDto!
   updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
   transfer(items: [TransferOrderArgs!]!): Boolean!
@@ -472,7 +473,16 @@ input UpdateShipInventoryOrderReferenceArgs {
   materialKey: String
   targetShippedQuantity: Int
   serialId: String
-  id: String!
+  id: String
+  removedAt: DateTime
+}
+
+input UpdateShipInventoryOrderItemArgs {
+  aggregatedKey: ID
+  unitId: ID
+  targetShippedQuantity: Float
+  serialId: String
+  id: ID
   removedAt: DateTime
 }
 

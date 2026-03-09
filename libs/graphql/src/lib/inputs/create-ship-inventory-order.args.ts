@@ -3,6 +3,7 @@ import {
   CreateShipInventoryOrderReferenceArgs,
   UpdateShipInventoryOrderReferenceArgs,
 } from './create-ship-inventory-order-reference.args';
+import { UpdateShipInventoryOrderItemArgs } from './create-ship-inventory-order-item.args';
 
 @ArgsType()
 export class CreateShipInventoryOrderArgs {
@@ -28,6 +29,9 @@ export class UpdateShipInventoryOrderArgs extends PartialType(
 
   @Field(() => [UpdateShipInventoryOrderReferenceArgs], { nullable: true })
   references?: UpdateShipInventoryOrderReferenceArgs[];
+
+  @Field(() => [UpdateShipInventoryOrderItemArgs], { nullable: true })
+  items?: UpdateShipInventoryOrderItemArgs[];
 
   @Field(() => Date, { nullable: true })
   removedAt?: Date;

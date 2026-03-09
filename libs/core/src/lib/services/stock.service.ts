@@ -68,9 +68,7 @@ export class StockService<
             subQuery
               .select(
                 `CASE
-                  WHEN qi_changes.id IS NOT NULL AND qi_changes."result" IS NULL THEN '${StockStatus.PENDING_INSPECTION}'
-                  WHEN qi_failed.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
-
+                  WHEN sio_changes.id IS NOT NULL AND (s.quantity * sio_changes."quantityChanged") > 0 THEN '${StockStatus.IN_SHIPMENT}'
                   WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") > 0 THEN '${StockStatus.HELD}'
                   WHEN to_changes.id IS NOT NULL AND (s.quantity * to_changes."quantityChanged") > 0 THEN '${StockStatus.IN_TRANSFER}'
 

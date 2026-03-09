@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ShipInventoryOrderService } from '@wms-module/core';
+import { ShipInventoryOrderService, StockService } from '@wms-module/core';
 import { ShipInventoryOrderDto } from '../dto';
 import { Args, Mutation } from '@nestjs/graphql';
 import {
@@ -10,20 +10,44 @@ import {
 @Injectable()
 export class ShipInventoryOrderMutation {
   constructor(
-    private readonly shipInventoryOrderService: ShipInventoryOrderService
+    private readonly shipInventoryOrderService: ShipInventoryOrderService,
+    private readonly stockService: StockService,
   ) {}
 
   @Mutation(() => ShipInventoryOrderDto)
   async createShipInventoryOrder(
-    @Args() args: CreateShipInventoryOrderArgs
+    @Args() args: CreateShipInventoryOrderArgs,
   ): Promise<ShipInventoryOrderDto> {
-    return this.shipInventoryOrderService.createShipInventoryOrder(args);
+    const { id } =
+      await this.shipInventoryOrderService.createShipInventoryOrder(args);
+
+    return this.shipInventoryOrderService
+      .selectQueryBuilder('orders')
+      .where('orders.id = :id', { id })
+      .getRawOne() as Promise<ShipInventoryOrderDto>;
   }
 
   @Mutation(() => ShipInventoryOrderDto)
   async updateShipInventoryOrder(
-    @Args() args: UpdateShipInventoryOrderArgs
+    @Args() args: UpdateShipInventoryOrderArgs,
   ): Promise<ShipInventoryOrderDto> {
-    return this.shipInventoryOrderService.updateShipInventoryOrder(args);
+    const { id } =
+      await this.shipInventoryOrderService.updateShipInventoryOrder({
+        ...args,
+        items: args?.items?.map(({ aggregatedKey, ...item }) => {
+          const keys = aggregatedKey
+            ? this.stockService.destructAggregateKey(aggregatedKey)
+            : {};
+          return {
+            ...item,
+            ...keys,
+          };
+        }),
+      });
+
+    return this.shipInventoryOrderService
+      .selectQueryBuilder('orders')
+      .where('orders.id = :id', { id })
+      .getRawOne() as Promise<ShipInventoryOrderDto>;
   }
 }
