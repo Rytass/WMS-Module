@@ -8,10 +8,20 @@ export class SaleOrderQuery {
   constructor(private readonly saleOrderService: SaleOrderService) {}
 
   @Query(() => [String])
-  async saleOrderDistinctIds(): Promise<string[]> {
-    return this.saleOrderService.saleOrderRepository
-      .query(`SELECT DISTINCT "id" FROM sale_orders ORDER BY "id"`)
-      .then((rows) => rows.map((row: { id: string }) => row.id));
+  async saleOrderDistinctIds(
+    @Args('keyword', { nullable: true }) keyword?: string,
+  ): Promise<string[]> {
+    const builder = this.saleOrderService.saleOrderRepository
+      .createQueryBuilder('so')
+      .select('DISTINCT so.id', 'id');
+
+    if (keyword)
+      builder.where('so.id LIKE :keyword', {
+        keyword: `%${keyword}%`,
+      });
+
+    const result = await builder.getRawMany();
+    return result.map(({ id }) => id);
   }
 
   @Query(() => [SaleOrderDto])
