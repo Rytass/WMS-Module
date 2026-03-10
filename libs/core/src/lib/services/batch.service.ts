@@ -60,21 +60,12 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       relations: ['batchGroup'],
     });
 
-    console.log(
-      batchRepository.create({
-        ...batch,
-        ...options,
-        groupId: batch.batchGroup.id,
-        key: `${batch.key}_${Date.now().toString()}`,
-        id: undefined,
-      }),
-    );
     return batchRepository.save(
       batchRepository.create({
         ...batch,
         ...options,
         groupId: batch.batchGroup.id,
-        key: `${batch.key}_${Date.now().toString()}`,
+        key: `${batch.batchGroup.key}_${Date.now().toString()}`,
         id: undefined,
       }),
     ) as Promise<T>;
