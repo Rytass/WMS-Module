@@ -17,6 +17,7 @@ import {
   TransferOrderService,
   HoldInventoryOrderService,
   AllocateInventoryOrderService,
+  SaleOrderService,
 } from './services';
 import { BatchService } from './services/batch.service';
 
@@ -33,6 +34,7 @@ const exportDependencies = [
   LocationService,
   UnitService,
   HelperService,
+  SaleOrderService,
 ];
 
 @Module({

@@ -155,4 +155,15 @@ export class ShipInventoryOrderReferenceResolver {
       __from: { id: batchId },
     });
   }
+
+  @ResolveField(() => [ShipInventoryOrderItemDto])
+  async items(
+    @Parent() { orderId, serialId }: ShipInventoryOrderReferenceEntityClass,
+    @Context() { loaders }: LoaderType<ShipInventoryOrderItemEntityClass>,
+  ): Promise<ShipInventoryOrderItemDto[]> {
+    return loaders.batchMany.load({
+      __entity: ShipInventoryOrderItemEntityClass,
+      __from: { orderId, serialId },
+    });
+  }
 }

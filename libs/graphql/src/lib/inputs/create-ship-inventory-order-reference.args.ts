@@ -25,8 +25,8 @@ export class CreateShipInventoryOrderReferenceArgs {
 export class UpdateShipInventoryOrderReferenceArgs extends PartialType(
   CreateShipInventoryOrderReferenceArgs,
 ) {
-  @Field(() => String)
-  id!: string;
+  @Field(() => String, { nullable: true })
+  id?: string;
 
   @Field(() => Date, { nullable: true })
   removedAt?: Date;

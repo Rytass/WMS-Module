@@ -8,8 +8,10 @@ import {
 } from '../inputs/create-loader-type.args';
 import {
   CreateLoaderArgs,
+  CreateLoadersArgs,
   UpdateLoaderArgs,
 } from '../inputs/create-loader.args';
+import { In } from 'typeorm';
 @Injectable()
 export class LoaderMutation {
   constructor(private readonly loaderService: LoaderService) {}
@@ -21,9 +23,21 @@ export class LoaderMutation {
 
   @Mutation(() => [LoaderDto])
   async createBatchLoader(
-    @Args({ type: () => [CreateLoaderArgs] }) args: CreateLoaderArgs[]
+    @Args('items', { type: () => [CreateLoadersArgs] })
+    args: CreateLoadersArgs[],
   ): Promise<LoaderDto[]> {
-    return this.loaderService.createBatchLoaders({ options: args });
+    const types = await this.loaderService.loaderTypeRepository.find({
+      where: {
+        key: In(args.map((arg) => arg.typeKey)),
+      },
+    });
+    const typeMap = new Map(types.map((type) => [type.key, type.id]));
+    return this.loaderService.createBatchLoaders({
+      options: args.map((arg) => ({
+        ...arg,
+        typeId: typeMap.get(arg.typeKey) as string,
+      })),
+    });
   }
 
   @Mutation(() => LoaderDto)
@@ -38,7 +52,7 @@ export class LoaderMutation {
 
   @Mutation(() => LoaderTypeDto)
   async updateLoaderType(
-    @Args() args: UpdateLoaderTypeArgs
+    @Args() args: UpdateLoaderTypeArgs,
   ): Promise<LoaderTypeDto> {
     return this.loaderService.updateLoaderType(args);
   }

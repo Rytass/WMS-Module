@@ -8,6 +8,8 @@ export type CreateAllocateInventoryOrderItemInput = {
   unitId?: string;
   status?: StockStatus;
   targetAllocatedQuantity: number;
+  saleId?: string;
+  saleSerialId?: string;
 };
 
 export type CreateAllocateInventoryOrderInput = {

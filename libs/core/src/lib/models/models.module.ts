@@ -20,7 +20,6 @@ import {
   WarehouseMapEntity,
 } from './metadata/location.entity';
 import { WarehouseMapEntity as WarehouseMapEntityClass } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
-import { BatchEntity as BatchEntityClass } from '@rytass/wms-base-nestjs-module';
 import {
   ReceiveInventoryOrderChangeEntity,
   ReceiveInventoryOrderChangeEntityClass,
@@ -91,11 +90,20 @@ import {
   TransferCustomerOrderChangeEntity,
   TransferCustomerOrderChangeEntityClass,
 } from './extensions';
-import { BatchEntity, UnitEntity, UnitEntityClass } from './metadata';
+import {
+  BatchEntity,
+  BatchEntityClass,
+  UnitEntity,
+  UnitEntityClass,
+} from './metadata';
 import {
   BatchGroupEntity,
   BatchGroupEntityClass,
 } from './metadata/batch-group.entity';
+import {
+  SaleOrderEntity,
+  SaleOrderEntityClass,
+} from './metadata/sale-order.entity';
 
 const entities = [
   [UnitEntity, UnitEntityClass],
@@ -108,6 +116,7 @@ const entities = [
   [StockEntity, StockEntityClass],
   [LocationEntity, LocationEntityClass],
   [WarehouseMapEntity, WarehouseMapEntityClass],
+  [SaleOrderEntity, SaleOrderEntityClass],
   [ReceiveInventoryOrderEntity, ReceiveInventoryOrderEntityClass],
   [ReceiveInventoryOrderItemEntity, ReceiveInventoryOrderItemEntityClass],
   [ReceiveInventoryOrderChangeEntity, ReceiveInventoryOrderChangeEntityClass],

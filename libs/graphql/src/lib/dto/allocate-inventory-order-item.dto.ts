@@ -24,5 +24,5 @@ export class AllocateInventoryOrderItemDto {
   saleId!: string;
 
   @Field(() => String)
-  serial!: string;
+  saleSerialId!: string;
 }
