@@ -27,6 +27,7 @@ export type UpdateShipInventoryOrderInput = Partial<
   id: string;
   createdBy?: string;
   references?: UpdateShipInventoryOrderReferenceInput[];
+  items?: UpdateShipInventoryOrderItemInput[];
   removedAt?: Date;
 };
 
@@ -38,8 +39,15 @@ export type CreateShipInventoryOrderItemInput = {
   unitId?: string;
   targetShippedQuantity: number;
   status: StockStatus;
-  serialId: number;
+  serialId: string;
+  orderId: string;
 };
+
+export type UpdateShipInventoryOrderItemInput =
+  Partial<CreateShipInventoryOrderItemInput> & {
+    id?: string;
+    removedAt?: Date;
+  };
 
 export type CreateShipInventoryOrderItemsInput = {
   orderId: string;

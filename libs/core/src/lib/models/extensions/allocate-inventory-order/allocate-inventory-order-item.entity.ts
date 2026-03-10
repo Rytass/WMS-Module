@@ -10,14 +10,13 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { AllocateInventoryOrderEntityClass } from './allocate-inventory-order.entity';
 import { AllocateInventoryOrderChangeEntityClass } from './allocate-inventory-order-change.entity';
-import { BaseOrderItemEntityClass } from '../base-order-item.entity';
 
 export const AllocateInventoryOrderItemEntity = Symbol(
   'AllocateInventoryOrderItemEntity',
 );
 @Entity('allocate_inventory_order_items')
 @TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
-export class AllocateInventoryOrderItemEntityClass extends BaseOrderItemEntityClass {
+export class AllocateInventoryOrderItemEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
@@ -52,7 +51,7 @@ export class AllocateInventoryOrderItemEntityClass extends BaseOrderItemEntityCl
   saleId!: string;
 
   @Column({ type: 'varchar' })
-  serial!: string;
+  saleSerialId!: string;
 
   @ManyToOne('locations')
   @JoinColumn({ name: 'locationId', referencedColumnName: 'id' })

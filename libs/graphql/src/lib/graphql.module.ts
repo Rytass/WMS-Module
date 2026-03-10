@@ -41,6 +41,7 @@ import {
   ShipInventoryOrderReferenceResolver,
   ShipInventoryOrderResolver,
 } from './resolvers/ship-inventory-order.resolver';
+import { SaleOrderQuery } from './queries/sale-order.query';
 
 const exportDependencies = [
   UnitQuery,
@@ -84,6 +85,8 @@ const exportDependencies = [
 
   AllocateInventoryOrderQuery,
   AllocateInventoryOrderResolver,
+
+  SaleOrderQuery,
 ];
 @Module({
   providers: exportDependencies,

@@ -66,7 +66,7 @@ export class ReceiveInventoryOrderService<
             subQuery
               .select(
                 `CASE
-                  WHEN o."removedAt" IS NOT NULL THEN '${ReceiveInventoryOrderStatus.PENDING}'
+                  WHEN o."removedAt" IS NOT NULL THEN '${ReceiveInventoryOrderStatus.REMOVED}'
                   WHEN COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
                     FROM receive_inventory_order_changes c
@@ -111,6 +111,7 @@ export class ReceiveInventoryOrderService<
         .addSelect('orders.description', 'description')
         .addSelect('orders."createdBy"', 'createdBy')
         .addSelect('orders."createdAt"', 'createdAt')
+        .addSelect('orders."removedAt"', 'removedAt')
         .addSelect('order_status.status', `status`);
     };
   }
@@ -275,9 +276,12 @@ export class ReceiveInventoryOrderService<
         );
 
       if (existingItems.length)
-        await Promise.all(
-          existingItems.map(async (item) =>
-            receiveInventoryOrderItemRepository.update({ id: item.id }, item),
+        await receiveInventoryOrderItemRepository.save(
+          existingItems.map((item) =>
+            receiveInventoryOrderItemRepository.create({
+              ...item,
+              id: item.id,
+            }),
           ),
         );
     }

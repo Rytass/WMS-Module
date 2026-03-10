@@ -17,24 +17,29 @@ import {
 } from 'typeorm';
 import {
   CreateShipInventoryOrderInput,
+  CreateShipInventoryOrderItemInput,
+  CreateShipInventoryOrderItemsInput,
   UpdateShipInventoryOrderInput,
 } from '../typings/create-ship-inventory-order.input';
 import {
   FindShipInventoryOrderInput,
   ShipInventoryOrderStatus,
 } from '../typings/find-ship-inventory-order.input';
-import { OrderEntity, StockEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
+import {
+  OrderEntity,
+  StockEntity,
+  BatchEntity,
+} from '@rytass/wms-base-nestjs-module';
 import {
   ShipInventoryOrderChangeEntityClass,
   ShipInventoryOrderReferenceEntity,
   ShipInventoryOrderReferenceEntityClass,
   MaterialEntityClass,
+  StockEntityClass,
 } from '../models';
 import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
 import { MaterialService } from './material.service';
-import {
-  CreateShipInventoryOrderReferenceInput,
-} from '../typings/create-ship-inventory-order.input';
+import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
 import { DeepPartial } from 'typeorm';
 
 /**
@@ -70,7 +75,7 @@ export class ShipInventoryOrderService<
             subQuery
               .select(
                 `CASE
-                  WHEN o."removedAt" IS NOT NULL THEN '${ShipInventoryOrderStatus.PENDING}'
+                  WHEN o."removedAt" IS NOT NULL THEN '${ShipInventoryOrderStatus.REMOVED}'
                   WHEN COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
                     FROM ship_inventory_order_changes c
@@ -110,6 +115,12 @@ export class ShipInventoryOrderService<
           'order_status',
           `${alias}.id = order_status."orderId"`,
         )
+        .select('orders.id', 'id')
+        .addSelect('orders.key', 'key')
+        .addSelect('orders.description', 'description')
+        .addSelect('orders."createdBy"', 'createdBy')
+        .addSelect('orders."createdAt"', 'createdAt')
+        .addSelect('orders."removedAt"', 'removedAt')
         .addSelect('order_status.status', `status`);
     };
   }
@@ -152,7 +163,70 @@ export class ShipInventoryOrderService<
           return acc;
         }
       },
-      Promise.resolve([] as DeepPartial<ShipInventoryOrderReferenceEntityClass>[]),
+      Promise.resolve(
+        [] as DeepPartial<ShipInventoryOrderReferenceEntityClass>[],
+      ),
+    );
+  }
+
+  private async processShipInventoryOrderItems(
+    items: Partial<ShipInventoryOrderItemEntityClass>[],
+    manager: EntityManager,
+  ): Promise<void> {
+    const shipInventoryOrderItemRepository =
+      manager.getRepository<ShipInventoryOrderItemEntityClass>(
+        this.shipInventoryOrderItemEntity,
+      );
+    const shipInventoryOrderChangeRepository =
+      manager.getRepository<ShipInventoryOrderChangeEntityClass>(
+        ShipInventoryOrderChangeEntityClass,
+      );
+    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const stockRepository =
+      manager.getRepository<StockEntityClass>(StockEntityClass);
+
+    await Promise.all(
+      items.map(async (data) => {
+        const item = await shipInventoryOrderItemRepository.save(
+          shipInventoryOrderItemRepository.create(data),
+        );
+        const base = await orderRepository.save(orderRepository.create());
+        const conversionFactor = await this.materialService.getConversionFactor(
+          item.materialId,
+          item.unitId || undefined,
+        );
+
+        await shipInventoryOrderChangeRepository.save(
+          shipInventoryOrderChangeRepository.create({
+            itemId: item.id,
+            id: base.id,
+            quantityChanged: item.targetShippedQuantity * conversionFactor,
+          }),
+        );
+
+        await stockRepository.save(
+          stockRepository.create([
+            // add shipped stock to location
+            {
+              orderId: base.id,
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: item.locationId,
+              loaderId: item.loaderId,
+              quantity: item.targetShippedQuantity * conversionFactor,
+            } as DeepPartial<StockEntity>,
+            // deduct available stock from location
+            {
+              orderId: base.id,
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: item.locationId,
+              loaderId: item.loaderId,
+              quantity: -1 * item.targetShippedQuantity * conversionFactor,
+            } as DeepPartial<StockEntity>,
+          ]),
+        );
+      }),
     );
   }
 
@@ -218,6 +292,11 @@ export class ShipInventoryOrderService<
         this.shipInventoryOrderReferenceEntity,
       );
 
+    const shipInventoryOrderItemRepository =
+      manager.getRepository<ShipInventoryOrderItemEntityClass>(
+        this.shipInventoryOrderItemEntity,
+      );
+
     const order = await shipInventoryOrderRepository.findOneByOrFail({
       id,
       removedAt: IsNull(),
@@ -258,9 +337,41 @@ export class ShipInventoryOrderService<
         }
       }
       if (existingItems.length)
-        await Promise.all(
-          existingItems.map(async (item) =>
-            shipInventoryOrderReferenceRepository.update({ id: item.id }, item),
+        await shipInventoryOrderReferenceRepository.save(
+          existingItems.map((item) =>
+            shipInventoryOrderReferenceRepository.create({
+              ...item,
+              id: item.id,
+            }),
+          ),
+        );
+    }
+
+    if (options.items?.length) {
+      const newItems: Partial<CreateShipInventoryOrderItemInput>[] = [];
+      const existingItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
+
+      await shipInventoryOrderItemRepository
+        .find({ where: { orderId: id } })
+        .then((items) => {
+          const itemSet = new Set(items.map((i) => i.id));
+          options.items?.forEach((item) => {
+            if (item.removedAt) return;
+
+            if (!item.id) newItems.push({ ...item, orderId: id });
+            else if (itemSet.has(item.id)) existingItems.push(item);
+          });
+        });
+
+      if (newItems.length)
+        await this.processShipInventoryOrderItems(newItems, manager);
+      if (existingItems.length)
+        await shipInventoryOrderItemRepository.save(
+          existingItems.map((item) =>
+            shipInventoryOrderItemRepository.create({
+              ...item,
+              id: item.id,
+            }),
           ),
         );
     }
@@ -277,7 +388,7 @@ export class ShipInventoryOrderService<
       .then(({ affected }) => !!affected && affected > 0);
   }
 
-  findMany(options: FindShipInventoryOrderInput): Promise<[T[], number]> {
+  async findMany(options: FindShipInventoryOrderInput): Promise<[T[], number]> {
     const queryBuilder = this.selectQueryBuilder('orders');
 
     if (options.id)
@@ -304,13 +415,42 @@ export class ShipInventoryOrderService<
         status: options.status,
       });
 
+    const total = await queryBuilder.getCount();
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
     if (options.limit !== undefined && options.limit > 0)
       queryBuilder.take(options.limit);
 
-    return queryBuilder.getManyAndCount();
+    const items = await queryBuilder.getRawMany();
+
+    return [items, total];
+  }
+
+  async addShipInventoryOrderItems(
+    options: CreateShipInventoryOrderItemsInput,
+    manager = this.dataSource.manager,
+  ): Promise<T> {
+    const shipInventoryOrderRepository =
+      manager.getRepository<ShipInventoryOrderEntityClass>(
+        this.shipInventoryOrderEntity,
+      );
+
+    const order = await shipInventoryOrderRepository.findOneByOrFail({
+      id: options.orderId,
+      removedAt: IsNull(),
+    });
+
+    if (options.items.length) {
+      const items = options.items.map((item) => ({
+        ...item,
+        orderId: options.orderId,
+      }));
+      await this.processShipInventoryOrderItems(items, manager);
+    }
+
+    return order as T;
   }
 
   ship(

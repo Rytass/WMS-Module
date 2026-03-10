@@ -16,8 +16,8 @@ export class ShipInventoryOrderQuery {
   ): Promise<ShipInventoryOrderDto> {
     return this.shipInventoryOrderService
       .selectQueryBuilder('orders')
-      .setFindOptions({ where: { id } })
-      .getOneOrFail();
+      .where('orders.id = :id', { id })
+      .getRawOne() as Promise<ShipInventoryOrderDto>;
   }
 
   @Query(() => ShipInventoryOrders)

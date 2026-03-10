@@ -6,8 +6,23 @@ export const BatchEntity = Symbol('BatchEntity');
 
 @Entity('batches')
 export class BatchEntityClass extends BaseBatchEntity {
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', nullable: true })
   groupId!: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  saleId: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  saleSerialId: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  customerId: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  vendorId: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  inspectionId: string | null;
 
   @ManyToOne(
     'batch_groups',

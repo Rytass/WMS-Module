@@ -22,7 +22,7 @@ export class LoaderTypeEntityClass {
   @Column({ type: 'bool', default: true })
   isActive!: boolean;
 
-  @Column({ type: 'varchar' })
+  @Column({ type: 'varchar', unique: true })
   @Index()
   key!: string;
 
