@@ -1,55 +1,5 @@
-mutation CreateLoader(
-  $typeId: ID!
-  $locationId: ID!
-  $quantity: Int!
-  $length: Float
-  $width: Float
-  $height: Float
-  $sizeUnit: String
-  $volume: Float
-  $volumeUnit: String
-  $note: String
-) {
-  createLoader(
-    typeId: $typeId
-    locationId: $locationId
-    quantity: $quantity
-    length: $length
-    width: $width
-    height: $height
-    sizeUnit: $sizeUnit
-    volume: $volume
-    volumeUnit: $volumeUnit
-    note: $note
-  ) {
-    ...Loader
-  }
-}
-
-mutation CreateBatchLoader(
-  $typeId: ID!
-  $locationId: ID!
-  $quantity: Int!
-  $length: Float
-  $width: Float
-  $height: Float
-  $sizeUnit: String
-  $volume: Float
-  $volumeUnit: String
-  $note: String
-) {
-  createBatchLoader(
-    typeId: $typeId
-    locationId: $locationId
-    quantity: $quantity
-    length: $length
-    width: $width
-    height: $height
-    sizeUnit: $sizeUnit
-    volume: $volume
-    volumeUnit: $volumeUnit
-    note: $note
-  ) {
+mutation CreateBatchLoader($items: [CreateLoadersArgs!]!) {
+  createBatchLoader(items: $items) {
     ...Loader
   }
 }

@@ -17,12 +17,14 @@ mutation UpdateShipInventoryOrder(
   $description: String
   $removedAt: DateTime
   $references: [UpdateShipInventoryOrderReferenceArgs!]
+  $items: [UpdateShipInventoryOrderItemArgs!]
 ) {
   updateShipInventoryOrder(
     id: $updateShipInventoryOrderId
     description: $description
     removedAt: $removedAt
     references: $references
+    items: $items
   ) {
     ...ShipInventoryOrder
   }

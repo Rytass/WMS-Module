@@ -2,7 +2,7 @@ fragment AllocateInventoryOrderItem on AllocateInventoryOrderItemDto {
   id
   targetAllocatedQuantity
   saleId
-  serial
+  saleSerialId
 }
 
 fragment AllocateInventoryOrder on AllocateInventoryOrderDto {
