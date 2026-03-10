@@ -8,7 +8,13 @@ import {
   StockEntity,
   StockEntityClass,
 } from '../models';
-import { DataSource, EntityManager, EntityTarget, In } from 'typeorm';
+import {
+  DataSource,
+  DeepPartial,
+  EntityManager,
+  EntityTarget,
+  In,
+} from 'typeorm';
 import { HelperService } from './helper.service';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
@@ -18,6 +24,7 @@ import {
 import { FindHoldInventoryOrderInput } from '../typings/find-hold-inventory-order.input';
 import { ReleaseInventoryOrderItemInput } from '../typings/release-inventory-order.input';
 import { MaterialService } from './material.service';
+import { BatchService } from './batch.service';
 
 @Injectable()
 export class HoldInventoryOrderService<
@@ -31,6 +38,7 @@ export class HoldInventoryOrderService<
     private readonly dataSource: DataSource,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
+    private readonly batchService: BatchService,
     @Inject(HoldInventoryOrderEntity)
     readonly holdInventoryOrderEntity: EntityTarget<T>,
     @Inject(HoldInventoryOrderItemEntity)
@@ -58,9 +66,21 @@ export class HoldInventoryOrderService<
   private async processHoldInventoryOrderItems(
     items: Partial<HoldInventoryOrderItemEntityClass>[],
     repos: ReturnType<typeof this.getRepositories>,
+    manager: EntityManager,
   ): Promise<void> {
     await Promise.all(
       items.map(async (data) => {
+        // Ensure required fields are present
+        if (!data.batchId || !data.materialId) return;
+
+        // Split batch first with held flag to track held state
+        const splittedBatch = await this.batchService.splitBatch({
+          id: data.batchId,
+          held: true,
+          manager,
+        });
+
+        // Save item with ORIGINAL batch id to maintain source state
         const item = await repos.holdInventoryOrderItem.save(
           repos.holdInventoryOrderItem.create(data),
         );
@@ -78,26 +98,27 @@ export class HoldInventoryOrderService<
           }),
         );
 
+        // Stock movements track the hold through splitted batch
         await repos.stock.save(
           repos.stock.create([
-            // add held stock to location
+            // deduct from original batch available stock
             {
               orderId: base.id,
               materialId: item.materialId,
-              batchId: item.batchId,
-              locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
-              quantity: item.targetHeldQuantity * conversionFactor,
-            },
-            // deduct available stock from location
-            {
-              orderId: base.id,
-              materialId: item.materialId,
-              batchId: item.batchId,
+              batchId: item.batchId, // original batch
               locationId: item.locationId || undefined,
               loaderId: item.loaderId || undefined,
               quantity: -1 * item.targetHeldQuantity * conversionFactor,
-            },
+            } as DeepPartial<StockEntityClass>,
+            // add to splitted batch in held state
+            {
+              orderId: base.id,
+              materialId: item.materialId,
+              batchId: splittedBatch.id, // splitted batch marked held
+              locationId: item.locationId || undefined,
+              loaderId: item.loaderId || undefined,
+              quantity: item.targetHeldQuantity * conversionFactor,
+            } as DeepPartial<StockEntityClass>,
           ]),
         );
       }),
@@ -120,7 +141,7 @@ export class HoldInventoryOrderService<
         ...item,
         orderId: order.id,
       }));
-      await this.processHoldInventoryOrderItems(items, repos);
+      await this.processHoldInventoryOrderItems(items, repos, manager);
     }
     return order as T;
   }
@@ -156,7 +177,7 @@ export class HoldInventoryOrderService<
       });
 
       if (newItems.length)
-        await this.processHoldInventoryOrderItems(newItems, repos);
+        await this.processHoldInventoryOrderItems(newItems, repos, manager);
       if (existingItems.length)
         repos.holdInventoryOrderItem.save(
           await Promise.all(
@@ -272,6 +293,12 @@ export class HoldInventoryOrderService<
               `Release quantity exceeds held quantity for item ${item.id}`,
             );
 
+          // Create splitted batch for release completion
+          const releasedBatch = await this.batchService.splitBatch({
+            id: item.batchId,
+            manager,
+          });
+
           const base = await repos.order.save({});
 
           await Promise.all([
@@ -285,24 +312,24 @@ export class HoldInventoryOrderService<
 
             repos.stock.save(
               repos.stock.create([
-                // deduct held stock from location
+                // add to destination with original batch reference
                 {
-                  orderId: base.id,
-                  materialId: item.materialId,
-                  batchId: item.batchId,
-                  locationId: item.locationId || undefined,
-                  loaderId: item.loaderId || undefined,
-                  quantity: -1 * option.quantity * conversionFactor,
-                },
-                {
-                  // add available stock to location
                   orderId: base.id,
                   materialId: item.materialId,
                   batchId: item.batchId,
                   locationId: item.locationId || undefined,
                   loaderId: item.loaderId || undefined,
                   quantity: option.quantity * conversionFactor,
-                },
+                } as DeepPartial<StockEntityClass>,
+                // deduct from released splitted batch
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: releasedBatch.id,
+                  locationId: item.locationId || undefined,
+                  loaderId: item.loaderId || undefined,
+                  quantity: -1 * option.quantity * conversionFactor,
+                } as DeepPartial<StockEntityClass>,
               ]),
             ),
           ]);

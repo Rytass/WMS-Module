@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DataSource, EntityManager, EntityTarget, Repository } from 'typeorm';
 import { BatchEntity, BatchEntityClass } from '../models';
 import { FindBatchInput } from '../typings/find-batch.input';
-import { GetBatchInput } from '../typings/get-batch.input';
+import { GetBatchInput, SplitBatchInput } from '../typings/get-batch.input';
 import {
   BatchGroupEntity,
   BatchGroupEntityClass,
@@ -53,19 +53,29 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
   }: {
     id: string;
     manager?: EntityManager;
-  } & Omit<GetBatchInput, 'key'>): Promise<T> {
+  } & SplitBatchInput): Promise<T> {
     const batchRepository = manager.getRepository(BatchEntityClass);
     const batch = await batchRepository.findOneOrFail({
       where: { id: options.id },
       relations: ['batchGroup'],
     });
 
+    console.log(
+      batchRepository.create({
+        ...batch,
+        ...options,
+        groupId: batch.batchGroup.id,
+        key: `${batch.key}_${Date.now().toString()}`,
+        id: undefined,
+      }),
+    );
     return batchRepository.save(
       batchRepository.create({
         ...batch,
         ...options,
         groupId: batch.batchGroup.id,
         key: `${batch.key}_${Date.now().toString()}`,
+        id: undefined,
       }),
     ) as Promise<T>;
   }

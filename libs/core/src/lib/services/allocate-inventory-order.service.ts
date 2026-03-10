@@ -8,7 +8,13 @@ import {
   StockEntity,
   StockEntityClass,
 } from '../models';
-import { DataSource, EntityManager, EntityTarget, In } from 'typeorm';
+import {
+  DataSource,
+  DeepPartial,
+  EntityManager,
+  EntityTarget,
+  In,
+} from 'typeorm';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   CreateAllocateInventoryOrderInput,
@@ -33,12 +39,12 @@ export class AllocateInventoryOrderService<
     private readonly dataSource: DataSource,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
+    private readonly batchService: BatchService,
     @Inject(AllocateInventoryOrderEntity)
     readonly allocateInventoryOrderEntity: EntityTarget<T>,
     @Inject(AllocateInventoryOrderItemEntity)
     readonly allocateInventoryOrderItemEntity: EntityTarget<K>,
     @Inject(StockEntity) readonly stockEntity: EntityTarget<StockEntityClass>,
-    readonly batchService: BatchService,
   ) {}
 
   private getRepositories(manager: EntityManager) {
@@ -66,23 +72,27 @@ export class AllocateInventoryOrderService<
     const repos = this.getRepositories(manager);
     await Promise.all(
       items.map(async (data) => {
+        // Ensure required fields are present
+        if (!data.batchId || !data.materialId) return;
+
+        // Split batch first with saleId/saleSerialId to track allocation state
+        const splittedBatch = await this.batchService.splitBatch({
+          id: data.batchId,
+          saleId: data.saleId,
+          saleSerialId: data.saleSerialId,
+          manager,
+        });
+
+        // Save item with ORIGINAL batch id to maintain source state
         const item = await repos.allocateInventoryOrderItem.save(
           repos.allocateInventoryOrderItem.create(data),
         );
+
         const base = await repos.order.save({});
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
         );
-
-        // Create a variant batch for allocation with sale/customer info
-        const splittedBatch = await this.batchService.splitBatch({
-          id: item.batchId,
-          materialId: item.materialId,
-          saleId: data.saleId,
-          saleSerialId: data.saleSerialId,
-          manager,
-        });
 
         await repos.allocateInventoryOrderChange.save(
           repos.allocateInventoryOrderChange.create({
@@ -92,26 +102,27 @@ export class AllocateInventoryOrderService<
           }),
         );
 
+        // Stock movements track the allocation through splitted batch
         await repos.stock.save(
           repos.stock.create([
-            // add allocated stock
+            // deduct from original batch available stock
             {
               orderId: base.id,
               materialId: item.materialId,
-              batchId: splittedBatch.id,
-              locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
-              quantity: item.targetAllocatedQuantity * conversionFactor,
-            },
-            // deduct allocated stock from free stock
-            {
-              orderId: base.id,
-              materialId: item.materialId,
-              batchId: item.batchId,
+              batchId: item.batchId, // original batch
               locationId: item.locationId || undefined,
               loaderId: item.loaderId || undefined,
               quantity: -1 * item.targetAllocatedQuantity * conversionFactor,
-            },
+            } as DeepPartial<StockEntityClass>,
+            // add to splitted batch in allocated state
+            {
+              orderId: base.id,
+              materialId: item.materialId,
+              batchId: splittedBatch.id, // splitted batch marked with saleId
+              locationId: item.locationId || undefined,
+              loaderId: item.loaderId || undefined,
+              quantity: item.targetAllocatedQuantity * conversionFactor,
+            } as DeepPartial<StockEntityClass>,
           ]),
         );
       }),
@@ -233,6 +244,12 @@ export class AllocateInventoryOrderService<
               `Deallocate quantity exceeds allocated quantity for item ${item.id}`,
             );
 
+          // Create splitted batch for deallocate completion
+          const deallocatedBatch = await this.batchService.splitBatch({
+            id: item.batchId,
+            manager,
+          });
+
           const base = await repos.order.save({});
           await Promise.all([
             repos.allocateInventoryOrderChange.save(
@@ -244,7 +261,7 @@ export class AllocateInventoryOrderService<
             ),
             repos.stock.save(
               repos.stock.create([
-                // add deallocated stock to free stock
+                // add to original batch (restore available)
                 {
                   orderId: base.id,
                   materialId: item.materialId,
@@ -252,16 +269,16 @@ export class AllocateInventoryOrderService<
                   locationId: item.locationId || undefined,
                   loaderId: item.loaderId || undefined,
                   quantity: option.quantity * conversionFactor,
-                },
-                // deduct deallocated stock from allocated stock
+                } as DeepPartial<StockEntityClass>,
+                // deduct from deallocated splitted batch
                 {
                   orderId: base.id,
                   materialId: item.materialId,
-                  batchId: item.batchId,
+                  batchId: deallocatedBatch.id,
                   locationId: item.locationId || undefined,
                   loaderId: item.loaderId || undefined,
                   quantity: -1 * option.quantity * conversionFactor,
-                },
+                } as DeepPartial<StockEntityClass>,
               ]),
             ),
           ]);

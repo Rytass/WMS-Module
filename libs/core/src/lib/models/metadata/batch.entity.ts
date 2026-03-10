@@ -9,20 +9,36 @@ export class BatchEntityClass extends BaseBatchEntity {
   @Column({ type: 'varchar', nullable: true })
   groupId!: string;
 
+  // added when allocate inventory, used to link to sale
   @Column({ type: 'varchar', nullable: true })
   saleId: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   saleSerialId: string | null;
 
+  // added when customer return, used to link to customer
   @Column({ type: 'varchar', nullable: true })
   customerId: string | null;
 
+  // added when vendor return, used to link to vendor
   @Column({ type: 'varchar', nullable: true })
   vendorId: string | null;
 
+  // added when quality inspection, used to link to quality inspection order
   @Column({ type: 'varchar', nullable: true })
   inspectionId: string | null;
+
+  // added when transfer inventory, used to link to transfer order
+  @Column({ type: 'bool', default: false })
+  inTransfer: boolean;
+
+  // added when hold inventory, used to link to hold inventory order
+  @Column({ type: 'bool', default: false })
+  held: boolean;
+
+  // added when shipment inventory, used to link to shipment order
+  @Column({ type: 'bool', default: false })
+  inShipment: boolean;
 
   @ManyToOne(
     'batch_groups',
