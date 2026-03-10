@@ -327,6 +327,12 @@ function InventoryGroupTable({
     <Table<DataType>
       columns={baseColumns}
       dataSource={dataSource}
+      rowState={(source) =>
+        source.aggregatedStock?.length === 1 &&
+        targetInventoryIds.includes(source.aggregatedStock[0].id)
+          ? 'added'
+          : undefined
+      }
       loading={loading}
       expandable={{
         expandedRowRender: (record) => (
