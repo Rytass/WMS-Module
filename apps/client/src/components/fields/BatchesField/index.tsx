@@ -1,15 +1,34 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { BatchOptionsQuery } from '../../../graphql/generated/.graphql';
-import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
+import {
+  useFetchMoreOptions,
+  useInsertOption,
+} from '../../../hooks/useSelectorOptions';
 import { useLazyQueryBatches } from './useApi';
 
 interface BatchesFieldProps {
   name: string;
+  label?: string;
+  placeholder?: string;
+  addable?: boolean;
+  fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
+  selectValueMode?: boolean;
 }
 
-const BatchesField: FC<BatchesFieldProps> = ({ name, required }) => {
+const BatchesField: FC<BatchesFieldProps> = ({
+  name,
+  label = '批號',
+  placeholder,
+  addable,
+  fuzzySearch = true,
+  required,
+  disabled,
+  selectValueMode = false,
+}) => {
   const { fetchBatches } = useLazyQueryBatches();
 
   const getNewOptions = useCallback(
@@ -21,26 +40,55 @@ const BatchesField: FC<BatchesFieldProps> = ({ name, required }) => {
     [],
   );
 
-  const { currentOptions, onVisibilityChange, onSearch, onReachBottom } =
-    useFetchMoreOptions<BatchOptionsQuery>({
-      fetchData: fetchBatches,
-      getNewOptions,
-    });
+  const {
+    currentOptions,
+    setOptions,
+    onVisibilityChange,
+    onSearch,
+    onReachBottom,
+  } = useFetchMoreOptions<BatchOptionsQuery>({
+    fetchData: fetchBatches,
+    getNewOptions,
+  });
 
-  return (
-    <SingleAutoCompleteField
-      name={name}
-      label="批號"
-      placeholder="輸入批號"
-      fuzzySearch
-      options={currentOptions}
-      required={required}
-      onVisibilityChange={onVisibilityChange}
-      useNameToValue
-      onSearch={onSearch}
-      onReachBottom={onReachBottom}
-    />
+  const handleInsert = useInsertOption(setOptions);
+
+  const baseProps = useMemo(
+    () => ({
+      name,
+      addable,
+      label,
+      placeholder: placeholder || `輸入${label}`,
+      fuzzySearch,
+      options: currentOptions,
+      required,
+      disabled,
+      onVisibilityChange,
+      onInsert: handleInsert,
+      onSearch,
+      onReachBottom,
+    }),
+    [
+      addable,
+      currentOptions,
+      disabled,
+      fuzzySearch,
+      handleInsert,
+      label,
+      name,
+      onReachBottom,
+      onSearch,
+      onVisibilityChange,
+      placeholder,
+      required,
+    ],
   );
+
+  if (selectValueMode) {
+    return <SingleAutoCompleteField {...baseProps} />;
+  }
+
+  return <SingleAutoCompleteByIdField {...baseProps} useNameToValue />;
 };
 
 export default BatchesField;

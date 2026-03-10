@@ -110,7 +110,12 @@ const HostSection: FC<HostSectionProps> = ({
           </div>
         )}
       </div>
-      {haveAdditionalBlock && <AdditionalBlock />}
+      {haveAdditionalBlock && (
+        <AdditionalBlock
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      )}
     </div>
   );
 };

@@ -30,6 +30,18 @@ import { HoldInventoryOrderQuery } from './queries/hold-inventory-order.query';
 import { HoldInventoryOrderResolver } from './resolvers/hold-inventory-order.resolver';
 import { BatchQuery } from './queries/batch.query';
 import { ChangeLogResolver } from './resolvers/change-log.resolver';
+import {
+  ReceiveInventoryOrderItemResolver,
+  ReceiveInventoryOrderResolver,
+} from './resolvers/receive-inventory-order.resolver';
+import { AllocateInventoryOrderQuery } from './queries/allocate-inventory-order.query';
+import { AllocateInventoryOrderResolver } from './resolvers/allocate-inventory-order.resolver';
+import {
+  ShipInventoryOrderItemResolver,
+  ShipInventoryOrderReferenceResolver,
+  ShipInventoryOrderResolver,
+} from './resolvers/ship-inventory-order.resolver';
+import { SaleOrderQuery } from './queries/sale-order.query';
 
 const exportDependencies = [
   UnitQuery,
@@ -48,9 +60,14 @@ const exportDependencies = [
 
   ReceiveInventoryOrderMutation,
   ReceiveInventoryOrderQuery,
+  ReceiveInventoryOrderResolver,
+  ReceiveInventoryOrderItemResolver,
 
   ShipInventoryOrderMutation,
   ShipInventoryOrderQuery,
+  ShipInventoryOrderResolver,
+  ShipInventoryOrderItemResolver,
+  ShipInventoryOrderReferenceResolver,
 
   TransferOrderMutation,
   TransferOrderQuery,
@@ -65,6 +82,11 @@ const exportDependencies = [
   LocationQuery,
   LocationResolver,
   TransferOrderMutation,
+
+  AllocateInventoryOrderQuery,
+  AllocateInventoryOrderResolver,
+
+  SaleOrderQuery,
 ];
 @Module({
   providers: exportDependencies,

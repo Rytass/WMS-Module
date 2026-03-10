@@ -304,17 +304,17 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   // InventoryActions.AllocateInventory,
-  // InventoryActions.DeallocateInventory,
+  InventoryActions.DeallocateInventory,
   // InventoryActions.ShipInventory,
-  InventoryActions.SplitBatch,
+  // InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   // InventoryActions.ReclassifyInventory,
   // InventoryActions.TransferToVendor,
-  // InventoryActions.ReturnFromVendor,
+  InventoryActions.ReturnFromVendor,
   // InventoryActions.QualityInspection,
   // InventoryActions.DeliverToCustomer,
-  // InventoryActions.ReturnFromCustomer,
-  // InventoryActions.ScrapInventory,
+  InventoryActions.ReturnFromCustomer,
+  InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,
   name: inventoryActionsSpec(action)?.name ?? '',
@@ -327,5 +327,17 @@ export const inventoryActionOptions: InventoryActionItem[] = [
 }));
 
 export function haveAdditionalFields(currentAction: InventoryActions) {
-  return [InventoryActions.MergeBatch].includes(currentAction);
+  return [
+    InventoryActions.PendingTransferInventory,
+    InventoryActions.AllocateInventory,
+    InventoryActions.ShipInventory,
+    InventoryActions.SplitBatch,
+    InventoryActions.MergeBatch,
+    InventoryActions.ReclassifyInventory,
+    InventoryActions.TransferToVendor,
+    InventoryActions.ReturnFromVendor,
+    InventoryActions.QualityInspection,
+    InventoryActions.DeliverToCustomer,
+    InventoryActions.ReturnFromCustomer,
+  ].includes(currentAction);
 }

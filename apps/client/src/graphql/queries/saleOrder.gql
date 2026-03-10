@@ -1,0 +1,9 @@
+query SaleOrderDistinctIds($keyword: String) {
+  saleOrderDistinctIds(keyword: $keyword)
+}
+
+query SaleOrders($saleOrdersId: [ID!]!) {
+  saleOrders(id: $saleOrdersId) {
+    ...SaleOrder
+  }
+}

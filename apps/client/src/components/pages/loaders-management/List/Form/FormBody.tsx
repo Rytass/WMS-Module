@@ -1,10 +1,13 @@
+import { useCallback } from 'react';
+import { useFieldArray } from 'react-hook-form';
 import { NextPath } from '../../../../../utils/nextpath';
 import PageWrapper from '../../../../PageWrapper';
 import SectionWrapper from '../../../../SectionWrapper';
-import InputField from '../../../../fields/InputField';
 import { useFormCancel } from '../../../../../hooks/useFormCancel';
-import FormActionButtons from '../../../../FormActionButtons';
-import classes from './index.module.scss';
+import AddFields from './AddFields';
+import FieldArrayTable from './FieldArrayTable';
+import { AddFormValues } from './AddFields/typing';
+import { FormValues } from './typing';
 
 interface LoaderFormBodyProps {
   title: string;
@@ -13,6 +16,19 @@ interface LoaderFormBodyProps {
 
 function LoaderFormBody({ title, breadcrumbTitle }: LoaderFormBodyProps) {
   const onFormCancel = useFormCancel({});
+
+  const { fields, append, remove } = useFieldArray<FormValues, 'items'>({
+    name: 'items',
+  });
+
+  const onCreate = useCallback(
+    (values: AddFormValues) => {
+      append({
+        ...values,
+      });
+    },
+    [append],
+  );
 
   return (
     <PageWrapper
@@ -30,23 +46,11 @@ function LoaderFormBody({ title, breadcrumbTitle }: LoaderFormBodyProps) {
       onBack={onFormCancel}
     >
       <SectionWrapper title="載具設定">
-        <div className={classes.fieldsSection}>
-          <div className={classes.fieldsWrapper}>
-            <InputField name="remark" label="備註" placeholder="輸入備註" />
-          </div>
-          <FormActionButtons
-            onReset={() => {
-              console.log('reset');
-            }}
-            onClickSubmit={() => {
-              console.log('create');
-            }}
-            submitText="新增"
-            submitButtonType="button"
-          />
-        </div>
+        <AddFields onCreate={onCreate} />
       </SectionWrapper>
-      <SectionWrapper title="待建立列表">section</SectionWrapper>
+      <SectionWrapper title="待建立列表">
+        <FieldArrayTable fields={fields} remove={remove} />
+      </SectionWrapper>
     </PageWrapper>
   );
 }

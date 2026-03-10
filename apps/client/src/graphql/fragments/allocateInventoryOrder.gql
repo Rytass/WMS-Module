@@ -1,0 +1,25 @@
+fragment AllocateInventoryOrderItem on AllocateInventoryOrderItemDto {
+  id
+  targetAllocatedQuantity
+  saleId
+  saleSerialId
+}
+
+fragment AllocateInventoryOrder on AllocateInventoryOrderDto {
+  id
+  key
+  description
+  reason
+  createdAt
+  items {
+    ...AllocateInventoryOrderItem
+  }
+}
+
+fragment SimplerAllocateInventoryOrder on AllocateInventoryOrderDto {
+  id
+  key
+  description
+  reason
+  createdAt
+}

@@ -72,6 +72,7 @@ function PageWrapper({
           type="standard"
           actions={{
             primaryButton: {
+              type: 'button',
               children: '關閉',
               onClick: back,
             },

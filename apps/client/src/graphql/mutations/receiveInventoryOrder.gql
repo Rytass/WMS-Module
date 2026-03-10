@@ -15,11 +15,13 @@ mutation CreateReceiveInventoryOrder(
 mutation UpdateReceiveInventoryOrder(
   $updateReceiveInventoryOrderId: ID!
   $description: String
+  $removedAt: DateTime
   $items: [UpdateReceiveInventoryOrderItemArgs!]
 ) {
   updateReceiveInventoryOrder(
     id: $updateReceiveInventoryOrderId
     description: $description
+    removedAt: $removedAt
     items: $items
   ) {
     ...ReceiveInventoryOrder

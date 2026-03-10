@@ -1,15 +1,46 @@
-export type CreateShipInventoryOrderItemInput = {
+import { StockStatus } from '../constants';
+
+export type CreateShipInventoryOrderReferenceInput = {
   description?: string;
-  unitId: string;
-  batchId?: string;
-  materialId: string;
+  unitId?: string;
+  batchKey?: string;
+  materialKey: string;
   targetShippedQuantity: number;
+  serialId: string;
 };
 
 export type CreateShipInventoryOrderInput = {
   key: string;
   description: string;
-  items: CreateShipInventoryOrderItemInput[];
+  references: CreateShipInventoryOrderReferenceInput[];
+};
+
+export type UpdateShipInventoryOrderReferenceInput =
+  Partial<CreateShipInventoryOrderReferenceInput> & {
+    id?: string;
+    removedAt?: Date;
+  };
+
+export type UpdateShipInventoryOrderInput = Partial<
+  Omit<CreateShipInventoryOrderInput, 'references'>
+> & {
+  id: string;
+  createdBy?: string;
+  references?: UpdateShipInventoryOrderReferenceInput[];
+  items?: UpdateShipInventoryOrderItemInput[];
+  removedAt?: Date;
+};
+
+export type CreateShipInventoryOrderItemInput = {
+  materialId: string;
+  batchId: string;
+  locationId?: string;
+  loaderId?: string;
+  unitId?: string;
+  targetShippedQuantity: number;
+  status: StockStatus;
+  serialId: string;
+  orderId: string;
 };
 
 export type UpdateShipInventoryOrderItemInput =
@@ -18,10 +49,7 @@ export type UpdateShipInventoryOrderItemInput =
     removedAt?: Date;
   };
 
-export type UpdateShipInventoryOrderInput = Partial<
-  Omit<CreateShipInventoryOrderInput, 'items'>
-> & {
-  id: string;
-  createdBy?: string;
-  items?: UpdateShipInventoryOrderItemInput[];
+export type CreateShipInventoryOrderItemsInput = {
+  orderId: string;
+  items: CreateShipInventoryOrderItemInput[];
 };

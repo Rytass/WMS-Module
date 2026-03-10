@@ -158,9 +158,11 @@ export class HoldInventoryOrderService<
       if (newItems.length)
         await this.processHoldInventoryOrderItems(newItems, repos);
       if (existingItems.length)
-        await Promise.all(
-          existingItems.map((item) =>
-            repos.holdInventoryOrderItem.create(item),
+        repos.holdInventoryOrderItem.save(
+          await Promise.all(
+            existingItems.map((item) =>
+              repos.holdInventoryOrderItem.create(item),
+            ),
           ),
         );
     }

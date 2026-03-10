@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { InputField } from '../fields/InputField';
 import { DateField } from '../fields/DateField';
 import MaterialsField from '../fields/MaterialsField';
@@ -6,13 +7,17 @@ import LocationsField from '../fields/LocationsField';
 import LoadersField from '../fields/LoadersField';
 import { FilterType } from './typing';
 
-export function renderFilter(filterType: FilterType) {
-  switch (filterType) {
+export function renderFilter(filter: FilterType | ReactNode) {
+  if (typeof filter !== 'string') {
+    return filter;
+  }
+
+  switch (filter) {
     case FilterType.createdAt:
       return (
         <DateField
-          key={filterType}
-          name={filterType}
+          key={filter}
+          name={filter}
           label="建立日期"
           placeholder="建立日期"
         />
@@ -21,8 +26,8 @@ export function renderFilter(filterType: FilterType) {
     case FilterType.description:
       return (
         <InputField
-          key={filterType}
-          name={filterType}
+          key={filter}
+          name={filter}
           label="備註"
           placeholder="輸入備註"
         />
@@ -31,24 +36,24 @@ export function renderFilter(filterType: FilterType) {
     case FilterType.materialDescription:
       return (
         <InputField
-          key={filterType}
-          name={filterType}
+          key={filter}
+          name={filter}
           label="物料說明"
           placeholder="輸入物料說明"
         />
       );
 
     case FilterType.material:
-      return <MaterialsField key={filterType} name={filterType} />;
+      return <MaterialsField key={filter} name={filter} />;
 
     case FilterType.batch:
-      return <BatchesField key={filterType} name={filterType} />;
+      return <BatchesField key={filter} name={filter} />;
 
     case FilterType.location:
-      return <LocationsField key={filterType} name={filterType} />;
+      return <LocationsField key={filter} name={filter} />;
 
     case FilterType.loader:
-      return <LoadersField key={filterType} name={filterType} />;
+      return <LoadersField key={filter} name={filter} />;
 
     default:
       return null;

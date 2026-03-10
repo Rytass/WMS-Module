@@ -4,14 +4,14 @@ import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 
-interface ReleaseHoldInventoryProps {
+interface ReleaseInventoryHoldProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;
 }
 
-const ReleaseHoldInventory: FC<ReleaseHoldInventoryProps> = ({
+const ReleaseInventoryHold: FC<ReleaseInventoryHoldProps> = ({
   inventoryList,
   queryInventoryListLoading,
   onClose,
@@ -40,4 +40,4 @@ const ReleaseHoldInventory: FC<ReleaseHoldInventoryProps> = ({
   );
 };
 
-export default ReleaseHoldInventory;
+export default ReleaseInventoryHold;

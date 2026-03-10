@@ -1,7 +1,8 @@
-import { useCallback } from 'react';
+import { TextFieldSize } from '@mezzanine-ui/react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
+import { useInsertOption } from '../../../hooks/useSelectorOptions';
 import { useQueryUnits } from './useApi';
-import { SelectValue, TextFieldSize } from '@mezzanine-ui/react';
 
 interface UnitsFieldProps {
   name: string;
@@ -11,6 +12,7 @@ interface UnitsFieldProps {
   size?: TextFieldSize;
   required?: boolean;
   disabled?: boolean;
+  selectValueMode?: boolean;
 }
 
 const UnitsField: FC<UnitsFieldProps> = ({
@@ -21,26 +23,30 @@ const UnitsField: FC<UnitsFieldProps> = ({
   size,
   required = false,
   disabled = false,
+  selectValueMode = false,
 }) => {
   const { currentOptions, setCurrentOptions } = useQueryUnits();
+  const handleInsert = useInsertOption(setCurrentOptions);
 
-  const handleInsert = useCallback(
-    (text: string, cOptions: SelectValue[]): SelectValue[] => {
-      const newOption: SelectValue = {
-        id: text,
-        name: text,
-      };
-      const updatedOptions = [...cOptions, newOption];
-
-      setCurrentOptions((prev) => [...prev, newOption]);
-
-      return updatedOptions;
-    },
-    [setCurrentOptions],
-  );
+  if (selectValueMode) {
+    return (
+      <SingleAutoCompleteField
+        addable
+        name={name}
+        label={label}
+        placeholder={placeholder}
+        menuMaxHeight={menuMaxHeight}
+        size={size}
+        options={currentOptions}
+        onInsert={handleInsert}
+        required={required}
+        disabled={disabled}
+      />
+    );
+  }
 
   return (
-    <SingleAutoCompleteField
+    <SingleAutoCompleteByIdField
       addable
       name={name}
       label={label}

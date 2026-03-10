@@ -1,15 +1,29 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { LoaderOptionsQuery } from '../../../graphql/generated/.graphql';
-import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
+import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLoaders } from './useApi';
 
 interface LoadersFieldProps {
   name: string;
+  label?: string;
+  placeholder?: string;
+  fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
+  selectValueMode?: boolean;
 }
 
-const LoadersField: FC<LoadersFieldProps> = ({ name, required }) => {
+const LoadersField: FC<LoadersFieldProps> = ({
+  name,
+  label = '載具',
+  placeholder,
+  fuzzySearch = true,
+  required,
+  disabled,
+  selectValueMode = false,
+}) => {
   const { fetchLoaders } = useLazyQueryLoaders();
 
   const getNewOptions = useCallback(
@@ -27,20 +41,38 @@ const LoadersField: FC<LoadersFieldProps> = ({ name, required }) => {
       getNewOptions,
     });
 
-  return (
-    <SingleAutoCompleteField
-      name={name}
-      label="載具"
-      placeholder="輸入載具"
-      fuzzySearch
-      options={currentOptions}
-      required={required}
-      onVisibilityChange={onVisibilityChange}
-      useNameToValue
-      onSearch={onSearch}
-      onReachBottom={onReachBottom}
-    />
+  const baseProps = useMemo(
+    () => ({
+      name,
+      label,
+      placeholder: placeholder || `輸入${label}`,
+      fuzzySearch,
+      options: currentOptions,
+      required,
+      disabled,
+      onVisibilityChange,
+      onSearch,
+      onReachBottom,
+    }),
+    [
+      currentOptions,
+      disabled,
+      fuzzySearch,
+      label,
+      name,
+      onReachBottom,
+      onSearch,
+      onVisibilityChange,
+      placeholder,
+      required,
+    ],
   );
+
+  if (selectValueMode) {
+    return <SingleAutoCompleteField {...baseProps} />;
+  }
+
+  return <SingleAutoCompleteByIdField {...baseProps} useNameToValue />;
 };
 
 export default LoadersField;

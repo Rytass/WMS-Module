@@ -1,34 +1,46 @@
 import { useMemo } from 'react';
 import { useRouter } from 'next/router';
-import { NextPath } from '../../../../utils/nextpath';
-import PageWrapper from '../../../PageWrapper';
-import SectionWrapper from '../../../SectionWrapper';
+import Loading from '../../../Loading';
+import ReceiveInventoryOrderForm from '../Form';
+import { FormValues } from '../Form/typing';
+import { useQueryReceiveInventoryOrder } from '../useApi';
+import { fragmentToDefaultValues } from '../Form/utils';
 
 function ViewReceiveInventoryOrder() {
   const { query } = useRouter();
   const id = useMemo(() => (query?.id as string) ?? '', [query.id]);
 
+  const { data, loading } = useQueryReceiveInventoryOrder(id);
+
+  const receiveInventoryOrder = useMemo(
+    () => data?.receiveInventoryOrder ?? null,
+    [data?.receiveInventoryOrder],
+  );
+
+  const defaultValues = useMemo(
+    (): FormValues => fragmentToDefaultValues(receiveInventoryOrder),
+    [receiveInventoryOrder],
+  );
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (!receiveInventoryOrder) {
+    return null;
+  }
+
   return (
-    <PageWrapper
-      breadcrumb={[
-        {
-          label: '主檔管理',
-          href: NextPath.RECEIVEINVENTORYORDERS,
-        },
-        {
-          label: '入庫單',
-          href: NextPath.RECEIVEINVENTORYORDERS,
-        },
-        {
-          label: id,
-        },
-      ]}
-      title={`入庫單號：${id}`}
-      haveBack
-      haveFooter
-    >
-      <SectionWrapper title="單號資訊">section1</SectionWrapper>
-    </PageWrapper>
+    <ReceiveInventoryOrderForm
+      defaultValues={defaultValues}
+      title={`入庫單號：${receiveInventoryOrder.key}`}
+      breadcrumbTitle={receiveInventoryOrder.key}
+      description={receiveInventoryOrder.description}
+      createdBy={receiveInventoryOrder.createdBy ?? ''}
+      createdAt={receiveInventoryOrder.createdAt}
+      status={receiveInventoryOrder.status}
+      viewMode
+    />
   );
 }
 

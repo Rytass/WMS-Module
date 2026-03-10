@@ -1,19 +1,29 @@
 import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
+import { formSchema } from './schema';
+import { FormValues } from './typing';
 
-interface ReleaseHoldInventoryProps {
+interface ReturnFromVendorProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
 }
 
-function ReleaseHoldInventory({
+function ReturnFromVendor({
   inventoryList,
   queryInventoryListLoading,
-}: ReleaseHoldInventoryProps) {
-  const methods = useForm();
+}: ReturnFromVendorProps) {
+  const methods = useForm<FormValues>({
+    resolver: yupResolver(formSchema),
+    defaultValues: {
+      location: null,
+      loader: null,
+    },
+  });
+
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
@@ -26,4 +36,4 @@ function ReleaseHoldInventory({
   );
 }
 
-export default ReleaseHoldInventory;
+export default ReturnFromVendor;

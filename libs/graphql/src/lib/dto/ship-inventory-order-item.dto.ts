@@ -6,9 +6,6 @@ export class ShipInventoryOrderItemDto {
   @Field(() => ID)
   id!: string;
 
-  @Field(() => String, { nullable: true })
-  description!: string | null;
-
   @Field(() => ID, { nullable: true })
   unitId!: string | null;
 

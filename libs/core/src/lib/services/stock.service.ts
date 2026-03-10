@@ -68,33 +68,17 @@ export class StockService<
             subQuery
               .select(
                 `CASE
-                  WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.PENDING_INSPECTION}'
-                  WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
+                  WHEN sio_changes.id IS NOT NULL AND (s.quantity * sio_changes."quantityChanged") > 0 THEN '${StockStatus.IN_SHIPMENT}'
                   WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") > 0 THEN '${StockStatus.HELD}'
                   WHEN to_changes.id IS NOT NULL AND (s.quantity * to_changes."quantityChanged") > 0 THEN '${StockStatus.IN_TRANSFER}'
-                  WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
-                  WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
-                  WHEN tc_changes.id IS NOT NULL THEN '${StockStatus.CUSTOMER_INVENTORY}'
+
                   ELSE '${StockStatus.FREE}'
                 END`,
                 'status',
               )
-              .addSelect(
-                `CASE
-                WHEN rio_changes.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
-                WHEN sio_changes.id IS NOT NULL THEN '${ChangeType.SHIPPED}'
-                WHEN to_changes.id IS NOT NULL AND s.quantity < 0 THEN '${ChangeType.IN_TRANSFER}'
-                WHEN to_changes.id IS NOT NULL AND s.quantity > 0 THEN '${ChangeType.TRANSFERRED}'
-                WHEN hi_changes.id IS NOT NULL AND s.quantity < 0 THEN '${ChangeType.HELD}'
-                WHEN hi_changes.id IS NOT NULL AND s.quantity > 0 THEN '${ChangeType.RELEASED}'
-                WHEN sbo_changes.id IS NOT NULL THEN '${ChangeType.SPLITTED}'
-                WHEN mbo_changes.id IS NOT NULL THEN '${ChangeType.MERGED}'
-                ELSE NULL
-                END`,
-                'changeType',
-              )
               .addSelect('s.id', 'stockId')
               .from('stocks', 's')
+              .innerJoin('batches', 'b', 's."batchId" = b.id')
               .innerJoin('orders', 'o', 's."orderId" = o.id')
               // Quality Inspection Order - PENDING_INSPECTION when joined but result is null, INSPECTION_FAILED when result is false
               .leftJoin(
@@ -268,33 +252,29 @@ export class StockService<
       queryBuilder.take(options.limit);
 
     if (aggregated) {
-      const aggregateExpression = this.aggregateKeys
-        .map(
-          (key) =>
-            `COALESCE(${key === 'status' ? 'stock_status' : 'stock'}."${key}"::text, '')`,
-        )
-        .join(" || '|' || ");
+      queryBuilder.innerJoin('batches', 'b', 'stock."batchId" = b.id');
       queryBuilder.select('stock.materialId', 'materialId');
       queryBuilder.addSelect('stock.batchId', 'batchId');
       queryBuilder.addSelect('stock.locationId', 'locationId');
       queryBuilder.addSelect('stock.loaderId', 'loaderId');
       queryBuilder.addSelect('stock_status.status', 'status');
+      queryBuilder.addSelect('b."saleId"', 'saleId');
+      queryBuilder.addSelect('b."saleSerialId"', 'saleSerialId');
+      queryBuilder.addSelect('b."customerId"', 'customerId');
+      queryBuilder.addSelect('b."vendorId"', 'vendorId');
+      queryBuilder.addSelect('b."inspectionId"', 'inspectionId');
       queryBuilder.addSelect('SUM(stock.quantity)', 'quantity');
       queryBuilder.groupBy('stock.materialId');
       queryBuilder.addGroupBy('stock.batchId');
       queryBuilder.addGroupBy('stock.locationId');
       queryBuilder.addGroupBy('stock.loaderId');
       queryBuilder.addGroupBy('stock_status.status');
+      queryBuilder.addGroupBy('b."saleId"');
+      queryBuilder.addGroupBy('b."saleSerialId"');
+      queryBuilder.addGroupBy('b."customerId"');
+      queryBuilder.addGroupBy('b."vendorId"');
+      queryBuilder.addGroupBy('b."inspectionId"');
       queryBuilder.having('SUM(stock.quantity) <> 0');
-
-      if (options.aggregatedKeys?.length) {
-        queryBuilder.andHaving(
-          `${aggregateExpression} IN (:...aggregatedKeys)`,
-          {
-            aggregatedKeys: options.aggregatedKeys,
-          },
-        );
-      }
     }
 
     return queryBuilder;
@@ -358,6 +338,12 @@ export class StockService<
     this.aggregateKeys.forEach((key) =>
       paginatedQueryBuilder.addSelect(`agg."${key}"`, key),
     );
+    // Add batch-related fields
+    paginatedQueryBuilder.addSelect('agg."saleId"', 'saleId');
+    paginatedQueryBuilder.addSelect('agg."saleSerialId"', 'saleSerialId');
+    paginatedQueryBuilder.addSelect('agg."customerId"', 'customerId');
+    paginatedQueryBuilder.addSelect('agg."vendorId"', 'vendorId');
+    paginatedQueryBuilder.addSelect('agg."inspectionId"', 'inspectionId');
 
     // Apply pagination to the outer query
     if (options.offset !== undefined && options.offset >= 0) {

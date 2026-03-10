@@ -172,9 +172,9 @@ export class TransferOrderService<
 
       // Update existing items
       if (existingItems.length) {
-        await Promise.all(
-          existingItems.map((item) =>
-            repos.transferOrderItem.save(repos.transferOrderItem.create(item)),
+        await repos.transferOrderItem.save(
+          await Promise.all(
+            existingItems.map((item) => repos.transferOrderItem.create(item)),
           ),
         );
       }

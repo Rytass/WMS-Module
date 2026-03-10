@@ -2,20 +2,17 @@ import { Field, ID, InputType, PartialType } from '@nestjs/graphql';
 
 @InputType()
 export class CreateShipInventoryOrderItemArgs {
-  @Field(() => String)
-  description!: string;
-
   @Field(() => ID)
-  unitId!: string;
+  aggregatedKey!: string;
 
-  @Field(() => ID)
-  batchId!: string;
-
-  @Field(() => ID)
-  materialId!: string;
+  @Field(() => ID, { nullable: true })
+  unitId?: string;
 
   @Field(() => Number)
   targetShippedQuantity!: number;
+
+  @Field(() => String)
+  serialId!: string;
 }
 
 @InputType()

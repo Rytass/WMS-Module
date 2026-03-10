@@ -51,7 +51,7 @@ export class AllocateInventoryOrderItemEntityClass {
   saleId!: string;
 
   @Column({ type: 'varchar' })
-  serial!: string;
+  saleSerialId!: string;
 
   @ManyToOne('locations')
   @JoinColumn({ name: 'locationId', referencedColumnName: 'id' })

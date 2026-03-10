@@ -18,6 +18,7 @@ import {
 import { CaretDownIcon } from '@mezzanine-ui/icons';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { useQueryStocksGrouped } from '../useApi';
 import { FilterValues } from '../typing';
 import classes from './group-table.module.scss';
@@ -50,6 +51,8 @@ function InventoryGroupTable({
   } = useTableRowSelection<DataType>({
     getSubData: (record) => record.filteredAggregatedStock,
   });
+
+  const { targetInventoryIds } = useInventoryActions();
 
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([]);
   const [dataSignature, setDataSignature] = useState<{
@@ -324,6 +327,12 @@ function InventoryGroupTable({
     <Table<DataType>
       columns={baseColumns}
       dataSource={dataSource}
+      rowState={(source) =>
+        source.aggregatedStock?.length === 1 &&
+        targetInventoryIds.includes(source.aggregatedStock[0].id)
+          ? 'added'
+          : undefined
+      }
       loading={loading}
       expandable={{
         expandedRowRender: (record) => (
@@ -331,6 +340,9 @@ function InventoryGroupTable({
             fullWidth
             columns={subColumns}
             dataSource={record.filteredAggregatedStock || []}
+            rowState={(source) =>
+              targetInventoryIds.includes(source.id) ? 'added' : undefined
+            }
             rowSelection={{
               mode: 'checkbox',
               onChange: getChildOnChange(record),

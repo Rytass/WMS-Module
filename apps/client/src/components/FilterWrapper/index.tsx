@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { ReactNode, useState, useCallback } from 'react';
 import {
   useForm,
   DefaultValues,
@@ -17,7 +17,7 @@ interface FilterWrapperProps<T extends FieldValues> {
   haveAdvancedFilters?: boolean;
   defaultValues: DefaultValues<T>;
   baseFilters: {
-    filters: FilterType[];
+    filters: (FilterType | ReactNode)[];
     gridTemplateColumns: string;
   };
   onSubmit?: SubmitHandler<T>;

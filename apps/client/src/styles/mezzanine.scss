@@ -25,3 +25,12 @@
 .mzn-dropdown-popper--with-portal {
   z-index: 1004 !important;
 }
+
+.mzn-select,
+.mzn-input {
+  min-width: unset !important;
+}
+
+.mzn-form-field--vertical .mzn-form-field__data-entry {
+  max-width: unset !important;
+}

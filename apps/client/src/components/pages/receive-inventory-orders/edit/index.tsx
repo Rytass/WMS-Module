@@ -1,22 +1,87 @@
 import { useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
-import EditReceiveInventoryOrderForm from '../Form';
+import { Message } from '@mezzanine-ui/react';
+import Loading from '../../../Loading';
+import ReceiveInventoryOrderForm from '../Form';
 import { FormValues } from '../Form/typing';
+import {
+  useQueryReceiveInventoryOrder,
+  useUpdateReceiveInventoryOrder,
+} from '../useApi';
+import { fragmentToDefaultValues } from '../Form/utils';
+import { YesOrNo, BASE_UNIT } from '../../../../utils/share';
 
 function EditReceiveInventoryOrder() {
   const { query } = useRouter();
   const id = useMemo(() => (query?.id as string) ?? '', [query.id]);
 
-  const onSubmit = useCallback(async (values: FormValues) => {
-    console.log('values', values);
-  }, []);
+  const { data, loading } = useQueryReceiveInventoryOrder(id);
+  const { updateReceiveInventoryOrder } = useUpdateReceiveInventoryOrder();
+
+  const receiveInventoryOrder = useMemo(
+    () => data?.receiveInventoryOrder ?? null,
+    [data?.receiveInventoryOrder],
+  );
+
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await updateReceiveInventoryOrder({
+          variables: {
+            updateReceiveInventoryOrderId: id,
+            description: values.remark ?? '',
+            items: values.items.map((item, index) => {
+              return {
+                id: item.itemId || undefined,
+                unitId: item.unit === BASE_UNIT ? null : item.unit,
+                serialId: `${(index + 1) * 10}`,
+                materialKey: item.material?.name,
+                batchKey: item.batch?.name,
+                locationKey: item.location?.name,
+                loaderKey: item.loader?.name,
+                targetReceivedQuantity: item.quantity,
+                requireInspection: item.inspection === YesOrNo.YES,
+                removedAt: item.removedAt,
+              };
+            }),
+          },
+        });
+
+        if (data?.updateReceiveInventoryOrder.id) {
+          Message.success('儲存成功');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [id, updateReceiveInventoryOrder],
+  );
+
+  const defaultValues = useMemo(
+    (): FormValues => fragmentToDefaultValues(receiveInventoryOrder),
+    [receiveInventoryOrder],
+  );
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (!receiveInventoryOrder) {
+    return null;
+  }
 
   return (
-    <EditReceiveInventoryOrderForm
+    <ReceiveInventoryOrderForm
+      defaultValues={defaultValues}
       onSubmit={onSubmit}
-      title={`入庫單號：${id}`}
-      breadcrumbTitle={id}
+      title={`入庫單號：${receiveInventoryOrder.key}`}
+      breadcrumbTitle={receiveInventoryOrder.key}
+      description={receiveInventoryOrder.description}
+      createdBy={receiveInventoryOrder.createdBy ?? ''}
+      createdAt={receiveInventoryOrder.createdAt}
+      status={receiveInventoryOrder.status}
       submitText="儲存"
+      viewMode={false}
     />
   );
 }

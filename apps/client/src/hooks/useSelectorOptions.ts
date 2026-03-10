@@ -1,6 +1,13 @@
-import { useState, useCallback, useEffect } from 'react';
+import {
+  Dispatch,
+  SetStateAction,
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
 import { SelectValue } from '@mezzanine-ui/react';
 import { useLazyQuery } from '@apollo/client/react';
+import { usePreviousValue } from './usePreviousValue';
 import { Exact, InputMaybe, Scalars } from '../graphql/generated/.graphql';
 
 export function useFetchAllOptions<T>({
@@ -64,6 +71,7 @@ export function useFetchAllOptions<T>({
 export function useFetchMoreOptions<T>({
   fetchData,
   getNewOptions,
+  searchByDescription = false,
 }: {
   fetchData: useLazyQuery.ExecFunction<
     T,
@@ -71,14 +79,17 @@ export function useFetchMoreOptions<T>({
       offset?: InputMaybe<Scalars['Int']['input']>;
       limit?: InputMaybe<Scalars['Int']['input']>;
       key?: InputMaybe<Scalars['String']['input']>;
+      description?: InputMaybe<Scalars['String']['input']>;
     }>
   >;
   getNewOptions: (data: T | undefined) => SelectValue[];
+  searchByDescription?: boolean;
 }) {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [page, setPage] = useState<number>(0);
   const [currentOptions, setOptions] = useState<SelectValue[]>([]);
   const [isEnd, setIsEnd] = useState<boolean>(false);
+  const preSearchTerm = usePreviousValue(searchTerm);
 
   const fetch = useCallback(async () => {
     try {
@@ -86,7 +97,13 @@ export function useFetchMoreOptions<T>({
         variables: {
           limit: 10,
           offset: (page - 1) * 10,
-          key: searchTerm,
+          ...(searchByDescription
+            ? {
+                description: searchTerm,
+              }
+            : {
+                key: searchTerm,
+              }),
         },
       });
 
@@ -100,7 +117,7 @@ export function useFetchMoreOptions<T>({
     } catch (error) {
       console.error('error', error);
     }
-  }, [fetchData, getNewOptions, page, searchTerm]);
+  }, [fetchData, getNewOptions, page, searchByDescription, searchTerm]);
 
   useEffect(() => {
     if (page) {
@@ -117,12 +134,18 @@ export function useFetchMoreOptions<T>({
     [page],
   );
 
-  const onSearch = useCallback((input: string) => {
-    setSearchTerm(input);
-    setPage(1);
-    setOptions([]);
-    setIsEnd(false);
-  }, []);
+  const onSearch = useCallback(
+    (input: string) => {
+      setSearchTerm(input);
+      setPage(1);
+      setIsEnd(false);
+
+      if (!(!preSearchTerm && !input)) {
+        setOptions([]);
+      }
+    },
+    [preSearchTerm],
+  );
 
   const onReachBottom = useCallback(() => {
     if (!isEnd) {
@@ -132,8 +155,30 @@ export function useFetchMoreOptions<T>({
 
   return {
     currentOptions,
+    setOptions,
     onVisibilityChange,
     onSearch,
     onReachBottom,
   };
+}
+
+export function useInsertOption(
+  setOptions: Dispatch<SetStateAction<SelectValue<string>[]>>,
+) {
+  const handleInsert = useCallback(
+    (text: string, currentOptions: SelectValue[]): SelectValue[] => {
+      const newOption: SelectValue = {
+        id: text,
+        name: text,
+      };
+      const updatedOptions = [...currentOptions, newOption];
+
+      setOptions((prev) => [...prev, newOption]);
+
+      return updatedOptions;
+    },
+    [setOptions],
+  );
+
+  return handleInsert;
 }

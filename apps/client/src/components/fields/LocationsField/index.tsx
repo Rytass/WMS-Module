@@ -1,15 +1,29 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { LocationOptionsQuery } from '../../../graphql/generated/.graphql';
-import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
+import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLocations } from './useApi';
 
 interface LocationsFieldProps {
   name: string;
+  label?: string;
+  placeholder?: string;
+  fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
+  selectValueMode?: boolean;
 }
 
-const LocationsField: FC<LocationsFieldProps> = ({ name, required }) => {
+const LocationsField: FC<LocationsFieldProps> = ({
+  name,
+  label = '儲存位置',
+  placeholder,
+  fuzzySearch = true,
+  required,
+  disabled,
+  selectValueMode = false,
+}) => {
   const { fetchLocations } = useLazyQueryLocations();
 
   const getNewOptions = useCallback(
@@ -27,20 +41,38 @@ const LocationsField: FC<LocationsFieldProps> = ({ name, required }) => {
       getNewOptions,
     });
 
-  return (
-    <SingleAutoCompleteField
-      name={name}
-      label="儲存位置"
-      placeholder="輸入儲存位置"
-      fuzzySearch
-      options={currentOptions}
-      required={required}
-      onVisibilityChange={onVisibilityChange}
-      useNameToValue
-      onSearch={onSearch}
-      onReachBottom={onReachBottom}
-    />
+  const baseProps = useMemo(
+    () => ({
+      name,
+      label,
+      placeholder: placeholder || `輸入${label}`,
+      fuzzySearch,
+      options: currentOptions,
+      required,
+      disabled,
+      onVisibilityChange,
+      onSearch,
+      onReachBottom,
+    }),
+    [
+      currentOptions,
+      disabled,
+      fuzzySearch,
+      label,
+      name,
+      onReachBottom,
+      onSearch,
+      onVisibilityChange,
+      placeholder,
+      required,
+    ],
   );
+
+  if (selectValueMode) {
+    return <SingleAutoCompleteField {...baseProps} />;
+  }
+
+  return <SingleAutoCompleteByIdField {...baseProps} useNameToValue />;
 };
 
 export default LocationsField;

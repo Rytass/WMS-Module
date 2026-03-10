@@ -8,10 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { type ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
-import {
-  ReceiveInventoryOrderStatus,
-  ShipInventoryOrderStatus,
-} from '../../../typings';
+import { ReceiveInventoryOrderStatus } from '../../../typings';
 
 export const ReceiveInventoryOrderChangeEntity = Symbol(
   'ReceiveInventoryOrderChangeEntity',

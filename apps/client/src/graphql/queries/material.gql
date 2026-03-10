@@ -24,8 +24,8 @@ query MaterialOptions($offset: Int, $limit: Int, $key: String) {
   }
 }
 
-query Material($materialId: ID!) {
-  material(id: $materialId) {
+query Material($materialId: ID, $key: String) {
+  material(id: $materialId, key: $key) {
     ...Material
   }
 }

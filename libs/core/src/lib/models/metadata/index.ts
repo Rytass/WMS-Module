@@ -6,3 +6,5 @@ export * from './stock.entity';
 export * from './location.entity';
 export * from './unit.entity';
 export * from './batch.entity';
+export * from './batch-group.entity';
+export * from './sale-order.entity';

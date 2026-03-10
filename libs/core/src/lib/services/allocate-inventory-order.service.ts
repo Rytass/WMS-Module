@@ -17,6 +17,8 @@ import {
 import { HelperService } from './helper.service';
 import { DeallocateInventoryOrderItemInput } from '../typings/deallocate-inventory-order';
 import { MaterialService } from './material.service';
+import { FindAllocateInventoryOrderInput } from '../typings/find-allocate-inventory-order.input';
+import { BatchService } from './batch.service';
 
 @Injectable()
 export class AllocateInventoryOrderService<
@@ -36,6 +38,7 @@ export class AllocateInventoryOrderService<
     @Inject(AllocateInventoryOrderItemEntity)
     readonly allocateInventoryOrderItemEntity: EntityTarget<K>,
     @Inject(StockEntity) readonly stockEntity: EntityTarget<StockEntityClass>,
+    readonly batchService: BatchService,
   ) {}
 
   private getRepositories(manager: EntityManager) {
@@ -58,8 +61,9 @@ export class AllocateInventoryOrderService<
 
   private async processAllocateInventoryOrderItems(
     items: Partial<AllocateInventoryOrderItemEntityClass>[],
-    repos: ReturnType<typeof this.getRepositories>,
+    manager: EntityManager,
   ): Promise<void> {
+    const repos = this.getRepositories(manager);
     await Promise.all(
       items.map(async (data) => {
         const item = await repos.allocateInventoryOrderItem.save(
@@ -70,6 +74,15 @@ export class AllocateInventoryOrderService<
           item.materialId,
           item.unitId || undefined,
         );
+
+        // Create a variant batch for allocation with sale/customer info
+        const splittedBatch = await this.batchService.splitBatch({
+          id: item.batchId,
+          materialId: item.materialId,
+          saleId: data.saleId,
+          saleSerialId: data.saleSerialId,
+          manager,
+        });
 
         await repos.allocateInventoryOrderChange.save(
           repos.allocateInventoryOrderChange.create({
@@ -85,7 +98,7 @@ export class AllocateInventoryOrderService<
             {
               orderId: base.id,
               materialId: item.materialId,
-              batchId: item.batchId,
+              batchId: splittedBatch.id,
               locationId: item.locationId || undefined,
               loaderId: item.loaderId || undefined,
               quantity: item.targetAllocatedQuantity * conversionFactor,
@@ -123,7 +136,7 @@ export class AllocateInventoryOrderService<
         ...item,
         orderId: order.id,
       }));
-      await this.processAllocateInventoryOrderItems(items, repos);
+      await this.processAllocateInventoryOrderItems(items, manager);
     }
 
     return order as T;
@@ -166,11 +179,13 @@ export class AllocateInventoryOrderService<
       });
 
       if (newItems.length)
-        await this.processAllocateInventoryOrderItems(newItems, repos);
+        await this.processAllocateInventoryOrderItems(newItems, manager);
       if (existingItems.length)
-        await Promise.all(
-          existingItems.map((item) =>
-            repos.allocateInventoryOrderItem.create(item),
+        await repos.allocateInventoryOrderItem.save(
+          await Promise.all(
+            existingItems.map((item) =>
+              repos.allocateInventoryOrderItem.create(item),
+            ),
           ),
         );
     }
@@ -254,5 +269,68 @@ export class AllocateInventoryOrderService<
       );
       return true;
     });
+  }
+
+  findMany(options: FindAllocateInventoryOrderInput): Promise<[T[], number]> {
+    const queryBuilder = this.dataSource
+      .getRepository<T>(this.allocateInventoryOrderEntity)
+      .createQueryBuilder('to');
+
+    if (options.key)
+      queryBuilder.andWhere('to.key ILIKE :key', { key: `%${options.key}%` });
+
+    if (options.dateRange)
+      queryBuilder.andWhere('to.createdAt BETWEEN :start AND :end', {
+        start: options.dateRange.from,
+        end: options.dateRange.to,
+      });
+
+    if (options.materialId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'm_items',
+        'm_items.materialId = :materialId',
+        {
+          materialId: options.materialId,
+        },
+      );
+
+    if (options.batchId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'b_items',
+        'b_items.batchId = :batchId',
+        {
+          batchId: options.batchId,
+        },
+      );
+
+    if (options.locationId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'l_items',
+        'l_items.locationId = :locationId',
+        {
+          locationId: options.locationId,
+        },
+      );
+
+    if (options.loaderId)
+      queryBuilder.innerJoin(
+        'to.items',
+        'ld_items',
+        'ld_items.loaderId = :loaderId',
+        {
+          loaderId: options.loaderId,
+        },
+      );
+
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
+
+    return queryBuilder.getManyAndCount();
   }
 }

@@ -47,7 +47,7 @@ function LoadersManagementListTable() {
       key: 'serialId',
       title: '載具編碼',
       width: 100,
-      render: (source) => `${source.type?.key}${source.serialId}`,
+      render: (source) => source.serialId,
     },
     {
       key: '儲存位置',

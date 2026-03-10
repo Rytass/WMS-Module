@@ -1,17 +1,73 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BatchEntity as BatchBaseEntity } from '@rytass/wms-base-nestjs-module';
-import { DataSource, EntityTarget, Repository } from 'typeorm';
-import { BatchEntity } from '../models';
+import { DataSource, EntityManager, EntityTarget, Repository } from 'typeorm';
+import { BatchEntity, BatchEntityClass } from '../models';
 import { FindBatchInput } from '../typings/find-batch.input';
+import { GetBatchInput } from '../typings/get-batch.input';
+import {
+  BatchGroupEntity,
+  BatchGroupEntityClass,
+} from '../models/metadata/batch-group.entity';
 
 @Injectable()
-export class BatchService<T extends BatchBaseEntity = BatchBaseEntity> {
+export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
   readonly batchRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(BatchEntity) readonly batchEntity: EntityTarget<T>,
+    @Inject(BatchGroupEntity)
+    readonly batchGroupEntity: EntityTarget<BatchGroupEntityClass>,
   ) {
     this.batchRepository = this.dataSource.getRepository<T>(this.batchEntity);
+  }
+
+  async getBatch({
+    manager = this.dataSource.manager,
+    ...options
+  }: GetBatchInput & { manager?: EntityManager }): Promise<T> {
+    const batchRepository = manager.getRepository(BatchEntityClass);
+    const batchGroupRepository = manager.getRepository(this.batchGroupEntity);
+    const existed = await batchRepository.findOneBy({
+      key: options.key,
+      materialId: options.materialId,
+    });
+    if (existed) return existed as T;
+
+    const batchGroup = await batchGroupRepository.save(
+      batchGroupRepository.create({
+        key: options.key,
+        materialId: options.materialId,
+      }),
+    );
+    const batch = await batchRepository.save(
+      batchRepository.create({
+        ...options,
+        groupId: batchGroup.id,
+      }),
+    );
+    return batch as T;
+  }
+
+  async splitBatch({
+    manager = this.dataSource.manager,
+    ...options
+  }: {
+    id: string;
+    manager?: EntityManager;
+  } & Omit<GetBatchInput, 'key'>): Promise<T> {
+    const batchRepository = manager.getRepository(BatchEntityClass);
+    const batch = await batchRepository.findOneOrFail({
+      where: { id: options.id },
+      relations: ['batchGroup'],
+    });
+
+    return batchRepository.save(
+      batchRepository.create({
+        ...batch,
+        ...options,
+        groupId: batch.batchGroup.id,
+        key: `${batch.key}_${Date.now().toString()}`,
+      }),
+    ) as Promise<T>;
   }
 
   async findMany(options: FindBatchInput<T>) {

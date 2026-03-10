@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import {
   FieldValues,
   FormProvider,
@@ -21,6 +21,8 @@ interface BaseFormWrapperProps<T extends FieldValues = FieldValues>
   methods: UseFormReturn<T>;
   children: ReactNode;
   onSubmit?: SubmitHandler<T>;
+  isFormPage?: boolean;
+  pureFormProvider?: boolean;
 }
 
 interface WithPageFooter<T extends FieldValues = FieldValues> {
@@ -61,6 +63,8 @@ export const FormWrapper = <T extends FieldValues>({
   onSubmit = (): void => {
     //
   },
+  isFormPage = false,
+  pureFormProvider = false,
   havePageFooter,
   disableSubmitButton,
   disableCancelButton,
@@ -74,30 +78,67 @@ export const FormWrapper = <T extends FieldValues>({
   haveCancelButton = true,
   ...other
 }: FormWrapperProps<T>): ReactNode => {
+  const formFooter = useMemo(
+    () =>
+      havePageFooter && (
+        <FormFooter<T>
+          onSubmit={onSubmit}
+          pureFormProvider={pureFormProvider}
+          disableSubmitButton={disableSubmitButton}
+          disableCancelButton={disableCancelButton}
+          submitText={submitText}
+          primaryButtonVariant={primaryButtonVariant}
+          primaryButtonIcon={primaryButtonIcon}
+          cancelText={cancelText}
+          secondaryButtonVariant={secondaryButtonVariant}
+          supportingActionName={supportingActionName}
+          supportingActionOnClick={supportingActionOnClick}
+          haveCancelButton={haveCancelButton}
+        />
+      ),
+    [
+      cancelText,
+      disableCancelButton,
+      disableSubmitButton,
+      haveCancelButton,
+      havePageFooter,
+      onSubmit,
+      primaryButtonIcon,
+      primaryButtonVariant,
+      pureFormProvider,
+      secondaryButtonVariant,
+      submitText,
+      supportingActionName,
+      supportingActionOnClick,
+    ],
+  );
+
+  if (pureFormProvider) {
+    return (
+      <FormProvider {...methods}>
+        <div
+          className={cx(classes.form, className, {
+            [classes.isFormPage]: isFormPage || havePageFooter,
+          })}
+        >
+          {children}
+          {formFooter}
+        </div>
+      </FormProvider>
+    );
+  }
+
   return (
     <FormProvider {...methods}>
       <form
         {...other}
         className={cx(classes.form, className, {
-          [classes.isFormPage]: havePageFooter,
+          [classes.isFormPage]: isFormPage || havePageFooter,
         })}
         onSubmit={methods.handleSubmit(onSubmit)}
       >
         {children}
-        {havePageFooter && (
-          <FormFooter<T>
-            disableSubmitButton={disableSubmitButton}
-            disableCancelButton={disableCancelButton}
-            submitText={submitText}
-            primaryButtonVariant={primaryButtonVariant}
-            primaryButtonIcon={primaryButtonIcon}
-            cancelText={cancelText}
-            secondaryButtonVariant={secondaryButtonVariant}
-            supportingActionName={supportingActionName}
-            supportingActionOnClick={supportingActionOnClick}
-            haveCancelButton={haveCancelButton}
-          />
-        )}
+        {formFooter}
       </form>
     </FormProvider>
   );

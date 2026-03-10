@@ -2,6 +2,7 @@ import {
   ArgsType,
   Field,
   ID,
+  InputType,
   Int,
   OmitType,
   PartialType,
@@ -11,9 +12,6 @@ import {
 export class CreateLoaderArgs {
   @Field(() => ID)
   typeId!: string;
-
-  @Field(() => String)
-  serialId!: string;
 
   @Field(() => ID)
   locationId!: string;
@@ -45,8 +43,41 @@ export class CreateLoaderArgs {
 
 @ArgsType()
 export class UpdateLoaderArgs extends PartialType(
-  OmitType(CreateLoaderArgs, ['locationId', 'typeId', 'serialId'] as const)
+  OmitType(CreateLoaderArgs, ['locationId', 'typeId'] as const),
 ) {
   @Field(() => ID)
   id!: string;
+}
+
+@InputType()
+export class CreateLoadersArgs {
+  @Field(() => ID)
+  typeKey!: string;
+
+  @Field(() => ID)
+  locationId!: string;
+
+  @Field(() => Int)
+  quantity!: number;
+
+  @Field(() => Number, { nullable: true })
+  length?: number;
+
+  @Field(() => Number, { nullable: true })
+  width?: number;
+
+  @Field(() => Number, { nullable: true })
+  height?: number;
+
+  @Field(() => String, { nullable: true })
+  sizeUnit?: string;
+
+  @Field(() => Number, { nullable: true })
+  volume?: number;
+
+  @Field(() => String, { nullable: true })
+  volumeUnit?: string;
+
+  @Field(() => String, { nullable: true })
+  note?: string;
 }

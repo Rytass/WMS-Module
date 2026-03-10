@@ -1,0 +1,7 @@
+@use '@mezzanine-ui/system/spacing';
+
+.headSectionWrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: spacing.semantic-variable(gap, base);
+}

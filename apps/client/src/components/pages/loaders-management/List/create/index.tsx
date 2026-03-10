@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
-import CreateLoaderForm from '../Form';
+import { useCallback, useMemo } from 'react';
+import LoaderForm from '../Form';
 import { FormValues } from '../Form/typing';
 
 function CreateLoader() {
@@ -7,8 +7,16 @@ function CreateLoader() {
     console.log('values', values);
   }, []);
 
+  const defaultValues = useMemo(
+    (): FormValues => ({
+      items: [],
+    }),
+    [],
+  );
+
   return (
-    <CreateLoaderForm
+    <LoaderForm
+      defaultValues={defaultValues}
       onSubmit={onSubmit}
       title="新增載具"
       breadcrumbTitle="新增載具"

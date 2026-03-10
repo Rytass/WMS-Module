@@ -1,8 +1,9 @@
 import { Field, ID, ArgsType, OmitType, PartialType } from '@nestjs/graphql';
 import {
-  CreateShipInventoryOrderItemArgs,
-  UpdateShipInventoryOrderItemArgs,
-} from './create-ship-inventory-order-item.args';
+  CreateShipInventoryOrderReferenceArgs,
+  UpdateShipInventoryOrderReferenceArgs,
+} from './create-ship-inventory-order-reference.args';
+import { UpdateShipInventoryOrderItemArgs } from './create-ship-inventory-order-item.args';
 
 @ArgsType()
 export class CreateShipInventoryOrderArgs {
@@ -15,17 +16,23 @@ export class CreateShipInventoryOrderArgs {
   @Field(() => String, { nullable: true })
   createdBy?: string;
 
-  @Field(() => [CreateShipInventoryOrderItemArgs])
-  items!: CreateShipInventoryOrderItemArgs[];
+  @Field(() => [CreateShipInventoryOrderReferenceArgs])
+  references!: CreateShipInventoryOrderReferenceArgs[];
 }
 
 @ArgsType()
 export class UpdateShipInventoryOrderArgs extends PartialType(
-  OmitType(CreateShipInventoryOrderArgs, ['key', 'items'] as const),
+  OmitType(CreateShipInventoryOrderArgs, ['key', 'references'] as const),
 ) {
   @Field(() => ID)
   id!: string;
 
+  @Field(() => [UpdateShipInventoryOrderReferenceArgs], { nullable: true })
+  references?: UpdateShipInventoryOrderReferenceArgs[];
+
   @Field(() => [UpdateShipInventoryOrderItemArgs], { nullable: true })
   items?: UpdateShipInventoryOrderItemArgs[];
+
+  @Field(() => Date, { nullable: true })
+  removedAt?: Date;
 }

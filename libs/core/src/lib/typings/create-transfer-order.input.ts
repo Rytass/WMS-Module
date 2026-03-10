@@ -1,9 +1,12 @@
+import { StockStatus } from '../constants';
+
 export type CreateTransferOrderItemInput = {
   // stocks location where to transfer from
   locationId: string;
 
   // stocks loader where to transfer from
   loaderId?: string;
+  status?: StockStatus;
   targetTransferredQuantity: number;
   unitId?: string;
 };

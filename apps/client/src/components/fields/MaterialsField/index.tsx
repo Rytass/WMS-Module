@@ -1,15 +1,29 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
+import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { MaterialOptionsQuery } from '../../../graphql/generated/.graphql';
-import { useFetchMoreOptions } from '../../../hooks/useFetchOptions';
+import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryMaterials } from './useApi';
 
 interface MaterialsFieldProps {
   name: string;
+  label?: string;
+  placeholder?: string;
+  fuzzySearch?: boolean;
   required?: boolean;
+  disabled?: boolean;
+  selectValueMode?: boolean;
 }
 
-const MaterialsField: FC<MaterialsFieldProps> = ({ name, required }) => {
+const MaterialsField: FC<MaterialsFieldProps> = ({
+  name,
+  label = '料號',
+  placeholder,
+  fuzzySearch = true,
+  required,
+  disabled,
+  selectValueMode = false,
+}) => {
   const { fetchMaterials } = useLazyQueryMaterials();
 
   const getNewOptions = useCallback(
@@ -27,20 +41,38 @@ const MaterialsField: FC<MaterialsFieldProps> = ({ name, required }) => {
       getNewOptions,
     });
 
-  return (
-    <SingleAutoCompleteField
-      name={name}
-      label="料號"
-      placeholder="輸入料號"
-      fuzzySearch
-      options={currentOptions}
-      required={required}
-      onVisibilityChange={onVisibilityChange}
-      useNameToValue
-      onSearch={onSearch}
-      onReachBottom={onReachBottom}
-    />
+  const baseProps = useMemo(
+    () => ({
+      name,
+      label,
+      placeholder: placeholder || `輸入${label}`,
+      fuzzySearch,
+      options: currentOptions,
+      required,
+      disabled,
+      onVisibilityChange,
+      onSearch,
+      onReachBottom,
+    }),
+    [
+      currentOptions,
+      disabled,
+      fuzzySearch,
+      label,
+      name,
+      onReachBottom,
+      onSearch,
+      onVisibilityChange,
+      placeholder,
+      required,
+    ],
   );
+
+  if (selectValueMode) {
+    return <SingleAutoCompleteField {...baseProps} />;
+  }
+
+  return <SingleAutoCompleteByIdField {...baseProps} useNameToValue />;
 };
 
 export default MaterialsField;

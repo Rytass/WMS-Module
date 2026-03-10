@@ -15,17 +15,22 @@ export class ReceiveInventoryOrderItemDto {
   @Field(() => Float)
   targetReceivedQuantity!: number;
 
+  @Field(() => String)
+  serialId!: string;
+
   @Field(() => ID)
   orderId!: string;
 
-  @Field(() => ID)
   materialId!: string;
-
-  @Field(() => ID, { nullable: true })
   batchId!: string | null;
+  locationId!: string | null;
+  loaderId!: string | null;
 
   @Field(() => Date, { nullable: true })
   removedAt!: Date | null;
+
+  @Field(() => Boolean)
+  requireInspection!: boolean;
 }
 
 @ObjectType()

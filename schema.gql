@@ -89,6 +89,7 @@ enum StockStatus {
   INSPECTION_FAILED
   HELD
   IN_TRANSFER
+  IN_SHIPMENT
   ALLOCATED
   VENDOR_INVENTORY
   CUSTOMER_INVENTORY
@@ -132,15 +133,25 @@ type ChangeLogs {
   total: Int!
 }
 
+type SaleOrderDto {
+  id: ID!
+  serialId: String!
+}
+
 type ReceiveInventoryOrderItemDto {
   id: ID!
   description: String
   unitId: ID
   targetReceivedQuantity: Float!
+  serialId: String!
   orderId: ID!
-  materialId: ID!
-  batchId: ID
   removedAt: DateTime
+  requireInspection: Boolean!
+  material: MaterialDto!
+  batch: BatchDto
+  location: LocationDto
+  loader: LoaderDto
+  receivedQuantity: Int!
 }
 
 type ReceiveInventoryOrderDto {
@@ -148,6 +159,7 @@ type ReceiveInventoryOrderDto {
   key: String!
   description: String!
   createdBy: String
+  createdAt: DateTime!
   removedAt: DateTime
   items: [ReceiveInventoryOrderItemDto!]!
   status: ReceiveInventoryOrderStatus!
@@ -168,13 +180,17 @@ type ReceiveInventoryOrders {
 
 type ShipInventoryOrderItemDto {
   id: ID!
-  description: String
   unitId: ID
   targetShippedQuantity: Float!
   orderId: ID!
   materialId: ID!
   batchId: ID
   removedAt: DateTime
+  material: MaterialDto!
+  batch: BatchDto
+  location: LocationDto
+  loader: LoaderDto
+  shippedQuantity: Int!
 }
 
 type ShipInventoryOrderDto {
@@ -182,9 +198,11 @@ type ShipInventoryOrderDto {
   key: String!
   description: String!
   createdBy: String
+  createdAt: DateTime!
   removedAt: DateTime
   items: [ShipInventoryOrderItemDto!]!
   status: ShipInventoryOrderStatus!
+  references: [ShipInventoryOrderReferenceDto!]!
 }
 
 enum ShipInventoryOrderStatus {
@@ -318,13 +336,48 @@ type HoldInventoryOrders {
   total: Int!
 }
 
+type AllocateInventoryOrderDto {
+  id: ID!
+  key: String!
+  description: String!
+  reason: String!
+  createdAt: DateTime!
+  items: [AllocateInventoryOrderItemDto!]!
+}
+
+type AllocateInventoryOrders {
+  id: ID!
+  items: [AllocateInventoryOrderDto!]!
+  total: Int!
+}
+
+type AllocateInventoryOrderItemDto {
+  id: ID!
+  targetAllocatedQuantity: Int!
+  saleId: String!
+  saleSerialId: String!
+}
+
+type ShipInventoryOrderReferenceDto {
+  id: ID!
+  serialId: String!
+  saleId: String
+  saleSerialId: String
+  unitId: ID
+  targetShippedQuantity: Int!
+  shippedQuantity: Int!
+  material: MaterialDto!
+  batch: BatchDto
+  items: [ShipInventoryOrderItemDto!]!
+}
+
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
   loaders(offset: Int, limit: Int, key: String, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String): Loaders!
   loaderType(id: ID!): LoaderTypeDto!
-  loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, serial: String): LoaderTypes!
-  material(id: ID!): MaterialDto!
+  loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, key: String): LoaderTypes!
+  material(id: ID, key: String): MaterialDto!
   materials(offset: Int, limit: Int, key: String, description: String): Materials!
   batches(offset: Int, limit: Int, key: String): Batches!
   stock(id: ID!): StockDto!
@@ -340,6 +393,9 @@ type Query {
   holdInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): HoldInventoryOrders!
   location(id: ID!): LocationDto!
   locations(offset: Int, limit: Int, description: String, key: String): Locations!
+  allocateInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): AllocateInventoryOrders!
+  saleOrderDistinctIds(keyword: String): [String!]!
+  saleOrders(id: [ID!]!): [SaleOrderDto!]!
 }
 
 input DateRangeArgs {
@@ -348,17 +404,18 @@ input DateRangeArgs {
 }
 
 type Mutation {
-  createLoader(typeId: ID!, serialId: String!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
-  createBatchLoader(typeId: ID!, serialId: String!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
+  createLoader(typeId: ID!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
+  createBatchLoader(items: [CreateLoadersArgs!]!): [LoaderDto!]!
   updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!): LoaderDto!
   createLoaderType(description: String!, key: String!): LoaderTypeDto!
   updateLoaderType(description: String, id: ID!, isActive: Boolean): LoaderTypeDto!
   createMaterial(key: String!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
   updateMaterial(description: String, isActive: Boolean, id: ID!, units: [CreateMaterialUnitArgs!]): MaterialDto!
   createReceiveInventoryOrder(key: ID!, description: String!, items: [CreateReceiveInventoryOrderItemArgs!]!): ReceiveInventoryOrderDto!
-  updateReceiveInventoryOrder(description: String, id: ID!, createdBy: String, items: [UpdateReceiveInventoryOrderItemArgs!]): ReceiveInventoryOrderDto!
-  createShipInventoryOrder(key: ID!, description: String!, createdBy: String, items: [CreateShipInventoryOrderItemArgs!]!): ShipInventoryOrderDto!
-  updateShipInventoryOrder(description: String, createdBy: String, id: ID!, items: [UpdateShipInventoryOrderItemArgs!]): ShipInventoryOrderDto!
+  updateReceiveInventoryOrder(description: String, id: ID!, createdBy: String, items: [UpdateReceiveInventoryOrderItemArgs!], removedAt: DateTime): ReceiveInventoryOrderDto!
+  receive(items: [ReceiveOrderArgs!]!): Boolean!
+  createShipInventoryOrder(key: ID!, description: String!, createdBy: String, references: [CreateShipInventoryOrderReferenceArgs!]!): ShipInventoryOrderDto!
+  updateShipInventoryOrder(description: String, createdBy: String, id: ID!, references: [UpdateShipInventoryOrderReferenceArgs!], items: [UpdateShipInventoryOrderItemArgs!], removedAt: DateTime): ShipInventoryOrderDto!
   createTransferOrder(description: String, locationId: ID!, loaderId: ID, receiver: String, createdBy: String, items: [CreateTransferOrderItemArgs!]!): TransferOrderDto!
   updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
   transfer(items: [TransferOrderArgs!]!): Boolean!
@@ -369,6 +426,19 @@ type Mutation {
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
 }
 
+input CreateLoadersArgs {
+  typeKey: ID!
+  locationId: ID!
+  quantity: Int!
+  length: Float
+  width: Float
+  height: Float
+  sizeUnit: String
+  volume: Float
+  volumeUnit: String
+  note: String
+}
+
 input CreateMaterialUnitArgs {
   unit: String!
   conversionFactor: Float!
@@ -377,36 +447,61 @@ input CreateMaterialUnitArgs {
 
 input CreateReceiveInventoryOrderItemArgs {
   description: String!
-  unitId: ID!
-  batchId: ID!
-  materialId: ID!
+  unitId: ID
+  locationKey: ID
+  loaderKey: ID
+  serialId: String!
+  batchKey: ID!
+  materialKey: ID!
   targetReceivedQuantity: Float!
+  requireInspection: Boolean
 }
 
 input UpdateReceiveInventoryOrderItemArgs {
   description: String
   unitId: ID
-  batchId: ID
-  materialId: ID
+  locationKey: ID
+  loaderKey: ID
+  serialId: String
+  batchKey: ID
+  materialKey: ID
   targetReceivedQuantity: Float
+  requireInspection: Boolean
   id: ID
   removedAt: DateTime
 }
 
-input CreateShipInventoryOrderItemArgs {
-  description: String!
-  unitId: ID!
-  batchId: ID!
-  materialId: ID!
-  targetShippedQuantity: Float!
+input ReceiveOrderArgs {
+  itemId: String!
+  batchId: String
+  quantity: Int!
+}
+
+input CreateShipInventoryOrderReferenceArgs {
+  description: String
+  unitId: String
+  batchKey: String
+  materialKey: String!
+  targetShippedQuantity: Int!
+  serialId: String!
+}
+
+input UpdateShipInventoryOrderReferenceArgs {
+  description: String
+  unitId: String
+  batchKey: String
+  materialKey: String
+  targetShippedQuantity: Int
+  serialId: String
+  id: String
+  removedAt: DateTime
 }
 
 input UpdateShipInventoryOrderItemArgs {
-  description: String
+  aggregatedKey: ID
   unitId: ID
-  batchId: ID
-  materialId: ID
   targetShippedQuantity: Float
+  serialId: String
   id: ID
   removedAt: DateTime
 }

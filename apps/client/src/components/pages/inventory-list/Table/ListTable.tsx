@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction, useState, useMemo, useEffect } from 'react';
 import { TableColumn } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { useQueryStocks } from '../useApi';
 import { FilterValues } from '../typing';
 
@@ -18,6 +19,8 @@ function InventoryListTable({
   setNeedClearSelectedRows,
   setTargetStocks,
 }: InventoryListTableProps) {
+  const { targetInventoryIds } = useInventoryActions();
+
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
   const [dataSignature, setDataSignature] = useState<{
     [id: string]: AggregatedStockFragment;
@@ -111,6 +114,9 @@ function InventoryListTable({
     <Table<AggregatedStockFragment>
       columns={columns}
       dataSource={dataSource}
+      rowState={(source) =>
+        targetInventoryIds.includes(source.id) ? 'added' : undefined
+      }
       loading={loading}
       rowSelection={{
         mode: 'checkbox',

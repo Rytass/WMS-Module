@@ -113,6 +113,7 @@ export class LoaderService<
           const { key } = loaderType;
           const startSeq = await this.getSeq(key, option.quantity, manager);
           for (let i = 0; i < option.quantity; i++) {
+            console.log({ startSeq });
             const seqNum = startSeq + i;
             const paddedSeq = seqNum
               .toString()
@@ -187,24 +188,24 @@ export class LoaderService<
     let startVal: number;
 
     try {
-      const [{ val }] = await manager.query<[{ val: number }]>(
-        `SELECT CURRVAL('${seqName}') + 1 AS val`,
+      const [{ val }] = await manager.query<[{ val: string }]>(
+        `SELECT CURRVAL('"${seqName}"') + 1 AS val`,
       );
-      startVal = val;
+      startVal = parseInt(val, 10);
     } catch (ex) {
       const msg = (ex as Error).message;
 
       if (/does\snot\sexist/.test(msg)) {
-        await manager.query(`CREATE SEQUENCE ${seqName}`);
+        await manager.query(`CREATE SEQUENCE "${seqName}"`);
       } else if (!/not\syet\sdefined/.test(msg)) {
         throw ex;
       }
 
       // Initialize with NEXTVAL
-      const [{ nextval }] = await manager.query<[{ nextval: number }]>(
-        `SELECT NEXTVAL('${seqName}') AS nextval`,
+      const [{ nextval }] = await manager.query<[{ nextval: string }]>(
+        `SELECT NEXTVAL('"${seqName}"') AS nextval`,
       );
-      startVal = nextval;
+      startVal = parseInt(nextval, 10);
     }
 
     const endVal = startVal + count - 1;
@@ -214,7 +215,7 @@ export class LoaderService<
       );
     }
 
-    await manager.query(`SELECT SETVAL('${seqName}', $1)`, [endVal]);
+    await manager.query(`SELECT SETVAL('"${seqName}"', $1)`, [endVal]);
     return startVal;
   }
 

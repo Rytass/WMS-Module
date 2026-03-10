@@ -3,6 +3,31 @@ import {
   ReceiveInventoryOrderStatus,
 } from '../graphql/generated/.graphql';
 
+export const BASE_UNIT = 'BASE_UNIT';
+
+export enum YesOrNo {
+  YES = 'YES',
+  NO = 'NO',
+}
+
+export function yesNoName(option: YesOrNo): string {
+  switch (option) {
+    case YesOrNo.YES:
+      return '是';
+
+    case YesOrNo.NO:
+      return '否';
+
+    default:
+      return '';
+  }
+}
+
+export const yesNoOptions = [YesOrNo.YES, YesOrNo.NO].map((o) => ({
+  id: o,
+  name: yesNoName(o),
+}));
+
 export function shipInventoryOrderStatusName(
   status?: ShipInventoryOrderStatus,
 ) {

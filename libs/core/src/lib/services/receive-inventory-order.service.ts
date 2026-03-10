@@ -9,6 +9,7 @@ import {
 } from '../models/extensions/receive-inventory-order/receive-inventory-order-item.entity';
 import {
   DataSource,
+  DeepPartial,
   EntityManager,
   In,
   IsNull,
@@ -17,14 +18,21 @@ import {
 } from 'typeorm';
 import {
   CreateReceiveInventoryOrderInput,
+  CreateReceiveInventoryOrderItemInput,
   UpdateReceiveInventoryOrderInput,
 } from '../typings/create-receive-inventory-order.input';
-import { OrderEntity, StockEntity } from '@rytass/wms-base-nestjs-module';
+import { BatchEntity, OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   FindReceiveInventoryOrderInput,
   ReceiveInventoryOrderStatus,
 } from '../typings/find-receive-inventory-order.input';
-import { ReceiveInventoryOrderChangeEntityClass } from '../models';
+import {
+  LoadersEntityClass,
+  LocationEntityClass,
+  MaterialEntityClass,
+  ReceiveInventoryOrderChangeEntityClass,
+  StockEntityClass,
+} from '../models';
 import { ReceiveInventoryOrderInput } from '../typings/receive-inventory-order.input';
 import { MaterialService } from './material.service';
 
@@ -58,7 +66,7 @@ export class ReceiveInventoryOrderService<
             subQuery
               .select(
                 `CASE
-                  WHEN o."removedAt" IS NOT NULL THEN '${ReceiveInventoryOrderStatus.PENDING}'
+                  WHEN o."removedAt" IS NOT NULL THEN '${ReceiveInventoryOrderStatus.REMOVED}'
                   WHEN COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
                     FROM receive_inventory_order_changes c
@@ -98,8 +106,81 @@ export class ReceiveInventoryOrderService<
           'order_status',
           `${alias}.id = order_status."orderId"`,
         )
+        .select('orders.id', 'id')
+        .addSelect('orders.key', 'key')
+        .addSelect('orders.description', 'description')
+        .addSelect('orders."createdBy"', 'createdBy')
+        .addSelect('orders."createdAt"', 'createdAt')
+        .addSelect('orders."removedAt"', 'removedAt')
         .addSelect('order_status.status', `status`);
     };
+  }
+
+  private processReceiveInventoryOrderItems(
+    items: Partial<CreateReceiveInventoryOrderItemInput>[],
+    orderId: string,
+    manager: EntityManager,
+  ): Promise<DeepPartial<ReceiveInventoryOrderItemEntityClass>[]> {
+    const materialRepository =
+      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
+    const batchRepository = manager.getRepository<BatchEntity>(BatchEntity);
+    const locationRepository =
+      manager.getRepository<LocationEntityClass>(LocationEntityClass);
+    const loaderRepository =
+      manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
+
+    return items.reduce(
+      async (accPromise, item) => {
+        const acc = await accPromise;
+
+        try {
+          const material = await materialRepository.findOneBy({
+            key: item.materialKey,
+          });
+          if (!material) return acc;
+
+          const batch = await batchRepository
+            .findOneBy({ key: item.batchKey, materialId: material.id })
+            .then(
+              async (batch) =>
+                batch ||
+                (await batchRepository.save(
+                  batchRepository.create({
+                    materialId: material.id,
+                    key: item.batchKey,
+                  }),
+                )),
+            );
+
+          const location = await locationRepository.findOneBy({
+            key: item.locationKey,
+          });
+          if (!location) return acc;
+
+          const loader = await loaderRepository.findOneBy({
+            serialId: item.loaderKey,
+          });
+          if (!loader) return acc;
+
+          return [
+            ...acc,
+            {
+              ...item,
+              orderId,
+              materialId: material.id,
+              batchId: batch.id,
+              locationId: location.id,
+              loaderId: loader.id,
+            },
+          ];
+        } catch {
+          return acc;
+        }
+      },
+      Promise.resolve(
+        [] as DeepPartial<ReceiveInventoryOrderItemEntityClass>[],
+      ),
+    );
   }
 
   async createReceiveInventoryOrder({
@@ -128,12 +209,14 @@ export class ReceiveInventoryOrderService<
 
     // create receive inventory order items
     if (options.items && options.items.length > 0) {
-      const items = receiveInventoryOrderItemRepository.create(
-        options.items.map((item) => ({
-          ...item,
-          orderId: order.id,
-        })),
-      );
+      const items: ReceiveInventoryOrderItemEntityClass[] =
+        receiveInventoryOrderItemRepository.create(
+          await this.processReceiveInventoryOrderItems(
+            options.items,
+            id,
+            manager,
+          ),
+        );
       await receiveInventoryOrderItemRepository.save(items);
     }
 
@@ -172,7 +255,7 @@ export class ReceiveInventoryOrderService<
     );
 
     if (options.items?.length) {
-      const newItems: Partial<ReceiveInventoryOrderItemEntityClass>[] = [];
+      const newItems: Partial<CreateReceiveInventoryOrderItemInput>[] = [];
       const existingItems: Partial<ReceiveInventoryOrderItemEntityClass>[] = [];
 
       await receiveInventoryOrderItemRepository
@@ -180,8 +263,6 @@ export class ReceiveInventoryOrderService<
         .then((items) => {
           const itemSet = new Set(items.map((i) => i.id));
           options.items?.forEach((item) => {
-            if (item.removedAt) return;
-
             if (!item.id) newItems.push(item);
             else if (itemSet.has(item.id)) existingItems.push(item);
           });
@@ -190,13 +271,17 @@ export class ReceiveInventoryOrderService<
       if (newItems.length)
         await receiveInventoryOrderItemRepository.save(
           receiveInventoryOrderItemRepository.create(
-            newItems.map((item) => ({ ...item, orderId: id })),
+            await this.processReceiveInventoryOrderItems(newItems, id, manager),
           ),
         );
+
       if (existingItems.length)
-        await Promise.all(
-          existingItems.map(async (item) =>
-            receiveInventoryOrderItemRepository.update({ id: item.id }, item),
+        await receiveInventoryOrderItemRepository.save(
+          existingItems.map((item) =>
+            receiveInventoryOrderItemRepository.create({
+              ...item,
+              id: item.id,
+            }),
           ),
         );
     }
@@ -213,7 +298,9 @@ export class ReceiveInventoryOrderService<
       .then(({ affected }) => !!affected && affected > 0);
   }
 
-  findMany(options: FindReceiveInventoryOrderInput): Promise<[T[], number]> {
+  async findMany(
+    options: FindReceiveInventoryOrderInput,
+  ): Promise<[T[], number]> {
     const queryBuilder = this.selectQueryBuilder('orders');
 
     if (options.id)
@@ -240,13 +327,17 @@ export class ReceiveInventoryOrderService<
         status: options.status,
       });
 
+    const total = await queryBuilder.getCount();
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
     if (options.limit !== undefined && options.limit > 0)
       queryBuilder.take(options.limit);
 
-    return queryBuilder.getManyAndCount();
+    const items = await queryBuilder.getRawMany();
+
+    return [items, total];
   }
 
   receive(
@@ -264,7 +355,8 @@ export class ReceiveInventoryOrderService<
           this.receiveInventoryOrderItemEntity,
         );
       const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
-      const stockRepository = manager.getRepository<StockEntity>(StockEntity);
+      const stockRepository =
+        manager.getRepository<StockEntityClass>(StockEntityClass);
 
       const items = await itemRepository.find({
         where: { id: In(options.map((o) => o.itemId)) },
@@ -309,7 +401,9 @@ export class ReceiveInventoryOrderService<
             ),
             stockRepository.save(
               stockRepository.create({
-                batchId: option.batchId ?? item.batchId,
+                batchId: option.batchId || item.batchId || undefined,
+                locationId: item.locationId || undefined,
+                loaderId: item.loaderId || undefined,
                 materialId: item.materialId,
                 quantity: option.quantity * conversionFactor,
                 orderId: newOrder.id,
