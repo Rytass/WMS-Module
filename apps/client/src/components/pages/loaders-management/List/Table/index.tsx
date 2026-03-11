@@ -53,7 +53,7 @@ function LoadersManagementListTable() {
       key: '儲存位置',
       title: '儲存位置',
       width: 100,
-      render: (source) => '儲存位置',
+      render: (source) => source.location?.key,
     },
     {
       key: 'length',

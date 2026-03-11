@@ -66,6 +66,10 @@ const Actions: FC<ActionsProps> = ({ source }) => {
             name: source.type.description,
           },
           typeKey: source.type.key,
+          location: {
+            id: source.location.id,
+            name: source.location.key,
+          },
           length: source.length,
           width: source.width,
           height: source.height,

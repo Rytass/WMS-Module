@@ -35,7 +35,7 @@ export function fragmentToDefaultValues(
         })),
       ],
       isExisted: true,
-      // removedAt: r.removedAt || '',
+      removedAt: r.removedAt || '',
     })),
   };
 }

@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormModalWrapper } from '../../../../fields/FormModalWrapper';
 import LoaderTypesField from '../../../../fields/LoaderTypesField';
+import LocationsField from '../../../../fields/LocationsField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import InputField from '../../../../fields/InputField';
 import DateField from '../../../../fields/DateField';
@@ -58,6 +59,13 @@ function LoaderEditForm({
           name="typeKey"
           placeholder="類型代碼"
           label="類型代碼"
+          disabled
+        />
+        <LocationsField
+          name="location"
+          label="儲存位置"
+          fuzzySearch={false}
+          selectValueMode
           disabled
         />
         <div className={classes.innerWrapper}>
