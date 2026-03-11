@@ -6,6 +6,7 @@ import {
 import {
   ShipInventoryOrdersDocument,
   CreateShipInventoryOrderDocument,
+  UpdateShipInventoryOrderDocument,
 } from '../../../graphql/generated/.graphql';
 
 export function useQueryShipInventoryOrders() {
@@ -44,5 +45,15 @@ export function useCreateShipInventoryOrder() {
 
   return {
     createShipInventoryOrder,
+  };
+}
+
+export function useUpdateShipInventoryOrder() {
+  const [updateShipInventoryOrder] = useMutation(
+    UpdateShipInventoryOrderDocument,
+  );
+
+  return {
+    updateShipInventoryOrder,
   };
 }
