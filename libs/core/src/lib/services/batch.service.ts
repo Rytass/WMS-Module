@@ -53,22 +53,52 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
   }: {
     id: string;
     manager?: EntityManager;
-  } & SplitBatchInput): Promise<T> {
+  } & SplitBatchInput): Promise<BatchEntityClass> {
     const batchRepository = manager.getRepository(BatchEntityClass);
     const batch = await batchRepository.findOneOrFail({
       where: { id: options.id },
       relations: ['batchGroup'],
     });
 
+    // Create merged batch object with new metrics
+    const mergedBatch = {
+      ...batch,
+      ...options,
+      groupId: batch.batchGroup.id,
+    };
+
+    // Build where condition dynamically to handle optional fields
+    const whereCondition: Record<string, unknown> = {
+      groupId: mergedBatch.groupId,
+      saleId: mergedBatch.saleId ?? null,
+      saleSerialId: mergedBatch.saleSerialId ?? null,
+      customerId: mergedBatch.customerId ?? null,
+      vendorId: mergedBatch.vendorId ?? null,
+      inspectionId: mergedBatch.inspectionId ?? null,
+      inTransfer: mergedBatch.inTransfer ?? false,
+      held: mergedBatch.held ?? false,
+      inShipment: mergedBatch.inShipment ?? false,
+    };
+
+    // Check if a batch with these exact metrics already exists in the same group
+    const existingBatch = await batchRepository.findOne({
+      where: whereCondition,
+    });
+
+    if (existingBatch) {
+      return existingBatch as T;
+    }
+
+    console.log({ whereCondition });
+
+    // If no matching batch exists, create a new one
     return batchRepository.save(
       batchRepository.create({
-        ...batch,
-        ...options,
-        groupId: batch.batchGroup.id,
+        ...mergedBatch,
         key: `${batch.batchGroup.key}_${Date.now().toString()}`,
         id: undefined,
       }),
-    ) as Promise<T>;
+    );
   }
 
   async findMany(options: FindBatchInput<T>) {
