@@ -40,6 +40,11 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         title="編輯載具"
         mode="edit"
         defaultValues={{
+          loaderType: {
+            id: source.type.key,
+            name: source.type.description,
+          },
+          typeKey: source.type.key,
           length: source.length,
           width: source.width,
           height: source.height,

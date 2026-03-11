@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormModalWrapper } from '../../../../fields/FormModalWrapper';
+import LoaderTypesField from '../../../../fields/LoaderTypesField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import InputField from '../../../../fields/InputField';
 import DateField from '../../../../fields/DateField';
@@ -46,6 +47,19 @@ function LoaderEditForm({
       cancelWithConfirm={methods.formState.isDirty}
     >
       <div className={classes.host}>
+        <LoaderTypesField
+          name="loaderType"
+          label="載具類型"
+          fuzzySearch={false}
+          selectValueMode
+          disabled
+        />
+        <InputField
+          name="typeKey"
+          placeholder="類型代碼"
+          label="類型代碼"
+          disabled
+        />
         <div className={classes.innerWrapper}>
           <NumberInputField name="length" label="長度" placeholder="輸入長度" />
           <NumberInputField name="width" label="寬度" placeholder="輸入寬度" />
