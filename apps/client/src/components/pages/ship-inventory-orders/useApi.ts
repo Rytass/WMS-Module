@@ -5,6 +5,7 @@ import {
 } from '../../../hooks/useTablePagination';
 import {
   ShipInventoryOrdersDocument,
+  ShipInventoryOrderDocument,
   CreateShipInventoryOrderDocument,
   UpdateShipInventoryOrderDocument,
 } from '../../../graphql/generated/.graphql';
@@ -35,6 +36,20 @@ export function useQueryShipInventoryOrders() {
     setPage,
     limit,
     setLimit,
+  };
+}
+
+export function useQueryShipInventoryOrder(id: string) {
+  const { data, loading } = useQuery(ShipInventoryOrderDocument, {
+    variables: {
+      shipInventoryOrderId: id,
+    },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  return {
+    data,
+    loading,
   };
 }
 
