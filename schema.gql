@@ -495,6 +495,8 @@ input CreateShipInventoryOrderReferenceArgs {
   materialKey: String!
   targetShippedQuantity: Int!
   serialId: String!
+  saleId: String
+  saleSerialId: String
 }
 
 input UpdateShipInventoryOrderReferenceArgs {
@@ -504,6 +506,8 @@ input UpdateShipInventoryOrderReferenceArgs {
   materialKey: String
   targetShippedQuantity: Int
   serialId: String
+  saleId: String
+  saleSerialId: String
   id: String
   removedAt: DateTime
 }
