@@ -3,6 +3,7 @@ import { AggregatedStockDto, LoaderDto, MaterialDto } from '../dto';
 import { type LoaderType } from '../helpers';
 import {
   BatchEntityClass,
+  BatchGroupEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
   MaterialEntityClass,
@@ -36,13 +37,15 @@ export class AggregatedStockResolver {
     @Parent() { batchId }: AggregatedStockDto,
     @Context() { loaders }: LoaderType<BatchEntityClass>,
   ): Promise<BatchDto> {
-    const { batchGroup } = await loaders.batchSingle.load({
+    const { groupId } = await loaders.batchSingle.load({
       __entity: BatchEntityClass,
       __from: { id: batchId },
-      __conditions: (qb) =>
-        qb.leftJoinAndSelect('entity."batchGroup"', 'batchGroup'),
     });
-    return batchGroup;
+
+    return loaders.batchSingle.load({
+      __entity: BatchGroupEntityClass,
+      __from: { id: groupId },
+    });
   }
 
   @ResolveField(() => LocationDto)
