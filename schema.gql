@@ -40,6 +40,7 @@ type LoaderDto {
   isActive: Boolean!
   createdAt: DateTime!
   type: LoaderTypeDto!
+  location: LocationDto!
 }
 
 type Loaders {
@@ -269,11 +270,6 @@ type AllocateInventoryOrderItemDto {
   saleSerialId: String!
 }
 
-type UnitDto {
-  id: ID!
-  key: String!
-}
-
 type LocationDto {
   id: ID!
   key: String!
@@ -285,6 +281,11 @@ type Locations {
   id: ID!
   items: [LocationDto!]!
   total: Int!
+}
+
+type UnitDto {
+  id: ID!
+  key: String!
 }
 
 type BatchDto {
@@ -373,6 +374,7 @@ type ShipInventoryOrderReferenceDto {
   saleSerialId: String
   unitId: ID
   targetShippedQuantity: Int!
+  removedAt: DateTime
   shippedQuantity: Int!
   material: MaterialDto!
   batch: BatchDto
@@ -414,7 +416,7 @@ input DateRangeArgs {
 type Mutation {
   createLoader(typeId: ID!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
   createBatchLoader(items: [CreateLoadersArgs!]!): [LoaderDto!]!
-  updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!): LoaderDto!
+  updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!, isActive: Boolean): LoaderDto!
   createLoaderType(description: String!, key: String!): LoaderTypeDto!
   updateLoaderType(description: String, id: ID!, isActive: Boolean): LoaderTypeDto!
   createMaterial(key: String!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
