@@ -103,6 +103,13 @@ function LoadersManagementListTable() {
       width: 120,
       render: (source) => dayjs(source.createdAt).format('YYYY-MM-DD'),
     },
+
+    {
+      key: 'note',
+      title: '備註',
+      width: 120,
+      render: (source) => source.note || '-',
+    },
   ];
 
   return (
