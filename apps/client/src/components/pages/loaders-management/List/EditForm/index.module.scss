@@ -5,4 +5,11 @@
   align-self: stretch;
   grid-template-columns: 1fr 1fr;
   gap: spacing.semantic-variable(gap, calm) spacing.semantic-variable(gap, base);
+
+  .innerWrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: spacing.semantic-variable(gap, calm)
+      spacing.semantic-variable(gap, base);
+  }
 }

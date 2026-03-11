@@ -40,6 +40,11 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         title="編輯載具"
         mode="edit"
         defaultValues={{
+          length: source.length,
+          width: source.width,
+          height: source.height,
+          volume: source.volume,
+          createdAt: source.createdAt,
           remark: source.note ?? '',
         }}
         onSubmit={onSubmit}
