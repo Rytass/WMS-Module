@@ -1,6 +1,8 @@
 import { SelectValue } from '@mezzanine-ui/react';
+import { YesOrNo } from '../../../../../utils/share';
 
 export type FormValues = {
+  isActive: YesOrNo;
   loaderType: SelectValue | null;
   typeKey: string;
   location: SelectValue | null;

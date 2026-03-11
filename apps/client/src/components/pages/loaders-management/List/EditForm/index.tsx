@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormModalWrapper } from '../../../../fields/FormModalWrapper';
+import RadioField from '../../../../fields/RadioField';
 import LoaderTypesField from '../../../../fields/LoaderTypesField';
 import LoaderUnitsField from '../../../../fields/LoaderUnitsField';
 import LocationsField from '../../../../fields/LocationsField';
@@ -10,6 +11,7 @@ import DateField from '../../../../fields/DateField';
 import { LoaderUnit } from '../../../../../graphql/generated/.graphql';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { YesOrNo } from '../../../../../utils/share';
 import classes from './index.module.scss';
 
 interface LoaderEditFormProps {
@@ -50,6 +52,21 @@ function LoaderEditForm({
       cancelWithConfirm={methods.formState.isDirty}
     >
       <div className={classes.host}>
+        <RadioField
+          name="isActive"
+          label="狀態"
+          options={[
+            {
+              id: YesOrNo.YES,
+              name: '已啟用',
+            },
+            {
+              id: YesOrNo.NO,
+              name: '已停用',
+            },
+          ]}
+          required
+        />
         <LoaderTypesField
           name="loaderType"
           label="載具類型"

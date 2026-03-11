@@ -4,6 +4,7 @@ import { LoaderFragment } from '../../../../../graphql/generated/.graphql';
 import LoaderEditForm from '../EditForm';
 import { FormValues } from '../EditForm/typing';
 import { useModal } from '../../../../modal/useModal';
+import { YesOrNo } from '../../../../../utils/share';
 import StockTable from './StockTable';
 
 interface ActionsProps {
@@ -61,6 +62,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         title="編輯載具"
         mode="edit"
         defaultValues={{
+          isActive: source.isActive ? YesOrNo.YES : YesOrNo.NO,
           loaderType: {
             id: source.type.key,
             name: source.type.description,
