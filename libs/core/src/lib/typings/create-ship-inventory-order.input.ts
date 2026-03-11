@@ -7,6 +7,8 @@ export type CreateShipInventoryOrderReferenceInput = {
   materialKey: string;
   targetShippedQuantity: number;
   serialId: string;
+  saleId?: string;
+  saleSerialId?: string;
 };
 
 export type CreateShipInventoryOrderInput = {
