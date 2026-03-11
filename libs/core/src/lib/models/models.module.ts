@@ -1,25 +1,31 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { WarehouseMapEntity as WarehouseMapEntityClass } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
 import {
+  BatchEntity,
+  BatchEntityClass,
+  BatchGroupEntity,
+  BatchGroupEntityClass,
   LoaderTypeEntity,
   LoaderTypeEntityClass,
-} from './metadata/loader-type.entity';
-import { LoadersEntity, LoadersEntityClass } from './metadata/loader.entity';
-import {
-  MaterialUnitEntity,
-  MaterialUnitEntityClass,
-} from './metadata/material-unit.entity';
-import {
-  MaterialEntity,
-  MaterialEntityClass,
-} from './metadata/material.entity';
-import { StockEntity, StockEntityClass } from './metadata/stock.entity';
-import {
+  LoadersEntity,
+  LoadersEntityClass,
+  LoaderUnitEntity,
+  LoaderUnitEntityClass,
   LocationEntity,
   LocationEntityClass,
+  MaterialEntity,
+  MaterialEntityClass,
+  MaterialUnitEntity,
+  MaterialUnitEntityClass,
+  SaleOrderEntity,
+  SaleOrderEntityClass,
+  StockEntity,
+  StockEntityClass,
+  UnitEntity,
+  UnitEntityClass,
   WarehouseMapEntity,
-} from './metadata/location.entity';
-import { WarehouseMapEntity as WarehouseMapEntityClass } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
+} from './metadata';
 import {
   ReceiveInventoryOrderChangeEntity,
   ReceiveInventoryOrderChangeEntityClass,
@@ -90,20 +96,6 @@ import {
   TransferCustomerOrderChangeEntity,
   TransferCustomerOrderChangeEntityClass,
 } from './extensions';
-import {
-  BatchEntity,
-  BatchEntityClass,
-  UnitEntity,
-  UnitEntityClass,
-} from './metadata';
-import {
-  BatchGroupEntity,
-  BatchGroupEntityClass,
-} from './metadata/batch-group.entity';
-import {
-  SaleOrderEntity,
-  SaleOrderEntityClass,
-} from './metadata/sale-order.entity';
 
 const entities = [
   [UnitEntity, UnitEntityClass],
@@ -113,6 +105,7 @@ const entities = [
   [MaterialUnitEntity, MaterialUnitEntityClass],
   [LoadersEntity, LoadersEntityClass],
   [LoaderTypeEntity, LoaderTypeEntityClass],
+  [LoaderUnitEntity, LoaderUnitEntityClass],
   [StockEntity, StockEntityClass],
   [LocationEntity, LocationEntityClass],
   [WarehouseMapEntity, WarehouseMapEntityClass],

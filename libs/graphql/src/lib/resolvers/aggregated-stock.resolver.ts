@@ -40,7 +40,7 @@ export class AggregatedStockResolver {
       __entity: BatchEntityClass,
       __from: { id: batchId },
       __conditions: (qb) =>
-        qb.leftJoinAndSelect('batch."batchGroup"', 'batchGroup'),
+        qb.leftJoinAndSelect('entity."batchGroup"', 'batchGroup'),
     });
     return batchGroup;
   }
