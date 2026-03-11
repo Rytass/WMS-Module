@@ -92,3 +92,9 @@ query LoaderTypeOptions($offset: Int, $limit: Int, $description: String) {
     total
   }
 }
+
+query LoaderUnits($type: LoaderUnit!) {
+  loaderUnits(type: $type) {
+    id
+  }
+}

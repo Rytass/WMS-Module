@@ -32,7 +32,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
             openModal({
               title: '載具內容',
               titleAlign: 'left',
-              size: 'regular',
+              size: 'wide',
               cancelButtonProps: {
                 style: {
                   display: 'none',
