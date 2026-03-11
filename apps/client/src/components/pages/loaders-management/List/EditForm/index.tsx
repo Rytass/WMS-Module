@@ -2,10 +2,12 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormModalWrapper } from '../../../../fields/FormModalWrapper';
 import LoaderTypesField from '../../../../fields/LoaderTypesField';
+import LoaderUnitsField from '../../../../fields/LoaderUnitsField';
 import LocationsField from '../../../../fields/LocationsField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import InputField from '../../../../fields/InputField';
 import DateField from '../../../../fields/DateField';
+import { LoaderUnit } from '../../../../../graphql/generated/.graphql';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import classes from './index.module.scss';
@@ -74,10 +76,22 @@ function LoaderEditForm({
         </div>
         <div className={classes.innerWrapper}>
           <NumberInputField name="height" label="高度" placeholder="輸入高度" />
-          <div>尺寸單位</div>
+          <LoaderUnitsField
+            type={LoaderUnit.SIZE}
+            name="sizeUnit"
+            label="尺寸單位"
+            placeholder="輸入尺寸單位"
+            selectValueMode
+          />
         </div>
         <NumberInputField name="volume" label="容積" placeholder="輸入容積" />
-        <div>容積單位</div>
+        <LoaderUnitsField
+          type={LoaderUnit.VOLUME}
+          name="volumeUnit"
+          label="容積單位"
+          placeholder="輸入容積單位"
+          selectValueMode
+        />
         <DateField name="createdAt" label="建立日期" disabled />
         <InputField
           name="remark"

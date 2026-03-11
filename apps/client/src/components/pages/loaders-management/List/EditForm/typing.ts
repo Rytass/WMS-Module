@@ -7,7 +7,9 @@ export type FormValues = {
   length?: number | null;
   width?: number | null;
   height?: number | null;
+  sizeUnit?: SelectValue | null;
   volume?: number | null;
+  volumeUnit?: SelectValue | null;
   createdAt?: string;
   remark?: string;
 };

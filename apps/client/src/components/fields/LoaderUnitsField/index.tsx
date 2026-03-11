@@ -1,4 +1,5 @@
 import { TextFieldSize } from '@mezzanine-ui/react';
+import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { useQueryLoaderUnits } from './useApi';
 import { LoaderUnit } from '../../../graphql/generated/.graphql';
@@ -12,6 +13,7 @@ interface LoaderUnitsFieldProps {
   size?: TextFieldSize;
   required?: boolean;
   disabled?: boolean;
+  selectValueMode?: boolean;
 }
 
 const LoaderUnitsField: FC<LoaderUnitsFieldProps> = ({
@@ -23,8 +25,24 @@ const LoaderUnitsField: FC<LoaderUnitsFieldProps> = ({
   size,
   required = false,
   disabled = false,
+  selectValueMode = false,
 }) => {
   const { currentOptions } = useQueryLoaderUnits(type);
+
+  if (selectValueMode) {
+    return (
+      <SingleAutoCompleteField
+        name={name}
+        label={label}
+        placeholder={placeholder}
+        menuMaxHeight={menuMaxHeight}
+        size={size}
+        options={currentOptions}
+        required={required}
+        disabled={disabled}
+      />
+    );
+  }
 
   return (
     <SingleAutoCompleteByIdField
