@@ -3,6 +3,8 @@ import { Button, ButtonGroup } from '@mezzanine-ui/react';
 import { LoaderFragment } from '../../../../../graphql/generated/.graphql';
 import LoaderEditForm from '../EditForm';
 import { FormValues } from '../EditForm/typing';
+import { useModal } from '../../../../modal/useModal';
+import StockTable from './StockTable';
 
 interface ActionsProps {
   source: LoaderFragment;
@@ -10,6 +12,7 @@ interface ActionsProps {
 
 const Actions: FC<ActionsProps> = ({ source }) => {
   const [editModalOpened, setEditModalOpened] = useState<boolean>(false);
+  const { openModal, closeModal } = useModal();
 
   const onSubmit = useCallback(async (values: FormValues) => {
     try {
@@ -22,7 +25,25 @@ const Actions: FC<ActionsProps> = ({ source }) => {
   return (
     <>
       <ButtonGroup>
-        <Button type="button" size="sub">
+        <Button
+          type="button"
+          size="sub"
+          onClick={() => {
+            openModal({
+              title: '載具內容',
+              titleAlign: 'left',
+              size: 'regular',
+              cancelButtonProps: {
+                style: {
+                  display: 'none',
+                },
+              },
+              confirmText: '關閉',
+              onConfirm: closeModal,
+              children: <StockTable loaderId={source.id} />,
+            });
+          }}
+        >
           查看庫存
         </Button>
         <Button
