@@ -29,7 +29,7 @@ const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
   const getNewOptions = useCallback(
     (data: LoaderTypeOptionsQuery | undefined) =>
       (data?.loaderTypes.items ?? []).map((i) => ({
-        id: i.id,
+        id: i.key,
         name: i.description,
       })),
     [],

@@ -21,6 +21,14 @@ fragment AggregatedStock on AggregatedStockDto {
   id
   key: id
   quantity
+  inTransfer
+  held
+  inShipment
+  saleId
+  saleSerialId
+  customerId
+  vendorId
+  inspectionId
   status
   material {
     ...SimpleMaterial
