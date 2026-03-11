@@ -13,8 +13,7 @@ fragment ShipInventoryOrderItem on ShipInventoryOrderItemDto {
     ...Batch
   }
   location {
-    id
-    key
+    ...SimpleLocation
   }
   loader {
     ...Loader
@@ -29,6 +28,7 @@ fragment ShipInventoryOrderReference on ShipInventoryOrderReferenceDto {
   saleSerialId
   unitId
   targetShippedQuantity
+  removedAt
   material {
     ...SimpleMaterial
   }

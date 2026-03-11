@@ -23,4 +23,7 @@ fragment Loader on LoaderDto {
   type {
     ...LoaderType
   }
+  location {
+    ...SimpleLocation
+  }
 }

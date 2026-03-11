@@ -37,8 +37,7 @@ fragment AggregatedStock on AggregatedStockDto {
     ...Batch
   }
   location {
-    id
-    key
+    ...SimpleLocation
   }
   loader {
     ...Loader
