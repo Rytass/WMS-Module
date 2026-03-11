@@ -18,8 +18,8 @@ import { FormValues, ItemFieldValues } from '../typing';
 
 interface FieldArrayTableProps {
   viewMode: boolean;
-  fields: FieldArrayWithId<FormValues, 'items', 'id'>[];
-  update: UseFieldArrayUpdate<FormValues, 'items'>;
+  fields: FieldArrayWithId<FormValues, 'references', 'id'>[];
+  update: UseFieldArrayUpdate<FormValues, 'references'>;
   remove: UseFieldArrayRemove;
 }
 
@@ -72,7 +72,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       render: (source, index) =>
         source.isExisted && !viewMode ? (
           <NumberInputField
-            name={`items.${index}.quantity`}
+            name={`references.${index}.quantity`}
             placeholder="應出數量"
             disabled={!!source.removedAt || undefined}
           />
@@ -96,7 +96,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
         if (source.isExisted && !viewMode) {
           return (
             <SingleSelectByIdField
-              name={`items.${index}.unit`}
+              name={`references.${index}.unit`}
               placeholder="使用單位"
               options={source.unitOptions}
               size="sub"
@@ -128,7 +128,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
         if (source.isExisted && !viewMode) {
           return (
             <BatchesField
-              name={`items.${index}.batch`}
+              name={`references.${index}.batch`}
               addable
               label=""
               placeholder="輸入批號"

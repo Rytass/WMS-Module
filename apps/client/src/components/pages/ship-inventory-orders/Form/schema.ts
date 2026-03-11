@@ -3,7 +3,7 @@ import { FormValues } from './typing';
 
 export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
   remark: Yup.string(),
-  items: Yup.array()
+  references: Yup.array()
     .of(
       Yup.object({
         material: Yup.object({

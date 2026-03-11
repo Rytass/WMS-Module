@@ -7,6 +7,6 @@ export function fragmentToDefaultValues(
 ): FormValues {
   return {
     remark: shipInventoryOrder?.description,
-    items: [],
+    references: [],
   };
 }

@@ -11,7 +11,7 @@ function ViewShipInventoryOrder() {
   const defaultValues = useMemo(
     (): FormValues => ({
       remark: '',
-      items: [],
+      references: [],
     }),
     [],
   );
