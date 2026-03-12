@@ -13,9 +13,11 @@ import {
   Table as MznTable,
   useTableRowSelection,
   Button,
+  Icon,
   cx,
 } from '@mezzanine-ui/react';
-import { CaretDownIcon } from '@mezzanine-ui/icons';
+import { CaretDownIcon, LockIcon } from '@mezzanine-ui/icons';
+import { WaitIcon, TransferIcon } from '../../../../icons';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
@@ -176,6 +178,36 @@ function InventoryGroupTable({
       title: '狀態',
       width: 100,
       render: (source) => source.status,
+    },
+    {
+      key: 'inspection',
+      title: '檢驗',
+      width: 48,
+      align: 'center',
+      render: (source) =>
+        source.aggregatedStock?.some((s) => s.inspectionId) ? (
+          <Icon icon={WaitIcon} color="neutral" size={16} />
+        ) : null,
+    },
+    {
+      key: 'held',
+      title: '凍結',
+      width: 48,
+      align: 'center',
+      render: (source) =>
+        source.aggregatedStock?.some((s) => s.held) ? (
+          <Icon icon={LockIcon} color="neutral" size={16} />
+        ) : null,
+    },
+    {
+      key: 'inTransfer',
+      title: '調撥',
+      width: 48,
+      align: 'center',
+      render: (source) =>
+        source.aggregatedStock?.some((s) => s.inTransfer) ? (
+          <Icon icon={TransferIcon} color="neutral" size={16} />
+        ) : null,
     },
     {
       key: 'materialKey',
