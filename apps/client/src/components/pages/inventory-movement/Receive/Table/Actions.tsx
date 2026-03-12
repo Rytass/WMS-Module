@@ -1,8 +1,7 @@
-import { useCallback, useState } from 'react';
-import { Button, Message } from '@mezzanine-ui/react';
+import { useState } from 'react';
+import { Button } from '@mezzanine-ui/react';
 import { ReceiveInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
 import InventoryMovementReceiveForm from '../Form';
-import { FormValues } from '../Form/typing';
 
 interface ActionsProps {
   source: ReceiveInventoryOrderFragment;
@@ -23,6 +22,13 @@ const Actions: FC<ActionsProps> = ({ source }) => {
       >
         入庫
       </Button>
+      <InventoryMovementReceiveForm
+        receiveInventoryOrderId={source.id}
+        closeModal={() => {
+          setReceiveModalOpened(false);
+        }}
+        open={receiveModalOpened}
+      />
     </>
   );
 };

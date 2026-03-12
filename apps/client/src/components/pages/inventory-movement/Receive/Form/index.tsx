@@ -1,46 +1,42 @@
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { FormModalWrapper } from '../../../../fields/FormModalWrapper';
-import InputField from '../../../../fields/InputField';
-import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
-import { formSchema } from './schema';
-import { FormValues } from './typing';
-import classes from './index.module.scss';
+import { useEffect } from 'react';
+import Loading from '../../../../Loading';
+import InventoryMovementReceiveFormBody from './FormBody';
+import { useLazyQueryReceiveInventoryOrder } from '../../useApi';
 
 interface InventoryMovementReceiveFormProps {
-  title: string;
-  onSubmit: (values: FormValues) => Promise<void>;
-  defaultValues: FormValues;
-  submitText: string;
+  receiveInventoryOrderId: string;
   closeModal: VoidFunction;
   open: boolean;
 }
 
 function InventoryMovementReceiveForm({
-  title,
-  onSubmit,
-  defaultValues,
-  submitText,
+  receiveInventoryOrderId,
   closeModal,
   open,
 }: InventoryMovementReceiveFormProps) {
-  const methods = useForm<FormValues>({
-    resolver: yupResolver(formSchema),
-    defaultValues,
-  });
+  const { fetchReceiveInventoryOrder, data, loading } =
+    useLazyQueryReceiveInventoryOrder();
+
+  useEffect(() => {
+    if (open) {
+      fetchReceiveInventoryOrder({
+        variables: {
+          receiveInventoryOrderId,
+        },
+      });
+    }
+  }, [fetchReceiveInventoryOrder, open, receiveInventoryOrderId]);
+
+  // if (loading) {
+  //   return <Loading />;
+  // }
 
   return (
-    <FormModalWrapper<FormValues>
-      methods={methods}
-      title={title}
-      confirmText={submitText}
-      onSubmit={onSubmit}
+    <InventoryMovementReceiveFormBody
+      defaultValues={{ test: '' }}
       closeModal={closeModal}
       open={open}
-      size="wide"
-    >
-      InventoryMovementReceiveForm
-    </FormModalWrapper>
+    />
   );
 }
 

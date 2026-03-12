@@ -1,4 +1,4 @@
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useLazyQuery } from '@apollo/client/react';
 import {
   useTablePageState,
   useTablePageTotal,
@@ -37,15 +37,16 @@ export function useQueryReceiveInventoryOrders() {
   };
 }
 
-export function useQueryReceiveInventoryOrder(id: string) {
-  const { data, loading } = useQuery(ReceiveInventoryOrderDocument, {
-    variables: {
-      receiveInventoryOrderId: id,
+export function useLazyQueryReceiveInventoryOrder() {
+  const [fetchReceiveInventoryOrder, { data, loading }] = useLazyQuery(
+    ReceiveInventoryOrderDocument,
+    {
+      fetchPolicy: 'cache-and-network',
     },
-    fetchPolicy: 'cache-and-network',
-  });
+  );
 
   return {
+    fetchReceiveInventoryOrder,
     data,
     loading,
   };
