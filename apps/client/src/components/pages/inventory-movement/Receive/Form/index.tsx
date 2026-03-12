@@ -16,7 +16,11 @@ function InventoryMovementReceiveForm({
 
   return (
     <InventoryMovementReceiveFormBody
-      defaultValues={{ test: receiveInventoryOrder?.description }}
+      defaultValues={{ test: receiveInventoryOrder?.id }}
+      orderKey={receiveInventoryOrder.key}
+      createdBy={receiveInventoryOrder.createdBy}
+      createdAt={receiveInventoryOrder.createdAt}
+      description={receiveInventoryOrder.description}
       closeModal={closeModal}
       open={open}
     />

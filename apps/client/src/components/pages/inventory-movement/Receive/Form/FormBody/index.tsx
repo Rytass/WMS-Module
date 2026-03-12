@@ -1,7 +1,12 @@
 import { useCallback } from 'react';
+import dayjs from 'dayjs';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { Description, DescriptionContent } from '@mezzanine-ui/react';
+import {
+  Typography,
+  Description,
+  DescriptionContent,
+} from '@mezzanine-ui/react';
 import { FormModalWrapper } from '../../../../../fields/FormModalWrapper';
 import SectionWrapper from '../../../../../SectionWrapper';
 import { formSchema } from '../schema';
@@ -10,12 +15,20 @@ import classes from './index.module.scss';
 
 interface InventoryMovementReceiveFormBodyProps {
   defaultValues: FormValues;
+  orderKey: string;
+  createdBy?: string | null;
+  createdAt: string;
+  description?: string;
   closeModal: VoidFunction;
   open: boolean;
 }
 
 function InventoryMovementReceiveFormBody({
   defaultValues,
+  orderKey,
+  createdBy,
+  createdAt,
+  description,
   closeModal,
   open,
 }: InventoryMovementReceiveFormBodyProps) {
@@ -45,33 +58,38 @@ function InventoryMovementReceiveFormBody({
             <Description
               widthType="stretch"
               orientation="vertical"
-              title="建立者"
+              title="入庫單號"
             >
-              <DescriptionContent>大胖丁</DescriptionContent>
+              <DescriptionContent>{orderKey}</DescriptionContent>
             </Description>
             <Description
               widthType="stretch"
               orientation="vertical"
               title="建立者"
             >
-              <DescriptionContent>大胖丁</DescriptionContent>
+              <DescriptionContent>{createdBy || '-'}</DescriptionContent>
             </Description>
             <Description
               widthType="stretch"
               orientation="vertical"
-              title="建立者"
+              title="建立時間"
             >
-              <DescriptionContent>大胖丁</DescriptionContent>
+              <DescriptionContent>
+                {dayjs(createdAt).format('YYYY-MM-DD')}
+              </DescriptionContent>
             </Description>
             <Description
               widthType="stretch"
               orientation="vertical"
-              title="建立者"
+              title="備註"
             >
-              <DescriptionContent>大胖丁</DescriptionContent>
+              <DescriptionContent>{description || '-'}</DescriptionContent>
             </Description>
           </div>
         </SectionWrapper>
+        <Typography variant="h3" color="text-neutral-solid">
+          庫存項目
+        </Typography>
       </div>
     </FormModalWrapper>
   );
