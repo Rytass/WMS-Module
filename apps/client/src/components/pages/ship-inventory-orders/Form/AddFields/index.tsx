@@ -31,6 +31,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   });
 
   const materialSelectValue = methods.watch('material');
+  const saleIdSelectValue = methods.watch('saleId');
 
   const { fetchMaterial } = useLazyQueryMaterial();
 
@@ -111,8 +112,18 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             disabled={!materialSelectValue}
             required
           />
-          <SaleOrderIdsField name="saleId" fuzzySearch selectValueMode />
-          <div />
+          <SaleOrderIdsField
+            name="saleId"
+            fuzzySearch={false}
+            selectValueMode
+          />
+          <SaleOrdersField
+            saleOrdersId={saleIdSelectValue?.id ?? ''}
+            name="saleSerialId"
+            fuzzySearch={false}
+            selectValueMode
+            disabled={!saleIdSelectValue}
+          />
         </div>
         <FormActionButtons
           onReset={() => {

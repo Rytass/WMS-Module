@@ -36,7 +36,7 @@ const SaleOrdersField: FC<SaleOrdersFieldProps> = ({
     () => ({
       name,
       label,
-      placeholder,
+      placeholder: placeholder || `輸入${label}`,
       menuMaxHeight,
       size,
       onVisibilityChange,
