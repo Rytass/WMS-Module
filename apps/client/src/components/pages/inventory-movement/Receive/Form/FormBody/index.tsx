@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormModalWrapper } from '../../../../../fields/FormModalWrapper';
+import SectionWrapper from '../../../../../SectionWrapper';
 import { formSchema } from '../schema';
 import { FormValues } from '../typing';
 import classes from './index.module.scss';
@@ -36,7 +37,11 @@ function InventoryMovementReceiveFormBody({
       open={open}
       size="wide"
     >
-      <div className={classes.host}>InventoryMovementReceiveFormBody</div>
+      <div className={classes.host}>
+        <SectionWrapper title="單號資訊" grayBackground>
+          123
+        </SectionWrapper>
+      </div>
     </FormModalWrapper>
   );
 }
