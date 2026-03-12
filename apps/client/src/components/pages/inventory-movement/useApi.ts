@@ -3,7 +3,10 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
-import { FullReceiveInventoryOrdersDocument } from '../../../graphql/generated/.graphql';
+import {
+  FullReceiveInventoryOrdersDocument,
+  ReceiveInventoryOrderDocument,
+} from '../../../graphql/generated/.graphql';
 
 export function useQueryReceiveInventoryOrders() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
@@ -31,5 +34,19 @@ export function useQueryReceiveInventoryOrders() {
     setPage,
     limit,
     setLimit,
+  };
+}
+
+export function useQueryReceiveInventoryOrder(id: string) {
+  const { data, loading } = useQuery(ReceiveInventoryOrderDocument, {
+    variables: {
+      receiveInventoryOrderId: id,
+    },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  return {
+    data,
+    loading,
   };
 }
