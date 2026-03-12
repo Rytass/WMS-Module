@@ -26,6 +26,10 @@
   z-index: 1004 !important;
 }
 
+.mzn-table__cell__content .mzn-icon {
+  vertical-align: sub;
+}
+
 .mzn-select,
 .mzn-input {
   min-width: unset !important;

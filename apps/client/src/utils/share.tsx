@@ -59,21 +59,28 @@ export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
     title: '檢驗',
     width: 48,
     align: 'center',
-    render: (source) => (source.inspectionId ? 'Y' : null),
+    render: (source) =>
+      source.inspectionId ? (
+        <Icon icon={WaitIcon} color="brand" size={16} />
+      ) : null,
   },
   {
     key: 'held',
     title: '凍結',
     width: 48,
     align: 'center',
-    render: (source) => (source.held ? 'Y' : null),
+    render: (source) =>
+      source.held ? <Icon icon={LockIcon} color="brand" size={16} /> : null,
   },
   {
     key: 'inTransfer',
     title: '調撥',
     width: 48,
     align: 'center',
-    render: (source) => (source.inTransfer ? 'Y' : null),
+    render: (source) =>
+      source.inTransfer ? (
+        <Icon icon={TransferIcon} color="brand" size={16} />
+      ) : null,
   },
   {
     key: 'materialKey',
