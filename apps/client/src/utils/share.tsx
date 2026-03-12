@@ -54,16 +54,16 @@ export function shipInventoryOrderStatusName(
 }
 
 export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
-  {
-    key: 'inspection',
-    title: '檢驗',
-    width: 48,
-    align: 'center',
-    render: (source) =>
-      source.inspectionId ? (
-        <Icon icon={WaitIcon} color="brand" size={16} />
-      ) : null,
-  },
+  // {
+  //   key: 'inspection',
+  //   title: '檢驗',
+  //   width: 48,
+  //   align: 'center',
+  //   render: (source) =>
+  //     source.inspectionId ? (
+  //       <Icon icon={WaitIcon} color="brand" size={16} />
+  //     ) : null,
+  // },
   {
     key: 'held',
     title: '凍結',

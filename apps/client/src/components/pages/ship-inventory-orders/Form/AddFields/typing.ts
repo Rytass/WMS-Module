@@ -6,4 +6,6 @@ export type AddFormValues = {
   batch: SelectValue | null;
   quantity: number;
   unit: string;
+  saleId?: SelectValue | null;
+  saleSerialId?: SelectValue | null;
 };

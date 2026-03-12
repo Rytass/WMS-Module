@@ -183,16 +183,16 @@ function InventoryGroupTable({
           source.aggregatedStock?.map((s) => stockStatusName(s.status)),
         ).join(','),
     },
-    {
-      key: 'inspection',
-      title: '檢驗',
-      width: 48,
-      align: 'center',
-      render: (source) =>
-        source.aggregatedStock?.some((s) => s.inspectionId) ? (
-          <Icon icon={WaitIcon} color="neutral" size={16} />
-        ) : null,
-    },
+    // {
+    //   key: 'inspection',
+    //   title: '檢驗',
+    //   width: 48,
+    //   align: 'center',
+    //   render: (source) =>
+    //     source.aggregatedStock?.some((s) => s.inspectionId) ? (
+    //       <Icon icon={WaitIcon} color="neutral" size={16} />
+    //     ) : null,
+    // },
     {
       key: 'held',
       title: '凍結',

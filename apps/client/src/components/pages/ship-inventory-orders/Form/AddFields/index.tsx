@@ -8,6 +8,8 @@ import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import MaterialsField from '../../../../fields/MaterialsField';
 import BatchesField from '../../../../fields/BatchesField';
+import SaleOrderIdsField from '../../../../fields/SaleOrderIdsField';
+import SaleOrdersField from '../../../../fields/SaleOrdersField';
 import { BASE_UNIT } from '../../../../../utils/share';
 import { useLazyQueryMaterial } from '../useApi';
 import { formSchema } from './schema';
@@ -29,6 +31,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   });
 
   const materialSelectValue = methods.watch('material');
+  const saleIdSelectValue = methods.watch('saleId');
 
   const { fetchMaterial } = useLazyQueryMaterial();
 
@@ -109,8 +112,18 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             disabled={!materialSelectValue}
             required
           />
-          <div />
-          <div />
+          <SaleOrderIdsField
+            name="saleId"
+            fuzzySearch={false}
+            selectValueMode
+          />
+          <SaleOrdersField
+            saleOrdersId={saleIdSelectValue?.id ?? ''}
+            name="saleSerialId"
+            fuzzySearch={false}
+            selectValueMode
+            disabled={!saleIdSelectValue}
+          />
         </div>
         <FormActionButtons
           onReset={() => {
