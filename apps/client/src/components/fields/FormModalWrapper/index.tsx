@@ -14,7 +14,7 @@ type FormModalWrapperProps<T extends FieldValues = FieldValues> = Omit<
   children: ReactNode;
   closeModal: VoidFunction;
   open: boolean;
-  mode: 'create' | 'edit';
+  mode?: 'create' | 'edit';
   submitWithConfirm?: boolean;
   cancelWithConfirm?: boolean;
 };

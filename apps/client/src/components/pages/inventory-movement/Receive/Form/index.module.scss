@@ -1,0 +1,7 @@
+@use '@mezzanine-ui/system/spacing';
+
+.host {
+  display: flex;
+  flex-direction: column;
+  row-gap: spacing.semantic-variable(gap, comfort);
+}
