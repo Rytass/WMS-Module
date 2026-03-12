@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from 'react';
+import { MouseEventHandler, useCallback, useMemo } from 'react';
+import { SelectValue } from '@mezzanine-ui/react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { SaleOrderDistinctIdsQuery } from '../../../graphql/generated/.graphql';
@@ -10,6 +11,8 @@ interface SaleOrderIdsFieldProps {
   name: string;
   label?: string;
   placeholder?: string;
+  onChange?(newOptions: SelectValue<string>): void;
+  onClear?: MouseEventHandler;
   addable?: boolean;
   fuzzySearch?: boolean;
   required?: boolean;
@@ -21,6 +24,8 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
   name,
   label = '銷售訂單號碼',
   placeholder,
+  onChange,
+  onClear,
   addable,
   fuzzySearch = true,
   required,
@@ -57,6 +62,8 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
       addable,
       label,
       placeholder: placeholder || `輸入${label}`,
+      onChange,
+      onClear,
       fuzzySearch,
       options: currentOptions,
       required,
@@ -73,6 +80,8 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
       label,
       name,
       addable,
+      onChange,
+      onClear,
       handleInsert,
       onReachBottom,
       onSearch,
