@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { TextFieldSize } from '@mezzanine-ui/react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
+import { useInsertOption } from '../../../hooks/useSelectorOptions';
 import { useLazyQuerySaleOrders } from './useApi';
 
 interface SaleOrdersFieldProps {
@@ -9,6 +10,7 @@ interface SaleOrdersFieldProps {
   name: string;
   label?: string;
   placeholder?: string;
+  addable?: boolean;
   menuMaxHeight?: number;
   size?: TextFieldSize;
   fuzzySearch?: boolean;
@@ -22,6 +24,7 @@ const SaleOrdersField: FC<SaleOrdersFieldProps> = ({
   name,
   label = '銷售訂單項次',
   placeholder,
+  addable,
   menuMaxHeight,
   size,
   fuzzySearch = true,
@@ -29,16 +32,20 @@ const SaleOrdersField: FC<SaleOrdersFieldProps> = ({
   disabled = false,
   selectValueMode = false,
 }) => {
-  const { currentOptions, onVisibilityChange } =
+  const { currentOptions, setCurrentOptions, onVisibilityChange } =
     useLazyQuerySaleOrders(saleOrdersId);
+
+  const handleInsert = useInsertOption(setCurrentOptions);
 
   const baseProps = useMemo(
     () => ({
       name,
+      addable,
       label,
       placeholder: placeholder || `輸入${label}`,
       menuMaxHeight,
       size,
+      onInsert: handleInsert,
       onVisibilityChange,
       options: currentOptions,
       fuzzySearch,
@@ -52,6 +59,8 @@ const SaleOrdersField: FC<SaleOrdersFieldProps> = ({
       label,
       menuMaxHeight,
       name,
+      addable,
+      handleInsert,
       onVisibilityChange,
       placeholder,
       required,

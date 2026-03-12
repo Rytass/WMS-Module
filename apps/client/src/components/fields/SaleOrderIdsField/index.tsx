@@ -3,12 +3,14 @@ import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { SaleOrderDistinctIdsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
+import { useInsertOption } from '../../../hooks/useSelectorOptions';
 import { useLazyQuerySaleOrderIds } from './useApi';
 
 interface SaleOrderIdsFieldProps {
   name: string;
   label?: string;
   placeholder?: string;
+  addable?: boolean;
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
@@ -19,6 +21,7 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
   name,
   label = '銷售訂單號碼',
   placeholder,
+  addable,
   fuzzySearch = true,
   required,
   disabled,
@@ -35,21 +38,30 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
     [],
   );
 
-  const { currentOptions, onVisibilityChange, onSearch, onReachBottom } =
-    useFetchMoreOptions<SaleOrderDistinctIdsQuery>({
-      fetchData: fetchSaleOrderIds,
-      getNewOptions,
-    });
+  const {
+    currentOptions,
+    setOptions,
+    onVisibilityChange,
+    onSearch,
+    onReachBottom,
+  } = useFetchMoreOptions<SaleOrderDistinctIdsQuery>({
+    fetchData: fetchSaleOrderIds,
+    getNewOptions,
+  });
+
+  const handleInsert = useInsertOption(setOptions);
 
   const baseProps = useMemo(
     () => ({
       name,
+      addable,
       label,
       placeholder: placeholder || `輸入${label}`,
       fuzzySearch,
       options: currentOptions,
       required,
       disabled,
+      onInsert: handleInsert,
       onVisibilityChange,
       onSearch,
       onReachBottom,
@@ -60,6 +72,8 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
       fuzzySearch,
       label,
       name,
+      addable,
+      handleInsert,
       onReachBottom,
       onSearch,
       onVisibilityChange,

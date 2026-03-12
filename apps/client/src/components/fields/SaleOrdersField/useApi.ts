@@ -17,8 +17,8 @@ export function useLazyQuerySaleOrders(saleOrdersId: string) {
         });
 
         const options = (data?.saleOrders ?? []).map((s) => ({
-          id: s.id,
-          name: s.serialId,
+          id: s,
+          name: s,
         }));
 
         setCurrentOptions(options);
@@ -30,6 +30,7 @@ export function useLazyQuerySaleOrders(saleOrdersId: string) {
 
   return {
     currentOptions,
+    setCurrentOptions,
     onVisibilityChange,
   };
 }

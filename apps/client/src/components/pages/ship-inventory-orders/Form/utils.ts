@@ -21,6 +21,10 @@ export function fragmentToDefaultValues(
         : null,
       quantity: r.targetShippedQuantity,
       unit: r.unitId || BASE_UNIT,
+      saleId: r.saleId ? { id: r.saleId, name: r.saleId } : null,
+      saleSerialId: r.saleSerialId
+        ? { id: r.saleSerialId, name: r.saleSerialId }
+        : null,
 
       itemId: r.id,
       shippedQuantity: r.shippedQuantity,
