@@ -32,7 +32,7 @@ export class SaleOrderQuery {
 
   @Query(() => [SaleOrderDto])
   async saleOrders(
-    @Args('id', { type: () => [ID] }) id: string,
+    @Args('id', { type: () => ID }) id: string,
   ): Promise<SaleOrderDto[]> {
     return this.saleOrderService.saleOrderRepository.findBy({ id });
   }
