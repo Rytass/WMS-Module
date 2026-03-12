@@ -114,12 +114,14 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
           />
           <SaleOrderIdsField
             name="saleId"
+            addable
             fuzzySearch={false}
             selectValueMode
           />
           <SaleOrdersField
             saleOrdersId={saleIdSelectValue?.id ?? ''}
             name="saleSerialId"
+            addable
             fuzzySearch={false}
             selectValueMode
             disabled={!saleIdSelectValue}

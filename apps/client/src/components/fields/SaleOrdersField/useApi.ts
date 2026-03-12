@@ -30,6 +30,7 @@ export function useLazyQuerySaleOrders(saleOrdersId: string) {
 
   return {
     currentOptions,
+    setCurrentOptions,
     onVisibilityChange,
   };
 }
