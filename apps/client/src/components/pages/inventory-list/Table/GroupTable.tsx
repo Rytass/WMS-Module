@@ -22,6 +22,7 @@ import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { aggregatedStockColumns } from '../../../../utils/share';
+import { stockStatusName } from '../../../inventoryActions/utils';
 import { useQueryStocksGrouped } from '../useApi';
 import { FilterValues } from '../typing';
 import classes from './group-table.module.scss';
@@ -177,7 +178,7 @@ function InventoryGroupTable({
       key: 'status',
       title: '狀態',
       width: 100,
-      render: (source) => source.status,
+      render: (source) => stockStatusName(source.status),
     },
     {
       key: 'inspection',
@@ -398,7 +399,7 @@ function InventoryGroupTable({
       key: 'status',
       title: '狀態',
       width: 100,
-      render: (source) => source.status,
+      render: (source) => stockStatusName(source.status),
     },
     ...aggregatedStockColumns,
   ];
