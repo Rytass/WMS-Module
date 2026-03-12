@@ -12,6 +12,7 @@ import SaleOrderIdsField from '../../../../fields/SaleOrderIdsField';
 import SaleOrdersField from '../../../../fields/SaleOrdersField';
 import { BASE_UNIT } from '../../../../../utils/share';
 import { useLazyQueryMaterial } from '../useApi';
+import { usePreviousValue } from '../../../../../hooks/usePreviousValue';
 import { formSchema } from './schema';
 import { AddFormValues } from './typing';
 import classes from './index.module.scss';
@@ -32,6 +33,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
 
   const materialSelectValue = methods.watch('material');
   const saleIdSelectValue = methods.watch('saleId');
+  const prevSaleIdSelectValue = usePreviousValue(saleIdSelectValue);
 
   const { fetchMaterial } = useLazyQueryMaterial();
 
@@ -69,6 +71,12 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
       methods.setValue('unit', '');
     }
   }, [doFetchMaterial, materialSelectValue, methods]);
+
+  useEffect(() => {
+    if (prevSaleIdSelectValue?.id !== saleIdSelectValue?.id) {
+      methods.setValue('saleSerialId', null);
+    }
+  }, [methods, prevSaleIdSelectValue?.id, saleIdSelectValue?.id]);
 
   const onSubmit = useCallback(
     (values: AddFormValues) => {
