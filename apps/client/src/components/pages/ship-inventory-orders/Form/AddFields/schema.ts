@@ -13,4 +13,12 @@ export const formSchema: Yup.ObjectSchema<AddFormValues> = Yup.object({
   }).required('必填'),
   quantity: Yup.number().integer('必須為整數').required('必填'),
   unit: Yup.string().required('必填'),
+  saleId: Yup.object({
+    id: Yup.string().required('必填'),
+    name: Yup.string().required('必填'),
+  }),
+  saleSerialId: Yup.object({
+    id: Yup.string().required('必填'),
+    name: Yup.string().required('必填'),
+  }),
 });

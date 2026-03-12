@@ -8,6 +8,8 @@ import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import MaterialsField from '../../../../fields/MaterialsField';
 import BatchesField from '../../../../fields/BatchesField';
+import SaleOrderIdsField from '../../../../fields/SaleOrderIdsField';
+import SaleOrdersField from '../../../../fields/SaleOrdersField';
 import { BASE_UNIT } from '../../../../../utils/share';
 import { useLazyQueryMaterial } from '../useApi';
 import { formSchema } from './schema';
