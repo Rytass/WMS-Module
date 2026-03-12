@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { TextFieldSize } from '@mezzanine-ui/react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
@@ -28,38 +29,37 @@ const UnitsField: FC<UnitsFieldProps> = ({
   const { currentOptions, setCurrentOptions } = useQueryUnits();
   const handleInsert = useInsertOption(setCurrentOptions);
 
+  const baseProps = useMemo(
+    () => ({
+      addable: true,
+      name,
+      label,
+      placeholder,
+      menuMaxHeight,
+      size,
+      options: currentOptions,
+      onInsert: handleInsert,
+      required,
+      disabled,
+    }),
+    [
+      currentOptions,
+      disabled,
+      handleInsert,
+      label,
+      menuMaxHeight,
+      name,
+      placeholder,
+      required,
+      size,
+    ],
+  );
+
   if (selectValueMode) {
-    return (
-      <SingleAutoCompleteField
-        addable
-        name={name}
-        label={label}
-        placeholder={placeholder}
-        menuMaxHeight={menuMaxHeight}
-        size={size}
-        options={currentOptions}
-        onInsert={handleInsert}
-        required={required}
-        disabled={disabled}
-      />
-    );
+    return <SingleAutoCompleteField {...baseProps} />;
   }
 
-  return (
-    <SingleAutoCompleteByIdField
-      addable
-      name={name}
-      label={label}
-      placeholder={placeholder}
-      menuMaxHeight={menuMaxHeight}
-      size={size}
-      options={currentOptions}
-      onInsert={handleInsert}
-      required={required}
-      disabled={disabled}
-      useNameToValue
-    />
-  );
+  return <SingleAutoCompleteByIdField {...baseProps} useNameToValue />;
 };
 
 export default UnitsField;
