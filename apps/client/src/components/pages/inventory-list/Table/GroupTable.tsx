@@ -178,7 +178,10 @@ function InventoryGroupTable({
       key: 'status',
       title: '狀態',
       width: 100,
-      render: (source) => stockStatusName(source.status),
+      render: (source) =>
+        uniq(
+          source.aggregatedStock?.map((s) => stockStatusName(s.status)),
+        ).join(','),
     },
     {
       key: 'inspection',
