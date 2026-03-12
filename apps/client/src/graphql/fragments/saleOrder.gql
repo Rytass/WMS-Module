@@ -1,4 +1,0 @@
-fragment SaleOrder on SaleOrderDto {
-  id
-  serialId
-}

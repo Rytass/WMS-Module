@@ -3,7 +3,5 @@ query SaleOrderDistinctIds($offset: Int, $limit: Int, $key: String) {
 }
 
 query SaleOrders($saleOrdersId: ID!) {
-  saleOrders(id: $saleOrdersId) {
-    ...SaleOrder
-  }
+  saleOrders(id: $saleOrdersId)
 }
