@@ -8,7 +8,9 @@ export type ItemFieldValues = {
   length?: number;
   width?: number;
   height?: number;
+  sizeUnit?: SelectValue | null;
   volume?: number;
+  volumeUnit?: SelectValue | null;
   remark?: string;
 };
 
