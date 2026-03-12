@@ -7,7 +7,9 @@ export type ItemFieldValues = {
   quantity: number;
   unit: string;
   saleId?: SelectValue | null;
+  'saleId-search'?: string;
   saleSerialId?: SelectValue | null;
+  'saleSerialId-search'?: string;
 
   // for field array
   itemId?: string;

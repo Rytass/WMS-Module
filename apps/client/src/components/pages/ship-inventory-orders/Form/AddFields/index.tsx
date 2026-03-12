@@ -111,7 +111,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             disabled={!materialSelectValue}
             required
           />
-          <div />
+          <SaleOrderIdsField name="saleId" fuzzySearch selectValueMode />
           <div />
         </div>
         <FormActionButtons

@@ -24,10 +24,12 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
         }),
+        'saleId-search': Yup.string(),
         saleSerialId: Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
         }),
+        'saleSerialId-search': Yup.string(),
 
         itemId: Yup.string(),
         shippedQuantity: Yup.number().required('必填'),
