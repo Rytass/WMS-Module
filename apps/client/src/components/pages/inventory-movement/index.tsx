@@ -2,6 +2,9 @@ import { useMemo } from 'react';
 import { useRouter } from 'next/router';
 import PageWrapper from '../../PageWrapper';
 import PageTabs from '../../PageTabs';
+import InventoryMovementTransfer from './Transfer';
+import InventoryMovementShip from './Ship';
+import InventoryMovementReceive from './Receive';
 import { PageTab } from './typing';
 
 function InventoryMovement() {
@@ -26,9 +29,9 @@ function InventoryMovement() {
           },
         ]}
       />
-      {(tab === PageTab.transfer || !tab) && <div>調撥單</div>}
-      {tab === PageTab.ship && <div>出庫單</div>}
-      {tab === PageTab.receive && <div>入庫單</div>}
+      {(tab === PageTab.transfer || !tab) && <InventoryMovementTransfer />}
+      {tab === PageTab.ship && <InventoryMovementShip />}
+      {tab === PageTab.receive && <InventoryMovementReceive />}
     </PageWrapper>
   );
 }
