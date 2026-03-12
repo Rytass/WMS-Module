@@ -21,7 +21,10 @@ export function useTablePageState() {
     page,
     setPage,
     limit,
-    setLimit,
+    setLimit: (limit: number) => {
+      setLimit(limit);
+      setPage(1);
+    },
     offset: (page - 1) * limit,
   };
 }
