@@ -4,6 +4,7 @@ import { LoaderService } from '@wms-module/core';
 import { LoaderDto, Loaders, LoaderTypeDto, LoaderTypes } from '../dto';
 import { FindLoaderArgs } from '../inputs/find-loader.args';
 import { FindLoaderTypeArgs } from '../inputs/find-loader-type.args';
+import { LoaderUnit, LoaderUnitDto } from '../dto/loader-unit.dto';
 
 @Injectable()
 export class LoaderQuery {
@@ -37,5 +38,14 @@ export class LoaderQuery {
       wildcard: args.key ? { key: 'key', value: args.key } : undefined,
     });
     return { items, total };
+  }
+
+  @Query(() => [LoaderUnitDto])
+  loaderUnits(
+    @Args('type', { type: () => LoaderUnit }) type: LoaderUnit,
+  ): Promise<LoaderUnitDto[]> {
+    return this.loaderService.loaderUnitRepository.findBy({
+      type,
+    });
   }
 }

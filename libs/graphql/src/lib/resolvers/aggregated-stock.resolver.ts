@@ -2,13 +2,14 @@ import { Context, ID, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { AggregatedStockDto, LoaderDto, MaterialDto } from '../dto';
 import { type LoaderType } from '../helpers';
 import {
+  BatchEntityClass,
+  BatchGroupEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
   MaterialEntityClass,
   StockService,
 } from '@wms-module/core';
 import { BatchDto } from '../dto/batch.dto';
-import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import { LocationDto } from '../dto/location.dto';
 
 @Resolver(() => AggregatedStockDto)
@@ -34,11 +35,16 @@ export class AggregatedStockResolver {
   @ResolveField(() => BatchDto)
   async batch(
     @Parent() { batchId }: AggregatedStockDto,
-    @Context() { loaders }: LoaderType<BatchEntity>,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
   ): Promise<BatchDto> {
-    return loaders.batchSingle.load({
-      __entity: BatchEntity,
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
       __from: { id: batchId },
+    });
+
+    return loaders.batchSingle.load({
+      __entity: BatchGroupEntityClass,
+      __from: { id: groupId },
     });
   }
 

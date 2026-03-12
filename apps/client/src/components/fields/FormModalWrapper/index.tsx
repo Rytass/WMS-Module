@@ -14,7 +14,7 @@ type FormModalWrapperProps<T extends FieldValues = FieldValues> = Omit<
   children: ReactNode;
   closeModal: VoidFunction;
   open: boolean;
-  mode: 'create' | 'edit';
+  confirmMode?: 'create' | 'edit';
   submitWithConfirm?: boolean;
   cancelWithConfirm?: boolean;
 };
@@ -23,6 +23,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
   methods,
   className,
   title,
+  titleAlign = 'center',
   size = 'regular',
   cancelButtonProps,
   confirmButtonProps,
@@ -32,7 +33,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
   children: modalChildren,
   closeModal: closeModalProps,
   open,
-  mode,
+  confirmMode,
   submitWithConfirm = false,
   cancelWithConfirm = false,
 }: FormModalWrapperProps<T>) => {
@@ -73,7 +74,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
         const isConfirm = await openDialog({
           modalStatusType: 'info',
           title: (() => {
-            switch (mode) {
+            switch (confirmMode) {
               case 'create':
                 return '確認新增資料';
 
@@ -85,7 +86,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
             }
           })(),
           supportingText: (() => {
-            switch (mode) {
+            switch (confirmMode) {
               case 'create':
                 return '您即將進入新增流程，完成後系統將自動應用相關變更。請確認是否要繼續，以便順利完成操作。';
 
@@ -98,7 +99,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
           })(),
           cancelText: '取消',
           confirmText: (() => {
-            switch (mode) {
+            switch (confirmMode) {
               case 'create':
                 return '確認新增';
 
@@ -122,7 +123,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
         methods.handleSubmit(onSubmit)();
       }
     }
-  }, [methods, mode, onSubmit, openDialog, submitWithConfirm]);
+  }, [methods, confirmMode, onSubmit, openDialog, submitWithConfirm]);
 
   return (
     <Modal
@@ -148,7 +149,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
       showStatusTypeIcon={false}
       statusTypeIconLayout="horizontal"
       title={title ?? ''}
-      titleAlign="center"
+      titleAlign={titleAlign}
       open={open}
       showModalFooter
       showModalHeader

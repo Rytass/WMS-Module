@@ -26,6 +26,7 @@ import {
   FindLoaderInput,
   FindLoaderTypeInput,
 } from '../typings/find-loader.input';
+import { LoaderUnitEntity, LoaderUnitEntityClass } from '../models';
 
 /**
  * Service for managing loaders and their types
@@ -40,16 +41,23 @@ export class LoaderService<
 > {
   readonly loaderRepository: Repository<T>;
   readonly loaderTypeRepository: Repository<K>;
+  readonly loaderUnitRepository: Repository<LoaderUnitEntityClass>;
   readonly loaderSerialMaxDigits = 4;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(LoadersEntity) readonly loaderEntity: EntityTarget<T>,
     @Inject(LoaderTypeEntity) readonly loaderTypeEntity: EntityTarget<K>,
+    @Inject(LoaderUnitEntity)
+    readonly loaderUnitEntity: EntityTarget<LoaderUnitEntityClass>,
   ) {
     this.loaderRepository = this.dataSource.getRepository<T>(this.loaderEntity);
     this.loaderTypeRepository = this.dataSource.getRepository<K>(
       this.loaderTypeEntity,
     );
+    this.loaderUnitRepository =
+      this.dataSource.getRepository<LoaderUnitEntityClass>(
+        this.loaderUnitEntity,
+      );
   }
 
   async createLoader({

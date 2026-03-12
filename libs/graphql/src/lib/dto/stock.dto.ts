@@ -32,6 +32,30 @@ export class AggregatedStockDto {
   batchId!: string;
   locationId!: string;
   loaderId!: string;
+
+  @Field(() => Boolean, { nullable: true })
+  inTransfer?: boolean;
+
+  @Field(() => Boolean, { nullable: true })
+  held?: boolean;
+
+  @Field(() => Boolean, { nullable: true })
+  inShipment?: boolean;
+
+  @Field(() => ID, { nullable: true })
+  saleId?: string | null;
+
+  @Field(() => ID, { nullable: true })
+  saleSerialId?: string | null;
+
+  @Field(() => ID, { nullable: true })
+  customerId?: string | null;
+
+  @Field(() => ID, { nullable: true })
+  vendorId?: string | null;
+
+  @Field(() => ID, { nullable: true })
+  inspectionId?: string | null;
 }
 
 registerEnumType(StockStatus, {

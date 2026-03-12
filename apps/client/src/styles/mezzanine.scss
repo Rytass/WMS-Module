@@ -18,12 +18,20 @@
   bottom: 0;
 }
 
+.mzn-modal--wide {
+  width: calc(100% - var(--mzn-spacing-padding-horizontal-spacious) * 2);
+}
+
 .mzn-drawer__overlay {
   z-index: 1003;
 }
 
 .mzn-dropdown-popper--with-portal {
   z-index: 1004 !important;
+}
+
+.mzn-table__cell__content .mzn-icon {
+  vertical-align: sub;
 }
 
 .mzn-select,

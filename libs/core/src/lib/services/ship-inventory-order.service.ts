@@ -9,6 +9,7 @@ import {
 } from '../models/extensions/ship-inventory-order/ship-inventory-order-item.entity';
 import {
   DataSource,
+  DeepPartial,
   EntityManager,
   In,
   IsNull,
@@ -36,11 +37,13 @@ import {
   ShipInventoryOrderReferenceEntityClass,
   MaterialEntityClass,
   StockEntityClass,
+  SaleOrderEntity,
+  SaleOrderEntityClass,
 } from '../models';
 import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
 import { MaterialService } from './material.service';
+import { BatchService } from './batch.service';
 import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
-import { DeepPartial } from 'typeorm';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -59,12 +62,15 @@ export class ShipInventoryOrderService<
   constructor(
     private readonly dataSource: DataSource,
     private readonly materialService: MaterialService,
+    private readonly batchService: BatchService,
     @Inject(ShipInventoryOrderEntity)
     readonly shipInventoryOrderEntity: EntityTarget<T>,
     @Inject(ShipInventoryOrderItemEntity)
     readonly shipInventoryOrderItemEntity: EntityTarget<K>,
     @Inject(ShipInventoryOrderReferenceEntity)
     readonly shipInventoryOrderReferenceEntity: EntityTarget<ShipInventoryOrderReferenceEntityClass>,
+    @Inject(SaleOrderEntity)
+    readonly saleOrderEntity: EntityTarget<SaleOrderEntityClass>,
   ) {
     this.selectQueryBuilder = (alias: string) => {
       return this.dataSource
@@ -132,7 +138,9 @@ export class ShipInventoryOrderService<
     const materialRepository =
       manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
     const batchRepository = manager.getRepository<BatchEntity>(BatchEntity);
-
+    const saleOrderRepository = manager.getRepository<SaleOrderEntityClass>(
+      this.saleOrderEntity,
+    );
     return references.reduce(
       async (accPromise, reference) => {
         const acc = await accPromise;
@@ -150,7 +158,13 @@ export class ShipInventoryOrderService<
               materialId: material.id,
             });
           }
-
+          if (reference.saleId && reference.saleSerialId)
+            await saleOrderRepository.save(
+              saleOrderRepository.create({
+                id: reference.saleId,
+                serialId: reference.saleSerialId,
+              }),
+            );
           return [
             ...acc,
             {
@@ -187,6 +201,17 @@ export class ShipInventoryOrderService<
 
     await Promise.all(
       items.map(async (data) => {
+        // Ensure required fields are present
+        if (!data.batchId || !data.materialId) return;
+
+        // Split batch first with inShipment flag to track shipment state
+        const splittedBatch = await this.batchService.splitBatch({
+          id: data.batchId,
+          inShipment: true,
+          manager,
+        });
+
+        // Save item with ORIGINAL batch id to maintain source state
         const item = await shipInventoryOrderItemRepository.save(
           shipInventoryOrderItemRepository.create(data),
         );
@@ -204,26 +229,27 @@ export class ShipInventoryOrderService<
           }),
         );
 
+        // Stock movements track the shipment through splitted batch
         await stockRepository.save(
           stockRepository.create([
-            // add shipped stock to location
+            // deduct from original batch available stock
             {
               orderId: base.id,
               materialId: item.materialId,
-              batchId: item.batchId,
-              locationId: item.locationId,
-              loaderId: item.loaderId,
-              quantity: item.targetShippedQuantity * conversionFactor,
-            } as DeepPartial<StockEntity>,
-            // deduct available stock from location
-            {
-              orderId: base.id,
-              materialId: item.materialId,
-              batchId: item.batchId,
-              locationId: item.locationId,
-              loaderId: item.loaderId,
+              batchId: item.batchId, // original batch
+              locationId: item.locationId || undefined,
+              loaderId: item.loaderId || undefined,
               quantity: -1 * item.targetShippedQuantity * conversionFactor,
-            } as DeepPartial<StockEntity>,
+            } as DeepPartial<StockEntityClass>,
+            // add to splitted batch in shipment state
+            {
+              orderId: base.id,
+              materialId: item.materialId,
+              batchId: splittedBatch.id, // splitted batch marked inShipment
+              locationId: item.locationId || undefined,
+              loaderId: item.loaderId || undefined,
+              quantity: item.targetShippedQuantity * conversionFactor,
+            } as DeepPartial<StockEntityClass>,
           ]),
         );
       }),
@@ -500,6 +526,12 @@ export class ShipInventoryOrderService<
             );
           }
 
+          // Create splitted batch for ship completion
+          const shippedBatch = await this.batchService.splitBatch({
+            id: item.batchId,
+            manager,
+          });
+
           const newOrder = await orderRepository.save(orderRepository.create());
 
           await Promise.all([
@@ -511,12 +543,22 @@ export class ShipInventoryOrderService<
               }),
             ),
             stockRepository.save(
-              stockRepository.create({
-                batchId: item.batchId,
-                materialId: item.materialId,
-                quantity: option.quantity * conversionFactor,
-                orderId: newOrder.id,
-              }),
+              stockRepository.create([
+                // add to destination with original batch reference
+                {
+                  batchId: item.batchId,
+                  materialId: item.materialId,
+                  quantity: option.quantity * conversionFactor,
+                  orderId: newOrder.id,
+                } as DeepPartial<StockEntityClass>,
+                // deduct from shipped splitted batch
+                {
+                  batchId: shippedBatch.id,
+                  materialId: item.materialId,
+                  quantity: -1 * option.quantity * conversionFactor,
+                  orderId: newOrder.id,
+                } as DeepPartial<StockEntityClass>,
+              ]),
             ),
           ]);
         }),

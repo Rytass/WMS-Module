@@ -12,7 +12,7 @@ import {
   MaterialEntity,
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
-import { ChangeType, StockStatus } from '../constants/stock-status';
+import { StockStatus } from '../constants/stock-status';
 import { AggregatedStock, ChangeLog } from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import { LoadersEntityClass, LocationEntityClass } from '../models';
@@ -56,6 +56,7 @@ export class StockService<
     this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
     // select builder for status and quantity calculation, calculated field will override fields in stock entity.
     // every query should use this selectQueryBuilder to ensure status and quantity are correct
+    // status is resolved from batch flags: inShipment → IN_SHIPMENT, held → HELD, inTransfer → IN_TRANSFER, else → FREE
     this.selectQueryBuilder = (
       alias: string,
       qb = this.dataSource
@@ -68,93 +69,26 @@ export class StockService<
             subQuery
               .select(
                 `CASE
-                  WHEN sio_changes.id IS NOT NULL AND (s.quantity * sio_changes."quantityChanged") > 0 THEN '${StockStatus.IN_SHIPMENT}'
-                  WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") > 0 THEN '${StockStatus.HELD}'
-                  WHEN to_changes.id IS NOT NULL AND (s.quantity * to_changes."quantityChanged") > 0 THEN '${StockStatus.IN_TRANSFER}'
-
+                  WHEN b."inShipment" = true THEN '${StockStatus.IN_SHIPMENT}'
+                  WHEN b."held" = true THEN '${StockStatus.HELD}'
+                  WHEN b."inTransfer" = true THEN '${StockStatus.IN_TRANSFER}'
                   ELSE '${StockStatus.FREE}'
                 END`,
                 'status',
               )
               .addSelect('s.id', 'stockId')
+              .addSelect('b."inTransfer"', 'inTransfer')
+              .addSelect('b."held"', 'held')
+              .addSelect('b."inShipment"', 'inShipment')
               .from('stocks', 's')
-              .innerJoin('batches', 'b', 's."batchId" = b.id')
-              .innerJoin('orders', 'o', 's."orderId" = o.id')
-              // Quality Inspection Order - PENDING_INSPECTION when joined but result is null, INSPECTION_FAILED when result is false
-              .leftJoin(
-                'quality_inspection_order_changes',
-                'qi_changes',
-                'qi_changes.id = o.id AND qi_changes."result" IS NULL',
-              )
-              .leftJoin(
-                'quality_inspection_order_changes',
-                'qi_failed',
-                'qi_failed.id = o.id AND qi_failed."result" = false',
-              )
-              // Hold Inventory Order
-              .leftJoin(
-                'hold_inventory_order_changes',
-                'hi_changes',
-                'hi_changes.id = o.id',
-              )
-              // Transfer Order
-              .leftJoin(
-                'transfer_order_changes',
-                'to_changes',
-                'to_changes.id = o.id',
-              )
-              // Allocate Inventory Order
-              .leftJoin(
-                'allocate_inventory_order_changes',
-                'ai_changes',
-                'ai_changes.id = o.id',
-              )
-              // Transfer Vendor Order
-              .leftJoin(
-                'transfer_vendor_order_changes',
-                'tv_changes',
-                'tv_changes.id = o.id',
-              )
-              // Transfer Customer Order
-              .leftJoin(
-                'transfer_customer_order_changes',
-                'tc_changes',
-                'tc_changes.id = o.id',
-              )
-              // Receive Inventory Order
-              .leftJoin(
-                'receive_inventory_order_changes',
-                'rio_changes',
-                'rio_changes.id = o.id',
-              )
-              // Ship Inventory Order
-              .leftJoin(
-                'ship_inventory_order_changes',
-                'sio_changes',
-                'sio_changes.id = o.id',
-              )
-              // Split Batch Order
-              .leftJoin(
-                'split_batch_order_changes',
-                'sbo_changes',
-                'sbo_changes.id = o.id',
-              )
-              // Merge Batch Order
-              .leftJoin(
-                'merge_batch_order_changes',
-                'mbo_changes',
-                'mbo_changes.id = o.id',
-              )
-              // Reclassify Inventory Order
-              .leftJoin(
-                'reclassify_inventory_order_changes',
-                'rci_changes',
-                'rci_changes.id = o.id',
-              ),
+              .innerJoin('batches', 'b', 's."batchId" = b.id'),
           'stock_status',
           `stock_status."stockId" = ${alias}.id`,
         )
         .addSelect('stock_status.status', 'status')
+        .addSelect('stock_status.inTransfer', 'inTransfer')
+        .addSelect('stock_status.held', 'held')
+        .addSelect('stock_status.inShipment', 'inShipment')
         .addSelect(`${alias}.*`);
   }
 
@@ -253,22 +187,28 @@ export class StockService<
 
     if (aggregated) {
       queryBuilder.innerJoin('batches', 'b', 'stock."batchId" = b.id');
-      queryBuilder.select('stock.materialId', 'materialId');
-      queryBuilder.addSelect('stock.batchId', 'batchId');
-      queryBuilder.addSelect('stock.locationId', 'locationId');
-      queryBuilder.addSelect('stock.loaderId', 'loaderId');
+      queryBuilder.select('stock."materialId"', 'materialId');
+      queryBuilder.addSelect('stock."batchId"', 'batchId');
+      queryBuilder.addSelect('stock."locationId"', 'locationId');
+      queryBuilder.addSelect('stock."loaderId"', 'loaderId');
       queryBuilder.addSelect('stock_status.status', 'status');
+      queryBuilder.addSelect('stock_status."inTransfer"', 'inTransfer');
+      queryBuilder.addSelect('stock_status."held"', 'held');
+      queryBuilder.addSelect('stock_status."inShipment"', 'inShipment');
       queryBuilder.addSelect('b."saleId"', 'saleId');
       queryBuilder.addSelect('b."saleSerialId"', 'saleSerialId');
       queryBuilder.addSelect('b."customerId"', 'customerId');
       queryBuilder.addSelect('b."vendorId"', 'vendorId');
       queryBuilder.addSelect('b."inspectionId"', 'inspectionId');
       queryBuilder.addSelect('SUM(stock.quantity)', 'quantity');
-      queryBuilder.groupBy('stock.materialId');
-      queryBuilder.addGroupBy('stock.batchId');
-      queryBuilder.addGroupBy('stock.locationId');
-      queryBuilder.addGroupBy('stock.loaderId');
+      queryBuilder.groupBy('stock."materialId"');
+      queryBuilder.addGroupBy('stock."batchId"');
+      queryBuilder.addGroupBy('stock."locationId"');
+      queryBuilder.addGroupBy('stock."loaderId"');
       queryBuilder.addGroupBy('stock_status.status');
+      queryBuilder.addGroupBy('stock_status."inTransfer"');
+      queryBuilder.addGroupBy('stock_status."held"');
+      queryBuilder.addGroupBy('stock_status."inShipment"');
       queryBuilder.addGroupBy('b."saleId"');
       queryBuilder.addGroupBy('b."saleSerialId"');
       queryBuilder.addGroupBy('b."customerId"');
@@ -339,6 +279,9 @@ export class StockService<
       paginatedQueryBuilder.addSelect(`agg."${key}"`, key),
     );
     // Add batch-related fields
+    paginatedQueryBuilder.addSelect('agg."inTransfer"', 'inTransfer');
+    paginatedQueryBuilder.addSelect('agg."held"', 'held');
+    paginatedQueryBuilder.addSelect('agg."inShipment"', 'inShipment');
     paginatedQueryBuilder.addSelect('agg."saleId"', 'saleId');
     paginatedQueryBuilder.addSelect('agg."saleSerialId"', 'saleSerialId');
     paginatedQueryBuilder.addSelect('agg."customerId"', 'customerId');

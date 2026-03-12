@@ -29,3 +29,29 @@ query ReceiveInventoryOrders(
     total
   }
 }
+
+query FullReceiveInventoryOrders(
+  $offset: Int
+  $limit: Int
+  $receiveInventoryOrdersId: ID
+  $createdBy: String
+  $status: ReceiveInventoryOrderStatus
+  $dateRange: DateRangeArgs
+  $description: String
+) {
+  receiveInventoryOrders(
+    offset: $offset
+    limit: $limit
+    id: $receiveInventoryOrdersId
+    createdBy: $createdBy
+    status: $status
+    dateRange: $dateRange
+    description: $description
+  ) {
+    id
+    items {
+      ...ReceiveInventoryOrder
+    }
+    total
+  }
+}

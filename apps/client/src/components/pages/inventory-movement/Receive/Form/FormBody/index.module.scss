@@ -1,0 +1,13 @@
+@use '@mezzanine-ui/system/spacing';
+
+.host {
+  display: flex;
+  flex-direction: column;
+  row-gap: spacing.semantic-variable(gap, comfort);
+
+  .headSectionWrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: spacing.semantic-variable(gap, base);
+  }
+}

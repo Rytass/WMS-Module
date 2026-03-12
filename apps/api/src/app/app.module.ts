@@ -25,8 +25,9 @@ import { resolve } from 'path';
           schema: await vault.get<string>('DB_SCHEMA'),
           autoLoadEntities: true,
           synchronize:
-            (await vault.get<string>('NODE_ENV')) !== 'development' ||
-            process.env.DB_SYNC === 'yes',
+            (await vault.get<string>('NODE_ENV')) === 'development'
+              ? false
+              : process.env.DB_SYNC === 'YES',
           logging: 'all',
           uuidExtension: 'uuid-ossp',
         };

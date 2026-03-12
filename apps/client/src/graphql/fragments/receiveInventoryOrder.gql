@@ -13,8 +13,7 @@ fragment ReceiveInventoryOrderItem on ReceiveInventoryOrderItemDto {
     ...Batch
   }
   location {
-    id
-    key
+    ...SimpleLocation
   }
   loader {
     ...Loader

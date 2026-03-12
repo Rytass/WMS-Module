@@ -36,6 +36,7 @@ import {
 } from './resolvers/receive-inventory-order.resolver';
 import { AllocateInventoryOrderQuery } from './queries/allocate-inventory-order.query';
 import { AllocateInventoryOrderResolver } from './resolvers/allocate-inventory-order.resolver';
+import { AllocateInventoryOrderMutation } from './mutations/allocate-inventory-order.mutation';
 import {
   ShipInventoryOrderItemResolver,
   ShipInventoryOrderReferenceResolver,
@@ -85,6 +86,7 @@ const exportDependencies = [
 
   AllocateInventoryOrderQuery,
   AllocateInventoryOrderResolver,
+  AllocateInventoryOrderMutation,
 
   SaleOrderQuery,
 ];

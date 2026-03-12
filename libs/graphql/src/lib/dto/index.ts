@@ -11,3 +11,7 @@ export * from './receive-inventory-order.dto';
 export * from './receive-inventory-order-item.dto';
 export * from './ship-inventory-order.dto';
 export * from './ship-inventory-order-item.dto';
+export * from './hold-inventory-order.dto';
+export * from './hold-inventory-order-item.dto';
+export * from './allocate-inventory-order.dto';
+export * from './allocate-inventory-order-item.dto';

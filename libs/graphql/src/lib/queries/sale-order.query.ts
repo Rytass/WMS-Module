@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
 import { SaleOrderService } from '@wms-module/core';
 import { SaleOrderDto } from '../dto';
+import { FindSaleOrderArgs } from '../inputs/find-sale-order.args';
 
 @Injectable()
 export class SaleOrderQuery {
@@ -9,16 +10,21 @@ export class SaleOrderQuery {
 
   @Query(() => [String])
   async saleOrderDistinctIds(
-    @Args('keyword', { nullable: true }) keyword?: string,
+    @Args() args?: FindSaleOrderArgs,
   ): Promise<string[]> {
     const builder = this.saleOrderService.saleOrderRepository
       .createQueryBuilder('so')
       .select('DISTINCT so.id', 'id');
 
-    if (keyword)
-      builder.where('so.id LIKE :keyword', {
-        keyword: `%${keyword}%`,
+    if (args?.key)
+      builder.where('so.id LIKE :key', {
+        key: `%${args.key}%`,
       });
+
+    if (args?.offset !== undefined && args.offset >= 0)
+      builder.skip(args.offset);
+
+    if (args?.limit !== undefined && args.limit > 0) builder.take(args.limit);
 
     const result = await builder.getRawMany();
     return result.map(({ id }) => id);

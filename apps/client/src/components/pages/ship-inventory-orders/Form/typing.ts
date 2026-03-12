@@ -17,5 +17,5 @@ export type ItemFieldValues = {
 
 export type FormValues = {
   remark?: string;
-  items: ItemFieldValues[];
+  references: ItemFieldValues[];
 };

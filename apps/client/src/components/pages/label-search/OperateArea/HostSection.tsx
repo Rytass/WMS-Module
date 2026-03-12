@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Typography, Button, Empty, cx } from '@mezzanine-ui/react';
+import SectionWrapper from '../../../SectionWrapper';
 import { useDialog } from '../../../dialog/useDialog';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
@@ -43,7 +44,7 @@ const HostSection: FC<HostSectionProps> = ({
         [classes.haveAdditionalBlock]: haveAdditionalBlock,
       })}
     >
-      <div className={classes.block}>
+      <SectionWrapper className={classes.block}>
         <div className={classes.titleWrapper}>
           <Typography variant="h3" color="text-neutral-solid">
             {inventoryList.length > 0
@@ -109,7 +110,7 @@ const HostSection: FC<HostSectionProps> = ({
             />
           </div>
         )}
-      </div>
+      </SectionWrapper>
       {haveAdditionalBlock && (
         <AdditionalBlock
           inventoryList={inventoryList}

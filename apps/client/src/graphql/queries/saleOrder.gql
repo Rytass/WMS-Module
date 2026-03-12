@@ -1,5 +1,5 @@
-query SaleOrderDistinctIds($keyword: String) {
-  saleOrderDistinctIds(keyword: $keyword)
+query SaleOrderDistinctIds($offset: Int, $limit: Int, $key: String) {
+  saleOrderDistinctIds(offset: $offset, limit: $limit, key: $key)
 }
 
 query SaleOrders($saleOrdersId: [ID!]!) {

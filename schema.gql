@@ -40,6 +40,7 @@ type LoaderDto {
   isActive: Boolean!
   createdAt: DateTime!
   type: LoaderTypeDto!
+  location: LocationDto!
 }
 
 type Loaders {
@@ -105,6 +106,14 @@ type Stocks {
 type AggregatedStockDto {
   quantity: Int!
   status: StockStatus!
+  inTransfer: Boolean
+  held: Boolean
+  inShipment: Boolean
+  saleId: ID
+  saleSerialId: ID
+  customerId: ID
+  vendorId: ID
+  inspectionId: ID
   id: ID!
   material: MaterialDto!
   batch: BatchDto!
@@ -218,9 +227,51 @@ type ShipInventoryOrders {
   total: Int!
 }
 
-type UnitDto {
+type HoldInventoryOrderItemDto {
+  id: ID!
+  targetHeldQuantity: Int!
+  removedAt: DateTime
+}
+
+type HoldInventoryOrderDto {
   id: ID!
   key: String!
+  createdBy: String
+  removedAt: DateTime
+  createdAt: DateTime!
+  items: [HoldInventoryOrderItemDto!]!
+}
+
+type HoldInventoryOrders {
+  id: ID!
+  items: [HoldInventoryOrderDto!]!
+  total: Int!
+}
+
+type AllocateInventoryOrderDto {
+  id: ID!
+  key: String!
+  description: String!
+  reason: String!
+  createdAt: DateTime!
+  items: [AllocateInventoryOrderItemDto!]!
+}
+
+type AllocateInventoryOrders {
+  id: ID!
+  items: [AllocateInventoryOrderDto!]!
+  total: Int!
+}
+
+type AllocateInventoryOrderItemDto {
+  id: ID!
+  targetAllocatedQuantity: Int!
+  saleId: String!
+  saleSerialId: String!
+}
+
+type LoaderUnitDto {
+  id: ID!
 }
 
 type LocationDto {
@@ -234,6 +285,11 @@ type Locations {
   id: ID!
   items: [LocationDto!]!
   total: Int!
+}
+
+type UnitDto {
+  id: ID!
+  key: String!
 }
 
 type BatchDto {
@@ -315,49 +371,6 @@ type TransferOrders {
   total: Int!
 }
 
-type HoldInventoryOrderItemDto {
-  id: ID!
-  targetHeldQuantity: Int!
-  removedAt: DateTime
-}
-
-type HoldInventoryOrderDto {
-  id: ID!
-  key: String!
-  createdBy: String
-  removedAt: DateTime
-  createdAt: DateTime!
-  items: [HoldInventoryOrderItemDto!]!
-}
-
-type HoldInventoryOrders {
-  id: ID!
-  items: [HoldInventoryOrderDto!]!
-  total: Int!
-}
-
-type AllocateInventoryOrderDto {
-  id: ID!
-  key: String!
-  description: String!
-  reason: String!
-  createdAt: DateTime!
-  items: [AllocateInventoryOrderItemDto!]!
-}
-
-type AllocateInventoryOrders {
-  id: ID!
-  items: [AllocateInventoryOrderDto!]!
-  total: Int!
-}
-
-type AllocateInventoryOrderItemDto {
-  id: ID!
-  targetAllocatedQuantity: Int!
-  saleId: String!
-  saleSerialId: String!
-}
-
 type ShipInventoryOrderReferenceDto {
   id: ID!
   serialId: String!
@@ -365,6 +378,7 @@ type ShipInventoryOrderReferenceDto {
   saleSerialId: String
   unitId: ID
   targetShippedQuantity: Int!
+  removedAt: DateTime
   shippedQuantity: Int!
   material: MaterialDto!
   batch: BatchDto
@@ -377,6 +391,7 @@ type Query {
   loaders(offset: Int, limit: Int, key: String, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String): Loaders!
   loaderType(id: ID!): LoaderTypeDto!
   loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, key: String): LoaderTypes!
+  loaderUnits(type: LoaderUnit!): [LoaderUnitDto!]!
   material(id: ID, key: String): MaterialDto!
   materials(offset: Int, limit: Int, key: String, description: String): Materials!
   batches(offset: Int, limit: Int, key: String): Batches!
@@ -394,7 +409,7 @@ type Query {
   location(id: ID!): LocationDto!
   locations(offset: Int, limit: Int, description: String, key: String): Locations!
   allocateInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): AllocateInventoryOrders!
-  saleOrderDistinctIds(keyword: String): [String!]!
+  saleOrderDistinctIds(offset: Int, limit: Int, key: String): [String!]!
   saleOrders(id: [ID!]!): [SaleOrderDto!]!
 }
 
@@ -403,10 +418,15 @@ input DateRangeArgs {
   to: DateTime!
 }
 
+enum LoaderUnit {
+  VOLUME
+  SIZE
+}
+
 type Mutation {
   createLoader(typeId: ID!, locationId: ID!, quantity: Int!, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String): [LoaderDto!]!
   createBatchLoader(items: [CreateLoadersArgs!]!): [LoaderDto!]!
-  updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!): LoaderDto!
+  updateLoader(quantity: Int, length: Float, width: Float, height: Float, sizeUnit: String, volume: Float, volumeUnit: String, note: String, id: ID!, isActive: Boolean): LoaderDto!
   createLoaderType(description: String!, key: String!): LoaderTypeDto!
   updateLoaderType(description: String, id: ID!, isActive: Boolean): LoaderTypeDto!
   createMaterial(key: String!, description: String!, baseUnit: String!, units: [CreateMaterialUnitArgs!]!, isActive: Boolean): MaterialDto!
@@ -424,6 +444,9 @@ type Mutation {
   release(items: [ReleaseOrderArgs!]!): Boolean!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
+  createAllocateInventoryOrder(description: String, reason: String, items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
+  updateAllocateInventoryOrder(description: String, reason: String, id: String!, removedAt: DateTime, items: [UpdateAllocateInventoryOrderItemArgs!]): AllocateInventoryOrderDto!
+  deallocate(items: [DeallocateOrderArgs!]!): Boolean!
 }
 
 input CreateLoadersArgs {
@@ -484,6 +507,8 @@ input CreateShipInventoryOrderReferenceArgs {
   materialKey: String!
   targetShippedQuantity: Int!
   serialId: String!
+  saleId: String
+  saleSerialId: String
 }
 
 input UpdateShipInventoryOrderReferenceArgs {
@@ -493,6 +518,8 @@ input UpdateShipInventoryOrderReferenceArgs {
   materialKey: String
   targetShippedQuantity: Int
   serialId: String
+  saleId: String
+  saleSerialId: String
   id: String
   removedAt: DateTime
 }
@@ -570,4 +597,27 @@ input MapRangeInput {
 input MapPolygonRangePointInput {
   x: Float!
   y: Float!
+}
+
+input CreateAllocateInventoryOrderItemArgs {
+  aggregatedKey: ID!
+  unitId: ID
+  targetAllocatedQuantity: Float!
+  saleId: String!
+  saleSerialId: String!
+}
+
+input UpdateAllocateInventoryOrderItemArgs {
+  aggregatedKey: ID
+  unitId: ID
+  targetAllocatedQuantity: Float
+  saleId: String
+  saleSerialId: String
+  id: ID
+  removedAt: DateTime
+}
+
+input DeallocateOrderArgs {
+  itemId: ID!
+  quantity: Int!
 }

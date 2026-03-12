@@ -20,6 +20,9 @@ export class ShipInventoryOrderReferenceDto {
   @Field(() => Int)
   targetShippedQuantity!: number;
 
+  @Field(() => Date, { nullable: true })
+  removedAt?: Date | null;
+
   orderId!: string;
 
   materialId!: string;

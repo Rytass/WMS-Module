@@ -5,7 +5,9 @@ import {
 } from '../../../hooks/useTablePagination';
 import {
   ShipInventoryOrdersDocument,
+  ShipInventoryOrderDocument,
   CreateShipInventoryOrderDocument,
+  UpdateShipInventoryOrderDocument,
 } from '../../../graphql/generated/.graphql';
 
 export function useQueryShipInventoryOrders() {
@@ -37,6 +39,20 @@ export function useQueryShipInventoryOrders() {
   };
 }
 
+export function useQueryShipInventoryOrder(id: string) {
+  const { data, loading } = useQuery(ShipInventoryOrderDocument, {
+    variables: {
+      shipInventoryOrderId: id,
+    },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  return {
+    data,
+    loading,
+  };
+}
+
 export function useCreateShipInventoryOrder() {
   const [createShipInventoryOrder] = useMutation(
     CreateShipInventoryOrderDocument,
@@ -44,5 +60,15 @@ export function useCreateShipInventoryOrder() {
 
   return {
     createShipInventoryOrder,
+  };
+}
+
+export function useUpdateShipInventoryOrder() {
+  const [updateShipInventoryOrder] = useMutation(
+    UpdateShipInventoryOrderDocument,
+  );
+
+  return {
+    updateShipInventoryOrder,
   };
 }

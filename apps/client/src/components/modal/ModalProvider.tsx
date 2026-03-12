@@ -11,6 +11,7 @@ const ModalProvider: FC = ({ children }) => {
   const {
     className,
     title,
+    titleAlign = 'center',
     size = 'regular',
     cancelButtonProps,
     confirmButtonProps,
@@ -69,7 +70,7 @@ const ModalProvider: FC = ({ children }) => {
           showStatusTypeIcon={false}
           statusTypeIconLayout="horizontal"
           title={title ?? ''}
-          titleAlign="center"
+          titleAlign={titleAlign}
           open={open}
           showModalFooter
           showModalHeader

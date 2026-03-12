@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import InputField from '../../../../../fields/InputField';
@@ -22,6 +22,16 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
       location: null,
     },
   });
+
+  const loaderType = methods.watch('loaderType');
+
+  useEffect(() => {
+    if (loaderType) {
+      methods.setValue('typeKey', loaderType.id);
+    } else {
+      methods.setValue('typeKey', '');
+    }
+  }, [loaderType, methods]);
 
   const onSubmit = useCallback(
     (values: AddFormValues) => {

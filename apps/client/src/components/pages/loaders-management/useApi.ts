@@ -6,6 +6,7 @@ import {
 import {
   LoadersDocument,
   LoaderTypesDocument,
+  AggregatedStocksDocument,
   CreateLoaderTypeDocument,
   UpdateLoaderTypeDocument,
 } from '../../../graphql/generated/.graphql';
@@ -53,6 +54,36 @@ export function useQueryLoaderTypes() {
   const { pageTotal } = useTablePageTotal({
     page,
     total: data?.loaderTypes.total,
+    setPage,
+    filterValues: [],
+  });
+
+  return {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+  };
+}
+
+export function useQueryStocksByLoaderId(loaderId: string) {
+  const { page, setPage, limit, setLimit, offset } = useTablePageState();
+
+  const { data, loading } = useQuery(AggregatedStocksDocument, {
+    variables: {
+      limit,
+      offset,
+      loaderId,
+    },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const { pageTotal } = useTablePageTotal({
+    page,
+    total: data?.aggregatedStocks.total,
     setPage,
     filterValues: [],
   });

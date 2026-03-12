@@ -8,7 +8,13 @@ import {
   TransferOrderItemEntity,
   TransferOrderItemEntityClass,
 } from '../models';
-import { DataSource, EntityManager, EntityTarget, In } from 'typeorm';
+import {
+  DataSource,
+  DeepPartial,
+  EntityManager,
+  EntityTarget,
+  In,
+} from 'typeorm';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { HelperService } from './helper.service';
 import {
@@ -18,6 +24,7 @@ import {
 import { FindTransferOrderInput } from '../typings/find-transfer-order.input';
 import { TransferOrderInput } from '../typings/transfer-order.input';
 import { MaterialService } from './material.service';
+import { BatchService } from './batch.service';
 
 @Injectable()
 export class TransferOrderService<
@@ -30,6 +37,7 @@ export class TransferOrderService<
     private readonly dataSource: DataSource,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
+    private readonly batchService: BatchService,
     @Inject(TransferOrderEntity) readonly transferOrderEntity: EntityTarget<T>,
     @Inject(TransferOrderItemEntity)
     readonly transferOrderItemEntity: EntityTarget<K>,
@@ -59,9 +67,21 @@ export class TransferOrderService<
   private async processTransferOrderItems(
     items: Partial<TransferOrderItemEntityClass>[],
     repos: ReturnType<typeof this.getRepositories>,
+    manager: EntityManager,
   ): Promise<void> {
     await Promise.all(
       items.map(async (data) => {
+        // Ensure required fields are present
+        if (!data.batchId || !data.materialId) return;
+
+        // Split batch first with inTransfer flag to track transfer state
+        const splittedBatch = await this.batchService.splitBatch({
+          id: data.batchId,
+          inTransfer: true,
+          manager,
+        });
+
+        // Save item with ORIGINAL batch id to maintain source state
         const item = await repos.transferOrderItem.save(
           repos.transferOrderItem.create(data),
         );
@@ -79,30 +99,117 @@ export class TransferOrderService<
           }),
         );
 
+        // Stock movements track the transfer through splitted batch
         await repos.stock.save(
           repos.stock.create([
-            // add pending transfer stock to destination location
+            // deduct from original batch source
             {
               orderId: base.id,
               materialId: item.materialId,
-              batchId: item.batchId,
-              locationId: item.locationId,
-              loaderId: item.loaderId || undefined,
-              quantity: item.targetTransferredQuantity * conversionFactor,
-            },
-            // deduct stock from source location
-            {
-              orderId: base.id,
-              materialId: item.materialId,
-              batchId: item.batchId,
-              locationId: item.locationId,
+              batchId: item.batchId, // original batch
+              locationId: item.locationId || undefined,
               loaderId: item.loaderId || undefined,
               quantity: -1 * item.targetTransferredQuantity * conversionFactor,
-            },
+            } as DeepPartial<StockEntityClass>,
+            // add to splitted batch in transfer state
+            {
+              orderId: base.id,
+              materialId: item.materialId,
+              batchId: splittedBatch.id, // splitted batch marked inTransfer
+              locationId: item.locationId || undefined,
+              loaderId: item.loaderId || undefined,
+              quantity: item.targetTransferredQuantity * conversionFactor,
+            } as DeepPartial<StockEntityClass>,
           ]),
         );
       }),
     );
+  }
+
+  async cancelTransfer(
+    options: TransferOrderInput[] | TransferOrderInput,
+  ): Promise<boolean> {
+    if (!Array.isArray(options)) options = [options];
+    return this.dataSource.transaction(async (transactionManager) => {
+      const repos = this.getRepositories(transactionManager);
+      const items = await repos.transferOrderItem.find({
+        where: { id: In(options.map((o) => o.itemId)) },
+        relations: ['changes'],
+      });
+
+      const itemMap = new Map(items.map((item) => [item.id, item]));
+
+      await Promise.all(
+        options.map(async (option) => {
+          const item = itemMap.get(option.itemId);
+          if (!item) return;
+
+          const conversionFactor =
+            await this.materialService.getConversionFactor(
+              item.materialId,
+              item.unitId || undefined,
+            );
+
+          const totalChanged = item.changes.reduce(
+            (sum, change) => sum + Number(change.quantityChanged),
+            0,
+          );
+
+          const remainingQuantity =
+            conversionFactor * item.targetTransferredQuantity - totalChanged;
+
+          if (remainingQuantity - option.quantity * conversionFactor < 0) {
+            throw new Error(
+              `Cancel quantity exceeds pending transfer for item ${option.itemId}`,
+            );
+          }
+
+          // Generate new splitted batch for cancellation reversal with inTransfer flag
+          const reversalBatch = await this.batchService.splitBatch({
+            id: item.batchId,
+            inTransfer: true,
+            manager: transactionManager,
+          });
+
+          const reverseOrder = await repos.order.save(repos.order.create());
+
+          // Reverse the stock changes via new splitted batch
+          await Promise.all([
+            repos.transferOrderChange.save(
+              repos.transferOrderChange.create({
+                itemId: option.itemId,
+                id: reverseOrder.id,
+                quantityChanged: -1 * option.quantity * conversionFactor,
+              }),
+            ),
+            // Stock ledger will reconcile +/- quantities by batch metrics grouping
+            repos.stock.save(
+              repos.stock.create([
+                // re-add to original batch
+                {
+                  orderId: reverseOrder.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId, // original batch
+                  locationId: item.locationId || undefined,
+                  loaderId: item.loaderId || undefined,
+                  quantity: option.quantity * conversionFactor,
+                } as DeepPartial<StockEntityClass>,
+                // remove from new reversal splitted batch (marked inTransfer)
+                {
+                  orderId: reverseOrder.id,
+                  materialId: item.materialId,
+                  batchId: reversalBatch.id, // new splitted batch for cancel reversal
+                  locationId: item.locationId || undefined,
+                  loaderId: item.loaderId || undefined,
+                  quantity: -1 * option.quantity * conversionFactor,
+                } as DeepPartial<StockEntityClass>,
+              ]),
+            ),
+          ]);
+        }),
+      );
+      return true;
+    });
   }
 
   async createTransferOrder(
@@ -127,7 +234,7 @@ export class TransferOrderService<
           }) as Partial<TransferOrderItemEntityClass>,
       );
       // TODO: check stock availability before creating transfer order
-      await this.processTransferOrderItems(items, repos);
+      await this.processTransferOrderItems(items, repos, manager);
     }
 
     return order as T;
@@ -160,14 +267,14 @@ export class TransferOrderService<
         if (!item.id) {
           newItems.push({ ...item, orderId: order.id });
         } else if (existingItemIds.has(item.id)) {
-          existingItems.push(item);
+          existingItems.push({ ...item, orderId: order.id });
         }
       });
 
       // Process new items with stock updates
       if (newItems.length) {
         // TODO: check stock availability before creating transfer order
-        await this.processTransferOrderItems(newItems, repos);
+        await this.processTransferOrderItems(newItems, repos, manager);
       }
 
       // Update existing items
@@ -305,6 +412,12 @@ export class TransferOrderService<
               `Transfer quantity exceeds remaining quantity for item ${item.id}`,
             );
 
+          // Create splitted batch for transfer completion
+          const completedBatch = await this.batchService.splitBatch({
+            id: item.batchId,
+            manager,
+          });
+
           // Record the transfer change
           const base = await manager.getRepository(OrderEntity).save({});
           await Promise.all([
@@ -318,16 +431,7 @@ export class TransferOrderService<
             // Update stock levels
             stockRepository.save(
               stockRepository.create([
-                // add FREE stock to destination location
-                {
-                  orderId: base.id,
-                  materialId: item.materialId,
-                  batchId: item.batchId,
-                  locationId: item.locationId || undefined,
-                  loaderId: item.loaderId || undefined,
-                  quantity: -1 * option.quantity * conversionFactor,
-                },
-                // deduct IN_TRANSFER stock from source location
+                // add to destination with original batch reference
                 {
                   orderId: base.id,
                   materialId: item.materialId,
@@ -335,7 +439,16 @@ export class TransferOrderService<
                   locationId: item.targetLocationId || undefined,
                   loaderId: item.targetLoaderId || undefined,
                   quantity: option.quantity * conversionFactor,
-                },
+                } as DeepPartial<StockEntityClass>,
+                // deduct from completed splitted batch
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: completedBatch.id,
+                  locationId: item.locationId || undefined,
+                  loaderId: item.loaderId || undefined,
+                  quantity: -1 * option.quantity * conversionFactor,
+                } as DeepPartial<StockEntityClass>,
               ]),
             ),
           ]);
