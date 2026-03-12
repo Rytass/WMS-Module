@@ -30,10 +30,13 @@ export class SaleOrderQuery {
     return result.map(({ id }) => id);
   }
 
-  @Query(() => [SaleOrderDto])
+  @Query(() => [String])
   async saleOrders(
     @Args('id', { type: () => ID }) id: string,
-  ): Promise<SaleOrderDto[]> {
-    return this.saleOrderService.saleOrderRepository.findBy({ id });
+  ): Promise<string[]> {
+    const result = await this.saleOrderService.saleOrderRepository.findBy({
+      id,
+    });
+    return result.map(({ serialId }) => serialId);
   }
 }
