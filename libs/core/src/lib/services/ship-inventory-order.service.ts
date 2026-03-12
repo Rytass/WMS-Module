@@ -37,6 +37,8 @@ import {
   ShipInventoryOrderReferenceEntityClass,
   MaterialEntityClass,
   StockEntityClass,
+  SaleOrderEntity,
+  SaleOrderEntityClass,
 } from '../models';
 import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
 import { MaterialService } from './material.service';
@@ -67,6 +69,8 @@ export class ShipInventoryOrderService<
     readonly shipInventoryOrderItemEntity: EntityTarget<K>,
     @Inject(ShipInventoryOrderReferenceEntity)
     readonly shipInventoryOrderReferenceEntity: EntityTarget<ShipInventoryOrderReferenceEntityClass>,
+    @Inject(SaleOrderEntity)
+    readonly saleOrderEntity: EntityTarget<SaleOrderEntityClass>,
   ) {
     this.selectQueryBuilder = (alias: string) => {
       return this.dataSource
@@ -134,7 +138,9 @@ export class ShipInventoryOrderService<
     const materialRepository =
       manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
     const batchRepository = manager.getRepository<BatchEntity>(BatchEntity);
-
+    const saleOrderRepository = manager.getRepository<SaleOrderEntityClass>(
+      this.saleOrderEntity,
+    );
     return references.reduce(
       async (accPromise, reference) => {
         const acc = await accPromise;
@@ -152,7 +158,13 @@ export class ShipInventoryOrderService<
               materialId: material.id,
             });
           }
-
+          if (reference.saleId && reference.saleSerialId)
+            await saleOrderRepository.save(
+              saleOrderRepository.create({
+                id: reference.saleId,
+                serialId: reference.saleSerialId,
+              }),
+            );
           return [
             ...acc,
             {
