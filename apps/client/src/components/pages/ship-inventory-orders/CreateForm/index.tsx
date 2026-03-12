@@ -13,7 +13,6 @@ interface CreateShipInventoryOrderFormProps {
   submitText: string;
   closeModal: VoidFunction;
   open: boolean;
-  mode: 'create' | 'edit';
 }
 
 function CreateShipInventoryOrderForm({
@@ -23,7 +22,6 @@ function CreateShipInventoryOrderForm({
   submitText,
   closeModal,
   open,
-  mode,
 }: CreateShipInventoryOrderFormProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
@@ -38,7 +36,7 @@ function CreateShipInventoryOrderForm({
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}
-      mode={mode}
+      confirmMode="create"
       submitWithConfirm
       cancelWithConfirm={methods.formState.isDirty}
       size="narrow"

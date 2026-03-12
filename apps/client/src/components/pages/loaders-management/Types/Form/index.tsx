@@ -39,7 +39,7 @@ function LoaderTypeForm({
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}
-      mode={mode}
+      confirmMode={mode}
       size="narrow"
       submitWithConfirm
       cancelWithConfirm={methods.formState.isDirty}

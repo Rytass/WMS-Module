@@ -13,7 +13,6 @@ interface CreateReceiveInventoryOrderFormProps {
   submitText: string;
   closeModal: VoidFunction;
   open: boolean;
-  mode: 'create' | 'edit';
 }
 
 function CreateReceiveInventoryOrderForm({
@@ -23,7 +22,6 @@ function CreateReceiveInventoryOrderForm({
   submitText,
   closeModal,
   open,
-  mode,
 }: CreateReceiveInventoryOrderFormProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
@@ -38,7 +36,7 @@ function CreateReceiveInventoryOrderForm({
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}
-      mode={mode}
+      confirmMode="create"
       submitWithConfirm
       cancelWithConfirm={methods.formState.isDirty}
       size="narrow"

@@ -119,7 +119,6 @@ function ShipInventoryOrdersTable() {
       </TableWrapper>
       <CreateShipInventoryOrderForm
         title="設定基本資料"
-        mode="create"
         defaultValues={{
           description: '',
           serial: '',

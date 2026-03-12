@@ -21,7 +21,6 @@ interface LoaderEditFormProps {
   submitText: string;
   closeModal: VoidFunction;
   open: boolean;
-  mode: 'create' | 'edit';
 }
 
 function LoaderEditForm({
@@ -31,7 +30,6 @@ function LoaderEditForm({
   submitText,
   closeModal,
   open,
-  mode,
 }: LoaderEditFormProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
@@ -46,7 +44,7 @@ function LoaderEditForm({
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}
-      mode={mode}
+      confirmMode="edit"
       size="narrow"
       submitWithConfirm
       cancelWithConfirm={methods.formState.isDirty}

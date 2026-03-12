@@ -60,7 +60,6 @@ const Actions: FC<ActionsProps> = ({ source }) => {
       </ButtonGroup>
       <LoaderEditForm
         title="編輯載具"
-        mode="edit"
         defaultValues={{
           isActive: source.isActive ? YesOrNo.YES : YesOrNo.NO,
           loaderType: {

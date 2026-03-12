@@ -45,7 +45,7 @@ function MaterialsManagementForm({
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}
-      mode={mode}
+      confirmMode={mode}
       submitWithConfirm
       cancelWithConfirm={methods.formState.isDirty}
     >
