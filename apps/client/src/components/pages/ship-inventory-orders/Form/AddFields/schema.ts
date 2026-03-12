@@ -16,9 +16,9 @@ export const formSchema: Yup.ObjectSchema<AddFormValues> = Yup.object({
   saleId: Yup.object({
     id: Yup.string().required('必填'),
     name: Yup.string().required('必填'),
-  }),
+  }).nullable(),
   saleSerialId: Yup.object({
     id: Yup.string().required('必填'),
     name: Yup.string().required('必填'),
-  }),
+  }).nullable(),
 });

@@ -22,6 +22,8 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
     defaultValues: {
       loaderType: null,
       location: null,
+      sizeUnit: null,
+      volumeUnit: null,
     },
   });
 

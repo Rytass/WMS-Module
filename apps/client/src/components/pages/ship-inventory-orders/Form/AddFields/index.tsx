@@ -28,6 +28,8 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
     defaultValues: {
       material: null,
       batch: null,
+      saleId: null,
+      saleSerialId: null,
     },
   });
 
