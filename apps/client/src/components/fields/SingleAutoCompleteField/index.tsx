@@ -5,6 +5,7 @@ import {
   Dispatch,
   SetStateAction,
   useEffect,
+  MouseEvent,
 } from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
 import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
@@ -32,6 +33,8 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
   menuMaxHeight = 300,
   options,
   onSearch: onSearchProps,
+  onChange: onChangeProps,
+  onClear: onClearProps,
   fuzzySearch = false,
   ...rest
 }) => {
@@ -70,6 +73,8 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
         clearErrors(name);
       }
 
+      onChangeProps?.(newValue);
+
       if (newValue) {
         setValue(name, newValue, {
           shouldDirty: true,
@@ -80,7 +85,7 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
         });
       }
     },
-    [clearErrors, errors, name, setValue],
+    [clearErrors, onChangeProps, errors, name, setValue],
   );
 
   const onSearch = useCallback(
@@ -96,17 +101,22 @@ export const SingleAutoCompleteField: FC<SingleAutoCompleteFieldProps> = ({
     [fuzzySearch, name, onSearchProps, setValue],
   );
 
-  const onClear = useCallback(() => {
-    setValue(name, null, {
-      shouldDirty: true,
-    });
+  const onClear = useCallback(
+    (e: MouseEvent<Element, globalThis.MouseEvent>) => {
+      onClearProps?.(e);
 
-    if (fuzzySearch) {
-      setValue(`${name}-search`, '', {
+      setValue(name, null, {
         shouldDirty: true,
       });
-    }
-  }, [name, setValue, fuzzySearch]);
+
+      if (fuzzySearch) {
+        setValue(`${name}-search`, '', {
+          shouldDirty: true,
+        });
+      }
+    },
+    [name, setValue, onClearProps, fuzzySearch],
+  );
 
   return (
     <BaseField
