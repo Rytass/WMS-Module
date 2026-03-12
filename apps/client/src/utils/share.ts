@@ -1,9 +1,11 @@
-import { TableColumn } from '@mezzanine-ui/react';
+import { TableColumn, Icon } from '@mezzanine-ui/react';
+import { LockIcon } from '@mezzanine-ui/icons';
 import {
   AggregatedStockFragment,
   ShipInventoryOrderStatus,
   ReceiveInventoryOrderStatus,
 } from '../graphql/generated/.graphql';
+import { WaitIcon, TransferIcon } from '../icons';
 
 export const BASE_UNIT = 'BASE_UNIT';
 
