@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { Description, DescriptionContent } from '@mezzanine-ui/react';
 import { FormModalWrapper } from '../../../../../fields/FormModalWrapper';
 import SectionWrapper from '../../../../../SectionWrapper';
 import { formSchema } from '../schema';
@@ -31,6 +32,7 @@ function InventoryMovementReceiveFormBody({
     <FormModalWrapper<FormValues>
       methods={methods}
       title="入庫"
+      titleAlign="left"
       confirmText="入庫"
       onSubmit={onSubmit}
       closeModal={closeModal}
@@ -39,7 +41,36 @@ function InventoryMovementReceiveFormBody({
     >
       <div className={classes.host}>
         <SectionWrapper title="單號資訊" grayBackground>
-          123
+          <div className={classes.headSectionWrapper}>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="建立者"
+            >
+              <DescriptionContent>大胖丁</DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="建立者"
+            >
+              <DescriptionContent>大胖丁</DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="建立者"
+            >
+              <DescriptionContent>大胖丁</DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="建立者"
+            >
+              <DescriptionContent>大胖丁</DescriptionContent>
+            </Description>
+          </div>
         </SectionWrapper>
       </div>
     </FormModalWrapper>

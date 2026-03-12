@@ -4,18 +4,20 @@ import classes from './index.module.scss';
 
 interface SectionWrapperProps {
   title?: string;
+  className?: string;
   children: ReactNode;
   grayBackground?: boolean;
 }
 
 function SectionWrapper({
   title,
+  className,
   children,
   grayBackground = false,
 }: SectionWrapperProps) {
   return (
     <div
-      className={cx(classes.host, {
+      className={cx(classes.host, className, {
         [classes.grayBackground]: grayBackground,
       })}
     >

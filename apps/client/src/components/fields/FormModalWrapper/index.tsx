@@ -23,6 +23,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
   methods,
   className,
   title,
+  titleAlign = 'center',
   size = 'regular',
   cancelButtonProps,
   confirmButtonProps,
@@ -148,7 +149,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
       showStatusTypeIcon={false}
       statusTypeIconLayout="horizontal"
       title={title ?? ''}
-      titleAlign="center"
+      titleAlign={titleAlign}
       open={open}
       showModalFooter
       showModalHeader

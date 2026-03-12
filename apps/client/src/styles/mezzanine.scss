@@ -18,6 +18,10 @@
   bottom: 0;
 }
 
+.mzn-modal--wide {
+  width: calc(100% - var(--mzn-spacing-padding-horizontal-spacious) * 2);
+}
+
 .mzn-drawer__overlay {
   z-index: 1003;
 }
