@@ -122,7 +122,7 @@ function InventoryGroupTable({
               currentFilter?.[FilterType.loader] ||
                 currentFilter?.['loader-search'] ||
                 '',
-            ),
+            ), // 之後應該要加上供應商、客戶、銷售訂單編號、銷售訂單項次
         ),
       })),
     [data?.stocksGroupedByMaterial.items, currentFilter],
@@ -300,6 +300,96 @@ function InventoryGroupTable({
       width: 100,
       align: 'center',
       render: (source) => source.material?.baseUnit?.key,
+    },
+    {
+      key: 'vendorId',
+      title: '供應商',
+      width: 140,
+      render: (source) => {
+        const keys = uniq(
+          source.aggregatedStock?.map((s) => s.vendorId || '-'),
+        );
+
+        if (keys.length > 1) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {keys.join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return keys.join(',');
+      },
+    },
+    {
+      key: 'customerId',
+      title: '客戶',
+      width: 140,
+      render: (source) => {
+        const keys = uniq(
+          source.aggregatedStock?.map((s) => s.customerId || '-'),
+        );
+
+        if (keys.length > 1) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {keys.join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return keys.join(',');
+      },
+    },
+    {
+      key: 'saleId',
+      title: '銷售訂單號碼',
+      width: 140,
+      render: (source) => {
+        const keys = uniq(source.aggregatedStock?.map((s) => s.saleId || '-'));
+
+        if (keys.length > 1) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {keys.join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return keys.join(',');
+      },
+    },
+    {
+      key: 'saleSerialId',
+      title: '銷售訂單項次',
+      width: 140,
+      render: (source) => {
+        const keys = uniq(
+          source.aggregatedStock?.map((s) => s.saleSerialId || '-'),
+        );
+
+        if (keys.length > 1) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {keys.join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return keys.join(',');
+      },
     },
   ];
 
