@@ -1,5 +1,6 @@
 @use '@mezzanine-ui/system/spacing';
 @use '@mezzanine-ui/system/radius';
+@use '@mezzanine-ui/system/palette';
 
 .host {
   display: flex;
@@ -9,4 +10,9 @@
   padding: spacing.semantic-variable(padding, vertical, spacious)
     spacing.semantic-variable(padding, horizontal, spacious);
   border-radius: radius.variable(roomy);
+
+  &.grayBackground {
+    border: 1px solid palette.semantic-variable(border, neutral-faint);
+    background-color: #f9fafb;
+  }
 }

@@ -9,7 +9,6 @@ fragment ChangeLog on ChangeLogDto {
     ...Batch
   }
   location {
-    id
-    key
+    ...SimpleLocation
   }
 }

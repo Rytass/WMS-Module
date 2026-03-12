@@ -41,6 +41,12 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields, remove }) => {
       render: (source) => source.loaderType?.name,
     },
     {
+      key: 'typeKey',
+      title: '編碼',
+      minWidth: 120,
+      render: (source) => source.loaderType?.id,
+    },
+    {
       key: 'location',
       title: '儲存位置',
       minWidth: 120,
@@ -75,11 +81,25 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({ fields, remove }) => {
       render: (source) => source.height,
     },
     {
+      key: 'sizeUnit',
+      title: '單位',
+      minWidth: 82,
+      align: 'center',
+      render: (source) => source.sizeUnit?.name,
+    },
+    {
       key: 'volume',
       title: '容積',
       minWidth: 82,
       align: 'end',
       render: (source) => source.volume,
+    },
+    {
+      key: 'volumeUnit',
+      title: '單位',
+      minWidth: 82,
+      align: 'center',
+      render: (source) => source.volumeUnit?.name,
     },
     {
       key: 'remark',

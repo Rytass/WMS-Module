@@ -6,3 +6,9 @@ fragment Location on LocationDto {
     ...MapData
   }
 }
+
+fragment SimpleLocation on LocationDto {
+  id
+  key
+  description
+}

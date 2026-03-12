@@ -40,11 +40,12 @@ function ShipInventoryOrderFormBody({
 }: ShipInventoryOrderFormBodyProps) {
   const onFormCancel = useFormCancel({});
 
-  const { fields, append, update, remove } = useFieldArray<FormValues, 'items'>(
-    {
-      name: 'items',
-    },
-  );
+  const { fields, append, update, remove } = useFieldArray<
+    FormValues,
+    'references'
+  >({
+    name: 'references',
+  });
 
   const onCreate = useCallback(
     (values: AddFormValues, unitOptions: SelectValue[]) => {

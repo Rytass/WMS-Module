@@ -1,6 +1,7 @@
 import { ReactElement, ReactNode } from 'react';
 import { Typography, Button, TableProps } from '@mezzanine-ui/react';
 import { PlusIcon } from '@mezzanine-ui/icons';
+import SectionWrapper from '../SectionWrapper';
 import classes from './index.module.scss';
 
 interface TableWrapperBaseProps {
@@ -30,7 +31,7 @@ function TableWrapper({
   onCreate,
 }: TableWrapperProps) {
   return (
-    <div className={classes.host}>
+    <SectionWrapper>
       <div className={classes.titleWrapper}>
         <Typography variant="h3" color="text-neutral-solid">
           {title}
@@ -51,7 +52,7 @@ function TableWrapper({
         </div>
       </div>
       {children}
-    </div>
+    </SectionWrapper>
   );
 }
 

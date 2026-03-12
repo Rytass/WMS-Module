@@ -1,30 +1,44 @@
 import { useMemo } from 'react';
 import { useRouter } from 'next/router';
+import Loading from '../../../Loading';
 import ShipInventoryOrderForm from '../Form';
-import { ShipInventoryOrderStatus } from '../../../../graphql/generated/.graphql';
 import { FormValues } from '../Form/typing';
+import { useQueryShipInventoryOrder } from '../useApi';
+import { fragmentToDefaultValues } from '../Form/utils';
 
 function ViewShipInventoryOrder() {
   const { query } = useRouter();
   const id = useMemo(() => (query?.id as string) ?? '', [query.id]);
 
-  const defaultValues = useMemo(
-    (): FormValues => ({
-      remark: '',
-      items: [],
-    }),
-    [],
+  const { data, loading } = useQueryShipInventoryOrder(id);
+
+  const shipInventoryOrder = useMemo(
+    () => data?.shipInventoryOrder ?? null,
+    [data?.shipInventoryOrder],
   );
+
+  const defaultValues = useMemo(
+    (): FormValues => fragmentToDefaultValues(shipInventoryOrder),
+    [shipInventoryOrder],
+  );
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (!shipInventoryOrder) {
+    return null;
+  }
 
   return (
     <ShipInventoryOrderForm
       defaultValues={defaultValues}
-      title={`出庫單號：${id}`}
-      breadcrumbTitle={id}
-      description="描述"
-      createdBy="叮叮"
-      createdAt="今天"
-      status={ShipInventoryOrderStatus.PENDING}
+      title={`出庫單號：${shipInventoryOrder.key}`}
+      breadcrumbTitle={shipInventoryOrder.key}
+      description={shipInventoryOrder.description}
+      createdBy={shipInventoryOrder.createdBy ?? ''}
+      createdAt={shipInventoryOrder.createdAt}
+      status={shipInventoryOrder.status}
       viewMode
     />
   );

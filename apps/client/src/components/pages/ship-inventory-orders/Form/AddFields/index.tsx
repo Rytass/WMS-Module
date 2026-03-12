@@ -8,8 +8,11 @@ import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import MaterialsField from '../../../../fields/MaterialsField';
 import BatchesField from '../../../../fields/BatchesField';
+import SaleOrderIdsField from '../../../../fields/SaleOrderIdsField';
+import SaleOrdersField from '../../../../fields/SaleOrdersField';
 import { BASE_UNIT } from '../../../../../utils/share';
 import { useLazyQueryMaterial } from '../useApi';
+import { usePreviousValue } from '../../../../../hooks/usePreviousValue';
 import { formSchema } from './schema';
 import { AddFormValues } from './typing';
 import classes from './index.module.scss';
@@ -25,10 +28,14 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
     defaultValues: {
       material: null,
       batch: null,
+      saleId: null,
+      saleSerialId: null,
     },
   });
 
   const materialSelectValue = methods.watch('material');
+  const saleIdSelectValue = methods.watch('saleId');
+  const prevSaleIdSelectValue = usePreviousValue(saleIdSelectValue);
 
   const { fetchMaterial } = useLazyQueryMaterial();
 
@@ -66,6 +73,12 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
       methods.setValue('unit', '');
     }
   }, [doFetchMaterial, materialSelectValue, methods]);
+
+  useEffect(() => {
+    if (prevSaleIdSelectValue?.id !== saleIdSelectValue?.id) {
+      methods.setValue('saleSerialId', null);
+    }
+  }, [methods, prevSaleIdSelectValue?.id, saleIdSelectValue?.id]);
 
   const onSubmit = useCallback(
     (values: AddFormValues) => {
@@ -109,8 +122,20 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             disabled={!materialSelectValue}
             required
           />
-          <div />
-          <div />
+          <SaleOrderIdsField
+            name="saleId"
+            addable
+            fuzzySearch={false}
+            selectValueMode
+          />
+          <SaleOrdersField
+            saleOrdersId={saleIdSelectValue?.id ?? ''}
+            name="saleSerialId"
+            addable
+            fuzzySearch={false}
+            selectValueMode
+            disabled={!saleIdSelectValue}
+          />
         </div>
         <FormActionButtons
           onReset={() => {

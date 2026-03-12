@@ -6,6 +6,8 @@ export type ItemFieldValues = {
   batch: SelectValue | null;
   quantity: number;
   unit: string;
+  saleId?: SelectValue | null;
+  saleSerialId?: SelectValue | null;
 
   // for field array
   itemId?: string;
@@ -17,5 +19,5 @@ export type ItemFieldValues = {
 
 export type FormValues = {
   remark?: string;
-  items: ItemFieldValues[];
+  references: ItemFieldValues[];
 };

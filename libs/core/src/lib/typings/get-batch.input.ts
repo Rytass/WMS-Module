@@ -7,4 +7,8 @@ export type GetBatchInput = {
   customerId?: string | null;
   vendorId?: string | null;
   inspectionId?: string | null;
+  inTransfer?: boolean;
+  held?: boolean;
+  inShipment?: boolean;
 };
+export type SplitBatchInput = Omit<GetBatchInput, 'materialId' | 'key'>;

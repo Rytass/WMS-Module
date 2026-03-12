@@ -53,7 +53,7 @@ function LoadersManagementListTable() {
       key: '儲存位置',
       title: '儲存位置',
       width: 100,
-      render: (source) => '儲存位置',
+      render: (source) => source.location?.key,
     },
     {
       key: 'length',
@@ -102,6 +102,13 @@ function LoadersManagementListTable() {
       title: '建立日期',
       width: 120,
       render: (source) => dayjs(source.createdAt).format('YYYY-MM-DD'),
+    },
+
+    {
+      key: 'note',
+      title: '備註',
+      width: 120,
+      render: (source) => source.note || '-',
     },
   ];
 

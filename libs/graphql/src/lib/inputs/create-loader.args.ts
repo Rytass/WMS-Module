@@ -47,6 +47,9 @@ export class UpdateLoaderArgs extends PartialType(
 ) {
   @Field(() => ID)
   id!: string;
+
+  @Field(() => Boolean, { nullable: true })
+  isActive?: boolean;
 }
 
 @InputType()

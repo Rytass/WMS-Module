@@ -14,12 +14,14 @@ import { TrashIcon } from '@mezzanine-ui/icons';
 import NumberInputField from '../../../../fields/NumberInputField';
 import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import BatchesField from '../../../../fields/BatchesField';
+import SaleOrderIdsField from '../../../../fields/SaleOrderIdsField';
+import SaleOrdersField from '../../../../fields/SaleOrdersField';
 import { FormValues, ItemFieldValues } from '../typing';
 
 interface FieldArrayTableProps {
   viewMode: boolean;
-  fields: FieldArrayWithId<FormValues, 'items', 'id'>[];
-  update: UseFieldArrayUpdate<FormValues, 'items'>;
+  fields: FieldArrayWithId<FormValues, 'references', 'id'>[];
+  update: UseFieldArrayUpdate<FormValues, 'references'>;
   remove: UseFieldArrayRemove;
 }
 
@@ -72,7 +74,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       render: (source, index) =>
         source.isExisted && !viewMode ? (
           <NumberInputField
-            name={`items.${index}.quantity`}
+            name={`references.${index}.quantity`}
             placeholder="應出數量"
             disabled={!!source.removedAt || undefined}
           />
@@ -96,7 +98,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
         if (source.isExisted && !viewMode) {
           return (
             <SingleSelectByIdField
-              name={`items.${index}.unit`}
+              name={`references.${index}.unit`}
               placeholder="使用單位"
               options={source.unitOptions}
               size="sub"
@@ -128,7 +130,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
         if (source.isExisted && !viewMode) {
           return (
             <BatchesField
-              name={`items.${index}.batch`}
+              name={`references.${index}.batch`}
               addable
               label=""
               placeholder="輸入批號"
@@ -140,6 +142,55 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
         }
 
         return source.batch?.name;
+      },
+    },
+    {
+      key: 'saleId',
+      title: '銷售訂單號碼',
+      minWidth: 180,
+      render: (source, index) => {
+        if (source.isExisted && !viewMode) {
+          return (
+            <SaleOrderIdsField
+              name={`references.${index}.saleId`}
+              addable
+              label=""
+              placeholder="輸入銷售訂單號碼"
+              fuzzySearch={false}
+              selectValueMode
+              disabled={source.shippedQuantity > 0 || !!source.removedAt}
+            />
+          );
+        }
+
+        return source.saleId?.name || '未綁定訂單';
+      },
+    },
+    {
+      key: 'saleSerialId',
+      title: '銷售訂單項次',
+      minWidth: 180,
+      render: (source, index) => {
+        if (source.isExisted && !viewMode) {
+          return (
+            <SaleOrdersField
+              saleOrdersId={source.saleId?.id ?? ''}
+              name={`references.${index}.saleSerialId`}
+              addable
+              label=""
+              placeholder="輸入銷售訂單項次"
+              fuzzySearch={false}
+              selectValueMode
+              disabled={
+                !source.saleId?.id ||
+                source.shippedQuantity > 0 ||
+                !!source.removedAt
+              }
+            />
+          );
+        }
+
+        return source.saleSerialId?.name || '未綁定訂單';
       },
     },
     {

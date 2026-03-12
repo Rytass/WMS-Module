@@ -19,6 +19,12 @@ export class CreateShipInventoryOrderReferenceArgs {
 
   @Field(() => String)
   serialId!: string;
+
+  @Field(() => String, { nullable: true })
+  saleId?: string;
+
+  @Field(() => String, { nullable: true })
+  saleSerialId?: string;
 }
 
 @InputType()

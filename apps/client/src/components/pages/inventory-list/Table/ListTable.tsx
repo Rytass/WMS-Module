@@ -3,6 +3,8 @@ import { TableColumn } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import { aggregatedStockColumns } from '../../../../utils/share';
+import { stockStatusName } from '../../../inventoryActions/utils';
 import { useQueryStocks } from '../useApi';
 import { FilterValues } from '../typing';
 
@@ -62,52 +64,9 @@ function InventoryListTable({
       key: 'status',
       title: '狀態',
       width: 100,
-      render: (source) => source.status,
+      render: (source) => stockStatusName(source.status),
     },
-    {
-      key: 'materialKey',
-      title: '料號',
-      width: 140,
-      render: (source) => source.material?.key,
-    },
-    {
-      key: 'description',
-      title: '物料說明',
-      width: 140,
-      render: (source) => source.material?.description,
-    },
-    {
-      key: 'batchKey',
-      title: '批號',
-      width: 140,
-      render: (source) => source.batch?.key,
-    },
-    {
-      key: 'locationKey',
-      title: '儲存位置',
-      width: 140,
-      render: (source) => source.location?.key,
-    },
-    {
-      key: 'loaderSerialId',
-      title: '載具',
-      width: 100,
-      render: (source) => source.loader?.serialId,
-    },
-    {
-      key: 'quantity',
-      title: '數量',
-      width: 100,
-      align: 'end',
-      render: (source) => source.quantity,
-    },
-    {
-      key: 'baseUnit',
-      title: '單位',
-      width: 100,
-      align: 'center',
-      render: (source) => source.material?.baseUnit?.key,
-    },
+    ...aggregatedStockColumns,
   ];
 
   return (

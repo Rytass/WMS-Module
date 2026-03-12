@@ -1,9 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { LoaderUnit } from '../../../../../../graphql/generated/.graphql';
 import InputField from '../../../../../fields/InputField';
 import NumberInputField from '../../../../../fields/NumberInputField';
 import LoaderTypesField from '../../../../../fields/LoaderTypesField';
+import LoaderUnitsField from '../../../../../fields/LoaderUnitsField';
 import LocationsField from '../../../../../fields/LocationsField';
 import FormActionButtons from '../../../../../FormActionButtons';
 import { formSchema } from './schema';
@@ -20,8 +22,20 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
     defaultValues: {
       loaderType: null,
       location: null,
+      sizeUnit: null,
+      volumeUnit: null,
     },
   });
+
+  const loaderType = methods.watch('loaderType');
+
+  useEffect(() => {
+    if (loaderType) {
+      methods.setValue('typeKey', loaderType.id);
+    } else {
+      methods.setValue('typeKey', '');
+    }
+  }, [loaderType, methods]);
 
   const onSubmit = useCallback(
     (values: AddFormValues) => {
@@ -79,13 +93,25 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
               label="高度"
               placeholder="輸入高度"
             />
-            <div>尺寸單位</div>
+            <LoaderUnitsField
+              type={LoaderUnit.SIZE}
+              name="sizeUnit"
+              label="尺寸單位"
+              placeholder="輸入尺寸單位"
+              selectValueMode
+            />
             <NumberInputField
               name="volume"
               label="容積"
               placeholder="輸入容積"
             />
-            <div>容積單位</div>
+            <LoaderUnitsField
+              type={LoaderUnit.VOLUME}
+              name="volumeUnit"
+              label="容積單位"
+              placeholder="輸入容積單位"
+              selectValueMode
+            />
           </div>
           <InputField name="remark" placeholder="輸入備註" label="備註" />
         </div>

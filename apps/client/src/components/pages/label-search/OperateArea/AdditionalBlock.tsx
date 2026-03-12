@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Typography, Empty } from '@mezzanine-ui/react';
+import SectionWrapper from '../../../SectionWrapper';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import MergeBatchField from '../../../inventoryActions/fields/MergeBatchField';
@@ -33,7 +34,7 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
   }, [targetAction?.id]);
 
   return (
-    <div className={classes.block}>
+    <SectionWrapper className={classes.block}>
       <Typography variant="h3" color="text-neutral-solid">
         操作設定
       </Typography>
@@ -49,7 +50,7 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
           />
         )}
       </div>
-    </div>
+    </SectionWrapper>
   );
 };
 

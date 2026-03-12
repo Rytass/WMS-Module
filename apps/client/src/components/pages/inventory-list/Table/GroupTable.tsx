@@ -13,12 +13,16 @@ import {
   Table as MznTable,
   useTableRowSelection,
   Button,
+  Icon,
   cx,
 } from '@mezzanine-ui/react';
-import { CaretDownIcon } from '@mezzanine-ui/icons';
+import { CaretDownIcon, LockIcon } from '@mezzanine-ui/icons';
+import { WaitIcon, TransferIcon } from '../../../../icons';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import { aggregatedStockColumns } from '../../../../utils/share';
+import { stockStatusName } from '../../../inventoryActions/utils';
 import { useQueryStocksGrouped } from '../useApi';
 import { FilterValues } from '../typing';
 import classes from './group-table.module.scss';
@@ -119,7 +123,7 @@ function InventoryGroupTable({
               currentFilter?.[FilterType.loader] ||
                 currentFilter?.['loader-search'] ||
                 '',
-            ),
+            ), // 之後應該要加上供應商、客戶、銷售訂單編號、銷售訂單項次
         ),
       })),
     [data?.stocksGroupedByMaterial.items, currentFilter],
@@ -174,7 +178,40 @@ function InventoryGroupTable({
       key: 'status',
       title: '狀態',
       width: 100,
-      render: (source) => source.status,
+      render: (source) =>
+        uniq(
+          source.aggregatedStock?.map((s) => stockStatusName(s.status)),
+        ).join(','),
+    },
+    // {
+    //   key: 'inspection',
+    //   title: '檢驗',
+    //   width: 48,
+    //   align: 'center',
+    //   render: (source) =>
+    //     source.aggregatedStock?.some((s) => s.inspectionId) ? (
+    //       <Icon icon={WaitIcon} color="neutral" size={16} />
+    //     ) : null,
+    // },
+    {
+      key: 'held',
+      title: '凍結',
+      width: 48,
+      align: 'center',
+      render: (source) =>
+        source.aggregatedStock?.some((s) => s.held) ? (
+          <Icon icon={LockIcon} color="neutral" size={16} />
+        ) : null,
+    },
+    {
+      key: 'inTransfer',
+      title: '調撥',
+      width: 48,
+      align: 'center',
+      render: (source) =>
+        source.aggregatedStock?.some((s) => s.inTransfer) ? (
+          <Icon icon={TransferIcon} color="neutral" size={16} />
+        ) : null,
     },
     {
       key: 'materialKey',
@@ -268,6 +305,96 @@ function InventoryGroupTable({
       align: 'center',
       render: (source) => source.material?.baseUnit?.key,
     },
+    {
+      key: 'vendorId',
+      title: '供應商',
+      width: 140,
+      render: (source) => {
+        const keys = uniq(
+          source.aggregatedStock?.map((s) => s.vendorId || '-'),
+        );
+
+        if (keys.length > 1) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {keys.join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return keys.join(',');
+      },
+    },
+    {
+      key: 'customerId',
+      title: '客戶',
+      width: 140,
+      render: (source) => {
+        const keys = uniq(
+          source.aggregatedStock?.map((s) => s.customerId || '-'),
+        );
+
+        if (keys.length > 1) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {keys.join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return keys.join(',');
+      },
+    },
+    {
+      key: 'saleId',
+      title: '銷售訂單號碼',
+      width: 140,
+      render: (source) => {
+        const keys = uniq(source.aggregatedStock?.map((s) => s.saleId || '-'));
+
+        if (keys.length > 1) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {keys.join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return keys.join(',');
+      },
+    },
+    {
+      key: 'saleSerialId',
+      title: '銷售訂單項次',
+      width: 140,
+      render: (source) => {
+        const keys = uniq(
+          source.aggregatedStock?.map((s) => s.saleSerialId || '-'),
+        );
+
+        if (keys.length > 1) {
+          return (
+            <div className={classes.columnWithExpandButton}>
+              <Typography variant="body" ellipsis>
+                {keys.join(',')}
+              </Typography>
+              {renderExpandButton(source)}
+            </div>
+          );
+        }
+
+        return keys.join(',');
+      },
+    },
   ];
 
   const subColumns: TableColumn<DataType>[] = [
@@ -275,52 +402,9 @@ function InventoryGroupTable({
       key: 'status',
       title: '狀態',
       width: 100,
-      render: (source) => source.status,
+      render: (source) => stockStatusName(source.status),
     },
-    {
-      key: 'materialKey',
-      title: '料號',
-      width: 140,
-      render: (source) => source.material?.key,
-    },
-    {
-      key: 'description',
-      title: '物料說明',
-      width: 140,
-      render: (source) => source.material?.description,
-    },
-    {
-      key: 'batchKey',
-      title: '批號',
-      width: 140,
-      render: (source) => source.batch?.key,
-    },
-    {
-      key: 'locationKey',
-      title: '儲存位置',
-      width: 140,
-      render: (source) => source.location?.key,
-    },
-    {
-      key: 'loaderSerialId',
-      title: '載具',
-      width: 100,
-      render: (source) => source.loader?.serialId,
-    },
-    {
-      key: 'quantity',
-      title: '數量',
-      width: 100,
-      align: 'end',
-      render: (source) => source.quantity,
-    },
-    {
-      key: 'baseUnit',
-      title: '單位',
-      width: 100,
-      align: 'center',
-      render: (source) => source.material?.baseUnit?.key,
-    },
+    ...aggregatedStockColumns,
   ];
 
   return (

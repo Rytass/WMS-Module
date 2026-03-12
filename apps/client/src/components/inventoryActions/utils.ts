@@ -34,6 +34,9 @@ export function stockStatusName(status?: StockStatus): string {
     case StockStatus.IN_TRANSFER:
       return '調撥中';
 
+    case StockStatus.IN_SHIPMENT:
+      return '出庫中';
+
     case StockStatus.ALLOCATED:
       return '銷售訂單';
 

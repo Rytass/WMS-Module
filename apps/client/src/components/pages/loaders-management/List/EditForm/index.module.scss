@@ -1,0 +1,15 @@
+@use '@mezzanine-ui/system/spacing';
+
+.host {
+  display: grid;
+  align-self: stretch;
+  grid-template-columns: 1fr 1fr;
+  gap: spacing.semantic-variable(gap, calm) spacing.semantic-variable(gap, base);
+
+  .innerWrapper {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: spacing.semantic-variable(gap, calm)
+      spacing.semantic-variable(gap, base);
+  }
+}

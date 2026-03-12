@@ -1,14 +1,17 @@
 import { useCallback, useMemo, useState } from 'react';
+import dayjs from 'dayjs';
 import { TableColumn } from '@mezzanine-ui/react';
 import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
+import Actions from './Actions';
 import { SimpleShipInventoryOrderFragment } from '../../../../graphql/generated/.graphql';
 import {
   useQueryShipInventoryOrders,
   useCreateShipInventoryOrder,
 } from '../useApi';
 import CreateShipInventoryOrderForm from '../CreateForm';
+import Status from '../Status';
 import { FormValues } from '../CreateForm/typing';
 import { NextPath } from '../../../../utils/nextpath';
 import { nextDynamicPath } from '../../../../utils/path';
@@ -55,6 +58,37 @@ function ShipInventoryOrdersTable() {
 
   const columns: TableColumn<SimpleShipInventoryOrderFragment>[] = [
     {
+      key: 'actions',
+      title: '操作',
+      width: 140,
+      render: (source) => <Actions source={source} />,
+    },
+    {
+      key: 'status',
+      title: '狀態',
+      width: 165,
+      render: (source) => <Status status={source.status} />,
+    },
+    {
+      key: 'key',
+      title: '出庫單號',
+      width: 165,
+      render: (source) => source.key,
+    },
+    {
+      key: 'createdBy',
+      title: '建立者',
+      width: 165,
+      render: (source) => source.createdBy || '-',
+    },
+    {
+      key: 'createdAt',
+      title: '建立日期',
+      width: 165,
+      render: (source) =>
+        source.createdAt ? dayjs(source.createdAt).format('YYYY-MM-DD') : '-',
+    },
+    {
       key: 'description',
       title: '備註',
       render: (source) => source.description || '-',
@@ -85,7 +119,6 @@ function ShipInventoryOrdersTable() {
       </TableWrapper>
       <CreateShipInventoryOrderForm
         title="設定基本資料"
-        mode="create"
         defaultValues={{
           description: '',
           serial: '',

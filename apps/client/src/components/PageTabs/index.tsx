@@ -25,7 +25,12 @@ const PageTabs: FC<PageTabsProps> = ({ tabs, setActiveTab }) => {
   );
 
   return (
-    <Tab activeKey={tabId} onChange={onChange} direction="horizontal">
+    <Tab
+      activeKey={tabId}
+      onChange={onChange}
+      direction="horizontal"
+      size="sub"
+    >
       {tabs.map((tab) => (
         <TabItem key={tab.id}>{tab.name}</TabItem>
       ))}
