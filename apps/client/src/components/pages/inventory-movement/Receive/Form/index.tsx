@@ -1,39 +1,22 @@
-import { useEffect } from 'react';
-import Loading from '../../../../Loading';
+import { ReceiveInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
 import InventoryMovementReceiveFormBody from './FormBody';
-import { useLazyQueryReceiveInventoryOrder } from '../../useApi';
 
 interface InventoryMovementReceiveFormProps {
-  receiveInventoryOrderId: string;
+  receiveInventoryOrder: ReceiveInventoryOrderFragment | null;
   closeModal: VoidFunction;
   open: boolean;
 }
 
 function InventoryMovementReceiveForm({
-  receiveInventoryOrderId,
+  receiveInventoryOrder,
   closeModal,
   open,
 }: InventoryMovementReceiveFormProps) {
-  const { fetchReceiveInventoryOrder, data, loading } =
-    useLazyQueryReceiveInventoryOrder();
-
-  useEffect(() => {
-    if (open) {
-      fetchReceiveInventoryOrder({
-        variables: {
-          receiveInventoryOrderId,
-        },
-      });
-    }
-  }, [fetchReceiveInventoryOrder, open, receiveInventoryOrderId]);
-
-  // if (loading) {
-  //   return <Loading />;
-  // }
+  if (!receiveInventoryOrder) return null;
 
   return (
     <InventoryMovementReceiveFormBody
-      defaultValues={{ test: '' }}
+      defaultValues={{ test: receiveInventoryOrder?.description }}
       closeModal={closeModal}
       open={open}
     />

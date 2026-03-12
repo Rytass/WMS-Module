@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@mezzanine-ui/react';
 import { ReceiveInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
+import { useLazyQueryReceiveInventoryOrder } from '../../useApi';
 import InventoryMovementReceiveForm from '../Form';
 
 interface ActionsProps {
@@ -9,6 +10,23 @@ interface ActionsProps {
 
 const Actions: FC<ActionsProps> = ({ source }) => {
   const [receiveModalOpened, setReceiveModalOpened] = useState<boolean>(false);
+  const { fetchReceiveInventoryOrder, data, loading } =
+    useLazyQueryReceiveInventoryOrder();
+
+  const receiveInventoryOrder = useMemo(
+    () => data?.receiveInventoryOrder ?? null,
+    [data?.receiveInventoryOrder],
+  );
+
+  useEffect(() => {
+    if (receiveModalOpened) {
+      fetchReceiveInventoryOrder({
+        variables: {
+          receiveInventoryOrderId: source.id,
+        },
+      });
+    }
+  }, [fetchReceiveInventoryOrder, receiveModalOpened, source.id]);
 
   return (
     <>
@@ -16,6 +34,8 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         type="button"
         size="sub"
         variant="base-primary"
+        disabled={loading}
+        loading={loading}
         onClick={() => {
           setReceiveModalOpened(true);
         }}
@@ -23,11 +43,11 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         入庫
       </Button>
       <InventoryMovementReceiveForm
-        receiveInventoryOrderId={source.id}
+        receiveInventoryOrder={receiveInventoryOrder}
         closeModal={() => {
           setReceiveModalOpened(false);
         }}
-        open={receiveModalOpened}
+        open={receiveModalOpened && !!receiveInventoryOrder}
       />
     </>
   );
