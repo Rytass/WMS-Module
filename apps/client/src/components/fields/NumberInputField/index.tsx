@@ -2,10 +2,10 @@ import { ChangeEventHandler, useCallback, useMemo } from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
 import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import Input from '@mezzanine-ui/react/Input';
-import type { CurrencyInputProps } from '@mezzanine-ui/react/Input';
+import type { MeasureInputProps } from '@mezzanine-ui/react/Input';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
-export type NumberInputFieldProps = Omit<CurrencyInputProps, 'variant'> &
+export type NumberInputFieldProps = Omit<MeasureInputProps, 'variant'> &
   Omit<BaseFieldProps, 'children'>;
 
 export const NumberInputField: FC<NumberInputFieldProps> = ({
@@ -59,7 +59,7 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
         fullWidth
         error={isError}
         className={className}
-        variant="currency"
+        variant="measure"
         value={`${watchValue}`}
         onChange={onChange}
         placeholder={placeholder}
