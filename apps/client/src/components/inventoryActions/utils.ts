@@ -77,6 +77,7 @@ export type InventoryActionItem = Omit<DropdownOption, 'id'> & {
   status: StockStatus[];
   title: string;
   submitText: string;
+  needSameMaterial?: boolean;
   maxDataLength?: number;
 };
 
@@ -232,6 +233,7 @@ export function inventoryActionsSpec(
         icon: MergeIcon,
         title: '待合併批號清單',
         submitText: '合併批號',
+        needSameMaterial: true,
       };
 
     case InventoryActions.ReclassifyInventory:
@@ -327,6 +329,7 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   title: inventoryActionsSpec(action)?.title ?? '',
   submitText: inventoryActionsSpec(action)?.submitText ?? '',
   maxDataLength: inventoryActionsSpec(action)?.maxDataLength,
+  needSameMaterial: inventoryActionsSpec(action)?.needSameMaterial,
 }));
 
 export function haveAdditionalFields(currentAction: InventoryActions) {

@@ -45,6 +45,14 @@ function InventoryActionSelector({
         return baseCondition && targetStocks.length <= iao.maxDataLength;
       }
 
+      if (iao.needSameMaterial) {
+        const targetStocksMaterialKeys = uniq(
+          targetStocks.map((stock) => stock.material.key),
+        );
+
+        return baseCondition && targetStocksMaterialKeys.length === 1;
+      }
+
       return baseCondition;
     });
   }, [targetStocks]);
