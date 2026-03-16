@@ -19,9 +19,13 @@ import classes from './index.module.scss';
 
 interface InventoryCardProps {
   inventory: AggregatedStockFragment;
+  isAllSameMaterial: boolean;
 }
 
-const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
+const InventoryCard: FC<InventoryCardProps> = ({
+  inventory,
+  isAllSameMaterial,
+}) => {
   const {
     targetAction,
     inventorySignature,
@@ -39,8 +43,10 @@ const InventoryCard: FC<InventoryCardProps> = ({ inventory }) => {
   );
 
   const isDisabledCard = useMemo(
-    () => !isEnableActionStatus(inventory.status, targetAction?.status),
-    [inventory.status, targetAction],
+    () =>
+      !isEnableActionStatus(inventory.status, targetAction?.status) ||
+      (targetAction?.needSameMaterial && !isAllSameMaterial),
+    [inventory.status, targetAction, isAllSameMaterial],
   );
 
   const currentErrorSignature = useMemo(
