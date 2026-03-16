@@ -158,6 +158,20 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
               placeholder="輸入銷售訂單號碼"
               fuzzySearch={false}
               selectValueMode
+              onChange={(option) => {
+                update(index, {
+                  ...source,
+                  saleId: option,
+                  saleSerialId: null,
+                });
+              }}
+              onClear={() => {
+                update(index, {
+                  ...source,
+                  saleId: null,
+                  saleSerialId: null,
+                });
+              }}
               disabled={source.shippedQuantity > 0 || !!source.removedAt}
             />
           );
