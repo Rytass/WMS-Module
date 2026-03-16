@@ -215,6 +215,20 @@ export class StockService<
       queryBuilder.addGroupBy('b."vendorId"');
       queryBuilder.addGroupBy('b."inspectionId"');
       queryBuilder.having('SUM(stock.quantity) <> 0');
+
+      if (options.aggregatedKeys?.length)
+        queryBuilder.andHaving(
+          [
+            'stock."materialId"',
+            'stock."batchId"',
+            'stock."locationId"',
+            'stock."loaderId"',
+            'stock_status.status',
+          ].join(" || '|' || ") + ' IN (:...aggregatedKeys)',
+          {
+            aggregatedKeys: options.aggregatedKeys,
+          },
+        );
     }
 
     return queryBuilder;
