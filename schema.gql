@@ -613,6 +613,7 @@ input UpdateHoldInventoryOrderItemArgs {
 input ReleaseOrderArgs {
   itemId: ID!
   quantity: Int!
+  unitId: ID
 }
 
 input MapBackgroundInput {
