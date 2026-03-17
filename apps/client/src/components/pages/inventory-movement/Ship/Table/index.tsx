@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import { TableColumn } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
-// import Actions from './Actions';
+import Actions from './Actions';
 import { ShipInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryShipInventoryOrders } from '../../useApi';
 
@@ -18,6 +18,12 @@ function InventoryMovementShipTable() {
   );
 
   const columns: TableColumn<ShipInventoryOrderFragment>[] = [
+    {
+      key: 'actions',
+      title: '操作',
+      width: 132,
+      render: (source) => <Actions source={source} />,
+    },
     {
       key: 'key',
       title: '出庫單號',
