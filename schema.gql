@@ -129,11 +129,27 @@ type AggregatedStocks {
 
 type ChangeLogDto {
   quantity: Int!
-  status: StockStatus!
+  changeType: ChangeType!
   id: ID!
   material: MaterialDto!
   location: LocationDto!
   batch: BatchDto!
+}
+
+"""The type of change that occurred to the stock"""
+enum ChangeType {
+  RECEIVED
+  SHIPPED
+  IN_TRANSFER
+  TRANSFERRED
+  VENDOR_TRANSFERRED
+  VENDOR_RETURNED
+  HELD
+  RELEASED
+  SPLITTED
+  MERGED
+  ALLOCATED
+  DEALLOCATED
 }
 
 type ChangeLogs {

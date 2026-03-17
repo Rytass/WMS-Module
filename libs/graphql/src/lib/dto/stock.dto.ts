@@ -1,6 +1,6 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { PaginatedResponse } from './pagination.dto';
-import { StockStatus } from '@wms-module/core';
+import { ChangeType, StockStatus } from '@wms-module/core';
 
 @ObjectType()
 export class StockDto {
@@ -71,8 +71,8 @@ export class ChangeLogDto {
   @Field(() => Int)
   quantity!: number;
 
-  @Field(() => StockStatus)
-  status!: StockStatus;
+  @Field(() => ChangeType)
+  changeType!: ChangeType;
 
   materialId!: string;
   batchId!: string;
@@ -82,6 +82,11 @@ export class ChangeLogDto {
   @Field(() => ID)
   id!: string;
 }
+
+registerEnumType(ChangeType, {
+  name: 'ChangeType',
+  description: 'The type of change that occurred to the stock',
+});
 
 @ObjectType()
 export class ChangeLogs extends PaginatedResponse(ChangeLogDto) {}
