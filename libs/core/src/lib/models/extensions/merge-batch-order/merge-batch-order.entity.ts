@@ -21,12 +21,6 @@ export class MergeBatchOrderEntityClass {
   @Index()
   key!: string;
 
-  @Column({ type: 'text' })
-  description!: string;
-
-  @Column({ type: 'varchar' })
-  reason!: string;
-
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 

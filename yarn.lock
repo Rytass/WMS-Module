@@ -6565,12 +6565,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rytass/wms-base-nestjs-module@npm:0.1.10":
-  version: 0.1.10
-  resolution: "@rytass/wms-base-nestjs-module@npm:0.1.10"
+"@rytass/wms-base-nestjs-module@npm:0.1.11":
+  version: 0.1.11
+  resolution: "@rytass/wms-base-nestjs-module@npm:0.1.11"
   dependencies:
     uuid: "npm:^13.0.0"
-  checksum: 10c0/d21549bd8d72cc3c039c8037808372bd28ac1874394513a34bcdcb1b528f014e68e4514fa111dcc286e071a2ccc3433424b7f311b1c9d5fe43e72ebeeee401da
+  checksum: 10c0/140e74a548a83f16fc8560fca1b2cdd9ca99fa7dbe3384c4097f4566d923cc5b2926313ef8f61dedb4bed2a69646f96b116522b7432903c52e0808262551e4fb
   languageName: node
   linkType: hard
 
@@ -8081,7 +8081,7 @@ __metadata:
     "@nx/web": "npm:22.3.3"
     "@nx/webpack": "npm:22.3.3"
     "@rytass/secret-adapter-vault-nestjs": "npm:^0.4.4"
-    "@rytass/wms-base-nestjs-module": "npm:0.1.10"
+    "@rytass/wms-base-nestjs-module": "npm:0.1.11"
     "@swc-node/register": "npm:~1.9.1"
     "@swc/cli": "npm:~0.6.0"
     "@swc/core": "npm:~1.5.7"

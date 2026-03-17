@@ -380,6 +380,34 @@ type ShipInventoryOrderReferenceDto {
   items: [ShipInventoryOrderItemDto!]!
 }
 
+type SplitBatchOrderItemDto {
+  id: ID!
+  locationId: String
+  loaderId: String
+  targetSplitQuantity: Float!
+}
+
+type SplitBatchOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [SplitBatchOrderItemDto!]!
+}
+
+type MergeBatchOrderItemDto {
+  id: ID!
+  locationId: String!
+  loaderId: String
+  targetMergedQuantity: Float!
+}
+
+type MergeBatchOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [MergeBatchOrderItemDto!]!
+}
+
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
@@ -442,6 +470,8 @@ type Mutation {
   createAllocateInventoryOrder(description: String, reason: String, items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
   updateAllocateInventoryOrder(description: String, reason: String, id: String!, removedAt: DateTime, items: [UpdateAllocateInventoryOrderItemArgs!]): AllocateInventoryOrderDto!
   deallocate(items: [DeallocateOrderArgs!]!): Boolean!
+  splitBatch(aggregatedKey: ID!, unitId: ID, items: [SplitBatchItemInput!]!): SplitBatchOrderDto!
+  mergeBatch(batchKey: String!, materialId: ID!, items: [MergeBatchItemInput!]!): MergeBatchOrderDto!
 }
 
 input CreateLoadersArgs {
@@ -615,4 +645,14 @@ input UpdateAllocateInventoryOrderItemArgs {
 input DeallocateOrderArgs {
   itemId: ID!
   quantity: Int!
+}
+
+input SplitBatchItemInput {
+  batchKey: ID!
+  quantity: Float!
+}
+
+input MergeBatchItemInput {
+  aggregatedKey: ID!
+  quantity: Float!
 }

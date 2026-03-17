@@ -43,6 +43,8 @@ import {
   ShipInventoryOrderResolver,
 } from './resolvers/ship-inventory-order.resolver';
 import { SaleOrderQuery } from './queries/sale-order.query';
+import { SplitBatchMutation } from './mutations/split-batch.mutation';
+import { MergeBatchMutation } from './mutations/merge-batch.mutation';
 
 const exportDependencies = [
   UnitQuery,
@@ -89,6 +91,9 @@ const exportDependencies = [
   AllocateInventoryOrderMutation,
 
   SaleOrderQuery,
+
+  SplitBatchMutation,
+  MergeBatchMutation,
 ];
 @Module({
   providers: exportDependencies,
