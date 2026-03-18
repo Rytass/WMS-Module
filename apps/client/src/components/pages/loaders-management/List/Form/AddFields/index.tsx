@@ -24,6 +24,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
       location: null,
       sizeUnit: null,
       volumeUnit: null,
+      remark: '',
     },
   });
 

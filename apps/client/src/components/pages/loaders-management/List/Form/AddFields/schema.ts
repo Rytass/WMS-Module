@@ -18,11 +18,11 @@ export const formSchema: Yup.ObjectSchema<AddFormValues> = Yup.object({
   sizeUnit: Yup.object({
     id: Yup.string().required('必填'),
     name: Yup.string().required('必填'),
-  }),
+  }).nullable(),
   volume: Yup.number(),
   volumeUnit: Yup.object({
     id: Yup.string().required('必填'),
     name: Yup.string().required('必填'),
-  }),
+  }).nullable(),
   remark: Yup.string(),
 });
