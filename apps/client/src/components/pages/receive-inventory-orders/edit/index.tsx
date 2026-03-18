@@ -12,7 +12,7 @@ import { fragmentToDefaultValues } from '../Form/utils';
 import { YesOrNo, BASE_UNIT } from '../../../../utils/share';
 
 function EditReceiveInventoryOrder() {
-  const { query } = useRouter();
+  const { query, back } = useRouter();
   const id = useMemo(() => (query?.id as string) ?? '', [query.id]);
 
   const { data, loading } = useQueryReceiveInventoryOrder(id);
@@ -47,12 +47,13 @@ function EditReceiveInventoryOrder() {
 
         if (data?.updateReceiveInventoryOrder.id) {
           Message.success('儲存成功');
+          back();
         }
       } catch (error) {
         console.error(error);
       }
     },
-    [id, updateReceiveInventoryOrder],
+    [id, back, updateReceiveInventoryOrder],
   );
 
   const defaultValues = useMemo(
