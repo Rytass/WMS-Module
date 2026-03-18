@@ -424,6 +424,20 @@ type MergeBatchOrderDto {
   items: [MergeBatchOrderItemDto!]!
 }
 
+type ReclassifyInventoryOrderItemDto {
+  id: ID!
+  locationId: String
+  loaderId: String
+  targetReclassifiedQuantity: Float!
+}
+
+type ReclassifyInventoryOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [ReclassifyInventoryOrderItemDto!]!
+}
+
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
@@ -488,6 +502,7 @@ type Mutation {
   deallocate(items: [DeallocateOrderArgs!]!): Boolean!
   splitBatch(aggregatedKey: ID!, unitId: ID, items: [SplitBatchItemInput!]!): SplitBatchOrderDto!
   mergeBatch(batchKey: String!, materialId: ID!, items: [MergeBatchItemInput!]!): MergeBatchOrderDto!
+  reclassifyInventoryOrder(aggregatedKey: ID!, materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
 }
 
 input CreateLoadersArgs {
@@ -671,5 +686,9 @@ input SplitBatchItemInput {
 
 input MergeBatchItemInput {
   aggregatedKey: ID!
+  quantity: Float!
+}
+
+input ReclassifyInventoryOrderItemInput {
   quantity: Float!
 }

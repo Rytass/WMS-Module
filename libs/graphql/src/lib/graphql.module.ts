@@ -45,6 +45,7 @@ import {
 import { SaleOrderQuery } from './queries/sale-order.query';
 import { SplitBatchMutation } from './mutations/split-batch.mutation';
 import { MergeBatchMutation } from './mutations/merge-batch.mutation';
+import { ReclassifyInventoryOrderMutation } from './mutations/reclassify-inventory-order.mutation';
 
 const exportDependencies = [
   UnitQuery,
@@ -94,6 +95,7 @@ const exportDependencies = [
 
   SplitBatchMutation,
   MergeBatchMutation,
+  ReclassifyInventoryOrderMutation,
 ];
 @Module({
   providers: exportDependencies,
