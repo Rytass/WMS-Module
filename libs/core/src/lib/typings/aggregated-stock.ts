@@ -1,4 +1,5 @@
 import { type StockEntityClass } from '../models';
+import { ChangeType } from '../constants/stock-status';
 
 export type AggregatedStock = Pick<
   StockEntityClass,
@@ -16,11 +17,7 @@ export type AggregatedStock = Pick<
 
 export type ChangeLog = Pick<
   StockEntityClass,
-  | 'id'
-  | 'materialId'
-  | 'batchId'
-  | 'locationId'
-  | 'loaderId'
-  | 'status'
-  | 'quantity'
->;
+  'id' | 'materialId' | 'batchId' | 'locationId' | 'loaderId' | 'quantity'
+> & {
+  changeType: ChangeType;
+};

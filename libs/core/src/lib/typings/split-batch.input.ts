@@ -4,7 +4,7 @@ export type SplitBatchInput = {
   unitId?: string;
   items: {
     // target batch
-    batchId: string;
+    batchKey: string;
     quantity: number;
     locationId?: string;
     loaderId?: string;

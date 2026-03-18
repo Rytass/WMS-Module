@@ -1,10 +1,10 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { ChildEntity, Column, JoinColumn, ManyToOne } from 'typeorm';
 import { BatchEntity as BaseBatchEntity } from '@rytass/wms-base-nestjs-module';
 import { type BatchGroupEntityClass } from './batch-group.entity';
 
 export const BatchEntity = Symbol('BatchEntity');
 
-@Entity('batches')
+@ChildEntity()
 export class BatchEntityClass extends BaseBatchEntity {
   @Column({ type: 'varchar', nullable: true })
   groupId!: string;

@@ -1,0 +1,31 @@
+import { Injectable } from '@nestjs/common';
+import { Args, Mutation, Resolver } from '@nestjs/graphql';
+import { MergeBatchOrderService, StockService } from '@wms-module/core';
+import { MergeBatchArgs } from '../inputs/merge-batch.args';
+import { MergeBatchOrderDto } from '../dto/merge-batch-order.dto';
+
+@Injectable()
+@Resolver()
+export class MergeBatchMutation {
+  constructor(
+    private readonly stockService: StockService,
+    private readonly mergeBatchOrderService: MergeBatchOrderService,
+  ) {}
+
+  @Mutation(() => MergeBatchOrderDto)
+  async mergeBatch(@Args() args: MergeBatchArgs): Promise<MergeBatchOrderDto> {
+    return this.mergeBatchOrderService.merge({
+      ...args,
+      items: args.items.map((item) => {
+        const { batchId, locationId, loaderId } =
+          this.stockService.destructAggregateKey(item.aggregatedKey);
+        return {
+          ...item,
+          batchId,
+          locationId,
+          loaderId,
+        };
+      }),
+    });
+  }
+}

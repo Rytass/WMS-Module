@@ -76,7 +76,7 @@ export class MergeBatchOrderService<
           const mergeItem = await mergeBatchOrderItemRepository.save(
             mergeBatchOrderItemRepository.create({
               targetMergedQuantity: item.quantity,
-              orderId: baseOrder.id,
+              orderId: order.id,
               locationId: item.locationId || '',
               loaderId: item.loaderId || null,
             } as DeepPartial<K>),

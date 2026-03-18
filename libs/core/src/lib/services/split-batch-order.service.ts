@@ -50,7 +50,7 @@ export class SplitBatchOrderService<
 
       // Get original batch information
       const originalBatch = await batchRepository.findOneOrFail({
-        where: { key: options.batchId },
+        where: { id: options.batchId },
       });
 
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
@@ -70,7 +70,7 @@ export class SplitBatchOrderService<
         options.items.map(async (item) => {
           // Get or create target batch
           const targetBatch = await this.batchService.getBatch({
-            key: item.batchId,
+            key: item.batchKey,
             materialId: originalBatch.materialId,
             manager,
           });

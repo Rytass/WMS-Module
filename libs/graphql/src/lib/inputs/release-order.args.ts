@@ -7,4 +7,7 @@ export class ReleaseOrderArgs {
 
   @Field(() => Int)
   quantity!: number;
+
+  @Field(() => ID, { nullable: true })
+  unitId?: string;
 }
