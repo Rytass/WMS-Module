@@ -22,3 +22,7 @@ mutation UpdateHoldInventoryOrder(
     ...HoldInventoryOrder
   }
 }
+
+mutation Release($items: [ReleaseOrderArgs!]!) {
+  release(items: $items)
+}
