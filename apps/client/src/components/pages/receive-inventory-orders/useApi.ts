@@ -64,11 +64,12 @@ export function useCreateReceiveInventoryOrder() {
 }
 
 export function useUpdateReceiveInventoryOrder() {
-  const [updateReceiveInventoryOrder] = useMutation(
+  const [updateReceiveInventoryOrder, { loading }] = useMutation(
     UpdateReceiveInventoryOrderDocument,
   );
 
   return {
     updateReceiveInventoryOrder,
+    loading,
   };
 }
