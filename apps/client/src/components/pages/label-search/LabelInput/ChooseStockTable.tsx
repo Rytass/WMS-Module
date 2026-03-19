@@ -10,6 +10,7 @@ import {
 import { useQueryStocksByMaterialKey } from '../useApi';
 
 interface ChooseStockTableProps {
+  targetInventoryIds: string[];
   materialKey: string;
   targetAction: InventoryActionItem | null;
   addInventories: ({
@@ -24,6 +25,7 @@ interface ChooseStockTableProps {
 }
 
 const ChooseStockTable: FC<ChooseStockTableProps> = ({
+  targetInventoryIds,
   materialKey,
   targetAction,
   addInventories,
@@ -91,6 +93,9 @@ const ChooseStockTable: FC<ChooseStockTableProps> = ({
     <Table<AggregatedStockFragment>
       columns={columns}
       dataSource={dataSource}
+      rowState={(source) =>
+        targetInventoryIds.includes(source.id) ? 'added' : undefined
+      }
       loading={loading}
       pagination={{
         current: page,

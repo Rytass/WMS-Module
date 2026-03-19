@@ -4,7 +4,6 @@ import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { aggregatedStockColumns } from '../../../../utils/share';
-import { stockStatusName } from '../../../inventoryActions/utils';
 import { useQueryStocks } from '../useApi';
 import { FilterValues } from '../typing';
 
@@ -59,15 +58,8 @@ function InventoryListTable({
     setDataSignature((s) => ({ ...s, ...signature }));
   }, [dataSource]);
 
-  const columns: TableColumn<AggregatedStockFragment>[] = [
-    {
-      key: 'status',
-      title: '狀態',
-      width: 100,
-      render: (source) => stockStatusName(source.status),
-    },
-    ...aggregatedStockColumns,
-  ];
+  const columns: TableColumn<AggregatedStockFragment>[] =
+    aggregatedStockColumns;
 
   return (
     <Table<AggregatedStockFragment>

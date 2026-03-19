@@ -6,6 +6,7 @@ import {
   ReceiveInventoryOrderStatus,
 } from '../graphql/generated/.graphql';
 import { WaitIcon, TransferIcon } from '../icons';
+import { stockStatusName } from '../components/inventoryActions/utils';
 
 export const BASE_UNIT = 'BASE_UNIT';
 
@@ -54,6 +55,12 @@ export function shipInventoryOrderStatusName(
 }
 
 export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
+  {
+    key: 'status',
+    title: '狀態',
+    width: 100,
+    render: (source) => stockStatusName(source.status),
+  },
   // {
   //   key: 'inspection',
   //   title: '檢驗',

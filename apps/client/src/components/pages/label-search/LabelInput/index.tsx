@@ -14,7 +14,7 @@ import { LabelInputValues } from './typing';
 const LabelInput: FC = () => {
   const { openModal, closeModal } = useModal();
   const addInventories = useAddInventories();
-  const { targetAction } = useInventoryActions();
+  const { targetInventoryIds, targetAction } = useInventoryActions();
 
   const methods = useForm<LabelInputValues>({
     defaultValues: {
@@ -38,6 +38,7 @@ const LabelInput: FC = () => {
         onConfirm: closeModal,
         children: (
           <ChooseStockTable
+            targetInventoryIds={targetInventoryIds}
             materialKey={values.label}
             targetAction={targetAction}
             addInventories={addInventories}
@@ -46,7 +47,14 @@ const LabelInput: FC = () => {
       });
       methods.setValue('label', '');
     },
-    [addInventories, closeModal, methods, openModal, targetAction],
+    [
+      addInventories,
+      closeModal,
+      methods,
+      openModal,
+      targetAction,
+      targetInventoryIds,
+    ],
   );
 
   return (
