@@ -18,7 +18,9 @@ import {
   UpRightIcon,
 } from '../../icons';
 import { DropdownOption } from '@mezzanine-ui/react';
+import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
 import { StockStatus } from '../../graphql/generated/.graphql';
+import { InventorySignature } from './typing';
 
 export function stockStatusName(status?: StockStatus): string {
   switch (status) {
@@ -346,4 +348,19 @@ export function haveAdditionalFields(currentAction: InventoryActions) {
     InventoryActions.DeliverToCustomer,
     InventoryActions.ReturnFromCustomer,
   ].includes(currentAction);
+}
+
+export function formatAvailableInventoryList({
+  inventoryList,
+  targetAction,
+  inventorySignature,
+}: {
+  inventoryList: AggregatedStockFragment[];
+  targetAction: InventoryActionItem | null;
+  inventorySignature: InventorySignature;
+}) {
+  return inventoryList
+    .filter((item) => isEnableActionStatus(item.status, targetAction?.status))
+    .map((item) => inventorySignature[item.id])
+    .filter((item) => item.quantity > 0);
 }

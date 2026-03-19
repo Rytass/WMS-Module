@@ -9,9 +9,8 @@ import {
   CreateHoldInventoryOrderDocument,
   ReleaseDocument,
   MergeBatchDocument,
-  SplitBatchDocument,
 } from '../../graphql/generated/.graphql';
-import { isEnableActionStatus } from './utils';
+import { formatAvailableInventoryList } from './utils';
 import { useInventoryActions } from './useInventoryActions';
 
 const refetchQueriesAfterInventoryActions = [
@@ -62,17 +61,15 @@ export function useHoldInventory(inventoryList: AggregatedStockFragment[]) {
     try {
       const { data } = await holdInventory({
         variables: {
-          items: inventoryList
-            .filter((item) =>
-              isEnableActionStatus(item.status, targetAction?.status),
-            )
-            .map((item) => inventorySignature[item.id])
-            .filter((item) => item.quantity > 0)
-            .map((s) => ({
-              aggregatedKey: s.id,
-              unitId: s.unitId,
-              targetHeldQuantity: s.quantity,
-            })),
+          items: formatAvailableInventoryList({
+            inventoryList,
+            targetAction,
+            inventorySignature,
+          }).map((s) => ({
+            aggregatedKey: s.id,
+            unitId: s.unitId,
+            targetHeldQuantity: s.quantity,
+          })),
         },
       });
 
@@ -88,8 +85,7 @@ export function useHoldInventory(inventoryList: AggregatedStockFragment[]) {
     inventoryList,
     inventorySignature,
     resetAll,
-    targetAction?.status,
-    targetAction?.submitText,
+    targetAction,
   ]);
 
   return {
@@ -109,17 +105,15 @@ export function useReleaseHoldInventory(
     try {
       const { data } = await releaseHoldInventory({
         variables: {
-          items: inventoryList
-            .filter((item) =>
-              isEnableActionStatus(item.status, targetAction?.status),
-            )
-            .map((item) => inventorySignature[item.id])
-            .filter((item) => item.quantity > 0)
-            .map((s) => ({
-              itemId: s.id,
-              unitId: s.unitId,
-              quantity: s.quantity,
-            })),
+          items: formatAvailableInventoryList({
+            inventoryList,
+            targetAction,
+            inventorySignature,
+          }).map((s) => ({
+            itemId: s.id,
+            unitId: s.unitId,
+            quantity: s.quantity,
+          })),
         },
       });
 
@@ -135,9 +129,48 @@ export function useReleaseHoldInventory(
     inventorySignature,
     releaseHoldInventory,
     resetAll,
-    targetAction?.status,
-    targetAction?.submitText,
+    targetAction,
   ]);
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useMergeBatch(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [mergeBatch] = useMutation(MergeBatchDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(
+    async (batchKey: string) => {
+      try {
+        const { data } = await mergeBatch({
+          variables: {
+            batchKey,
+            materialId: inventoryList[0].material.id,
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregatedKey: s.id,
+              quantity: s.quantity,
+            })),
+          },
+        });
+
+        if (data?.mergeBatch.id) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [inventoryList, inventorySignature, mergeBatch, resetAll, targetAction],
+  );
 
   return {
     onSubmit,
