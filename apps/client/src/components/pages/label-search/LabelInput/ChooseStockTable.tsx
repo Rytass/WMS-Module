@@ -1,0 +1,60 @@
+import { useMemo } from 'react';
+import { TableColumn } from '@mezzanine-ui/react';
+import Table from '../../../TableWrapper/Table';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { stockStatusName } from '../../../inventoryActions/utils';
+import { useQueryStocksByMaterialKey } from '../useApi';
+
+interface ChooseStockTableProps {
+  materialKey: string;
+}
+
+const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
+  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
+    useQueryStocksByMaterialKey(materialKey);
+
+  const dataSource = useMemo(
+    (): AggregatedStockFragment[] => data?.aggregatedStocks.items ?? [],
+    [data?.aggregatedStocks.items],
+  );
+
+  const columns: TableColumn<AggregatedStockFragment>[] = [
+    {
+      key: 'status',
+      title: '狀態',
+      width: 122,
+      render: (source) => stockStatusName(source.status),
+    },
+    {
+      key: 'quantity',
+      title: '數量',
+      width: 122,
+      align: 'end',
+      render: (source) => source.quantity,
+    },
+    {
+      key: 'baseUnit',
+      title: '單位',
+      width: 100,
+      align: 'center',
+      render: (source) => source.material?.baseUnit?.key,
+    },
+  ];
+
+  return (
+    <Table<AggregatedStockFragment>
+      columns={columns}
+      dataSource={dataSource}
+      loading={loading}
+      pagination={{
+        current: page,
+        onChange: (page) => setPage(page),
+        total: pageTotal,
+        pageSize: limit,
+        onChangePageSize: (size) => setLimit(size),
+      }}
+    />
+  );
+};
+
+export default ChooseStockTable;

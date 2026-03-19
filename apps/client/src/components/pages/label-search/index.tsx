@@ -8,12 +8,8 @@ import OperateArea from './OperateArea';
 import classes from './index.module.scss';
 
 function LabelSearch() {
-  const {
-    setTargetAction,
-    targetInventoryIds,
-    targetInventories,
-    targetAction,
-  } = useInventoryActions();
+  const { setTargetAction, targetInventories, targetAction } =
+    useInventoryActions();
 
   return (
     <div className={classes.host}>
@@ -36,7 +32,7 @@ function LabelSearch() {
                 iconType="leading"
                 disabled={
                   (isNumber(option.maxDataLength) &&
-                    targetInventoryIds.length > option.maxDataLength) ||
+                    targetInventories.length > option.maxDataLength) ||
                   (option.needSameMaterial &&
                     uniq(targetInventories.map((i) => i.material.key)).length >
                       1)

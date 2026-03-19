@@ -1,14 +1,14 @@
 import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { FormFieldLayout } from '@mezzanine-ui/core/form';
-import { Message } from '@mezzanine-ui/react';
+import { useModal } from '../../../modal/useModal';
 import { FormWrapper } from '../../../fields/FormWrapper';
 import { InputField } from '../../../fields/InputField';
-import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import ChooseStockTable from './ChooseStockTable';
 import { LabelInputValues } from './typing';
 
 const LabelInput: FC = () => {
-  const { pushTargetInventories, targetInventoryIds } = useInventoryActions();
+  const { openModal, closeModal } = useModal();
 
   const methods = useForm<LabelInputValues>({
     defaultValues: {
@@ -16,18 +16,25 @@ const LabelInput: FC = () => {
     },
   });
 
-  const onSubmit = useCallback((values: LabelInputValues) => {
-    // const duplicateItem = targetInventoryIds.includes(values.label);
-
-    // if (duplicateItem) {
-    //   Message.error(`此項目已在清單中，無法重複加入。`);
-    // } else {
-    //   pushTargetInventories([values.label]);
-    //   methods.setValue('label', '');
-    // }
-
-    console.log('label input', values);
-  }, []);
+  const onSubmit = useCallback(
+    (values: LabelInputValues) => {
+      openModal({
+        title: `${values.label}`,
+        cancelButtonProps: {
+          style: {
+            display: 'none',
+          },
+        },
+        confirmButtonProps: {
+          variant: 'base-secondary',
+        },
+        confirmText: '關閉',
+        onConfirm: closeModal,
+        children: <ChooseStockTable materialKey={values.label} />,
+      });
+    },
+    [closeModal, openModal],
+  );
 
   return (
     <FormWrapper methods={methods} onSubmit={onSubmit}>
