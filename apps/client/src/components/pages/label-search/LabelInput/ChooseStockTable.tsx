@@ -1,15 +1,35 @@
 import { useMemo } from 'react';
-import { TableColumn } from '@mezzanine-ui/react';
+import { Message, TableColumn, Button } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
-import { stockStatusName } from '../../../inventoryActions/utils';
+import { useModal } from '../../../modal/useModal';
+import {
+  InventoryActionItem,
+  stockStatusName,
+} from '../../../inventoryActions/utils';
 import { useQueryStocksByMaterialKey } from '../useApi';
 
 interface ChooseStockTableProps {
   materialKey: string;
+  targetAction: InventoryActionItem | null;
+  addInventories: ({
+    targetStocks,
+    currentAction,
+    onAddSuccess,
+  }: {
+    targetStocks: AggregatedStockFragment[];
+    currentAction: InventoryActionItem | null;
+    onAddSuccess: VoidFunction;
+  }) => void;
 }
 
-const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
+const ChooseStockTable: FC<ChooseStockTableProps> = ({
+  materialKey,
+  targetAction,
+  addInventories,
+}) => {
+  const { closeModal } = useModal();
+
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryStocksByMaterialKey(materialKey);
 
@@ -19,6 +39,32 @@ const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
   );
 
   const columns: TableColumn<AggregatedStockFragment>[] = [
+    {
+      key: 'action',
+      title: '操作',
+      width: 74,
+      align: 'center',
+      render: (source) => (
+        <Button
+          type="button"
+          size="sub"
+          onClick={() => {
+            addInventories({
+              targetStocks: [source],
+              currentAction: targetAction,
+              onAddSuccess: () => {
+                Message.success(
+                  `已加入料號：${source.material.key} / 批號：${source.batch.key} / 儲存位置：${source.location.key}`,
+                );
+                closeModal();
+              },
+            });
+          }}
+        >
+          選擇
+        </Button>
+      ),
+    },
     {
       key: 'status',
       title: '狀態',
