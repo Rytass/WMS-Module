@@ -164,9 +164,11 @@ const InventoryCard: FC<InventoryCardProps> = ({
           </Typography>
         </div>
         <div className={classes.rightTitleWrapper}>
-          {/* <Typography variant="caption" color="text-neutral">
-            SO240596827-00100043
-          </Typography> */}
+          {inventory.saleId && (
+            <Typography variant="caption" color="text-neutral">
+              {`${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`}
+            </Typography>
+          )}
           <Button
             type="button"
             icon={TrashIcon}

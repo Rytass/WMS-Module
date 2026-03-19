@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { isEmpty } from 'lodash';
+import { isEmpty, isNumber, uniq } from 'lodash';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { useDialog } from '../../dialog/useDialog';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
@@ -39,7 +39,8 @@ export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
   supportingActionOnClick: () => Promise<void>;
   disableSubmitButton: () => boolean;
 } {
-  const { targetAction, errorSignature } = useInventoryActions();
+  const { targetInventories, targetAction, errorSignature } =
+    useInventoryActions();
   const onClearAll = useClearAll();
 
   const haveError = useMemo(() => !isEmpty(errorSignature), [errorSignature]);
@@ -55,6 +56,10 @@ export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
       haveError ||
       inventoryList.filter((item) =>
         isEnableActionStatus(item.status, targetAction?.status),
-      ).length === 0,
+      ).length === 0 ||
+      (isNumber(targetAction?.maxDataLength) &&
+        targetInventories.length > targetAction.maxDataLength) ||
+      (!!targetAction?.needSameMaterial &&
+        uniq(targetInventories.map((i) => i.material.key)).length > 1),
   };
 }

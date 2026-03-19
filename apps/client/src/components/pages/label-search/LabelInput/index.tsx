@@ -8,7 +8,7 @@ import { useInventoryActions } from '../../../inventoryActions/useInventoryActio
 import { LabelInputValues } from './typing';
 
 const LabelInput: FC = () => {
-  const { pushTargetInventoryIds, targetInventoryIds } = useInventoryActions();
+  const { pushTargetInventories, targetInventoryIds } = useInventoryActions();
 
   const methods = useForm<LabelInputValues>({
     defaultValues: {
@@ -16,19 +16,18 @@ const LabelInput: FC = () => {
     },
   });
 
-  const onSubmit = useCallback(
-    (values: LabelInputValues) => {
-      const duplicateItem = targetInventoryIds.includes(values.label);
+  const onSubmit = useCallback((values: LabelInputValues) => {
+    // const duplicateItem = targetInventoryIds.includes(values.label);
 
-      if (duplicateItem) {
-        Message.error(`此項目已在清單中，無法重複加入。`);
-      } else {
-        pushTargetInventoryIds([values.label]);
-        methods.setValue('label', '');
-      }
-    },
-    [methods, pushTargetInventoryIds, targetInventoryIds],
-  );
+    // if (duplicateItem) {
+    //   Message.error(`此項目已在清單中，無法重複加入。`);
+    // } else {
+    //   pushTargetInventories([values.label]);
+    //   methods.setValue('label', '');
+    // }
+
+    console.log('label input', values);
+  }, []);
 
   return (
     <FormWrapper methods={methods} onSubmit={onSubmit}>
