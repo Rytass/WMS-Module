@@ -1,4 +1,4 @@
-import { useState, memo, useCallback } from 'react';
+import { useMemo, useState, memo, useCallback } from 'react';
 import { omit } from 'lodash';
 import { InventoryActionItem } from './utils';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
@@ -13,6 +13,11 @@ const InventoryActionsProvider: FC = ({ children }) => {
   );
   const [targetAction, setTargetAction] = useState<InventoryActionItem | null>(
     null,
+  );
+
+  const targetInventoryIds = useMemo(
+    () => targetInventories.map((i) => i.id),
+    [targetInventories],
   );
 
   const pushTargetInventories = useCallback((inventories: InventoryItem[]) => {
@@ -112,6 +117,7 @@ const InventoryActionsProvider: FC = ({ children }) => {
       value={{
         inventorySignature,
         targetInventories,
+        targetInventoryIds,
         pushTargetInventories,
         updateInventoryQuantity,
         updateInventoryUnitId,

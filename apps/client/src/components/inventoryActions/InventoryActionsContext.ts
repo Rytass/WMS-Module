@@ -6,6 +6,7 @@ import { InventoryItem, InventorySignature, ErrorSignature } from './typing';
 export interface InventoryActionsContextValues {
   inventorySignature: InventorySignature;
   targetInventories: InventoryItem[];
+  targetInventoryIds: string[];
   pushTargetInventories: (inventories: InventoryItem[]) => void;
   updateInventoryQuantity: (id: string, quantity: number) => void;
   updateInventoryUnitId: (id: string, unitId: string | null) => void;
@@ -23,6 +24,7 @@ export const InventoryActionsContext =
   createContext<InventoryActionsContextValues>({
     inventorySignature: {},
     targetInventories: [],
+    targetInventoryIds: [],
     pushTargetInventories: () => {},
     updateInventoryQuantity: () => {},
     updateInventoryUnitId: () => {},
