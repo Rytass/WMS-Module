@@ -1,0 +1,29 @@
+mutation SplitBatch(
+  $aggregatedKey: ID!
+  $items: [SplitBatchItemInput!]!
+  $unitId: ID
+) {
+  splitBatch(aggregatedKey: $aggregatedKey, items: $items, unitId: $unitId) {
+    id
+    key
+    createdAt
+    items {
+      ...SplitBatchOrderItem
+    }
+  }
+}
+
+mutation MergeBatch(
+  $batchKey: String!
+  $materialId: ID!
+  $items: [MergeBatchItemInput!]!
+) {
+  mergeBatch(batchKey: $batchKey, materialId: $materialId, items: $items) {
+    id
+    key
+    createdAt
+    items {
+      ...MergeBatchOrderItem
+    }
+  }
+}

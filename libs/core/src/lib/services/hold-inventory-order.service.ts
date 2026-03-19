@@ -276,7 +276,7 @@ export class HoldInventoryOrderService<
           const conversionFactor =
             await this.materialService.getConversionFactor(
               item.materialId,
-              item.unitId || undefined,
+              option.unitId || undefined,
             );
 
           const totalHeld = item.changes.reduce((sum, change) => {

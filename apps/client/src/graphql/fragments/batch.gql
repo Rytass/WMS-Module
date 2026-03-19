@@ -2,3 +2,17 @@ fragment Batch on BatchDto {
   id
   key
 }
+
+fragment SplitBatchOrderItem on SplitBatchOrderItemDto {
+  id
+  locationId
+  loaderId
+  targetSplitQuantity
+}
+
+fragment MergeBatchOrderItem on MergeBatchOrderItemDto {
+  id
+  locationId
+  loaderId
+  targetMergedQuantity
+}

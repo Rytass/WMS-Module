@@ -30,7 +30,7 @@ const UnitsFieldArray: FC = () => {
         source.isExisted ? (
           '1'
         ) : (
-          <Input variant="currency" value="1" size="sub" disabled />
+          <Input variant="measure" value="1" size="sub" disabled />
         ),
     },
     {

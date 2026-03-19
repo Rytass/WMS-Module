@@ -45,6 +45,14 @@ function InventoryActionSelector({
         return baseCondition && targetStocks.length <= iao.maxDataLength;
       }
 
+      if (iao.needSameMaterial) {
+        const targetStocksMaterialKeys = uniq(
+          targetStocks.map((stock) => stock.material.key),
+        );
+
+        return baseCondition && targetStocksMaterialKeys.length === 1;
+      }
+
       return baseCondition;
     });
   }, [targetStocks]);
@@ -74,6 +82,12 @@ function InventoryActionSelector({
         Message.warning(
           `${currentAction.submitText}僅能選取${currentAction.maxDataLength}個項目`,
         );
+      } else if (
+        currentAction &&
+        currentAction.needSameMaterial &&
+        uniq(targetStocks.map((stock) => stock.material.key)).length !== 1
+      ) {
+        Message.warning(`${currentAction.submitText}僅能選取相同料號`);
       } else {
         pushTargetInventoryIds(targetStocks.map((s) => s.id));
         setTargetStocks([]);

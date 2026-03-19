@@ -1,4 +1,5 @@
 import { Typography, cx } from '@mezzanine-ui/react';
+import { uniq } from 'lodash';
 import InventoryCard from './InventoryCard';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import Loading from '../../Loading';
@@ -33,7 +34,13 @@ const InventoryGrid: FC<InventoryGridProps> = ({
           })}
         >
           {inventoryList.map((inventory) => (
-            <InventoryCard key={inventory.id} inventory={inventory} />
+            <InventoryCard
+              key={inventory.id}
+              inventory={inventory}
+              isAllSameMaterial={
+                uniq(inventoryList.map((i) => i.material.key)).length == 1
+              }
+            />
           ))}
         </div>
       )}

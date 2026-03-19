@@ -18,9 +18,9 @@ export class SplitBatchOrderItemEntityClass {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'uuid' })
+  @Column({ type: 'uuid', nullable: true })
   @Index()
-  locationId!: string;
+  locationId!: string | null;
 
   @Column({ type: 'uuid', nullable: true })
   loaderId!: string | null;

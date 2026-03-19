@@ -137,7 +137,6 @@ export class ShipInventoryOrderService<
   ): Promise<DeepPartial<ShipInventoryOrderReferenceEntityClass>[]> {
     const materialRepository =
       manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
-    const batchRepository = manager.getRepository<BatchEntity>(BatchEntity);
     const saleOrderRepository = manager.getRepository<SaleOrderEntityClass>(
       this.saleOrderEntity,
     );
@@ -153,9 +152,10 @@ export class ShipInventoryOrderService<
 
           let batch: BatchEntity | null = null;
           if (reference.batchKey) {
-            batch = await batchRepository.findOneBy({
-              key: reference.batchKey,
+            batch = await this.batchService.getBatch({
+              manager,
               materialId: material.id,
+              key: reference.batchKey,
             });
           }
           if (reference.saleId && reference.saleSerialId)
@@ -312,7 +312,7 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderEntityClass>(
         this.shipInventoryOrderEntity,
       );
-
+    console.log(options.references);
     const shipInventoryOrderReferenceRepository =
       manager.getRepository<ShipInventoryOrderReferenceEntityClass>(
         this.shipInventoryOrderReferenceEntity,
@@ -362,6 +362,7 @@ export class ShipInventoryOrderService<
           );
         }
       }
+      console.log({ existingItems });
       if (existingItems.length)
         await shipInventoryOrderReferenceRepository.save(
           existingItems.map((item) =>

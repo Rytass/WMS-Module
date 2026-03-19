@@ -50,11 +50,13 @@ export class StockQuery {
   async changeLogs(@Args() args: FindStockArgs): Promise<ChangeLogs> {
     const [items, total] = await this.stockService.findChangeLogs({
       ...args,
-      negateStatus: StockStatus.FREE,
       aggregated: false,
     });
     return {
-      items: items.map((item) => ({ ...item, quantity: item.quantity * -1 })),
+      items: items.map((item) => ({
+        ...item,
+        quantity: Math.abs(item.quantity),
+      })),
       total,
     };
   }

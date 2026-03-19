@@ -64,11 +64,12 @@ export function useCreateShipInventoryOrder() {
 }
 
 export function useUpdateShipInventoryOrder() {
-  const [updateShipInventoryOrder] = useMutation(
+  const [updateShipInventoryOrder, { loading }] = useMutation(
     UpdateShipInventoryOrderDocument,
   );
 
   return {
     updateShipInventoryOrder,
+    loading,
   };
 }

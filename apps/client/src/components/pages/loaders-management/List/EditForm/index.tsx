@@ -108,12 +108,7 @@ function LoaderEditForm({
           selectValueMode
         />
         <DateField name="createdAt" label="建立日期" disabled />
-        <InputField
-          name="remark"
-          label="備註"
-          placeholder="輸入備註"
-          required
-        />
+        <InputField name="remark" label="備註" placeholder="輸入備註" />
       </div>
     </FormModalWrapper>
   );

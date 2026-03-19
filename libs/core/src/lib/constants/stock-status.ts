@@ -11,18 +11,39 @@ export enum StockStatus {
 }
 
 export enum ChangeType {
+  // receive-inventory-order-change.entity.ts
   RECEIVED = 'RECEIVED',
+
+  // ship-inventory-order-change.entity.ts
   SHIPPED = 'SHIPPED',
+
+  // transfer-order-change.entity.ts, change > 0
   IN_TRANSFER = 'IN_TRANSFER',
+
+  // transfer-order-change.entity.ts, change < 0
   TRANSFERRED = 'TRANSFERRED',
-  VENDOR_RETURNED = 'VENDOR_RETURNED',
+
+  // vendor-inventory-change.entity.ts, change > 0
   VENDOR_TRANSFERRED = 'VENDOR_TRANSFERRED',
+
+  // vendor-inventory-change.entity.ts, change < 0
+  VENDOR_RETURNED = 'VENDOR_RETURNED',
+
+  // customer-inventory-change.entity.ts, change > 0
   HELD = 'HELD',
+
+  // customer-inventory-change.entity.ts, change < 0
   RELEASED = 'RELEASED',
+
+  // split-ivnentory-change.entity.ts
   SPLITTED = 'SPLITTED',
+
+  // merge-inventory-change.entity.ts
   MERGED = 'MERGED',
-  SCRAPPED = 'SCRAPPED',
+
+  // allocate-inventory-change.entity.ts, change > 0
   ALLOCATED = 'ALLOCATED',
+
+  // allocate-inventory-change.entity.ts, change < 0
   DEALLOCATED = 'DEALLOCATED',
-  QUALITY_INSPECTION_PASSED = 'QUALITY_INSPECTION_PASSED',
 }

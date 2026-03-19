@@ -1,11 +1,20 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  ReclassifyInventoryOrderChangeEntityClass,
   ReclassifyInventoryOrderEntity,
   ReclassifyInventoryOrderEntityClass,
   ReclassifyInventoryOrderItemEntity,
   ReclassifyInventoryOrderItemEntityClass,
+  StockEntityClass,
+  BatchEntityClass,
+  MaterialEntityClass,
 } from '../models';
-import { DataSource } from 'typeorm';
+import { DataSource, DeepPartial, EntityTarget } from 'typeorm';
+import { ReclassifyInventoryOrderInput } from '../typings/reclassify-inventory-order.input';
+import { OrderEntity } from '@rytass/wms-base-nestjs-module';
+import { MaterialService } from './material.service';
+import { BatchService } from './batch.service';
+import { HelperService } from './helper.service';
 
 @Injectable()
 export class ReclassifyInventoryOrderService<
@@ -14,11 +23,117 @@ export class ReclassifyInventoryOrderService<
   K extends
     ReclassifyInventoryOrderItemEntityClass = ReclassifyInventoryOrderItemEntityClass,
 > {
+  private readonly seqPrefix = 'RCO';
   constructor(
     private readonly dataSource: DataSource,
+    private readonly materialService: MaterialService,
+    private readonly batchService: BatchService,
+    private readonly helperService: HelperService,
     @Inject(ReclassifyInventoryOrderEntity)
-    readonly reclassifyInventoryOrderEntity: T,
+    readonly reclassifyInventoryOrderEntity: EntityTarget<T>,
     @Inject(ReclassifyInventoryOrderItemEntity)
-    readonly reclassifyInventoryOrderItemEntity: K,
+    readonly reclassifyInventoryOrderItemEntity: EntityTarget<K>,
   ) {}
+
+  reclassify(options: ReclassifyInventoryOrderInput): Promise<T> {
+    return this.dataSource.transaction(async (manager) => {
+      const reclassifyOrderRepository =
+        manager.getRepository<ReclassifyInventoryOrderEntityClass>(
+          this.reclassifyInventoryOrderEntity,
+        );
+      const reclassifyOrderItemRepository = manager.getRepository(
+        this.reclassifyInventoryOrderItemEntity,
+      );
+      const reclassifyOrderChangeRepository = manager.getRepository(
+        ReclassifyInventoryOrderChangeEntityClass,
+      );
+      const orderRepository = manager.getRepository(OrderEntity);
+      const stockRepository = manager.getRepository(StockEntityClass);
+      const batchRepository = manager.getRepository(BatchEntityClass);
+      const materialRepository = manager.getRepository(MaterialEntityClass);
+
+      // Ensure new material exists
+      const material = await materialRepository.findOneOrFail({
+        where: { key: options.materialKey },
+      });
+
+      const key = await this.helperService.getSeq(this.seqPrefix, manager);
+      const order = await reclassifyOrderRepository.save(
+        reclassifyOrderRepository.create({
+          key,
+        }),
+      );
+
+      // Process each item reclassification
+      await Promise.all(
+        options.items.map(async (item) => {
+          // Get conversion factor for unit conversion
+          const conversionFactor =
+            await this.materialService.getConversionFactor(
+              material.id,
+              item.unitId || undefined,
+            );
+
+          const batch = await batchRepository.findOneOrFail({
+            where: { id: item.batchId },
+          });
+
+          // Get or create a batch for the new material
+          const targetBatch = await this.batchService.getBatch({
+            materialId: material.id,
+            key: batch.key,
+            manager,
+          });
+
+          // Create base order record
+          const baseOrder = await orderRepository.save({});
+
+          // Create reclassify order item
+          const reclassifyItem = await reclassifyOrderItemRepository.save(
+            reclassifyOrderItemRepository.create({
+              targetReclassifiedQuantity: item.quantity,
+              locationId: item.locationId,
+              loaderId: item.loaderId,
+              orderId: order.id,
+            } as DeepPartial<K>),
+          );
+
+          // Record the change
+          await reclassifyOrderChangeRepository.save(
+            reclassifyOrderChangeRepository.create({
+              itemId: reclassifyItem.id,
+              id: baseOrder.id,
+              quantityChanged: item.quantity * conversionFactor,
+            }),
+          );
+
+          // Update stock: deduct from original material and add to new material
+          await stockRepository.save(
+            stockRepository.create([
+              // Deduct from original material batch
+              {
+                orderId: baseOrder.id,
+                materialId: item.materialId,
+                batchId: item.batchId,
+                locationId: item.locationId,
+                loaderId: item.loaderId,
+                quantity: -1 * item.quantity * conversionFactor,
+              } as DeepPartial<StockEntityClass>,
+              // Add to new material batch
+              {
+                orderId: baseOrder.id,
+                materialId: material.id,
+                batchId: targetBatch.id,
+                locationId: item.locationId,
+                loaderId: item.loaderId,
+                quantity: item.quantity * conversionFactor,
+              } as DeepPartial<StockEntityClass>,
+            ]),
+          );
+        }),
+      );
+
+      return order as T;
+    });
+  }
 }

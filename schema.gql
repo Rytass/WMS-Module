@@ -129,11 +129,27 @@ type AggregatedStocks {
 
 type ChangeLogDto {
   quantity: Int!
-  status: StockStatus!
+  changeType: ChangeType!
   id: ID!
   material: MaterialDto!
   location: LocationDto!
   batch: BatchDto!
+}
+
+"""The type of change that occurred to the stock"""
+enum ChangeType {
+  RECEIVED
+  SHIPPED
+  IN_TRANSFER
+  TRANSFERRED
+  VENDOR_TRANSFERRED
+  VENDOR_RETURNED
+  HELD
+  RELEASED
+  SPLITTED
+  MERGED
+  ALLOCATED
+  DEALLOCATED
 }
 
 type ChangeLogs {
@@ -380,6 +396,48 @@ type ShipInventoryOrderReferenceDto {
   items: [ShipInventoryOrderItemDto!]!
 }
 
+type SplitBatchOrderItemDto {
+  id: ID!
+  locationId: String
+  loaderId: String
+  targetSplitQuantity: Float!
+}
+
+type SplitBatchOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [SplitBatchOrderItemDto!]!
+}
+
+type MergeBatchOrderItemDto {
+  id: ID!
+  locationId: String!
+  loaderId: String
+  targetMergedQuantity: Float!
+}
+
+type MergeBatchOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [MergeBatchOrderItemDto!]!
+}
+
+type ReclassifyInventoryOrderItemDto {
+  id: ID!
+  locationId: String
+  loaderId: String
+  targetReclassifiedQuantity: Float!
+}
+
+type ReclassifyInventoryOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [ReclassifyInventoryOrderItemDto!]!
+}
+
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
@@ -442,6 +500,9 @@ type Mutation {
   createAllocateInventoryOrder(description: String, reason: String, items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
   updateAllocateInventoryOrder(description: String, reason: String, id: String!, removedAt: DateTime, items: [UpdateAllocateInventoryOrderItemArgs!]): AllocateInventoryOrderDto!
   deallocate(items: [DeallocateOrderArgs!]!): Boolean!
+  splitBatch(aggregatedKey: ID!, unitId: ID, items: [SplitBatchItemInput!]!): SplitBatchOrderDto!
+  mergeBatch(batchKey: String!, materialId: ID!, items: [MergeBatchItemInput!]!): MergeBatchOrderDto!
+  reclassifyInventoryOrder(aggregatedKey: ID!, materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
 }
 
 input CreateLoadersArgs {
@@ -567,6 +628,7 @@ input UpdateHoldInventoryOrderItemArgs {
 input ReleaseOrderArgs {
   itemId: ID!
   quantity: Int!
+  unitId: ID
 }
 
 input MapBackgroundInput {
@@ -615,4 +677,18 @@ input UpdateAllocateInventoryOrderItemArgs {
 input DeallocateOrderArgs {
   itemId: ID!
   quantity: Int!
+}
+
+input SplitBatchItemInput {
+  batchKey: ID!
+  quantity: Float!
+}
+
+input MergeBatchItemInput {
+  aggregatedKey: ID!
+  quantity: Float!
+}
+
+input ReclassifyInventoryOrderItemInput {
+  quantity: Float!
 }

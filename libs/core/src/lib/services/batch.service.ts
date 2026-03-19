@@ -1,5 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DataSource, EntityManager, EntityTarget, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  EntityTarget,
+  FindOptionsWhere,
+  IsNull,
+  Repository,
+} from 'typeorm';
 import { BatchEntity, BatchEntityClass } from '../models';
 import { FindBatchInput } from '../typings/find-batch.input';
 import { GetBatchInput, SplitBatchInput } from '../typings/get-batch.input';
@@ -26,7 +33,19 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
   }: GetBatchInput & { manager?: EntityManager }): Promise<T> {
     const batchRepository = manager.getRepository(BatchEntityClass);
     const batchGroupRepository = manager.getRepository(this.batchGroupEntity);
+    const unsplittedCondition: FindOptionsWhere<BatchEntityClass> = {
+      saleId: IsNull(),
+      saleSerialId: IsNull(),
+      customerId: IsNull(),
+      vendorId: IsNull(),
+      inspectionId: IsNull(),
+      inTransfer: false,
+      held: false,
+      inShipment: false,
+    };
+
     const existed = await batchRepository.findOneBy({
+      ...unsplittedCondition,
       key: options.key,
       materialId: options.materialId,
     });
@@ -88,8 +107,6 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     if (existingBatch) {
       return existingBatch as T;
     }
-
-    console.log({ whereCondition });
 
     // If no matching batch exists, create a new one
     return batchRepository.save(

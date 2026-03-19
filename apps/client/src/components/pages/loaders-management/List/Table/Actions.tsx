@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react';
-import { Button, ButtonGroup } from '@mezzanine-ui/react';
+import { Button, ButtonGroup, Message } from '@mezzanine-ui/react';
 import { LoaderFragment } from '../../../../../graphql/generated/.graphql';
 import LoaderEditForm from '../EditForm';
 import { FormValues } from '../EditForm/typing';
 import { useModal } from '../../../../modal/useModal';
 import { YesOrNo } from '../../../../../utils/share';
+import { useUpdateLoader } from '../../useApi';
 import StockTable from './StockTable';
 
 interface ActionsProps {
@@ -14,14 +15,34 @@ interface ActionsProps {
 const Actions: FC<ActionsProps> = ({ source }) => {
   const [editModalOpened, setEditModalOpened] = useState<boolean>(false);
   const { openModal, closeModal } = useModal();
+  const { updateLoader } = useUpdateLoader();
 
-  const onSubmit = useCallback(async (values: FormValues) => {
-    try {
-      console.log('values', values);
-    } catch (error) {
-      console.error(error);
-    }
-  }, []);
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await updateLoader({
+          variables: {
+            updateLoaderId: source.id,
+            isActive: values.isActive === YesOrNo.YES,
+            length: values.length,
+            width: values.width,
+            height: values.height,
+            sizeUnit: values.sizeUnit?.name || '',
+            volume: values.volume,
+            volumeUnit: values.volumeUnit?.name || '',
+            note: values.remark,
+          },
+        });
+
+        if (data?.updateLoader.id) {
+          Message.success('儲存成功');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [source.id, updateLoader],
+  );
 
   return (
     <>

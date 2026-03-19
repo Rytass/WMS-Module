@@ -12,7 +12,7 @@ import { fragmentToDefaultValues } from '../Form/utils';
 import { YesOrNo, BASE_UNIT } from '../../../../utils/share';
 
 function EditReceiveInventoryOrder() {
-  const { query } = useRouter();
+  const { query, back } = useRouter();
   const id = useMemo(() => (query?.id as string) ?? '', [query.id]);
 
   const { data, loading } = useQueryReceiveInventoryOrder(id);
@@ -30,31 +30,30 @@ function EditReceiveInventoryOrder() {
           variables: {
             updateReceiveInventoryOrderId: id,
             description: values.remark ?? '',
-            items: values.items.map((item, index) => {
-              return {
-                id: item.itemId || undefined,
-                unitId: item.unit === BASE_UNIT ? null : item.unit,
-                serialId: `${(index + 1) * 10}`,
-                materialKey: item.material?.name,
-                batchKey: item.batch?.name,
-                locationKey: item.location?.name,
-                loaderKey: item.loader?.name,
-                targetReceivedQuantity: item.quantity,
-                requireInspection: item.inspection === YesOrNo.YES,
-                removedAt: item.removedAt,
-              };
-            }),
+            items: values.items.map((item, index) => ({
+              id: item.itemId || undefined,
+              unitId: item.unit === BASE_UNIT ? null : item.unit,
+              serialId: `${(index + 1) * 10}`,
+              materialKey: item.material?.name,
+              batchKey: item.batch?.name,
+              locationKey: item.location?.name,
+              loaderKey: item.loader?.name,
+              targetReceivedQuantity: item.quantity,
+              requireInspection: item.inspection === YesOrNo.YES,
+              removedAt: item.removedAt,
+            })),
           },
         });
 
         if (data?.updateReceiveInventoryOrder.id) {
           Message.success('儲存成功');
+          back();
         }
       } catch (error) {
         console.error(error);
       }
     },
-    [id, updateReceiveInventoryOrder],
+    [id, back, updateReceiveInventoryOrder],
   );
 
   const defaultValues = useMemo(

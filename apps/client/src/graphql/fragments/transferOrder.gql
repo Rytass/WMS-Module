@@ -16,3 +16,13 @@ fragment TransferOrder on TransferOrderDto {
     ...TransferOrderItem
   }
 }
+
+fragment SimpleTransferOrder on TransferOrderDto {
+  id
+  key
+  description
+  receiver
+  createdBy
+  removedAt
+  createdAt
+}

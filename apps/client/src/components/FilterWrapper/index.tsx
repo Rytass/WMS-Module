@@ -20,12 +20,14 @@ interface FilterWrapperProps<T extends FieldValues> {
     filters: (FilterType | ReactNode)[];
     gridTemplateColumns: string;
   };
+  expandedFilters?: ReactNode;
   onSubmit?: SubmitHandler<T>;
 }
 
 const FilterWrapper = <T extends FieldValues>({
   haveAdvancedFilters = false,
   defaultValues,
+  expandedFilters,
   baseFilters,
   onSubmit,
 }: FilterWrapperProps<T>) => {
@@ -47,6 +49,7 @@ const FilterWrapper = <T extends FieldValues>({
         >
           {baseFilters.filters.map(renderFilter)}
         </div>
+        {expandedFilters}
       </div>
       <FormActionButtons
         onReset={onReset}
