@@ -1,5 +1,8 @@
 export type ReleaseInventoryOrderItemInput = {
-  itemId: string;
-  quantity: number;
+  materialId: string;
+  batchId: string;
+  locationId?: string;
+  loaderId?: string;
   unitId?: string;
+  quantity: number;
 };

@@ -626,7 +626,7 @@ input UpdateHoldInventoryOrderItemArgs {
 }
 
 input ReleaseOrderArgs {
-  itemId: ID!
+  aggregatedKey: ID!
   quantity: Int!
   unitId: ID
 }
