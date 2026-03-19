@@ -1,26 +1,31 @@
 import { useState, memo, useCallback } from 'react';
-import { omit, difference } from 'lodash';
+import { omit } from 'lodash';
 import { InventoryActionItem } from './utils';
 import { InventoryActionsContextProvider } from './InventoryActionsContext';
-import { InventorySignature, ErrorSignature } from './typing';
+import { InventoryItem, InventorySignature, ErrorSignature } from './typing';
 
 const InventoryActionsProvider: FC = ({ children }) => {
   const [inventorySignature, setInventorySignature] =
     useState<InventorySignature>({});
   const [errorSignature, setErrorSignature] = useState<ErrorSignature>({});
-  const [targetInventoryIds, setTargetInventoryIds] = useState<string[]>([]);
+  const [targetInventories, setTargetInventories] = useState<InventoryItem[]>(
+    [],
+  );
   const [targetAction, setTargetAction] = useState<InventoryActionItem | null>(
     null,
   );
 
-  const pushTargetInventoryIds = useCallback((ids: string[]) => {
-    setTargetInventoryIds((prevIds) => [...prevIds, ...ids]);
+  const pushTargetInventories = useCallback((inventories: InventoryItem[]) => {
+    setTargetInventories((prevInventories) => [
+      ...prevInventories,
+      ...inventories,
+    ]);
 
-    const currentSignature = ids.reduce(
+    const currentSignature = inventories.reduce(
       (prev, curr) => ({
         ...prev,
-        [curr]: {
-          id: curr,
+        [curr.id]: {
+          id: curr.id,
           quantity: 0,
           unitId: null,
         },
@@ -60,12 +65,12 @@ const InventoryActionsProvider: FC = ({ children }) => {
   );
 
   const removeTargetInventory = useCallback((id: string) => {
-    setTargetInventoryIds((prevIds) => {
-      const targetIndex = prevIds.findIndex((i) => i === id);
+    setTargetInventories((prevInventories) => {
+      const targetIndex = prevInventories.findIndex((i) => i.id === id);
 
       return [
-        ...prevIds.slice(0, targetIndex),
-        ...prevIds.slice(targetIndex + 1),
+        ...prevInventories.slice(0, targetIndex),
+        ...prevInventories.slice(targetIndex + 1),
       ];
     });
 
@@ -90,13 +95,15 @@ const InventoryActionsProvider: FC = ({ children }) => {
   const removeInventoryByIds = useCallback((ids: string[]) => {
     setInventorySignature((prevSignature) => omit(prevSignature, ids));
     setErrorSignature((prevSignature) => omit(prevSignature, ids));
-    setTargetInventoryIds((prevIds) => difference(prevIds, ids));
+    setTargetInventories((prevInventories) =>
+      prevInventories.filter((i) => !ids.includes(i.id)),
+    );
   }, []);
 
   const resetAll = useCallback(() => {
     setInventorySignature({});
     setErrorSignature({});
-    setTargetInventoryIds([]);
+    setTargetInventories([]);
     setTargetAction(null);
   }, []);
 
@@ -104,8 +111,8 @@ const InventoryActionsProvider: FC = ({ children }) => {
     <InventoryActionsContextProvider
       value={{
         inventorySignature,
-        targetInventoryIds,
-        pushTargetInventoryIds,
+        targetInventories,
+        pushTargetInventories,
         updateInventoryQuantity,
         updateInventoryUnitId,
         removeTargetInventory,
