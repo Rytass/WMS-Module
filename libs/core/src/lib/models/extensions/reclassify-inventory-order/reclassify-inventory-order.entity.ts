@@ -23,12 +23,6 @@ export class ReclassifyInventoryOrderEntityClass {
   @Index()
   key!: string;
 
-  @Column({ type: 'text' })
-  description!: string;
-
-  @Column({ type: 'varchar' })
-  reason!: string;
-
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
