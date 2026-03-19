@@ -30,6 +30,7 @@ function InventoryActionSelector({
     targetAction,
     setTargetAction,
     targetInventoryIds,
+    targetInventories,
     pushTargetInventories,
   } = useInventoryActions();
   const [open, toggleOpen] = useState<boolean>(false);
@@ -66,6 +67,9 @@ function InventoryActionSelector({
         (stock) =>
           currentAction && !currentAction.status.includes(stock.status),
       );
+      const targetStocksMaterialKeys = uniq(
+        targetStocks.map((stock) => stock.material.key),
+      );
 
       if (duplicateItem) {
         Message.error(`料號：${duplicateItem.material.key} / 批號：${duplicateItem.batch.key} / 儲存位置：${duplicateItem.location.key}
@@ -85,7 +89,11 @@ function InventoryActionSelector({
       } else if (
         currentAction &&
         currentAction.needSameMaterial &&
-        uniq(targetStocks.map((stock) => stock.material.key)).length !== 1
+        (targetStocksMaterialKeys.length !== 1 ||
+          (targetInventories.length > 0 &&
+            !uniq(targetInventories.map((i) => i.material.key)).includes(
+              targetStocksMaterialKeys[0],
+            )))
       ) {
         Message.warning(`${currentAction.submitText}僅能選取相同料號`);
       } else {
@@ -108,6 +116,7 @@ function InventoryActionSelector({
       pushTargetInventories,
       setTargetStocks,
       targetInventoryIds,
+      targetInventories,
       targetStocks,
     ],
   );
