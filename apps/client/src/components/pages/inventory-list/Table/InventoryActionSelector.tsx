@@ -89,7 +89,7 @@ function InventoryActionSelector({
       } else if (
         currentAction &&
         currentAction.needSameMaterial &&
-        (targetStocksMaterialKeys.length !== 1 ||
+        (targetStocksMaterialKeys.length > 1 ||
           (targetInventories.length > 0 &&
             !uniq(targetInventories.map((i) => i.material.key)).includes(
               targetStocksMaterialKeys[0],
