@@ -40,7 +40,7 @@ function EditReceiveInventoryOrder() {
               loaderKey: item.loader?.name,
               targetReceivedQuantity: item.quantity,
               requireInspection: item.inspection === YesOrNo.YES,
-              removedAt: item.removedAt,
+              removedAt: item.removedAt || null,
             })),
           },
         });

@@ -3,6 +3,7 @@ import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
+import { useReleaseHoldInventory } from '../../inventoryActions/useApi';
 
 interface ReleaseInventoryHoldProps {
   inventoryList: AggregatedStockFragment[];
@@ -18,6 +19,7 @@ const ReleaseInventoryHold: FC<ReleaseInventoryHoldProps> = ({
   open,
 }) => {
   const methods = useForm();
+  const { onSubmit } = useReleaseHoldInventory(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -27,9 +29,7 @@ const ReleaseInventoryHold: FC<ReleaseInventoryHoldProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={async (values) => {
-        console.log('values', values);
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <InventoryGrid

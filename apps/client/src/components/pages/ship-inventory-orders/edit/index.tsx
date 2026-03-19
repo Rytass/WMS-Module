@@ -39,7 +39,7 @@ function EditShipInventoryOrder() {
               targetShippedQuantity: reference.quantity,
               saleId: reference.saleId?.id || '',
               saleSerialId: reference.saleSerialId?.id || '',
-              removedAt: reference.removedAt,
+              removedAt: reference.removedAt || null,
             })),
           },
         });
