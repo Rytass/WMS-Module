@@ -30,7 +30,7 @@ function InventoryActionSelector({
     targetAction,
     setTargetAction,
     targetInventoryIds,
-    pushTargetInventoryIds,
+    pushTargetInventories,
   } = useInventoryActions();
   const [open, toggleOpen] = useState<boolean>(false);
 
@@ -89,7 +89,15 @@ function InventoryActionSelector({
       ) {
         Message.warning(`${currentAction.submitText}僅能選取相同料號`);
       } else {
-        pushTargetInventoryIds(targetStocks.map((s) => s.id));
+        pushTargetInventories(
+          targetStocks.map((s) => ({
+            id: s.id,
+            material: {
+              id: s.material.id,
+              key: s.material.key,
+            },
+          })),
+        );
         setTargetStocks([]);
         setNeedClearSelectedRows(true);
         Message.success(`項目已加入${currentAction?.title}`);
@@ -97,7 +105,7 @@ function InventoryActionSelector({
     },
     [
       setNeedClearSelectedRows,
-      pushTargetInventoryIds,
+      pushTargetInventories,
       setTargetStocks,
       targetInventoryIds,
       targetStocks,
