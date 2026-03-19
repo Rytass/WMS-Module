@@ -7,6 +7,9 @@ import {
   AggregatedStocksDocument,
   AggregatedStocksForInventoryActionsDocument,
   CreateHoldInventoryOrderDocument,
+  ReleaseDocument,
+  MergeBatchDocument,
+  SplitBatchDocument,
 } from '../../graphql/generated/.graphql';
 import { isEnableActionStatus } from './utils';
 import { useInventoryActions } from './useInventoryActions';
@@ -84,6 +87,53 @@ export function useHoldInventory(inventoryList: AggregatedStockFragment[]) {
     holdInventory,
     inventoryList,
     inventorySignature,
+    resetAll,
+    targetAction?.status,
+    targetAction?.submitText,
+  ]);
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useReleaseHoldInventory(
+  inventoryList: AggregatedStockFragment[],
+) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [releaseHoldInventory] = useMutation(ReleaseDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(async () => {
+    try {
+      const { data } = await releaseHoldInventory({
+        variables: {
+          items: inventoryList
+            .filter((item) =>
+              isEnableActionStatus(item.status, targetAction?.status),
+            )
+            .map((item) => inventorySignature[item.id])
+            .filter((item) => item.quantity > 0)
+            .map((s) => ({
+              itemId: s.id,
+              unitId: s.unitId,
+              quantity: s.quantity,
+            })),
+        },
+      });
+
+      if (data?.release) {
+        Message.success(`${targetAction?.submitText}成功`);
+        resetAll();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, [
+    inventoryList,
+    inventorySignature,
+    releaseHoldInventory,
     resetAll,
     targetAction?.status,
     targetAction?.submitText,
