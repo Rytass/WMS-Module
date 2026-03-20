@@ -1,9 +1,14 @@
 import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import SplitTarget from '../../inventoryActions/SplitTarget';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
+import SplitBatchField from '../../inventoryActions/fields/SplitBatchField';
+import { formSchema } from './schema';
+import { FormValues } from './typing';
+import classes from '../index.module.scss';
 
 interface SplitBatchProps {
   inventoryList: AggregatedStockFragment[];
@@ -18,7 +23,13 @@ const SplitBatch: FC<SplitBatchProps> = ({
   onClose,
   open,
 }) => {
-  const methods = useForm();
+  const methods = useForm<FormValues>({
+    resolver: yupResolver(formSchema),
+    defaultValues: {
+      items: [],
+    },
+  });
+
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -35,7 +46,12 @@ const SplitBatch: FC<SplitBatchProps> = ({
       }}
       {...formFooterProps}
     >
-      <SplitTarget inventory={inventory} haveGrayBg />
+      <div className={classes.wrapper}>
+        <div className={classes.fieldsWrapper}>
+          <SplitTarget inventory={inventory} />
+        </div>
+        <SplitBatchField />
+      </div>
     </FormDrawerWrapper>
   );
 };

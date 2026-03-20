@@ -18,6 +18,7 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
   required = false,
   disabled = false,
   placeholder,
+  suffix,
   size = 'sub',
 }) => {
   const { setValue, formState } = useFormContext();
@@ -60,6 +61,7 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
         error={isError}
         className={className}
         variant="measure"
+        suffix={suffix}
         value={`${watchValue}`}
         onChange={onChange}
         placeholder={placeholder}
