@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 import { createContext, Dispatch, SetStateAction } from 'react';
 import { InventoryActionItem } from './utils';
-import { InventorySignature, ErrorSignature } from './typing';
+import { InventoryItem, InventorySignature, ErrorSignature } from './typing';
 
 export interface InventoryActionsContextValues {
   inventorySignature: InventorySignature;
+  targetInventories: InventoryItem[];
   targetInventoryIds: string[];
-  pushTargetInventoryIds: (ids: string[]) => void;
+  pushTargetInventories: (inventories: InventoryItem[]) => void;
   updateInventoryQuantity: (id: string, quantity: number) => void;
   updateInventoryUnitId: (id: string, unitId: string | null) => void;
   removeTargetInventory: (id: string) => void;
@@ -22,8 +23,9 @@ export interface InventoryActionsContextValues {
 export const InventoryActionsContext =
   createContext<InventoryActionsContextValues>({
     inventorySignature: {},
+    targetInventories: [],
     targetInventoryIds: [],
-    pushTargetInventoryIds: () => {},
+    pushTargetInventories: () => {},
     updateInventoryQuantity: () => {},
     updateInventoryUnitId: () => {},
     removeTargetInventory: () => {},

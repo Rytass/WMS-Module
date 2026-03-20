@@ -129,11 +129,27 @@ type AggregatedStocks {
 
 type ChangeLogDto {
   quantity: Int!
-  status: StockStatus!
+  changeType: ChangeType!
   id: ID!
   material: MaterialDto!
   location: LocationDto!
   batch: BatchDto!
+}
+
+"""The type of change that occurred to the stock"""
+enum ChangeType {
+  RECEIVED
+  SHIPPED
+  IN_TRANSFER
+  TRANSFERRED
+  VENDOR_TRANSFERRED
+  VENDOR_RETURNED
+  HELD
+  RELEASED
+  SPLITTED
+  MERGED
+  ALLOCATED
+  DEALLOCATED
 }
 
 type ChangeLogs {
@@ -246,8 +262,6 @@ type HoldInventoryOrders {
 type AllocateInventoryOrderDto {
   id: ID!
   key: String!
-  description: String!
-  reason: String!
   createdAt: DateTime!
   items: [AllocateInventoryOrderItemDto!]!
 }
@@ -263,6 +277,68 @@ type AllocateInventoryOrderItemDto {
   targetAllocatedQuantity: Int!
   saleId: String!
   saleSerialId: String!
+}
+
+type TransferOrderItemDto {
+  id: ID!
+  targetTransferredQuantity: Int!
+  removedAt: DateTime
+}
+
+type TransferOrderDto {
+  id: ID!
+  key: String!
+  description: String
+  receiver: String
+  createdBy: String
+  removedAt: DateTime
+  createdAt: DateTime!
+  items: [TransferOrderItemDto!]!
+}
+
+type TransferOrders {
+  id: ID!
+  items: [TransferOrderDto!]!
+  total: Int!
+}
+
+type TransferCustomerOrderItemDto {
+  id: ID!
+  materialId: ID!
+  batchId: ID!
+  locationId: ID
+  loaderId: ID
+  customerId: String!
+  orderId: ID!
+  unitId: ID
+  targetTransferredQuantity: Int!
+}
+
+type TransferCustomerOrderDto {
+  id: ID!
+  key: String!
+  description: String
+  createdAt: DateTime!
+  items: [TransferCustomerOrderItemDto!]!
+}
+
+type TransferVendorOrderItemDto {
+  id: ID!
+  materialId: ID!
+  batchId: ID!
+  locationId: ID
+  loaderId: ID
+  vendorId: String!
+  orderId: ID!
+  unitId: ID
+  targetTransferredQuantity: Int!
+}
+
+type TransferVendorOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [TransferVendorOrderItemDto!]!
 }
 
 type LoaderUnitDto {
@@ -343,29 +419,6 @@ type MapPolygonRangeDto {
   points: [MapPolygonRangePointDto!]!
 }
 
-type TransferOrderItemDto {
-  id: ID!
-  targetTransferredQuantity: Int!
-  removedAt: DateTime
-}
-
-type TransferOrderDto {
-  id: ID!
-  key: String!
-  description: String
-  receiver: String
-  createdBy: String
-  removedAt: DateTime
-  createdAt: DateTime!
-  items: [TransferOrderItemDto!]!
-}
-
-type TransferOrders {
-  id: ID!
-  items: [TransferOrderDto!]!
-  total: Int!
-}
-
 type ShipInventoryOrderReferenceDto {
   id: ID!
   serialId: String!
@@ -378,6 +431,48 @@ type ShipInventoryOrderReferenceDto {
   material: MaterialDto!
   batch: BatchDto
   items: [ShipInventoryOrderItemDto!]!
+}
+
+type SplitBatchOrderItemDto {
+  id: ID!
+  locationId: String
+  loaderId: String
+  targetSplitQuantity: Float!
+}
+
+type SplitBatchOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [SplitBatchOrderItemDto!]!
+}
+
+type MergeBatchOrderItemDto {
+  id: ID!
+  locationId: String!
+  loaderId: String
+  targetMergedQuantity: Float!
+}
+
+type MergeBatchOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [MergeBatchOrderItemDto!]!
+}
+
+type ReclassifyInventoryOrderItemDto {
+  id: ID!
+  locationId: String
+  loaderId: String
+  targetReclassifiedQuantity: Float!
+}
+
+type ReclassifyInventoryOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [ReclassifyInventoryOrderItemDto!]!
 }
 
 type Query {
@@ -439,9 +534,18 @@ type Mutation {
   release(items: [ReleaseOrderArgs!]!): Boolean!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
-  createAllocateInventoryOrder(description: String, reason: String, items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
-  updateAllocateInventoryOrder(description: String, reason: String, id: String!, removedAt: DateTime, items: [UpdateAllocateInventoryOrderItemArgs!]): AllocateInventoryOrderDto!
+  createAllocateInventoryOrder(items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
+  updateAllocateInventoryOrder(id: String!, removedAt: DateTime, items: [UpdateAllocateInventoryOrderItemArgs!]): AllocateInventoryOrderDto!
   deallocate(items: [DeallocateOrderArgs!]!): Boolean!
+  createTransferCustomerOrder(description: String, customerId: String!, createdBy: String, items: [CreateTransferCustomerOrderItemArgs!]!): TransferCustomerOrderDto!
+  updateTransferCustomerOrder(description: String, customerId: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferCustomerOrderItemArgs!]): TransferCustomerOrderDto!
+  returnTransferCustomerOrder(items: [ReturnTransferCustomerOrderArgs!]!): Boolean!
+  createTransferVendorOrder(description: String, vendorId: String!, createdBy: String, items: [CreateTransferVendorOrderItemArgs!]!): TransferVendorOrderDto!
+  updateTransferVendorOrder(description: String, vendorId: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferVendorOrderItemArgs!]): TransferVendorOrderDto!
+  returnTransferVendorOrder(items: [ReturnTransferVendorOrderArgs!]!): Boolean!
+  splitBatch(aggregatedKey: ID!, unitId: ID, items: [SplitBatchItemInput!]!): SplitBatchOrderDto!
+  mergeBatch(batchKey: String!, materialId: ID!, items: [MergeBatchItemInput!]!): MergeBatchOrderDto!
+  reclassifyInventoryOrder(materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
 }
 
 input CreateLoadersArgs {
@@ -565,8 +669,9 @@ input UpdateHoldInventoryOrderItemArgs {
 }
 
 input ReleaseOrderArgs {
-  itemId: ID!
+  aggregatedKey: ID!
   quantity: Int!
+  unitId: ID
 }
 
 input MapBackgroundInput {
@@ -615,4 +720,57 @@ input UpdateAllocateInventoryOrderItemArgs {
 input DeallocateOrderArgs {
   itemId: ID!
   quantity: Int!
+}
+
+input CreateTransferCustomerOrderItemArgs {
+  aggregatedKey: ID!
+  unitId: ID
+  targetTransferredQuantity: Int!
+}
+
+input UpdateTransferCustomerOrderItemArgs {
+  aggregatedKey: ID
+  unitId: ID
+  targetTransferredQuantity: Int
+  id: ID
+  removedAt: DateTime
+}
+
+input ReturnTransferCustomerOrderArgs {
+  itemId: ID!
+  quantity: Int!
+}
+
+input CreateTransferVendorOrderItemArgs {
+  aggregatedKey: ID!
+  unitId: ID
+  targetTransferredQuantity: Int!
+}
+
+input UpdateTransferVendorOrderItemArgs {
+  aggregatedKey: ID
+  unitId: ID
+  targetTransferredQuantity: Int
+  id: ID
+  removedAt: DateTime
+}
+
+input ReturnTransferVendorOrderArgs {
+  itemId: ID!
+  quantity: Int!
+}
+
+input SplitBatchItemInput {
+  batchKey: ID!
+  quantity: Float!
+}
+
+input MergeBatchItemInput {
+  aggregatedKey: ID!
+  quantity: Float!
+}
+
+input ReclassifyInventoryOrderItemInput {
+  quantity: Float!
+  aggregatedKey: ID!
 }

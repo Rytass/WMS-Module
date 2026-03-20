@@ -4,8 +4,10 @@ import {
   AggregatedStockFragment,
   ShipInventoryOrderStatus,
   ReceiveInventoryOrderStatus,
+  ChangeType,
 } from '../graphql/generated/.graphql';
 import { WaitIcon, TransferIcon } from '../icons';
+import { stockStatusName } from '../components/inventoryActions/utils';
 
 export const BASE_UNIT = 'BASE_UNIT';
 
@@ -32,6 +34,43 @@ export const yesNoOptions = [YesOrNo.YES, YesOrNo.NO].map((o) => ({
   name: yesNoName(o),
 }));
 
+export function changeTypeName(type: ChangeType): string {
+  switch (type) {
+    case ChangeType.RECEIVED:
+      return '入庫';
+
+    case ChangeType.SHIPPED:
+      return '出庫';
+
+    case ChangeType.MERGED:
+      return '併批';
+
+    case ChangeType.SPLITTED:
+      return '拆批';
+
+    case ChangeType.HELD:
+      return '凍結';
+
+    case ChangeType.RELEASED:
+      return '解凍結';
+
+    case ChangeType.VENDOR_RETURNED:
+      return '供應商回廠';
+
+    case ChangeType.VENDOR_TRANSFERRED:
+      return '調撥至供應商';
+
+    case ChangeType.ALLOCATED:
+      return '綁定訂單';
+
+    case ChangeType.DEALLOCATED:
+      return '解除訂單';
+
+    default:
+      return type;
+  }
+}
+
 export function shipInventoryOrderStatusName(
   status?: ShipInventoryOrderStatus,
 ) {
@@ -54,6 +93,12 @@ export function shipInventoryOrderStatusName(
 }
 
 export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
+  {
+    key: 'status',
+    title: '狀態',
+    width: 100,
+    render: (source) => stockStatusName(source.status),
+  },
   // {
   //   key: 'inspection',
   //   title: '檢驗',

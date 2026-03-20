@@ -397,15 +397,7 @@ function InventoryGroupTable({
     },
   ];
 
-  const subColumns: TableColumn<DataType>[] = [
-    {
-      key: 'status',
-      title: '狀態',
-      width: 100,
-      render: (source) => stockStatusName(source.status),
-    },
-    ...aggregatedStockColumns,
-  ];
+  const subColumns: TableColumn<DataType>[] = aggregatedStockColumns;
 
   return (
     <Table<DataType>

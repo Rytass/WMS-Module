@@ -254,88 +254,78 @@ export class HoldInventoryOrderService<
     return queryBuilder.getManyAndCount();
   }
 
-  release(
-    options: ReleaseInventoryOrderItemInput | ReleaseInventoryOrderItemInput[],
-  ): Promise<boolean> {
-    if (!Array.isArray(options)) options = [options];
-    return this.dataSource.transaction(async (manager) => {
-      const repos = this.getRepositories(manager);
+  async release(
+    options: ReleaseInventoryOrderItemInput[],
+    manager = this.dataSource.manager,
+  ): Promise<T> {
+    const repos = this.getRepositories(manager);
 
-      const items = await repos.holdInventoryOrderItem.find({
-        where: { id: In(options.map((o) => o.itemId)) },
-        relations: ['changes'],
-      });
+    const key = await this.helperService.getSeq(this.seqPrefix, manager);
+    const order = await repos.holdInventoryOrder.save(
+      repos.holdInventoryOrder.create({ key }),
+    );
 
-      const itemMap = new Map(items.map((item) => [item.id, item]));
-
+    if (options.length > 0) {
       await Promise.all(
-        options.map(async (option) => {
-          const item = itemMap.get(option.itemId);
-          if (!item) return;
+        options.map(async (data) => {
+          // Ensure required fields are present
+          if (!data.batchId || !data.materialId) return;
 
+          const splittedBatch = await this.batchService.splitBatch({
+            id: data.batchId,
+            held: false, // split to release the hold
+            manager,
+          });
+
+          // Save item with ORIGINAL batch id to maintain source state
+          const item = await repos.holdInventoryOrderItem.save(
+            repos.holdInventoryOrderItem.create({
+              ...data,
+              targetHeldQuantity: -1 * data.quantity,
+              orderId: order.id,
+            }),
+          );
+          const base = await repos.order.save({});
           const conversionFactor =
             await this.materialService.getConversionFactor(
               item.materialId,
               item.unitId || undefined,
             );
 
-          const totalHeld = item.changes.reduce((sum, change) => {
-            if (change.quantityChanged < 0)
-              sum += Number(change.quantityChanged);
-            return sum;
-          }, 0);
+          const change = await repos.holdInventoryOrderChange.save(
+            repos.holdInventoryOrderChange.create({
+              itemId: item.id,
+              id: base.id,
+              quantityChanged: -1 * item.targetHeldQuantity * conversionFactor,
+            }),
+          );
 
-          const remainingQuantity =
-            conversionFactor * item.targetHeldQuantity + totalHeld;
-
-          if (remainingQuantity - option.quantity * conversionFactor < 0)
-            throw new Error(
-              `Release quantity exceeds held quantity for item ${item.id}`,
-            );
-
-          // Create splitted batch for release completion
-          const releasedBatch = await this.batchService.splitBatch({
-            id: item.batchId,
-            manager,
-          });
-
-          const base = await repos.order.save({});
-
-          await Promise.all([
-            repos.holdInventoryOrderChange.save(
-              repos.holdInventoryOrderChange.create({
-                itemId: item.id,
-                id: base.id,
-                quantityChanged: -1 * option.quantity * conversionFactor,
-              }),
-            ),
-
-            repos.stock.save(
-              repos.stock.create([
-                // add to destination with original batch reference
-                {
-                  orderId: base.id,
-                  materialId: item.materialId,
-                  batchId: item.batchId,
-                  locationId: item.locationId || undefined,
-                  loaderId: item.loaderId || undefined,
-                  quantity: option.quantity * conversionFactor,
-                } as DeepPartial<StockEntityClass>,
-                // deduct from released splitted batch
-                {
-                  orderId: base.id,
-                  materialId: item.materialId,
-                  batchId: releasedBatch.id,
-                  locationId: item.locationId || undefined,
-                  loaderId: item.loaderId || undefined,
-                  quantity: -1 * option.quantity * conversionFactor,
-                } as DeepPartial<StockEntityClass>,
-              ]),
-            ),
-          ]);
+          // Stock movements track the hold through splitted batch
+          await repos.stock.save(
+            repos.stock.create([
+              // deduct from original batch available stock
+              {
+                orderId: base.id,
+                materialId: item.materialId,
+                batchId: item.batchId, // original batch
+                locationId: item.locationId || undefined,
+                loaderId: item.loaderId || undefined,
+                quantity: -1 * change.quantityChanged * conversionFactor,
+              } as DeepPartial<StockEntityClass>,
+              // add to splitted batch in released state
+              {
+                orderId: base.id,
+                materialId: item.materialId,
+                batchId: splittedBatch.id, // splitted batch marked released
+                locationId: item.locationId || undefined,
+                loaderId: item.loaderId || undefined,
+                quantity: change.quantityChanged * conversionFactor,
+              } as DeepPartial<StockEntityClass>,
+            ]),
+          );
         }),
       );
-      return true;
-    });
+    }
+    return order as T;
   }
 }

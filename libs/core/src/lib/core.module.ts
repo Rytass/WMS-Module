@@ -15,9 +15,14 @@ import {
   UnitService,
   HelperService,
   TransferOrderService,
+  TransferCustomerOrderService,
+  TransferVendorOrderService,
   HoldInventoryOrderService,
   AllocateInventoryOrderService,
   SaleOrderService,
+  SplitBatchOrderService,
+  MergeBatchOrderService,
+  ReclassifyInventoryOrderService,
 } from './services';
 import { BatchService } from './services/batch.service';
 
@@ -28,6 +33,8 @@ const exportDependencies = [
   ReceiveInventoryOrderService,
   ShipInventoryOrderService,
   TransferOrderService,
+  TransferCustomerOrderService,
+  TransferVendorOrderService,
   HoldInventoryOrderService,
   AllocateInventoryOrderService,
   StockService,
@@ -35,6 +42,9 @@ const exportDependencies = [
   UnitService,
   HelperService,
   SaleOrderService,
+  SplitBatchOrderService,
+  MergeBatchOrderService,
+  ReclassifyInventoryOrderService,
 ];
 
 @Module({

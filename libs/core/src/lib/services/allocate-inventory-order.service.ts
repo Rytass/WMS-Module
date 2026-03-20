@@ -247,6 +247,8 @@ export class AllocateInventoryOrderService<
           // Create splitted batch for deallocate completion
           const deallocatedBatch = await this.batchService.splitBatch({
             id: item.batchId,
+            saleId: null, // deallocated batch has no saleId to indicate it's available
+            saleSerialId: null,
             manager,
           });
 

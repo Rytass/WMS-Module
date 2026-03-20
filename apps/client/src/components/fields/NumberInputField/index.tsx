@@ -2,10 +2,10 @@ import { ChangeEventHandler, useCallback, useMemo } from 'react';
 import { useFormContext, useWatch, get } from 'react-hook-form';
 import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import Input from '@mezzanine-ui/react/Input';
-import type { CurrencyInputProps } from '@mezzanine-ui/react/Input';
+import type { MeasureInputProps } from '@mezzanine-ui/react/Input';
 import BaseField, { BaseFieldProps } from '../BaseField';
 
-export type NumberInputFieldProps = Omit<CurrencyInputProps, 'variant'> &
+export type NumberInputFieldProps = Omit<MeasureInputProps, 'variant'> &
   Omit<BaseFieldProps, 'children'>;
 
 export const NumberInputField: FC<NumberInputFieldProps> = ({
@@ -18,6 +18,8 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
   required = false,
   disabled = false,
   placeholder,
+  onChange: onChangeProps,
+  suffix,
   size = 'sub',
 }) => {
   const { setValue, formState } = useFormContext();
@@ -33,11 +35,13 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
 
   const onChange: ChangeEventHandler<HTMLInputElement> = useCallback(
     (e) => {
+      onChangeProps?.(e);
+
       setValue(name, Number(e.target.value), {
         shouldDirty: true,
       });
     },
-    [name, setValue],
+    [name, onChangeProps, setValue],
   );
 
   return (
@@ -59,7 +63,9 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
         fullWidth
         error={isError}
         className={className}
-        variant="currency"
+        variant="measure"
+        inputType="number"
+        suffix={suffix}
         value={`${watchValue}`}
         onChange={onChange}
         placeholder={placeholder}

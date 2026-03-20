@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { isEmpty } from 'lodash';
+import { isEmpty, isNumber, uniq } from 'lodash';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { useDialog } from '../../dialog/useDialog';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
@@ -55,6 +55,10 @@ export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
       haveError ||
       inventoryList.filter((item) =>
         isEnableActionStatus(item.status, targetAction?.status),
-      ).length === 0,
+      ).length === 0 ||
+      (isNumber(targetAction?.maxDataLength) &&
+        inventoryList.length > targetAction.maxDataLength) ||
+      (!!targetAction?.needSameMaterial &&
+        uniq(inventoryList.map((i) => i.material.key)).length > 1),
   };
 }

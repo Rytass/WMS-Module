@@ -21,12 +21,6 @@ export class TransferVendorOrderEntityClass {
   @Index()
   key!: string;
 
-  @Column({ type: 'text' })
-  description!: string;
-
-  @Column({ type: 'varchar' })
-  vendor!: string;
-
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 

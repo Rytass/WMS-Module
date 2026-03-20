@@ -6,6 +6,7 @@ import HostSection from './HostSection';
 import HoldInventory from './HoldInventory';
 import ReleaseInventoryHold from './ReleaseInventoryHold';
 import DeallocateInventory from './DeallocateInventory';
+import SplitBatch from './SplitBatch';
 import MergeBatch from './MergeBatch';
 import ReturnFromVendor from './ReturnFromVendor';
 import ReturnFromCustomer from './ReturnFromCustomer';
@@ -42,6 +43,14 @@ const OperateArea: FC = () => {
     case InventoryActions.DeallocateInventory:
       return (
         <DeallocateInventory
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      );
+
+    case InventoryActions.SplitBatch:
+      return (
+        <SplitBatch
           inventoryList={inventoryList}
           queryInventoryListLoading={queryInventoryListLoading}
         />

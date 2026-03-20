@@ -22,10 +22,26 @@ export class TransferVendorOrderItemEntityClass {
 
   @Column({ type: 'uuid' })
   @Index()
-  locationId!: string;
+  materialId!: string;
+
+  @Column({ type: 'uuid' })
+  @Index()
+  batchId!: string;
 
   @Column({ type: 'uuid', nullable: true })
+  @Index()
+  unitId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
+  locationId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
   loaderId!: string | null;
+
+  @Column({ type: 'varchar' })
+  vendorId!: string;
 
   @Column({ type: 'numeric' })
   targetTransferredQuantity!: number;

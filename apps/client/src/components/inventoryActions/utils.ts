@@ -18,7 +18,9 @@ import {
   UpRightIcon,
 } from '../../icons';
 import { DropdownOption } from '@mezzanine-ui/react';
+import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
 import { StockStatus } from '../../graphql/generated/.graphql';
+import { InventorySignature } from './typing';
 
 export function stockStatusName(status?: StockStatus): string {
   switch (status) {
@@ -55,7 +57,7 @@ export function stockStatusName(status?: StockStatus): string {
 }
 
 export enum InventoryActions {
-  PendingTransferInventory = 'PendingTransferInventory',
+  CreateTransferInventory = 'CreateTransferInventory',
   HoldInventory = 'HoldInventory',
   ReleaseInventoryHold = 'ReleaseInventoryHold',
   AllocateInventory = 'AllocateInventory',
@@ -77,6 +79,7 @@ export type InventoryActionItem = Omit<DropdownOption, 'id'> & {
   status: StockStatus[];
   title: string;
   submitText: string;
+  needSameMaterial?: boolean;
   maxDataLength?: number;
 };
 
@@ -84,7 +87,7 @@ export function inventoryActionsEnableStatus(
   action: InventoryActions,
 ): StockStatus[] {
   switch (action) {
-    case InventoryActions.PendingTransferInventory:
+    case InventoryActions.CreateTransferInventory:
       return [
         StockStatus.FREE,
         StockStatus.PENDING_INSPECTION,
@@ -161,7 +164,7 @@ export function inventoryActionsSpec(
   };
 
   switch (action) {
-    case InventoryActions.PendingTransferInventory:
+    case InventoryActions.CreateTransferInventory:
       return {
         ...baseProps,
         name: '加入待調撥清單',
@@ -232,6 +235,7 @@ export function inventoryActionsSpec(
         icon: MergeIcon,
         title: '待合併批號清單',
         submitText: '合併批號',
+        needSameMaterial: true,
       };
 
     case InventoryActions.ReclassifyInventory:
@@ -303,21 +307,21 @@ export function inventoryActionsSpec(
 }
 
 export const inventoryActionOptions: InventoryActionItem[] = [
-  // InventoryActions.PendingTransferInventory,
+  InventoryActions.CreateTransferInventory,
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   // InventoryActions.AllocateInventory,
-  InventoryActions.DeallocateInventory,
+  // InventoryActions.DeallocateInventory,
   // InventoryActions.ShipInventory,
-  // InventoryActions.SplitBatch,
+  InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   // InventoryActions.ReclassifyInventory,
   // InventoryActions.TransferToVendor,
-  InventoryActions.ReturnFromVendor,
+  // InventoryActions.ReturnFromVendor,
   // InventoryActions.QualityInspection,
   // InventoryActions.DeliverToCustomer,
-  InventoryActions.ReturnFromCustomer,
-  InventoryActions.ScrapInventory,
+  // InventoryActions.ReturnFromCustomer,
+  // InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,
   name: inventoryActionsSpec(action)?.name ?? '',
@@ -327,11 +331,12 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   title: inventoryActionsSpec(action)?.title ?? '',
   submitText: inventoryActionsSpec(action)?.submitText ?? '',
   maxDataLength: inventoryActionsSpec(action)?.maxDataLength,
+  needSameMaterial: inventoryActionsSpec(action)?.needSameMaterial,
 }));
 
 export function haveAdditionalFields(currentAction: InventoryActions) {
   return [
-    InventoryActions.PendingTransferInventory,
+    InventoryActions.CreateTransferInventory,
     InventoryActions.AllocateInventory,
     InventoryActions.ShipInventory,
     InventoryActions.SplitBatch,
@@ -343,4 +348,19 @@ export function haveAdditionalFields(currentAction: InventoryActions) {
     InventoryActions.DeliverToCustomer,
     InventoryActions.ReturnFromCustomer,
   ].includes(currentAction);
+}
+
+export function formatAvailableInventoryList({
+  inventoryList,
+  targetAction,
+  inventorySignature,
+}: {
+  inventoryList: AggregatedStockFragment[];
+  targetAction: InventoryActionItem | null;
+  inventorySignature: InventorySignature;
+}) {
+  return inventoryList
+    .filter((item) => isEnableActionStatus(item.status, targetAction?.status))
+    .map((item) => inventorySignature[item.id])
+    .filter((item) => item.quantity > 0);
 }

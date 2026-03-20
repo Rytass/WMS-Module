@@ -1,4 +1,4 @@
-import { isNumber } from 'lodash';
+import { isNumber, uniq } from 'lodash';
 import { Typography, Button, cx } from '@mezzanine-ui/react';
 import ContentHeader from '@mezzanine-ui/react/ContentHeader';
 import { inventoryActionOptions } from '../../inventoryActions/utils';
@@ -8,7 +8,7 @@ import OperateArea from './OperateArea';
 import classes from './index.module.scss';
 
 function LabelSearch() {
-  const { setTargetAction, targetInventoryIds, targetAction } =
+  const { setTargetAction, targetInventories, targetAction } =
     useInventoryActions();
 
   return (
@@ -31,8 +31,11 @@ function LabelSearch() {
                 icon={option.icon}
                 iconType="leading"
                 disabled={
-                  isNumber(option.maxDataLength) &&
-                  targetInventoryIds.length > option.maxDataLength
+                  (isNumber(option.maxDataLength) &&
+                    targetInventories.length > option.maxDataLength) ||
+                  (option.needSameMaterial &&
+                    uniq(targetInventories.map((i) => i.material.key)).length >
+                      1)
                 }
                 onClick={() => {
                   setTargetAction(option);

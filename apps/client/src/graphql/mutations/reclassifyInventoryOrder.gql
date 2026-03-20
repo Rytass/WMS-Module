@@ -1,0 +1,13 @@
+mutation ReclassifyInventoryOrder(
+  $materialKey: ID!
+  $items: [ReclassifyInventoryOrderItemInput!]!
+) {
+  reclassifyInventoryOrder(materialKey: $materialKey, items: $items) {
+    id
+    key
+    createdAt
+    items {
+      ...ReclassifyInventoryOrderItem
+    }
+  }
+}

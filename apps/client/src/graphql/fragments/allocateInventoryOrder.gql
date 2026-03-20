@@ -8,8 +8,6 @@ fragment AllocateInventoryOrderItem on AllocateInventoryOrderItemDto {
 fragment AllocateInventoryOrder on AllocateInventoryOrderDto {
   id
   key
-  description
-  reason
   createdAt
   items {
     ...AllocateInventoryOrderItem
@@ -19,7 +17,5 @@ fragment AllocateInventoryOrder on AllocateInventoryOrderDto {
 fragment SimplerAllocateInventoryOrder on AllocateInventoryOrderDto {
   id
   key
-  description
-  reason
   createdAt
 }

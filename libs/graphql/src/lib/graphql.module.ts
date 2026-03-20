@@ -43,6 +43,13 @@ import {
   ShipInventoryOrderResolver,
 } from './resolvers/ship-inventory-order.resolver';
 import { SaleOrderQuery } from './queries/sale-order.query';
+import { SplitBatchMutation } from './mutations/split-batch.mutation';
+import { MergeBatchMutation } from './mutations/merge-batch.mutation';
+import { ReclassifyInventoryOrderMutation } from './mutations/reclassify-inventory-order.mutation';
+import { TransferCustomerOrderMutation } from './mutations/transfer-customer-order.mutation';
+import { TransferCustomerOrderResolver } from './resolvers/transfer-customer-order.resolver';
+import { TransferVendorOrderMutation } from './mutations/transfer-vendor-order.mutation';
+import { TransferVendorOrderResolver } from './resolvers/transfer-vendor-order.resolver';
 
 const exportDependencies = [
   UnitQuery,
@@ -88,7 +95,17 @@ const exportDependencies = [
   AllocateInventoryOrderResolver,
   AllocateInventoryOrderMutation,
 
+  TransferCustomerOrderMutation,
+  TransferCustomerOrderResolver,
+
+  TransferVendorOrderMutation,
+  TransferVendorOrderResolver,
+
   SaleOrderQuery,
+
+  SplitBatchMutation,
+  MergeBatchMutation,
+  ReclassifyInventoryOrderMutation,
 ];
 @Module({
   providers: exportDependencies,

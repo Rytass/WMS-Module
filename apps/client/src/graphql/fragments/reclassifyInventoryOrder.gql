@@ -1,0 +1,6 @@
+fragment ReclassifyInventoryOrderItem on ReclassifyInventoryOrderItemDto {
+  id
+  locationId
+  loaderId
+  targetReclassifiedQuantity
+}

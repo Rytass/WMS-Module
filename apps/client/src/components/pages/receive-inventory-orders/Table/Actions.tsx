@@ -17,7 +17,8 @@ interface ActionsProps {
 const Actions: FC<ActionsProps> = ({ source }) => {
   const { push } = useRouter();
   const { openDialog } = useDialog();
-  const { updateReceiveInventoryOrder } = useUpdateReceiveInventoryOrder();
+  const { updateReceiveInventoryOrder, loading } =
+    useUpdateReceiveInventoryOrder();
 
   return (
     <ButtonGroup>
@@ -57,8 +58,10 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         type="button"
         size="sub"
         variant="destructive-secondary"
-        disabled={source.status !== ReceiveInventoryOrderStatus.PENDING}
-        // loading={loading}
+        disabled={
+          source.status !== ReceiveInventoryOrderStatus.PENDING || loading
+        }
+        loading={loading}
         onClick={async () => {
           const isConfirm = await openDialog({
             modalStatusType: 'delete',

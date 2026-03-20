@@ -7,6 +7,8 @@ import {
   LoadersDocument,
   LoaderTypesDocument,
   AggregatedStocksDocument,
+  CreateBatchLoaderDocument,
+  UpdateLoaderDocument,
   CreateLoaderTypeDocument,
   UpdateLoaderTypeDocument,
 } from '../../../graphql/generated/.graphql';
@@ -96,6 +98,26 @@ export function useQueryStocksByLoaderId(loaderId: string) {
     setPage,
     limit,
     setLimit,
+  };
+}
+
+export function useCreateBatchLoader() {
+  const [createBatchLoader] = useMutation(CreateBatchLoaderDocument, {
+    refetchQueries: [],
+  });
+
+  return {
+    createBatchLoader,
+  };
+}
+
+export function useUpdateLoader() {
+  const [updateLoader] = useMutation(UpdateLoaderDocument, {
+    refetchQueries: [LoadersDocument],
+  });
+
+  return {
+    updateLoader,
   };
 }
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, QueryFailedError } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { DateTime } from 'luxon';
 
 @Injectable()
@@ -12,23 +12,17 @@ export class HelperService {
   ): Promise<string> {
     const dateStr = DateTime.now().toFormat('yyyyMMdd');
     const seqName = `${prefix}_${dateStr}`;
-    try {
-      const [{ seq_num }] = await manager.query(
-        `SELECT nextval($1) as seq_num`,
-        [`"${seqName}"`],
-      );
-      const serialNumber = String(seq_num).padStart(4, '0');
+    const quotedSeqName = `"${seqName}"`;
 
-      return `${dateStr}${serialNumber}`;
-    } catch (error) {
-      if (/does\snot\sexist/.test((error as QueryFailedError).message)) {
-        const quotedSeqName = `"${seqName}"`;
-        await this.dataSource.query(`CREATE SEQUENCE ${quotedSeqName} START 1`);
+    await this.dataSource.query(
+      `CREATE SEQUENCE IF NOT EXISTS ${quotedSeqName} START 1`,
+    );
 
-        return this.getSeq(prefix, manager);
-      }
+    const [{ seq_num }] = await manager.query(`SELECT nextval($1) as seq_num`, [
+      `"${seqName}"`,
+    ]);
+    const serialNumber = String(seq_num).padStart(4, '0');
 
-      throw error;
-    }
+    return `${dateStr}${serialNumber}`;
   }
 }
