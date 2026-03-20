@@ -44,7 +44,7 @@ const SplitBatchReference: FC<SplitBatchReferenceProps> = ({
         </div>
         <div>
           <Description title="剩餘量 :" widthType="hug">
-            <DescriptionContent>{`${remainingQuantity} ${currentUnitName}`}</DescriptionContent>
+            <DescriptionContent>{`${remainingQuantity <= 0 ? 0 : remainingQuantity} ${currentUnitName}`}</DescriptionContent>
           </Description>
         </div>
       </div>

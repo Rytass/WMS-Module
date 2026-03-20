@@ -60,12 +60,6 @@ const SplitBatchFieldArrayItem: FC<SplitBatchFieldArrayItemProps> = ({
             name={`items.${index}.quantity`}
             label="拆出量"
             layout={FormFieldLayout.HORIZONTAL}
-            onChange={(e) => {
-              update(index, {
-                ...field,
-                quantity: Number(e.target.value),
-              });
-            }}
             placeholder="數量"
             suffix={currentUnitName}
           />

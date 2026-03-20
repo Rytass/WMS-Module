@@ -3,6 +3,7 @@ import {
   FieldArrayWithId,
   UseFieldArrayUpdate,
   UseFieldArrayRemove,
+  useWatch,
 } from 'react-hook-form';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
 import { useInventorySignature } from '../../../useInventoryActions';
@@ -24,10 +25,11 @@ const SplitBatchFieldArray: FC<SplitBatchFieldArrayProps> = ({
   inventory,
 }) => {
   const { quantity } = useInventorySignature(inventory);
+  const items = useWatch<SplitBatchFieldValues, 'items'>({ name: 'items' });
 
   const splitQuantity = useMemo(
-    () => fields.reduce((prev, curr) => prev + curr.quantity, 0),
-    [fields],
+    () => items.reduce((prev, curr) => prev + curr.quantity, 0),
+    [items],
   );
   const remainingQuantity = useMemo(
     () => quantity - splitQuantity,

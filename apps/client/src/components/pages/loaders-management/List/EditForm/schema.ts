@@ -13,14 +13,14 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
     id: Yup.string().required('必填'),
     name: Yup.string().required('必填'),
   }).required('必填'),
-  length: Yup.number().nullable(),
-  width: Yup.number().nullable(),
-  height: Yup.number().nullable(),
+  length: Yup.number().min(0, '不可小於 0').nullable(),
+  width: Yup.number().min(0, '不可小於 0').nullable(),
+  height: Yup.number().min(0, '不可小於 0').nullable(),
   sizeUnit: Yup.object({
     id: Yup.string().required('必填'),
     name: Yup.string().required('必填'),
   }).nullable(),
-  volume: Yup.number().nullable(),
+  volume: Yup.number().min(0, '不可小於 0').nullable(),
   volumeUnit: Yup.object({
     id: Yup.string().required('必填'),
     name: Yup.string().required('必填'),
