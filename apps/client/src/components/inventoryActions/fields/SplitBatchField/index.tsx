@@ -2,11 +2,16 @@ import { useCallback } from 'react';
 import { useFieldArray } from 'react-hook-form';
 import { Typography, Button } from '@mezzanine-ui/react';
 import SplitBatchFieldArray from './SplitBatchFieldArray';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { SplitBatchFieldValues } from './typing';
 import classes from './index.module.scss';
 
-function SplitBatchField() {
-  const { fields, append, replace } = useFieldArray<
+interface SplitBatchFieldProps {
+  inventory?: AggregatedStockFragment;
+}
+
+function SplitBatchField({ inventory }: SplitBatchFieldProps) {
+  const { fields, append, replace, remove } = useFieldArray<
     SplitBatchFieldValues,
     'items'
   >({
@@ -47,7 +52,11 @@ function SplitBatchField() {
         </div>
       </div>
       {fields.length > 0 ? (
-        <SplitBatchFieldArray fields={fields} />
+        <SplitBatchFieldArray
+          fields={fields}
+          remove={remove}
+          inventory={inventory}
+        />
       ) : (
         <Typography variant="body" color="text-neutral-solid">
           目前尚未新增拆分項目。

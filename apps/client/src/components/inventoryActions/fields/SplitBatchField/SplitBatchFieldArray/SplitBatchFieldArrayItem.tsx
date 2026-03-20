@@ -1,26 +1,38 @@
-import { Typography, Button } from '@mezzanine-ui/react';
+import { useMemo } from 'react';
+import { Typography, Button, cx } from '@mezzanine-ui/react';
 import { FormFieldLayout } from '@mezzanine-ui/core/form';
 import { TrashIcon } from '@mezzanine-ui/icons';
+import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
 import InputField from '../../../../fields/InputField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import classes from './index.module.scss';
 
 interface SplitBatchFieldArrayItemProps {
   index: number;
+  remove: VoidFunction;
+  inventory: AggregatedStockFragment;
 }
 
 const SplitBatchFieldArrayItem: FC<SplitBatchFieldArrayItemProps> = ({
   index,
+  remove,
+  inventory,
 }) => {
+  const saleInformation = useMemo(
+    () =>
+      `${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`,
+    [inventory.saleId, inventory.saleSerialId],
+  );
+
   return (
-    <div className={classes.fieldArrayItem}>
+    <div className={cx(classes.itemCard, classes.fieldArrayItem)}>
       <div className={classes.titleWrapper}>
         <Typography variant="body-highlight" color="text-neutral-solid">
-          BlackTea
+          {inventory.material.key}
         </Typography>
         <div className={classes.removeWrapper}>
           <Typography variant="caption" color="text-neutral">
-            Sale123-456
+            {saleInformation}
           </Typography>
           <Button
             type="button"
@@ -28,6 +40,7 @@ const SplitBatchFieldArrayItem: FC<SplitBatchFieldArrayItemProps> = ({
             iconType="icon-only"
             size="minor"
             variant="destructive-ghost"
+            onClick={remove}
           />
         </div>
       </div>

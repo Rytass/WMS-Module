@@ -21,7 +21,7 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
   const additionalFields = useMemo(() => {
     switch (targetAction?.id) {
       case InventoryActions.SplitBatch:
-        return <SplitBatchField />;
+        return <SplitBatchField inventory={inventoryList[0]} />;
 
       case InventoryActions.MergeBatch:
         return <MergeBatchField />;
@@ -35,7 +35,7 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
       default:
         return null;
     }
-  }, [targetAction?.id]);
+  }, [inventoryList, targetAction?.id]);
 
   return (
     <SectionWrapper className={classes.block}>

@@ -50,7 +50,7 @@ const SplitBatch: FC<SplitBatchProps> = ({
         <div className={classes.fieldsWrapper}>
           <SplitTarget inventory={inventory} />
         </div>
-        <SplitBatchField />
+        <SplitBatchField inventory={inventory} />
       </div>
     </FormDrawerWrapper>
   );

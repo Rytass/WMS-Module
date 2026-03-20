@@ -2,7 +2,7 @@
 @use '@mezzanine-ui/system/radius';
 @use '@mezzanine-ui/system/palette';
 
-.fieldArrayItem {
+.itemCard {
   display: flex;
   align-self: stretch;
   flex-direction: column;
@@ -13,6 +13,10 @@
     spacing.semantic-variable(padding, horizontal, comfort);
   border: 1px solid palette.semantic-variable(border, neutral-faint);
   background-color: #fff;
+
+  &.fieldArrayItem {
+    background-color: palette.semantic-variable(background, brand-ghost);
+  }
 
   .titleWrapper {
     display: flex;
