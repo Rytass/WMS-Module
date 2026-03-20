@@ -11,7 +11,7 @@ interface SplitBatchFieldProps {
 }
 
 function SplitBatchField({ inventory }: SplitBatchFieldProps) {
-  const { fields, append, replace, remove } = useFieldArray<
+  const { fields, append, replace, update, remove } = useFieldArray<
     SplitBatchFieldValues,
     'items'
   >({
@@ -54,6 +54,7 @@ function SplitBatchField({ inventory }: SplitBatchFieldProps) {
       {fields.length > 0 && inventory ? (
         <SplitBatchFieldArray
           fields={fields}
+          update={update}
           remove={remove}
           inventory={inventory}
         />

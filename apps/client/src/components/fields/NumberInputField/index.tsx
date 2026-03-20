@@ -18,6 +18,7 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
   required = false,
   disabled = false,
   placeholder,
+  onChange: onChangeProps,
   suffix,
   size = 'sub',
 }) => {
@@ -34,11 +35,13 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
 
   const onChange: ChangeEventHandler<HTMLInputElement> = useCallback(
     (e) => {
+      onChangeProps?.(e);
+
       setValue(name, Number(e.target.value), {
         shouldDirty: true,
       });
     },
-    [name, setValue],
+    [name, onChangeProps, setValue],
   );
 
   return (

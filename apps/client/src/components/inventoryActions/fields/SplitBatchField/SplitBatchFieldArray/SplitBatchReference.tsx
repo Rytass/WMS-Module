@@ -9,9 +9,13 @@ import classes from './index.module.scss';
 
 interface SplitBatchReferenceProps {
   inventory: AggregatedStockFragment;
+  remainingQuantity: number;
 }
 
-const SplitBatchReference: FC<SplitBatchReferenceProps> = ({ inventory }) => {
+const SplitBatchReference: FC<SplitBatchReferenceProps> = ({
+  inventory,
+  remainingQuantity,
+}) => {
   const { saleInformation, currentUnitName } = useInventorySignature(inventory);
 
   return (
@@ -40,7 +44,7 @@ const SplitBatchReference: FC<SplitBatchReferenceProps> = ({ inventory }) => {
         </div>
         <div>
           <Description title="剩餘量 :" widthType="hug">
-            <DescriptionContent>{`500 ${currentUnitName}`}</DescriptionContent>
+            <DescriptionContent>{`${remainingQuantity} ${currentUnitName}`}</DescriptionContent>
           </Description>
         </div>
       </div>

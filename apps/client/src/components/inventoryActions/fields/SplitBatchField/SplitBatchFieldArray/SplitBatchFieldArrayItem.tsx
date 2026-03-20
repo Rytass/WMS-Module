@@ -1,3 +1,4 @@
+import { FieldArrayWithId, UseFieldArrayUpdate } from 'react-hook-form';
 import { Typography, Button, cx } from '@mezzanine-ui/react';
 import { FormFieldLayout } from '@mezzanine-ui/core/form';
 import { TrashIcon } from '@mezzanine-ui/icons';
@@ -5,16 +6,21 @@ import { AggregatedStockFragment } from '../../../../../graphql/generated/.graph
 import { useInventorySignature } from '../../../useInventoryActions';
 import InputField from '../../../../fields/InputField';
 import NumberInputField from '../../../../fields/NumberInputField';
+import { SplitBatchFieldValues } from '../typing';
 import classes from './index.module.scss';
 
 interface SplitBatchFieldArrayItemProps {
   index: number;
+  field: FieldArrayWithId<SplitBatchFieldValues, 'items', 'id'>;
+  update: UseFieldArrayUpdate<SplitBatchFieldValues, 'items'>;
   remove: VoidFunction;
   inventory: AggregatedStockFragment;
 }
 
 const SplitBatchFieldArrayItem: FC<SplitBatchFieldArrayItemProps> = ({
   index,
+  field,
+  update,
   remove,
   inventory,
 }) => {
@@ -54,6 +60,12 @@ const SplitBatchFieldArrayItem: FC<SplitBatchFieldArrayItemProps> = ({
             name={`items.${index}.quantity`}
             label="拆出量"
             layout={FormFieldLayout.HORIZONTAL}
+            onChange={(e) => {
+              update(index, {
+                ...field,
+                quantity: Number(e.target.value),
+              });
+            }}
             placeholder="數量"
             suffix={currentUnitName}
           />
