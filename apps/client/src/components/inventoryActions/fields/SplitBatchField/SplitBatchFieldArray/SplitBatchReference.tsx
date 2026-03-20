@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   Icon,
   Typography,
@@ -6,7 +7,10 @@ import {
 } from '@mezzanine-ui/react';
 import { WarningFilledIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
-import { useInventorySignature } from '../../../useInventoryActions';
+import {
+  useInventoryActions,
+  useInventorySignature,
+} from '../../../useInventoryActions';
 import classes from './index.module.scss';
 
 interface SplitBatchReferenceProps {
@@ -18,7 +22,25 @@ const SplitBatchReference: FC<SplitBatchReferenceProps> = ({
   inventory,
   remainingQuantity,
 }) => {
+  const { updateErrorSignature, removeErrorSignature } = useInventoryActions();
   const { saleInformation, currentUnitName } = useInventorySignature(inventory);
+
+  useEffect(() => {
+    if (remainingQuantity < 0) {
+      updateErrorSignature(
+        inventory.id,
+        `超出可分配量：${remainingQuantity} ${currentUnitName}（超額）`,
+      );
+    } else {
+      removeErrorSignature(inventory.id);
+    }
+  }, [
+    currentUnitName,
+    inventory.id,
+    remainingQuantity,
+    removeErrorSignature,
+    updateErrorSignature,
+  ]);
 
   return (
     <div className={classes.itemCard}>
