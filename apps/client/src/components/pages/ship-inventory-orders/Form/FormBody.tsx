@@ -51,12 +51,13 @@ function ShipInventoryOrderFormBody({
     (values: AddFormValues, unitOptions: SelectValue[]) => {
       append({
         ...values,
+        serialId: `${(fields.length + 1) * 10}`,
         shippedQuantity: 0,
         unitOptions,
         isExisted: false,
       });
     },
-    [append],
+    [append, fields.length],
   );
 
   return (

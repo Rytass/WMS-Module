@@ -32,6 +32,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         unit: Yup.string().required('必填'),
 
         itemId: Yup.string(),
+        serialId: Yup.string().required('必填'),
         receivedQuantity: Yup.number().required('必填'),
         unitOptions: Yup.array()
           .of(

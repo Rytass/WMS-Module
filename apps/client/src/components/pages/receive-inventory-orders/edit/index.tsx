@@ -33,7 +33,7 @@ function EditReceiveInventoryOrder() {
             items: values.items.map((item, index) => ({
               id: item.itemId || undefined,
               unitId: item.unit === BASE_UNIT ? null : item.unit,
-              serialId: `${(index + 1) * 10}`,
+              serialId: item.serialId,
               materialKey: item.material?.name,
               batchKey: item.batch?.name,
               locationKey: item.location?.name,
