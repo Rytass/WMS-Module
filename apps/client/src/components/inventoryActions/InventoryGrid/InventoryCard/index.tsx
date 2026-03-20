@@ -19,11 +19,13 @@ import classes from './index.module.scss';
 
 interface InventoryCardProps {
   inventory: AggregatedStockFragment;
-  isAllSameMaterial: boolean;
+  onlySelectUnit?: boolean;
+  isAllSameMaterial?: boolean;
 }
 
 const InventoryCard: FC<InventoryCardProps> = ({
   inventory,
+  onlySelectUnit,
   isAllSameMaterial,
 }) => {
   const {

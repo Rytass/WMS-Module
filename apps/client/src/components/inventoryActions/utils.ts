@@ -313,7 +313,7 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   // InventoryActions.AllocateInventory,
   // InventoryActions.DeallocateInventory,
   // InventoryActions.ShipInventory,
-  // InventoryActions.SplitBatch,
+  InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   // InventoryActions.ReclassifyInventory,
   // InventoryActions.TransferToVendor,

@@ -12,6 +12,7 @@
   padding: spacing.semantic-variable(padding, vertical, calm)
     spacing.semantic-variable(padding, horizontal, comfort);
   border: 1px solid palette.semantic-variable(border, neutral-faint);
+  background-color: #fff;
 
   &.isDisabled {
     border-color: palette.semantic-variable(border, neutral-light);
