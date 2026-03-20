@@ -27,6 +27,7 @@ export class ReceiveInventoryOrderResolver {
     return loaders.batchMany.load({
       __entity: ReceiveInventoryOrderItemEntityClass,
       __from: { orderId: id },
+      __conditions: (qb) => qb.orderBy('entity."serialId"', 'ASC'),
     });
   }
 }
