@@ -4,11 +4,13 @@ import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
 
 interface SplitTargetProps {
-  inventory: AggregatedStockFragment;
+  inventory?: AggregatedStockFragment;
   haveGrayBg?: boolean;
 }
 
 const SplitTarget: FC<SplitTargetProps> = ({ inventory, haveGrayBg }) => {
+  if (!inventory) return null;
+
   return (
     <div
       className={cx(classes.host, {

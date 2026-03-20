@@ -60,6 +60,12 @@ const InventoryCard: FC<InventoryCardProps> = ({
     return currentSignature?.unitId;
   }, [currentSignature?.unitId]);
 
+  const saleInformation = useMemo(
+    () =>
+      `${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`,
+    [inventory.saleId, inventory.saleSerialId],
+  );
+
   const unitOptions = useMemo(
     () => [
       {
@@ -153,82 +159,106 @@ const InventoryCard: FC<InventoryCardProps> = ({
       })}
     >
       <div className={classes.titleWrapper}>
-        <div className={classes.leftTitleWrapper}>
-          <Typography variant="body-highlight" color="text-neutral-solid">
-            {inventory.material.key}
-          </Typography>
-          <Typography
-            variant="label-secondary"
-            color="text-neutral"
-            className={classes.tag}
-          >
-            {inventory.batch.key}
-          </Typography>
-        </div>
-        <div className={classes.rightTitleWrapper}>
-          {inventory.saleId && (
-            <Typography variant="caption" color="text-neutral">
-              {`${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`}
-            </Typography>
-          )}
-          <Button
-            type="button"
-            icon={TrashIcon}
-            iconType="icon-only"
-            size="minor"
-            variant="destructive-ghost"
-            onClick={() => {
-              removeTargetInventory(inventory.id);
-
-              Message.warning(`料號：${inventory.material.key} / 批號：${inventory.batch.key} / 儲存位置：${inventory.location.key}
-已移除${targetAction?.title}`);
-            }}
-          />
-        </div>
-      </div>
-      <div className={classes.contentWrapper}>
-        <Description title="庫存 :" widthType="hug">
-          <DescriptionContent>{`${quantity}`}</DescriptionContent>
-        </Description>
-        <FormField
-          name="inventory-input"
-          controlFieldSlotLayout={ControlFieldSlotLayout.SUB}
-          hintText={currentErrorSignature ? currentErrorSignature : undefined}
-          severity={currentErrorSignature ? 'error' : 'info'}
+        <div
+          className={cx(classes.leftTitleWrapper, {
+            [classes.onlySelectUnit]: onlySelectUnit,
+          })}
         >
-          <Input
-            fullWidth
-            error={!!currentErrorSignature}
-            variant="select"
-            value={`${inputQuantity}`}
-            onChange={(e) => {
-              updateInventoryQuantity(inventory.id, Number(e.target.value));
-            }}
-            onSelect={(value) => {
-              if (value === BASE_UNIT) {
-                updateInventoryUnitId(inventory.id, null);
-              } else {
-                updateInventoryUnitId(inventory.id, value as string);
-              }
-            }}
-            placeholder="請輸入數量"
-            size="sub"
-            selectedValue={currentUnitId || BASE_UNIT}
-            selectButton={{
-              position: 'suffix',
-              value: currentUnitName,
-            }}
-            options={unitOptions}
-            inputType="number"
-            inputProps={{
-              style: {
-                textAlign: 'right',
-              },
-            }}
-            disabled={isDisabledCard || undefined}
-          />
-        </FormField>
+          <div className={classes.expandedWrapper}>
+            <Typography variant="body-highlight" color="text-neutral-solid">
+              {inventory.material.key}
+            </Typography>
+            {onlySelectUnit && inventory.saleId && (
+              <Typography variant="caption" color="text-neutral">
+                {saleInformation}
+              </Typography>
+            )}
+          </div>
+          <div className={classes.expandedWrapper}>
+            <Typography
+              variant="label-secondary"
+              color="text-neutral"
+              className={classes.tag}
+            >
+              {inventory.batch.key}
+            </Typography>
+            {onlySelectUnit && (
+              <div>
+                <Description title="庫存 :" widthType="hug">
+                  <DescriptionContent>{`${quantity}`}</DescriptionContent>
+                </Description>
+              </div>
+            )}
+          </div>
+        </div>
+        {!onlySelectUnit && (
+          <div className={classes.rightTitleWrapper}>
+            {inventory.saleId && (
+              <Typography variant="caption" color="text-neutral">
+                {saleInformation}
+              </Typography>
+            )}
+            <Button
+              type="button"
+              icon={TrashIcon}
+              iconType="icon-only"
+              size="minor"
+              variant="destructive-ghost"
+              onClick={() => {
+                removeTargetInventory(inventory.id);
+
+                Message.warning(`料號：${inventory.material.key} / 批號：${inventory.batch.key} / 儲存位置：${inventory.location.key}
+已移除${targetAction?.title}`);
+              }}
+            />
+          </div>
+        )}
       </div>
+      {!onlySelectUnit && (
+        <div className={classes.contentWrapper}>
+          <Description title="庫存 :" widthType="hug">
+            <DescriptionContent>{`${quantity}`}</DescriptionContent>
+          </Description>
+          <FormField
+            name="inventory-input"
+            controlFieldSlotLayout={ControlFieldSlotLayout.SUB}
+            hintText={currentErrorSignature ? currentErrorSignature : undefined}
+            severity={currentErrorSignature ? 'error' : 'info'}
+          >
+            <Input
+              fullWidth
+              error={!!currentErrorSignature}
+              variant="select"
+              value={`${inputQuantity}`}
+              onChange={(e) => {
+                updateInventoryQuantity(inventory.id, Number(e.target.value));
+              }}
+              onSelect={(value) => {
+                if (value === BASE_UNIT) {
+                  updateInventoryUnitId(inventory.id, null);
+                } else {
+                  updateInventoryUnitId(inventory.id, value as string);
+                }
+              }}
+              placeholder="請輸入數量"
+              size="sub"
+              selectedValue={currentUnitId || BASE_UNIT}
+              selectButton={{
+                position: 'suffix',
+                value: currentUnitName,
+              }}
+              options={unitOptions}
+              inputType="number"
+              inputProps={{
+                style: {
+                  textAlign: 'right',
+                },
+              }}
+              disabled={isDisabledCard || undefined}
+            />
+          </FormField>
+        </div>
+      )}
     </div>
   );
 };

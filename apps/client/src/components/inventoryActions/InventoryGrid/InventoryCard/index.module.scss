@@ -31,6 +31,18 @@
       align-items: flex-start;
       gap: spacing.semantic-variable(gap, tight);
 
+      &.onlySelectUnit {
+        flex: 1;
+        gap: spacing.semantic-variable(gap, base);
+      }
+
+      .expandedWrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        align-self: stretch;
+      }
+
       .tag {
         border-radius: radius.variable(base);
         padding: spacing.semantic-variable(padding, vertical, micro)
