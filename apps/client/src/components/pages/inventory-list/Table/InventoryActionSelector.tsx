@@ -13,7 +13,10 @@ import {
   inventoryActionOptions,
 } from '../../../inventoryActions/utils';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
-import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import {
+  useInventoryActions,
+  useAddInventories,
+} from '../../../inventoryActions/useInventoryActions';
 
 interface InventoryActionSelectorProps {
   targetStocks: AggregatedStockFragment[];
@@ -26,12 +29,8 @@ function InventoryActionSelector({
   setTargetStocks,
   setNeedClearSelectedRows,
 }: InventoryActionSelectorProps) {
-  const {
-    targetAction,
-    setTargetAction,
-    targetInventoryIds,
-    pushTargetInventoryIds,
-  } = useInventoryActions();
+  const { targetAction, setTargetAction } = useInventoryActions();
+  const addInventories = useAddInventories();
   const [open, toggleOpen] = useState<boolean>(false);
 
   const availableOptions = useMemo(() => {
@@ -57,51 +56,19 @@ function InventoryActionSelector({
     });
   }, [targetStocks]);
 
-  const onAddInventoryIds = useCallback(
+  const onAddInventories = useCallback(
     (currentAction: InventoryActionItem | null) => {
-      const duplicateItem = targetStocks.find((s) =>
-        targetInventoryIds.includes(s.id),
-      );
-      const invalidStock = targetStocks.find(
-        (stock) =>
-          currentAction && !currentAction.status.includes(stock.status),
-      );
-
-      if (duplicateItem) {
-        Message.error(`料號：${duplicateItem.material.key} / 批號：${duplicateItem.batch.key} / 儲存位置：${duplicateItem.location.key}
-此項目已在清單中，無法重複加入。`);
-      } else if (invalidStock) {
-        Message.error(`料號：${invalidStock.material.key} / 批號：${invalidStock.batch.key} / 儲存位置：${invalidStock.location.key}
-無法執行作業：料號，資料不符作業條件。`);
-      } else if (
-        currentAction &&
-        isNumber(currentAction.maxDataLength) &&
-        targetStocks.length + targetInventoryIds.length >
-          currentAction.maxDataLength
-      ) {
-        Message.warning(
-          `${currentAction.submitText}僅能選取${currentAction.maxDataLength}個項目`,
-        );
-      } else if (
-        currentAction &&
-        currentAction.needSameMaterial &&
-        uniq(targetStocks.map((stock) => stock.material.key)).length !== 1
-      ) {
-        Message.warning(`${currentAction.submitText}僅能選取相同料號`);
-      } else {
-        pushTargetInventoryIds(targetStocks.map((s) => s.id));
-        setTargetStocks([]);
-        setNeedClearSelectedRows(true);
-        Message.success(`項目已加入${currentAction?.title}`);
-      }
+      addInventories({
+        targetStocks,
+        currentAction,
+        onAddSuccess: () => {
+          setTargetStocks([]);
+          setNeedClearSelectedRows(true);
+          Message.success(`項目已加入${currentAction?.title}`);
+        },
+      });
     },
-    [
-      setNeedClearSelectedRows,
-      pushTargetInventoryIds,
-      setTargetStocks,
-      targetInventoryIds,
-      targetStocks,
-    ],
+    [addInventories, setNeedClearSelectedRows, setTargetStocks, targetStocks],
   );
 
   if (targetAction) {
@@ -113,7 +80,7 @@ function InventoryActionSelector({
         iconType="leading"
         disabled={targetStocks.length === 0}
         onClick={() => {
-          onAddInventoryIds(targetAction);
+          onAddInventories(targetAction);
         }}
       >
         {`加入${targetAction.title}`}
@@ -130,7 +97,7 @@ function InventoryActionSelector({
         const currentAction =
           inventoryActionOptions.find((o) => o.id === option.id) ?? null;
         setTargetAction(currentAction);
-        onAddInventoryIds(currentAction);
+        onAddInventories(currentAction);
         toggleOpen(false);
       }}
       placement="bottom-end"

@@ -4,13 +4,13 @@ import { ArgsType, Field, ID, InputType } from '@nestjs/graphql';
 export class ReclassifyInventoryOrderItemInput {
   @Field(() => Number)
   quantity!: number;
+
+  @Field(() => ID)
+  aggregatedKey!: string;
 }
 
 @ArgsType()
 export class ReclassifyInventoryOrderArgs {
-  @Field(() => ID)
-  aggregatedKey!: string;
-
   @Field(() => ID)
   materialKey!: string;
 

@@ -6,12 +6,6 @@ import {
 
 @ArgsType()
 export class CreateAllocateInventoryOrderArgs {
-  @Field(() => String, { nullable: true })
-  description?: string;
-
-  @Field(() => String, { nullable: true })
-  reason?: string;
-
   @Field(() => [CreateAllocateInventoryOrderItemArgs])
   items!: CreateAllocateInventoryOrderItemArgs[];
 }

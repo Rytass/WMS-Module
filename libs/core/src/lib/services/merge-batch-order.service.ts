@@ -46,11 +46,12 @@ export class MergeBatchOrderService<
       );
       const orderRepository = manager.getRepository(OrderEntity);
       const stockRepository = manager.getRepository(StockEntityClass);
-      const batchRepository = manager.getRepository(BatchEntityClass);
 
       // Get target batch information (batch to merge into)
-      const targetBatch = await batchRepository.findOneOrFail({
-        where: { key: options.batchKey, material: { id: options.materialId } },
+      const targetBatch = await this.batchService.getBatch({
+        manager,
+        materialId: options.materialId,
+        key: options.batchKey,
       });
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
       const order = await mergeBatchOrderRepository.save(

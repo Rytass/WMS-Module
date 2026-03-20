@@ -7,49 +7,89 @@
   align-self: stretch;
   flex-direction: column;
   align-items: flex-start;
-  gap: spacing.semantic-variable(gap, base);
+  gap: spacing.semantic-variable(gap, slim);
   border-radius: radius.variable(roomy);
   padding: spacing.semantic-variable(padding, vertical, calm)
     spacing.semantic-variable(padding, horizontal, comfort);
   border: 1px solid palette.semantic-variable(border, neutral-faint);
+  background-color: #fff;
 
   &.isDisabled {
     border-color: palette.semantic-variable(border, neutral-light);
     background-color: palette.semantic-variable(background, neutral-subtle);
   }
 
-  .titleWrapper {
+  .wrapper {
     display: flex;
     align-self: stretch;
+    flex-direction: column;
     align-items: flex-start;
-    justify-content: space-between;
+    gap: spacing.semantic-variable(gap, base);
 
-    .leftTitleWrapper {
+    .titleWrapper {
       display: flex;
-      flex-direction: column;
+      align-self: stretch;
       align-items: flex-start;
-      gap: spacing.semantic-variable(gap, tight);
+      justify-content: space-between;
 
-      .tag {
-        border-radius: radius.variable(base);
-        padding: spacing.semantic-variable(padding, vertical, micro)
-          spacing.semantic-variable(padding, horizontal, tiny);
-        background-color: palette.semantic-variable(background, neutral-faint);
+      .leftTitleWrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: spacing.semantic-variable(gap, tight);
+
+        &.onlySelectUnit {
+          flex: 1;
+          gap: spacing.semantic-variable(gap, base);
+        }
+
+        .expandedWrapper {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          align-self: stretch;
+        }
+
+        .unitSelectorWrapper {
+          display: grid;
+          align-items: center;
+          justify-content: flex-end;
+          grid-template-columns: auto 90px;
+          gap: spacing.semantic-variable(gap, slim);
+        }
+
+        .tag {
+          border-radius: radius.variable(base);
+          padding: spacing.semantic-variable(padding, vertical, micro)
+            spacing.semantic-variable(padding, horizontal, tiny);
+          background-color: palette.semantic-variable(
+            background,
+            neutral-faint
+          );
+        }
+      }
+
+      .rightTitleWrapper {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: spacing.semantic-variable(gap, calm);
       }
     }
 
-    .rightTitleWrapper {
-      display: flex;
+    .contentWrapper {
+      display: grid;
+      align-self: stretch;
       align-items: center;
-      justify-content: flex-end;
-      gap: spacing.semantic-variable(gap, calm);
+      grid-template-columns: 1fr 200px;
     }
   }
 
-  .contentWrapper {
-    display: grid;
+  .errorWrapper {
+    display: flex;
     align-self: stretch;
     align-items: center;
-    grid-template-columns: 1fr 200px;
+    justify-content: flex-end;
+    gap: spacing.semantic-variable(gap, tiny);
   }
 }

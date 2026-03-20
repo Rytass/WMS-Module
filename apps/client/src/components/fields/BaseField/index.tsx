@@ -43,11 +43,7 @@ const BaseField: FC<BaseFieldProps> = ({
       label={label}
       name={name}
       layout={layout}
-      labelSpacing={
-        layout === FormFieldLayout.VERTICAL
-          ? FormFieldLabelSpacing.SUB
-          : FormFieldLabelSpacing.MAIN
-      }
+      labelSpacing={FormFieldLabelSpacing.SUB}
       controlFieldSlotLayout={controlFieldSlotLayout}
       required={required}
       disabled={disabled}

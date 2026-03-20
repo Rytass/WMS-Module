@@ -3,6 +3,7 @@ import { Typography, Empty } from '@mezzanine-ui/react';
 import SectionWrapper from '../../../SectionWrapper';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import SplitBatchField from '../../../inventoryActions/fields/SplitBatchField';
 import MergeBatchField from '../../../inventoryActions/fields/MergeBatchField';
 import ReturnFromVendorField from '../../../inventoryActions/fields/ReturnFromVendorField';
 import ReturnFromCustomerField from '../../../inventoryActions/fields/ReturnFromCustomerField';
@@ -19,6 +20,9 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
 
   const additionalFields = useMemo(() => {
     switch (targetAction?.id) {
+      case InventoryActions.SplitBatch:
+        return <SplitBatchField inventory={inventoryList[0]} />;
+
       case InventoryActions.MergeBatch:
         return <MergeBatchField />;
 
@@ -31,7 +35,7 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
       default:
         return null;
     }
-  }, [targetAction?.id]);
+  }, [inventoryList, targetAction?.id]);
 
   return (
     <SectionWrapper className={classes.block}>

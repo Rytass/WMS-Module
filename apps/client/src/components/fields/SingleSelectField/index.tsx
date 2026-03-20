@@ -88,7 +88,6 @@ export const SingleSelectField: FC<SingleSelectFieldProps> = ({
         value={watchValue}
         options={options}
         menuMaxHeight={menuMaxHeight}
-        dropdownZIndex={1004}
       />
     </BaseField>
   );

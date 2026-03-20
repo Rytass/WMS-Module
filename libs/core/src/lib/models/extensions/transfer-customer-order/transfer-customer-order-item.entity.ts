@@ -11,7 +11,9 @@ import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { TransferCustomerOrderEntityClass } from './transfer-customer-order.entity';
 import { TransferCustomerOrderChangeEntityClass } from './transfer-customer-order-change.entity';
 
-export const TransferCustomerOrderItemEntity = Symbol('TransferCustomerOrderItemEntity');
+export const TransferCustomerOrderItemEntity = Symbol(
+  'TransferCustomerOrderItemEntity',
+);
 @Entity('transfer_customer_order_items')
 @TableInheritance({ column: { type: 'varchar', name: 'entityName' } })
 export class TransferCustomerOrderItemEntityClass {
@@ -20,10 +22,26 @@ export class TransferCustomerOrderItemEntityClass {
 
   @Column({ type: 'uuid' })
   @Index()
-  locationId!: string;
+  materialId!: string;
+
+  @Column({ type: 'uuid' })
+  @Index()
+  batchId!: string;
 
   @Column({ type: 'uuid', nullable: true })
+  @Index()
+  unitId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
+  locationId!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  @Index()
   loaderId!: string | null;
+
+  @Column({ type: 'varchar' })
+  customerId!: string;
 
   @Column({ type: 'numeric' })
   targetTransferredQuantity!: number;
