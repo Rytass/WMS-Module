@@ -8,10 +8,16 @@ import {
   AggregatedStocksForInventoryActionsDocument,
   CreateHoldInventoryOrderDocument,
   ReleaseDocument,
+  SplitBatchDocument,
   MergeBatchDocument,
 } from '../../graphql/generated/.graphql';
 import { formatAvailableInventoryList } from './utils';
-import { useInventoryActions } from './useInventoryActions';
+import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
+import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
+import {
+  useInventoryActions,
+  useInventorySignature,
+} from './useInventoryActions';
 
 const refetchQueriesAfterInventoryActions = [
   StocksGroupedByMaterialDocument,
@@ -137,6 +143,46 @@ export function useReleaseHoldInventory(
   };
 }
 
+export function useSplitBatch(inventory: AggregatedStockFragment) {
+  const { targetAction, resetAll } = useInventoryActions();
+  const { currentUnitId } = useInventorySignature(inventory);
+  const [splitBatch] = useMutation(SplitBatchDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(
+    async ({ items }: SplitBatchFieldValues) => {
+      try {
+        const { data } = await splitBatch({
+          variables: {
+            aggregatedKey: inventory.id,
+            unitId: currentUnitId,
+            items,
+          },
+        });
+
+        if (data?.splitBatch.id) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [
+      currentUnitId,
+      inventory.id,
+      resetAll,
+      splitBatch,
+      targetAction?.submitText,
+    ],
+  );
+
+  return {
+    onSubmit,
+  };
+}
+
 export function useMergeBatch(inventoryList: AggregatedStockFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [mergeBatch] = useMutation(MergeBatchDocument, {
@@ -144,7 +190,7 @@ export function useMergeBatch(inventoryList: AggregatedStockFragment[]) {
   });
 
   const onSubmit = useCallback(
-    async ({ newKey }: { newKey: string }) => {
+    async ({ newKey }: MergeBatchFieldValues) => {
       try {
         const { data } = await mergeBatch({
           variables: {
