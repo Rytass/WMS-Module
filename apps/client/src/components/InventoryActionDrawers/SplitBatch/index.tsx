@@ -8,6 +8,7 @@ import { useShareFooterProps } from '../hooks';
 import SplitBatchField from '../../inventoryActions/fields/SplitBatchField';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useSplitBatch } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface SplitBatchProps {
@@ -30,20 +31,20 @@ const SplitBatch: FC<SplitBatchProps> = ({
     },
   });
 
+  const inventory = useMemo(() => inventoryList[0], [inventoryList]);
+
+  const { onSubmit } = useSplitBatch(inventory);
+
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
     open,
   });
 
-  const inventory = useMemo(() => inventoryList[0], [inventoryList]);
-
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={(values) => {
-        console.log('values', values);
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <div className={classes.wrapper}>

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
@@ -7,6 +8,7 @@ import HostSection from '../HostSection';
 import SplitTarget from '../../../../inventoryActions/SplitTarget';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useSplitBatch } from '../../../../inventoryActions/useApi';
 
 interface SplitBatchProps {
   inventoryList: AggregatedStockFragment[];
@@ -24,14 +26,17 @@ function SplitBatch({
     },
   });
 
+  const inventory = useMemo(() => inventoryList[0], [inventoryList]);
+
+  const { onSubmit } = useSplitBatch(inventory);
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} {...formFooterProps}>
+    <FormWrapper methods={methods} onSubmit={onSubmit} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
-        customizedMainBlock={<SplitTarget inventory={inventoryList[0]} />}
+        customizedMainBlock={<SplitTarget inventory={inventory} />}
       />
     </FormWrapper>
   );
