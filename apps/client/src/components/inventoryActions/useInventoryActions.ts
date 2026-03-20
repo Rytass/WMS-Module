@@ -85,7 +85,7 @@ export const useAddInventories = () => {
   return addInventories;
 };
 
-export function useInventorySignature(inventory?: AggregatedStockFragment) {
+export function useInventorySignature(inventory: AggregatedStockFragment) {
   const { inventorySignature } = useInventoryActions();
 
   const currentSignature = useMemo(
@@ -95,8 +95,8 @@ export function useInventorySignature(inventory?: AggregatedStockFragment) {
 
   const saleInformation = useMemo(
     () =>
-      `${inventory?.saleId}${inventory?.saleSerialId ? `-${inventory?.saleSerialId}` : ''}`,
-    [inventory?.saleId, inventory?.saleSerialId],
+      `${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`,
+    [inventory.saleId, inventory.saleSerialId],
   );
 
   const currentUnitId = useMemo(() => {
@@ -107,14 +107,14 @@ export function useInventorySignature(inventory?: AggregatedStockFragment) {
     () => [
       {
         id: BASE_UNIT,
-        name: inventory?.material.baseUnit.key,
+        name: inventory.material.baseUnit.key,
       },
-      ...(inventory?.material.materialUnits ?? []).map((u) => ({
+      ...inventory.material.materialUnits.map((u) => ({
         id: u.id,
         name: u.unit,
       })),
     ],
-    [inventory?.material.baseUnit.key, inventory?.material.materialUnits],
+    [inventory.material.baseUnit.key, inventory.material.materialUnits],
   );
 
   const currentUnitName = useMemo(() => {
@@ -125,22 +125,22 @@ export function useInventorySignature(inventory?: AggregatedStockFragment) {
 
   const quantity = useMemo(() => {
     if (currentUnitId) {
-      const conversionFactor = inventory?.material.materialUnits.find(
+      const conversionFactor = inventory.material.materialUnits.find(
         (u) => u.id === currentUnitId,
       )?.conversionFactor;
 
       if (conversionFactor) {
-        return Math.round((inventory?.quantity / conversionFactor) * 100) / 100;
+        return Math.round((inventory.quantity / conversionFactor) * 100) / 100;
       }
 
-      return inventory?.quantity;
+      return inventory.quantity;
     }
 
-    return inventory?.quantity;
-  }, [currentUnitId, inventory?.material.materialUnits, inventory?.quantity]);
+    return inventory.quantity;
+  }, [currentUnitId, inventory.material.materialUnits, inventory.quantity]);
 
   const inputQuantity = useMemo(
-    () => currentSignature?.quantity,
+    () => currentSignature?.quantity ?? 0,
     [currentSignature?.quantity],
   );
 
