@@ -39,8 +39,7 @@ export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
   supportingActionOnClick: () => Promise<void>;
   disableSubmitButton: () => boolean;
 } {
-  const { targetInventories, targetAction, errorSignature } =
-    useInventoryActions();
+  const { targetAction, errorSignature } = useInventoryActions();
   const onClearAll = useClearAll();
 
   const haveError = useMemo(() => !isEmpty(errorSignature), [errorSignature]);
@@ -58,8 +57,8 @@ export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
         isEnableActionStatus(item.status, targetAction?.status),
       ).length === 0 ||
       (isNumber(targetAction?.maxDataLength) &&
-        targetInventories.length > targetAction.maxDataLength) ||
+        inventoryList.length > targetAction.maxDataLength) ||
       (!!targetAction?.needSameMaterial &&
-        uniq(targetInventories.map((i) => i.material.key)).length > 1),
+        uniq(inventoryList.map((i) => i.material.key)).length > 1),
   };
 }

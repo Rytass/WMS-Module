@@ -1,4 +1,4 @@
-import { useContext, useCallback } from 'react';
+import { useMemo, useContext, useCallback } from 'react';
 import { isNumber, uniq } from 'lodash';
 import { Message } from '@mezzanine-ui/react';
 import {
@@ -6,6 +6,7 @@ import {
   InventoryActionsContextValues,
 } from './InventoryActionsContext';
 import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
+import { BASE_UNIT } from '../../utils/share';
 import { InventoryActionItem } from './utils';
 
 export const useInventoryActions = (): InventoryActionsContextValues => {
@@ -83,3 +84,63 @@ export const useAddInventories = () => {
 
   return addInventories;
 };
+
+export function useInventorySignature(inventory: AggregatedStockFragment) {
+  const { inventorySignature } = useInventoryActions();
+
+  const currentSignature = useMemo(
+    () => inventorySignature[inventory.id],
+    [inventory.id, inventorySignature],
+  );
+
+  const currentUnitId = useMemo(() => {
+    return currentSignature?.unitId;
+  }, [currentSignature?.unitId]);
+
+  const unitOptions = useMemo(
+    () => [
+      {
+        id: BASE_UNIT,
+        name: inventory.material.baseUnit.key,
+      },
+      ...inventory.material.materialUnits.map((u) => ({
+        id: u.id,
+        name: u.unit,
+      })),
+    ],
+    [inventory.material.baseUnit.key, inventory.material.materialUnits],
+  );
+
+  const currentUnitName = useMemo(() => {
+    return (
+      unitOptions.find((o) => o.id === (currentUnitId || BASE_UNIT))?.name ?? ''
+    );
+  }, [currentUnitId, unitOptions]);
+
+  const quantity = useMemo(() => {
+    if (currentUnitId) {
+      const conversionFactor = inventory.material.materialUnits.find(
+        (u) => u.id === currentUnitId,
+      )?.conversionFactor;
+
+      if (conversionFactor) {
+        return Math.round((inventory.quantity / conversionFactor) * 100) / 100;
+      }
+
+      return inventory.quantity;
+    }
+
+    return inventory.quantity;
+  }, [currentUnitId, inventory.material.materialUnits, inventory.quantity]);
+
+  const inputQuantity = useMemo(
+    () => currentSignature?.quantity,
+    [currentSignature?.quantity],
+  );
+
+  return {
+    currentUnitName,
+    quantity,
+    inputQuantity,
+  };
+}
