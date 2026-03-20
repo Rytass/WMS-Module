@@ -9,12 +9,6 @@ export class AllocateInventoryOrderDto {
   @Field(() => String)
   key!: string;
 
-  @Field(() => String)
-  description!: string;
-
-  @Field(() => String)
-  reason!: string;
-
   @Field(() => Date)
   createdAt!: Date;
 }

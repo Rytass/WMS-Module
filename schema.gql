@@ -262,8 +262,6 @@ type HoldInventoryOrders {
 type AllocateInventoryOrderDto {
   id: ID!
   key: String!
-  description: String!
-  reason: String!
   createdAt: DateTime!
   items: [AllocateInventoryOrderItemDto!]!
 }
@@ -536,8 +534,8 @@ type Mutation {
   release(items: [ReleaseOrderArgs!]!): Boolean!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
-  createAllocateInventoryOrder(description: String, reason: String, items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
-  updateAllocateInventoryOrder(description: String, reason: String, id: String!, removedAt: DateTime, items: [UpdateAllocateInventoryOrderItemArgs!]): AllocateInventoryOrderDto!
+  createAllocateInventoryOrder(items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
+  updateAllocateInventoryOrder(id: String!, removedAt: DateTime, items: [UpdateAllocateInventoryOrderItemArgs!]): AllocateInventoryOrderDto!
   deallocate(items: [DeallocateOrderArgs!]!): Boolean!
   createTransferCustomerOrder(description: String, customerId: String!, createdBy: String, items: [CreateTransferCustomerOrderItemArgs!]!): TransferCustomerOrderDto!
   updateTransferCustomerOrder(description: String, customerId: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferCustomerOrderItemArgs!]): TransferCustomerOrderDto!
@@ -547,7 +545,7 @@ type Mutation {
   returnTransferVendorOrder(items: [ReturnTransferVendorOrderArgs!]!): Boolean!
   splitBatch(aggregatedKey: ID!, unitId: ID, items: [SplitBatchItemInput!]!): SplitBatchOrderDto!
   mergeBatch(batchKey: String!, materialId: ID!, items: [MergeBatchItemInput!]!): MergeBatchOrderDto!
-  reclassifyInventoryOrder(aggregatedKey: ID!, materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
+  reclassifyInventoryOrder(materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
 }
 
 input CreateLoadersArgs {
@@ -774,4 +772,5 @@ input MergeBatchItemInput {
 
 input ReclassifyInventoryOrderItemInput {
   quantity: Float!
+  aggregatedKey: ID!
 }
