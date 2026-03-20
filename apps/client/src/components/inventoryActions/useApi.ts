@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { Message } from '@mezzanine-ui/react';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
 import {
@@ -6,7 +6,7 @@ import {
   StocksGroupedByMaterialDocument,
   AggregatedStocksDocument,
   AggregatedStocksForInventoryActionsDocument,
-  CreateTransferOrderDocument,
+  // CreateTransferOrderDocument,
   CreateHoldInventoryOrderDocument,
   ReleaseDocument,
   SplitBatchDocument,
@@ -15,10 +15,7 @@ import {
 import { formatAvailableInventoryList } from './utils';
 import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
 import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
-import {
-  useInventoryActions,
-  useInventorySignature,
-} from './useInventoryActions';
+import { useInventoryActions } from './useInventoryActions';
 
 const refetchQueriesAfterInventoryActions = [
   StocksGroupedByMaterialDocument,
@@ -144,19 +141,27 @@ export function useReleaseHoldInventory(
   };
 }
 
-export function useSplitBatch(inventory: AggregatedStockFragment) {
-  const { targetAction, resetAll } = useInventoryActions();
-  const { currentUnitId } = useInventorySignature(inventory);
+export function useSplitBatch(inventory?: AggregatedStockFragment) {
+  const { inventorySignature, targetAction, resetAll } = useInventoryActions();
   const [splitBatch] = useMutation(SplitBatchDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
+
+  const currentSignature = useMemo(
+    () => (inventory ? inventorySignature[inventory.id] : null),
+    [inventory, inventorySignature],
+  );
+
+  const currentUnitId = useMemo(() => {
+    return currentSignature?.unitId ?? null;
+  }, [currentSignature?.unitId]);
 
   const onSubmit = useCallback(
     async ({ items }: SplitBatchFieldValues) => {
       try {
         const { data } = await splitBatch({
           variables: {
-            aggregatedKey: inventory.id,
+            aggregatedKey: inventory?.id ?? '',
             unitId: currentUnitId,
             items,
           },

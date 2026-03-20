@@ -89,8 +89,8 @@ export function useInventorySignature(inventory: AggregatedStockFragment) {
   const { inventorySignature } = useInventoryActions();
 
   const currentSignature = useMemo(
-    () => (inventory ? inventorySignature[inventory.id] : null),
-    [inventory, inventorySignature],
+    () => inventorySignature[inventory.id],
+    [inventory.id, inventorySignature],
   );
 
   const saleInformation = useMemo(
@@ -140,7 +140,7 @@ export function useInventorySignature(inventory: AggregatedStockFragment) {
   }, [currentUnitId, inventory.material.materialUnits, inventory.quantity]);
 
   const inputQuantity = useMemo(
-    () => currentSignature?.quantity ?? 0,
+    () => currentSignature?.quantity,
     [currentSignature?.quantity],
   );
 
