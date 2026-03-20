@@ -1,16 +1,28 @@
+import { useCallback } from 'react';
 import { useFieldArray } from 'react-hook-form';
 import { Typography, Button } from '@mezzanine-ui/react';
-import InputField from '../../../fields/InputField';
+import SplitBatchFieldArray from './SplitBatchFieldArray';
 import { SplitBatchFieldValues } from './typing';
 import classes from './index.module.scss';
 
 function SplitBatchField() {
-  const { fields, append, remove } = useFieldArray<
+  const { fields, append, replace } = useFieldArray<
     SplitBatchFieldValues,
     'items'
   >({
     name: 'items',
   });
+
+  const onAppend = useCallback(() => {
+    append({
+      batchKey: '',
+      quantity: 0,
+    });
+  }, [append]);
+
+  const onReset = useCallback(() => {
+    replace([]);
+  }, [replace]);
 
   return (
     <div className={classes.host}>
@@ -20,16 +32,23 @@ function SplitBatchField() {
         </Typography>
         <div className={classes.actionsWrapper}>
           {fields.length > 0 && (
-            <Button type="button" size="minor" variant="destructive-secondary">
+            <Button
+              type="button"
+              size="minor"
+              variant="destructive-secondary"
+              onClick={onReset}
+            >
               重置拆分結果
             </Button>
           )}
-          <Button type="button" size="minor">
+          <Button type="button" size="minor" onClick={onAppend}>
             新增拆批
           </Button>
         </div>
       </div>
-      {fields.length > 0 ? null : (
+      {fields.length > 0 ? (
+        <SplitBatchFieldArray fields={fields} />
+      ) : (
         <Typography variant="body" color="text-neutral-solid">
           目前尚未新增拆分項目。
         </Typography>

@@ -61,6 +61,7 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
         error={isError}
         className={className}
         variant="measure"
+        inputType="number"
         suffix={suffix}
         value={`${watchValue}`}
         onChange={onChange}

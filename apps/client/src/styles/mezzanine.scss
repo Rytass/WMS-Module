@@ -35,6 +35,10 @@
   min-width: unset !important;
 }
 
+.mzn-form-field--horizontal .mzn-form-field__label-area {
+  min-width: fit-content !important;
+}
+
 .mzn-form-field--vertical .mzn-form-field__data-entry {
   max-width: unset !important;
 }
