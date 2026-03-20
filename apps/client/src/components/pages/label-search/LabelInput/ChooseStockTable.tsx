@@ -3,34 +3,21 @@ import { Message, TableColumn, Button } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useModal } from '../../../modal/useModal';
+import { stockStatusName } from '../../../inventoryActions/utils';
 import {
-  InventoryActionItem,
-  stockStatusName,
-} from '../../../inventoryActions/utils';
+  useAddInventories,
+  useInventoryActions,
+} from '../../../inventoryActions/useInventoryActions';
 import { useQueryStocksByMaterialKey } from '../useApi';
 
 interface ChooseStockTableProps {
-  targetInventoryIds: string[];
   materialKey: string;
-  targetAction: InventoryActionItem | null;
-  addInventories: ({
-    targetStocks,
-    currentAction,
-    onAddSuccess,
-  }: {
-    targetStocks: AggregatedStockFragment[];
-    currentAction: InventoryActionItem | null;
-    onAddSuccess: VoidFunction;
-  }) => void;
 }
 
-const ChooseStockTable: FC<ChooseStockTableProps> = ({
-  targetInventoryIds,
-  materialKey,
-  targetAction,
-  addInventories,
-}) => {
+const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
   const { closeModal } = useModal();
+  const addInventories = useAddInventories();
+  const { targetInventoryIds, targetAction } = useInventoryActions();
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryStocksByMaterialKey(materialKey);

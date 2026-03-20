@@ -4,17 +4,11 @@ import { FormFieldLayout } from '@mezzanine-ui/core/form';
 import { useModal } from '../../../modal/useModal';
 import { FormWrapper } from '../../../fields/FormWrapper';
 import { InputField } from '../../../fields/InputField';
-import {
-  useAddInventories,
-  useInventoryActions,
-} from '../../../inventoryActions/useInventoryActions';
 import ChooseStockTable from './ChooseStockTable';
 import { LabelInputValues } from './typing';
 
 const LabelInput: FC = () => {
   const { openModal, closeModal } = useModal();
-  const addInventories = useAddInventories();
-  const { targetInventoryIds, targetAction } = useInventoryActions();
 
   const methods = useForm<LabelInputValues>({
     defaultValues: {
@@ -36,25 +30,11 @@ const LabelInput: FC = () => {
         },
         confirmText: '關閉',
         onConfirm: closeModal,
-        children: (
-          <ChooseStockTable
-            targetInventoryIds={targetInventoryIds}
-            materialKey={values.label}
-            targetAction={targetAction}
-            addInventories={addInventories}
-          />
-        ),
+        children: <ChooseStockTable materialKey={values.label} />,
       });
       methods.setValue('label', '');
     },
-    [
-      addInventories,
-      closeModal,
-      methods,
-      openModal,
-      targetAction,
-      targetInventoryIds,
-    ],
+    [closeModal, methods, openModal],
   );
 
   return (
