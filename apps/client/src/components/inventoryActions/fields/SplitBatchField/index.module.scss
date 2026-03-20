@@ -1,3 +1,24 @@
+@use '@mezzanine-ui/system/spacing';
+
 .host {
   width: 100%;
+  display: flex;
+  align-self: stretch;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: spacing.semantic-variable(gap, calm);
+
+  .titleWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    align-self: stretch;
+
+    .actionsWrapper {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: spacing.semantic-variable(gap, base);
+    }
+  }
 }
