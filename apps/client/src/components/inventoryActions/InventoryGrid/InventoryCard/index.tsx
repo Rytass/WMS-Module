@@ -1,5 +1,8 @@
 import { useMemo, useEffect } from 'react';
-import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
+import {
+  ControlFieldSlotLayout,
+  FormFieldLayout,
+} from '@mezzanine-ui/core/form';
 import {
   Typography,
   Button,
@@ -7,6 +10,7 @@ import {
   DescriptionContent,
   FormField,
   Input,
+  Select,
   Message,
   cx,
 } from '@mezzanine-ui/react';
@@ -183,10 +187,41 @@ const InventoryCard: FC<InventoryCardProps> = ({
               {inventory.batch.key}
             </Typography>
             {onlySelectUnit && (
-              <div>
+              <div className={classes.unitSelectorWrapper}>
                 <Description title="庫存 :" widthType="hug">
                   <DescriptionContent>{`${quantity}`}</DescriptionContent>
                 </Description>
+                <FormField
+                  name="inventory-unit-select"
+                  layout={FormFieldLayout.VERTICAL}
+                  controlFieldSlotLayout={ControlFieldSlotLayout.SUB}
+                  hintText={
+                    currentErrorSignature ? currentErrorSignature : undefined
+                  }
+                  severity={currentErrorSignature ? 'error' : 'info'}
+                >
+                  <Select
+                    fullWidth
+                    error={!!currentErrorSignature}
+                    size="sub"
+                    placeholder="請選擇單位"
+                    mode="single"
+                    onChange={(option) => {
+                      if (option?.id === BASE_UNIT) {
+                        updateInventoryUnitId(inventory.id, null);
+                      } else {
+                        updateInventoryUnitId(
+                          inventory.id,
+                          option?.id as string,
+                        );
+                      }
+                    }}
+                    value={unitOptions.find(
+                      (o) => o.id === (currentUnitId || BASE_UNIT),
+                    )}
+                    options={unitOptions}
+                  />
+                </FormField>
               </div>
             )}
           </div>

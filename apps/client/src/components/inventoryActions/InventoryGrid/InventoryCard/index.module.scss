@@ -43,6 +43,14 @@
         align-self: stretch;
       }
 
+      .unitSelectorWrapper {
+        display: grid;
+        align-items: center;
+        justify-content: flex-end;
+        grid-template-columns: auto 90px;
+        gap: spacing.semantic-variable(gap, slim);
+      }
+
       .tag {
         border-radius: radius.variable(base);
         padding: spacing.semantic-variable(padding, vertical, micro)

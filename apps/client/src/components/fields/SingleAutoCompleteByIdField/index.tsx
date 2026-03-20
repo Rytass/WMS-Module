@@ -180,7 +180,6 @@ export const SingleAutoCompleteByIdField: FC<
         options={options}
         menuMaxHeight={menuMaxHeight}
         clearSearchText={false}
-        dropdownZIndex={1004}
       />
     </BaseField>
   );
