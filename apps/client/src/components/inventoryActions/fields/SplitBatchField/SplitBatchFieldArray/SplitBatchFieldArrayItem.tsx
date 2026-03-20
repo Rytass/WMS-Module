@@ -33,9 +33,11 @@ const SplitBatchFieldArrayItem: FC<SplitBatchFieldArrayItemProps> = ({
           {inventory.material.key}
         </Typography>
         <div className={classes.removeWrapper}>
-          <Typography variant="caption" color="text-neutral">
-            {saleInformation}
-          </Typography>
+          {inventory.saleId && (
+            <Typography variant="caption" color="text-neutral">
+              {saleInformation}
+            </Typography>
+          )}
           <Button
             type="button"
             icon={TrashIcon}

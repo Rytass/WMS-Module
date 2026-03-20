@@ -53,9 +53,11 @@ const SplitBatchReference: FC<SplitBatchReferenceProps> = ({
           {inventory.material.key}
         </Typography>
         <div className={classes.removeWrapper}>
-          <Typography variant="caption" color="text-neutral">
-            {saleInformation}
-          </Typography>
+          {inventory.saleId && (
+            <Typography variant="caption" color="text-neutral">
+              {saleInformation}
+            </Typography>
+          )}
         </div>
       </div>
       <div className={classes.withWarningWrapper}>
