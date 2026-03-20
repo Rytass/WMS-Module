@@ -36,7 +36,12 @@ function SplitBatch({
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
-        customizedMainBlock={<SplitTarget inventory={inventory} />}
+        customizedMainBlock={
+          <SplitTarget
+            inventory={inventory}
+            loading={queryInventoryListLoading}
+          />
+        }
       />
     </FormWrapper>
   );

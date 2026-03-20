@@ -5,9 +5,10 @@ import classes from './index.module.scss';
 
 interface SplitTargetProps {
   inventory?: AggregatedStockFragment;
+  loading: boolean;
 }
 
-const SplitTarget: FC<SplitTargetProps> = ({ inventory }) => {
+const SplitTarget: FC<SplitTargetProps> = ({ inventory, loading }) => {
   if (!inventory) return null;
 
   return (
