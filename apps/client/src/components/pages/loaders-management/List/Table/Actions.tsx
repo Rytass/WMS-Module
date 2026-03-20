@@ -95,15 +95,19 @@ const Actions: FC<ActionsProps> = ({ source }) => {
           length: source.length,
           width: source.width,
           height: source.height,
-          sizeUnit: {
-            id: source.sizeUnit || '',
-            name: source.sizeUnit || '',
-          },
+          sizeUnit: source.sizeUnit
+            ? {
+                id: source.sizeUnit,
+                name: source.sizeUnit,
+              }
+            : null,
           volume: source.volume,
-          volumeUnit: {
-            id: source.volumeUnit || '',
-            name: source.volumeUnit || '',
-          },
+          volumeUnit: source.volumeUnit
+            ? {
+                id: source.volumeUnit,
+                name: source.volumeUnit,
+              }
+            : null,
           createdAt: source.createdAt,
           remark: source.note ?? '',
         }}

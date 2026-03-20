@@ -57,7 +57,7 @@ export function stockStatusName(status?: StockStatus): string {
 }
 
 export enum InventoryActions {
-  PendingTransferInventory = 'PendingTransferInventory',
+  CreateTransferInventory = 'CreateTransferInventory',
   HoldInventory = 'HoldInventory',
   ReleaseInventoryHold = 'ReleaseInventoryHold',
   AllocateInventory = 'AllocateInventory',
@@ -87,7 +87,7 @@ export function inventoryActionsEnableStatus(
   action: InventoryActions,
 ): StockStatus[] {
   switch (action) {
-    case InventoryActions.PendingTransferInventory:
+    case InventoryActions.CreateTransferInventory:
       return [
         StockStatus.FREE,
         StockStatus.PENDING_INSPECTION,
@@ -164,7 +164,7 @@ export function inventoryActionsSpec(
   };
 
   switch (action) {
-    case InventoryActions.PendingTransferInventory:
+    case InventoryActions.CreateTransferInventory:
       return {
         ...baseProps,
         name: '加入待調撥清單',
@@ -307,7 +307,7 @@ export function inventoryActionsSpec(
 }
 
 export const inventoryActionOptions: InventoryActionItem[] = [
-  // InventoryActions.PendingTransferInventory,
+  InventoryActions.CreateTransferInventory,
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   // InventoryActions.AllocateInventory,
@@ -336,7 +336,7 @@ export const inventoryActionOptions: InventoryActionItem[] = [
 
 export function haveAdditionalFields(currentAction: InventoryActions) {
   return [
-    InventoryActions.PendingTransferInventory,
+    InventoryActions.CreateTransferInventory,
     InventoryActions.AllocateInventory,
     InventoryActions.ShipInventory,
     InventoryActions.SplitBatch,

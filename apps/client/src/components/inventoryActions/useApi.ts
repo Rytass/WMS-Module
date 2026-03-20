@@ -6,6 +6,7 @@ import {
   StocksGroupedByMaterialDocument,
   AggregatedStocksDocument,
   AggregatedStocksForInventoryActionsDocument,
+  CreateTransferOrderDocument,
   CreateHoldInventoryOrderDocument,
   ReleaseDocument,
   SplitBatchDocument,
