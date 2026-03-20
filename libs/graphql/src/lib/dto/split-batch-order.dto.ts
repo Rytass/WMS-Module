@@ -25,7 +25,4 @@ export class SplitBatchOrderDto {
 
   @Field(() => Date)
   createdAt!: Date;
-
-  @Field(() => [SplitBatchOrderItemDto])
-  items!: SplitBatchOrderItemDto[];
 }

@@ -25,7 +25,4 @@ export class MergeBatchOrderDto {
 
   @Field(() => Date)
   createdAt!: Date;
-
-  @Field(() => [MergeBatchOrderItemDto])
-  items!: MergeBatchOrderItemDto[];
 }
