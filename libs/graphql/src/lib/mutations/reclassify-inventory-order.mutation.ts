@@ -19,17 +19,19 @@ export class ReclassifyInventoryOrderMutation {
   async reclassifyInventoryOrder(
     @Args() args: ReclassifyInventoryOrderArgs,
   ): Promise<ReclassifyInventoryOrderDto> {
-    const { materialId, batchId, locationId, loaderId } =
-      this.stockService.destructAggregateKey(args.aggregatedKey);
     return this.reclassifyInventoryOrderService.reclassify({
       materialKey: args.materialKey,
-      items: args.items.map((item) => ({
-        ...item,
-        materialId,
-        batchId,
-        locationId,
-        loaderId,
-      })),
+      items: args.items.map((item) => {
+        const { materialId, batchId, locationId, loaderId } =
+          this.stockService.destructAggregateKey(item.aggregatedKey);
+        return {
+          ...item,
+          materialId,
+          batchId,
+          locationId,
+          loaderId,
+        };
+      }),
     });
   }
 }

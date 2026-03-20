@@ -4,6 +4,8 @@ export * from './create-material-unit.input';
 export * from './create-material.input';
 export * from './create-ship-inventory-order.input';
 export * from './create-receive-inventory-order.input';
+export * from './create-transfer-customer-order.input';
+export * from './create-transfer-vendor-order.input';
 export * from './find-loader.input';
 export * from './find-material.input';
 export * from './find-receive-inventory-order.input';

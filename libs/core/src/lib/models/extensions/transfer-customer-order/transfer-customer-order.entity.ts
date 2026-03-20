@@ -26,9 +26,6 @@ export class TransferCustomerOrderEntityClass {
   @Column({ type: 'text' })
   description!: string;
 
-  @Column({ type: 'varchar' })
-  customer!: string;
-
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
