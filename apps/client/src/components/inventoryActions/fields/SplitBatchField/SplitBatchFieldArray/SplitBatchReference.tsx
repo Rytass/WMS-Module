@@ -1,8 +1,10 @@
 import {
+  Icon,
   Typography,
   Description,
   DescriptionContent,
 } from '@mezzanine-ui/react';
+import { WarningFilledIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
 import { useInventorySignature } from '../../../useInventoryActions';
 import classes from './index.module.scss';
@@ -30,23 +32,33 @@ const SplitBatchReference: FC<SplitBatchReferenceProps> = ({
           </Typography>
         </div>
       </div>
-      <div className={classes.fieldsWrapper}>
-        <div>
-          <Description title="原始批號 :" widthType="hug">
-            <Typography
-              variant="label-secondary"
-              color="text-neutral"
-              className={classes.tag}
-            >
-              {inventory.batch.key}
+      <div className={classes.withWarningWrapper}>
+        <div className={classes.fieldsWrapper}>
+          <div>
+            <Description title="原始批號 :" widthType="hug">
+              <Typography
+                variant="label-secondary"
+                color="text-neutral"
+                className={classes.tag}
+              >
+                {inventory.batch.key}
+              </Typography>
+            </Description>
+          </div>
+          <div>
+            <Description title="剩餘量 :" widthType="hug">
+              <DescriptionContent>{`${remainingQuantity <= 0 ? 0 : remainingQuantity} ${currentUnitName}`}</DescriptionContent>
+            </Description>
+          </div>
+        </div>
+        {remainingQuantity <= 0 && (
+          <div className={classes.warningWrapper}>
+            <Icon icon={WarningFilledIcon} size={14} color="warning" />
+            <Typography variant="annotation" color="text-warning">
+              剩餘量為 0 時，此批號將自動從列表中移除
             </Typography>
-          </Description>
-        </div>
-        <div>
-          <Description title="剩餘量 :" widthType="hug">
-            <DescriptionContent>{`${remainingQuantity <= 0 ? 0 : remainingQuantity} ${currentUnitName}`}</DescriptionContent>
-          </Description>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

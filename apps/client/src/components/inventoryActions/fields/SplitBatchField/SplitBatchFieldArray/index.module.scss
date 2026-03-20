@@ -32,6 +32,21 @@
     }
   }
 
+  .withWarningWrapper {
+    display: flex;
+    align-self: stretch;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: spacing.semantic-variable(gap, slim);
+
+    .warningWrapper {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: spacing.semantic-variable(gap, tiny);
+    }
+  }
+
   .fieldsWrapper {
     display: flex;
     align-self: stretch;
