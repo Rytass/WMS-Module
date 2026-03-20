@@ -6,6 +6,7 @@ import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useMergeBatch } from '../../../../inventoryActions/useApi';
 
 interface MergeBatchProps {
   inventoryList: AggregatedStockFragment[];
@@ -22,11 +23,11 @@ function MergeBatch({
       newKey: '',
     },
   });
-
+  const { onSubmit } = useMergeBatch(inventoryList);
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} {...formFooterProps}>
+    <FormWrapper methods={methods} onSubmit={onSubmit} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}

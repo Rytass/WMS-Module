@@ -7,6 +7,7 @@ import { useShareFooterProps } from '../hooks';
 import MergeBatchField from '../../inventoryActions/fields/MergeBatchField';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useMergeBatch } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface MergeBatchProps {
@@ -29,6 +30,8 @@ const MergeBatch: FC<MergeBatchProps> = ({
     },
   });
 
+  const { onSubmit } = useMergeBatch(inventoryList);
+
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -38,9 +41,7 @@ const MergeBatch: FC<MergeBatchProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={async (values) => {
-        console.log('values', values);
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <div className={classes.wrapper}>

@@ -144,11 +144,11 @@ export function useMergeBatch(inventoryList: AggregatedStockFragment[]) {
   });
 
   const onSubmit = useCallback(
-    async (batchKey: string) => {
+    async ({ newKey }: { newKey: string }) => {
       try {
         const { data } = await mergeBatch({
           variables: {
-            batchKey,
+            batchKey: newKey,
             materialId: inventoryList[0].material.id,
             items: formatAvailableInventoryList({
               inventoryList,
