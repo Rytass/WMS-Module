@@ -15,7 +15,7 @@ const SplitTarget: FC<SplitTargetProps> = ({ inventory }) => {
       <Typography variant="label-primary" color="text-neutral-solid">
         所選庫存
       </Typography>
-      <InventoryCard inventory={inventory} onlySelectUnit />
+      <InventoryCard inventory={inventory} notUpdateError onlySelectUnit />
     </div>
   );
 };

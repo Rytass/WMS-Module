@@ -27,12 +27,14 @@ import classes from './index.module.scss';
 interface InventoryCardProps {
   inventory: AggregatedStockFragment;
   onlySelectUnit?: boolean;
+  notUpdateError?: boolean;
   isAllSameMaterial?: boolean;
 }
 
 const InventoryCard: FC<InventoryCardProps> = ({
   inventory,
   onlySelectUnit,
+  notUpdateError,
   isAllSameMaterial,
 }) => {
   const {
@@ -82,31 +84,43 @@ const InventoryCard: FC<InventoryCardProps> = ({
   ]);
 
   useEffect(() => {
-    if (inputQuantity) {
-      if (inputQuantity > quantity) {
-        updateErrorSignature(inventory.id, '數量大於庫存數量');
-      } else if (!Number.isInteger(inputQuantity)) {
-        updateErrorSignature(inventory.id, '需要為整數');
+    if (!notUpdateError) {
+      if (inputQuantity) {
+        if (inputQuantity > quantity) {
+          updateErrorSignature(inventory.id, '數量大於庫存數量');
+        } else if (!Number.isInteger(inputQuantity)) {
+          updateErrorSignature(inventory.id, '需要為整數');
+        } else if (inputQuantity < 0) {
+          updateErrorSignature(inventory.id, '不可小於 0');
+        }
       }
     }
   }, [
     currentErrorSignature,
     inputQuantity,
     inventory.id,
+    notUpdateError,
     quantity,
     updateErrorSignature,
   ]);
 
   useEffect(() => {
-    if (currentErrorSignature) {
-      if (inputQuantity <= quantity && Number.isInteger(inputQuantity)) {
-        removeErrorSignature(inventory.id);
+    if (!notUpdateError) {
+      if (currentErrorSignature) {
+        if (
+          inputQuantity <= quantity &&
+          Number.isInteger(inputQuantity) &&
+          inputQuantity >= 0
+        ) {
+          removeErrorSignature(inventory.id);
+        }
       }
     }
   }, [
     currentErrorSignature,
     inputQuantity,
     inventory.id,
+    notUpdateError,
     quantity,
     removeErrorSignature,
   ]);

@@ -34,6 +34,10 @@ const SplitBatchReference: FC<SplitBatchReferenceProps> = ({
     } else {
       removeErrorSignature(inventory.id);
     }
+
+    return () => {
+      removeErrorSignature(inventory.id);
+    };
   }, [
     currentUnitName,
     inventory.id,
