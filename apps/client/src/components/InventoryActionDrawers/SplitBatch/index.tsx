@@ -49,7 +49,10 @@ const SplitBatch: FC<SplitBatchProps> = ({
     >
       <div className={classes.wrapper}>
         <div className={classes.fieldsWrapper}>
-          <SplitTarget inventory={inventory} />
+          <SplitTarget
+            inventory={inventory}
+            loading={queryInventoryListLoading}
+          />
         </div>
         <SplitBatchField inventory={inventory} />
       </div>
