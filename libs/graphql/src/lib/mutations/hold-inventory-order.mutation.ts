@@ -53,6 +53,16 @@ export class HoldInventoryOrderMutation {
   async release(
     @Args('items', { type: () => [ReleaseOrderArgs] }) args: ReleaseOrderArgs[],
   ) {
-    return this.holdInventoryOrderService.release(args);
+    return this.holdInventoryOrderService
+      .release(
+        args.map(({ aggregatedKey, ...item }) => {
+          const keys = this.stockService.destructAggregateKey(aggregatedKey);
+          return {
+            ...item,
+            ...keys,
+          };
+        }),
+      )
+      .then(() => true);
   }
 }

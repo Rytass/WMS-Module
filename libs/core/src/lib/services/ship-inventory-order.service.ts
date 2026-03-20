@@ -150,14 +150,6 @@ export class ShipInventoryOrderService<
           });
           if (!material) return acc;
 
-          let batch: BatchEntity | null = null;
-          if (reference.batchKey) {
-            batch = await this.batchService.getBatch({
-              manager,
-              materialId: material.id,
-              key: reference.batchKey,
-            });
-          }
           if (reference.saleId && reference.saleSerialId)
             await saleOrderRepository.save(
               saleOrderRepository.create({
@@ -170,7 +162,6 @@ export class ShipInventoryOrderService<
             {
               ...reference,
               materialId: material.id,
-              batchId: batch?.id || null,
             },
           ];
         } catch {
@@ -312,7 +303,6 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderEntityClass>(
         this.shipInventoryOrderEntity,
       );
-    console.log(options.references);
     const shipInventoryOrderReferenceRepository =
       manager.getRepository<ShipInventoryOrderReferenceEntityClass>(
         this.shipInventoryOrderReferenceEntity,
@@ -322,6 +312,8 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderItemEntityClass>(
         this.shipInventoryOrderItemEntity,
       );
+    const materialRepository =
+      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
 
     const order = await shipInventoryOrderRepository.findOneByOrFail({
       id,
@@ -335,21 +327,42 @@ export class ShipInventoryOrderService<
     );
 
     if (options.references?.length) {
-      const newItems: Partial<CreateShipInventoryOrderReferenceInput>[] = [];
+      const newItems: Partial<ShipInventoryOrderReferenceEntityClass>[] = [];
       const existingItems: Partial<ShipInventoryOrderReferenceEntityClass>[] =
         [];
 
-      await shipInventoryOrderReferenceRepository
-        .find({ where: { orderId: id } })
-        .then((items) => {
-          const itemSet = new Set(items.map((i) => i.id));
-          options.references?.forEach((item) => {
-            if (item.removedAt) return;
+      const items = await shipInventoryOrderReferenceRepository.find({
+        where: { orderId: id },
+      });
+      const itemSet = new Set(items.map((i) => i.id));
 
-            if (!item.id) newItems.push(item);
-            else if (itemSet.has(item.id)) existingItems.push(item);
-          });
-        });
+      // Use Promise.all with map to wait for all async operations to complete
+      const results = await Promise.all(
+        (options.references || []).map(async (item) => {
+          if (item.removedAt) return null;
+          let batch: BatchEntity | null = null;
+          if (item.batchKey) {
+            const material = await materialRepository.findOneByOrFail({
+              key: item.materialKey,
+            });
+            batch = await this.batchService.getBatch({
+              manager,
+              materialId: material.id,
+              key: item.batchKey,
+            });
+          }
+          return { item, batch };
+        }),
+      );
+
+      // Now process results after all async operations are complete
+      results.forEach((result) => {
+        if (!result) return;
+        const { item, batch } = result;
+        if (!item.id) newItems.push({ ...item, batchId: batch?.id || null });
+        else if (itemSet.has(item.id))
+          existingItems.push({ ...item, batchId: batch?.id || null });
+      });
 
       if (newItems.length) {
         const processedNewItems =
@@ -362,7 +375,6 @@ export class ShipInventoryOrderService<
           );
         }
       }
-      console.log({ existingItems });
       if (existingItems.length)
         await shipInventoryOrderReferenceRepository.save(
           existingItems.map((item) =>
