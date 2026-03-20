@@ -1,5 +1,6 @@
 import { FieldArrayWithId, UseFieldArrayRemove } from 'react-hook-form';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
+import SplitBatchReference from './SplitBatchReference';
 import SplitBatchFieldArrayItem from './SplitBatchFieldArrayItem';
 import { SplitBatchFieldValues } from '../typing';
 
@@ -18,6 +19,7 @@ const SplitBatchFieldArray: FC<SplitBatchFieldArrayProps> = ({
 
   return (
     <>
+      <SplitBatchReference inventory={inventory} />
       {fields.map((f, index) => (
         <SplitBatchFieldArrayItem
           key={f.id}

@@ -3,6 +3,8 @@ import { Typography, Button, cx } from '@mezzanine-ui/react';
 import { FormFieldLayout } from '@mezzanine-ui/core/form';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
+import { useInventoryActions } from '../../../useInventoryActions';
+import { BASE_UNIT } from '../../../../../utils/share';
 import InputField from '../../../../fields/InputField';
 import NumberInputField from '../../../../fields/NumberInputField';
 import classes from './index.module.scss';
@@ -18,6 +20,37 @@ const SplitBatchFieldArrayItem: FC<SplitBatchFieldArrayItemProps> = ({
   remove,
   inventory,
 }) => {
+  const { inventorySignature } = useInventoryActions();
+
+  const currentSignature = useMemo(
+    () => inventorySignature[inventory.id],
+    [inventory.id, inventorySignature],
+  );
+
+  const currentUnitId = useMemo(() => {
+    return currentSignature?.unitId;
+  }, [currentSignature?.unitId]);
+
+  const unitOptions = useMemo(
+    () => [
+      {
+        id: BASE_UNIT,
+        name: inventory.material.baseUnit.key,
+      },
+      ...inventory.material.materialUnits.map((u) => ({
+        id: u.id,
+        name: u.unit,
+      })),
+    ],
+    [inventory.material.baseUnit.key, inventory.material.materialUnits],
+  );
+
+  const currentUnitName = useMemo(() => {
+    return (
+      unitOptions.find((o) => o.id === (currentUnitId || BASE_UNIT))?.name ?? ''
+    );
+  }, [currentUnitId, unitOptions]);
+
   const saleInformation = useMemo(
     () =>
       `${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`,
@@ -59,6 +92,7 @@ const SplitBatchFieldArrayItem: FC<SplitBatchFieldArrayItemProps> = ({
             label="拆出量"
             layout={FormFieldLayout.HORIZONTAL}
             placeholder="數量"
+            suffix={currentUnitName}
           />
         </div>
       </div>

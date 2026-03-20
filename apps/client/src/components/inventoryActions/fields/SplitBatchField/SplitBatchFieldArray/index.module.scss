@@ -37,5 +37,13 @@
     align-self: stretch;
     align-items: center;
     justify-content: space-between;
+    min-height: 28px;
+  }
+
+  .tag {
+    border-radius: radius.variable(base);
+    padding: spacing.semantic-variable(padding, vertical, micro)
+      spacing.semantic-variable(padding, horizontal, tiny);
+    background-color: palette.semantic-variable(background, neutral-faint);
   }
 }
