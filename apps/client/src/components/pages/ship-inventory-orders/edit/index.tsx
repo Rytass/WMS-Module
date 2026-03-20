@@ -33,7 +33,7 @@ function EditShipInventoryOrder() {
             references: values.references.map((reference, index) => ({
               id: reference.itemId || undefined,
               unitId: reference.unit === BASE_UNIT ? null : reference.unit,
-              serialId: reference.serialId,
+              serialId: reference.serialId || `${(index + 1) * 10}`,
               materialKey: reference.material?.name,
               batchKey: reference.batch?.name,
               targetShippedQuantity: reference.quantity,

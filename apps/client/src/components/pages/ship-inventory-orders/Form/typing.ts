@@ -11,7 +11,7 @@ export type ItemFieldValues = {
 
   // for field array
   itemId?: string;
-  serialId: string;
+  serialId?: string;
   shippedQuantity: number;
   unitOptions: SelectValue[];
   isExisted: boolean;

@@ -64,7 +64,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       key: 'index',
       title: '出庫單項次',
       minWidth: 100,
-      render: (source) => source.serialId,
+      render: (source, index) => source.serialId || `${(index + 1) * 10}`,
     },
     {
       key: 'quantity',

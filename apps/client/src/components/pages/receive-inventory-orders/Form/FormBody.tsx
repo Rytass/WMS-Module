@@ -50,13 +50,12 @@ function ReceiveInventoryOrderFormBody({
     (values: AddFormValues, unitOptions: SelectValue[]) => {
       append({
         ...values,
-        serialId: `${(fields.length + 1) * 10}`,
         receivedQuantity: 0,
         unitOptions,
         isExisted: false,
       });
     },
-    [append, fields.length],
+    [append],
   );
 
   return (
