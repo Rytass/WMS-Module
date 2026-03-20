@@ -1,5 +1,3 @@
-import { StockStatus } from '../constants';
-
 export type CreateHoldInventoryOrderItemInput = {
   materialId: string;
   batchId: string;
@@ -7,7 +5,6 @@ export type CreateHoldInventoryOrderItemInput = {
   loaderId?: string;
   unitId?: string;
   targetHeldQuantity: number;
-  status: StockStatus;
 };
 
 export type CreateHoldInventoryOrderInput = {
