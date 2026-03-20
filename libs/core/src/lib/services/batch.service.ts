@@ -18,6 +18,7 @@ import {
 @Injectable()
 export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
   readonly batchRepository: Repository<T>;
+  readonly batchGroupRepository: Repository<BatchGroupEntityClass>;
   constructor(
     private readonly dataSource: DataSource,
     @Inject(BatchEntity) readonly batchEntity: EntityTarget<T>,
@@ -25,6 +26,10 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     readonly batchGroupEntity: EntityTarget<BatchGroupEntityClass>,
   ) {
     this.batchRepository = this.dataSource.getRepository<T>(this.batchEntity);
+    this.batchGroupRepository =
+      this.dataSource.getRepository<BatchGroupEntityClass>(
+        this.batchGroupEntity,
+      );
   }
 
   async getBatch({
@@ -119,7 +124,7 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
   }
 
   async findMany(options: FindBatchInput<T>) {
-    const queryBuilder = this.batchRepository.createQueryBuilder('batch');
+    const queryBuilder = this.batchGroupRepository.createQueryBuilder('batch');
 
     if (options.wildcard) {
       const { key, value } = options.wildcard;

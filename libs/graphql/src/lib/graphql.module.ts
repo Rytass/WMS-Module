@@ -50,6 +50,8 @@ import { TransferCustomerOrderMutation } from './mutations/transfer-customer-ord
 import { TransferCustomerOrderResolver } from './resolvers/transfer-customer-order.resolver';
 import { TransferVendorOrderMutation } from './mutations/transfer-vendor-order.mutation';
 import { TransferVendorOrderResolver } from './resolvers/transfer-vendor-order.resolver';
+import { SplitBatchResolver } from './resolvers/split-batch.resolver';
+import { MergeBatchOrderResolver } from './resolvers/merge-batch.resolver';
 
 const exportDependencies = [
   UnitQuery,
@@ -104,7 +106,9 @@ const exportDependencies = [
   SaleOrderQuery,
 
   SplitBatchMutation,
+  SplitBatchResolver,
   MergeBatchMutation,
+  MergeBatchOrderResolver,
   ReclassifyInventoryOrderMutation,
 ];
 @Module({

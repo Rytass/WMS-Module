@@ -364,6 +364,7 @@ export class ShipInventoryOrderService<
           existingItems.push({ ...item, batchId: batch?.id || null });
       });
 
+      console.log({ newItems, existingItems });
       if (newItems.length) {
         const processedNewItems =
           await this.processShipInventoryOrderReferences(newItems, manager);
