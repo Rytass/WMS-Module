@@ -3,6 +3,7 @@ import { TableColumn } from '@mezzanine-ui/react';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
 import { ChangeLogFragment } from '../../../../graphql/generated/.graphql';
+import { changeTypeName } from '../../../../utils/share';
 import { useQueryChangeLogs } from '../useApi';
 
 function ChangeHistoryTable() {
@@ -15,6 +16,12 @@ function ChangeHistoryTable() {
   );
 
   const columns: TableColumn<ChangeLogFragment>[] = [
+    {
+      key: 'changeType',
+      title: '異動行為',
+      width: 140,
+      render: (source) => changeTypeName(source.changeType),
+    },
     {
       key: 'key',
       title: '料號',

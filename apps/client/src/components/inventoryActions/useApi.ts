@@ -110,7 +110,7 @@ export function useReleaseHoldInventory(
             targetAction,
             inventorySignature,
           }).map((s) => ({
-            itemId: s.id,
+            aggregatedKey: s.id,
             unitId: s.unitId,
             quantity: s.quantity,
           })),
