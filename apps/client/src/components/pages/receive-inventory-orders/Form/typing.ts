@@ -13,6 +13,7 @@ export type ItemFieldValues = {
 
   // for field array
   itemId?: string;
+  serialId?: string;
   receivedQuantity: number;
   unitOptions: SelectValue[];
   isExisted: boolean;

@@ -30,6 +30,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         }).nullable(),
 
         itemId: Yup.string(),
+        serialId: Yup.string(),
         shippedQuantity: Yup.number().required('必填'),
         unitOptions: Yup.array()
           .of(

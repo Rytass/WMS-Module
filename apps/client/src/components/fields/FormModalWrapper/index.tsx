@@ -1,5 +1,6 @@
-import { ReactNode, useCallback, useEffect } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo } from 'react';
 import { ModalProps, ModalSize, Modal } from '@mezzanine-ui/react';
+import { ModalHeaderLayoutProps } from '@mezzanine-ui/react/Modal';
 import { UseFormReturn, SubmitHandler, FieldValues } from 'react-hook-form';
 import { FormWrapper } from '../FormWrapper';
 import { useDialog } from '../../dialog/useDialog';
@@ -125,8 +126,23 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
     }
   }, [methods, confirmMode, onSubmit, openDialog, submitWithConfirm]);
 
+  const layoutProps = useMemo(
+    (): ModalHeaderLayoutProps =>
+      titleAlign === 'left'
+        ? {
+            statusTypeIconLayout: 'horizontal',
+            titleAlign: 'left',
+          }
+        : {
+            statusTypeIconLayout: 'vertical',
+            titleAlign: 'center',
+          },
+    [titleAlign],
+  );
+
   return (
     <Modal
+      {...layoutProps}
       className={className}
       onClose={closeModal}
       showDismissButton
@@ -147,9 +163,7 @@ export const FormModalWrapper = <T extends FieldValues = FieldValues>({
           confirmButtonProps?.disabled || methods.formState.isSubmitting,
       }}
       showStatusTypeIcon={false}
-      statusTypeIconLayout="horizontal"
       title={title ?? ''}
-      titleAlign={titleAlign}
       open={open}
       showModalFooter
       showModalHeader

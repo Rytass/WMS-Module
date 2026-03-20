@@ -27,6 +27,7 @@ export function fragmentToDefaultValues(
         : null,
 
       itemId: r.id,
+      serialId: r.serialId,
       shippedQuantity: r.shippedQuantity,
       unitOptions: [
         {

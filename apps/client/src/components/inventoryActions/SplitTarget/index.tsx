@@ -1,5 +1,6 @@
 import { Typography } from '@mezzanine-ui/react';
 import InventoryCard from '../InventoryGrid/InventoryCard';
+import Loading from '../../Loading';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
 
@@ -9,6 +10,10 @@ interface SplitTargetProps {
 }
 
 const SplitTarget: FC<SplitTargetProps> = ({ inventory, loading }) => {
+  if (loading) {
+    return <Loading />;
+  }
+
   if (!inventory) return null;
 
   return (

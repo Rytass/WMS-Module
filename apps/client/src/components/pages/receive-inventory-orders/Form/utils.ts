@@ -37,6 +37,7 @@ export function fragmentToDefaultValues(
       unit: item.unitId || BASE_UNIT,
 
       itemId: item.id,
+      serialId: item.serialId,
       receivedQuantity: item.receivedQuantity,
       unitOptions: [
         {

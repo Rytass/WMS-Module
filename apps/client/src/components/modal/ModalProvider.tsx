@@ -1,5 +1,6 @@
-import { useCallback, useState, memo } from 'react';
+import { useCallback, useState, useMemo, memo } from 'react';
 import { Modal } from '@mezzanine-ui/react';
+import { ModalHeaderLayoutProps } from '@mezzanine-ui/react/Modal';
 import { ModalContextProvider } from './ModalContext';
 import { ModalConfigType } from './typing';
 
@@ -35,6 +36,20 @@ const ModalProvider: FC = ({ children }) => {
     setModalConfig({});
   }, []);
 
+  const layoutProps = useMemo(
+    (): ModalHeaderLayoutProps =>
+      titleAlign === 'left'
+        ? {
+            statusTypeIconLayout: 'horizontal',
+            titleAlign: 'left',
+          }
+        : {
+            statusTypeIconLayout: 'vertical',
+            titleAlign: 'center',
+          },
+    [titleAlign],
+  );
+
   return (
     <ModalContextProvider
       value={{
@@ -46,6 +61,7 @@ const ModalProvider: FC = ({ children }) => {
       <>
         {children}
         <Modal
+          {...layoutProps}
           className={className}
           onClose={() => {
             closeModal();
@@ -68,9 +84,7 @@ const ModalProvider: FC = ({ children }) => {
             ...confirmButtonProps,
           }}
           showStatusTypeIcon={false}
-          statusTypeIconLayout="horizontal"
           title={title ?? ''}
-          titleAlign={titleAlign}
           open={open}
           showModalFooter
           showModalHeader
