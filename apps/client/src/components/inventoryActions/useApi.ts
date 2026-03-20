@@ -169,13 +169,7 @@ export function useSplitBatch(inventory: AggregatedStockFragment) {
         console.error(error);
       }
     },
-    [
-      currentUnitId,
-      inventory.id,
-      resetAll,
-      splitBatch,
-      targetAction?.submitText,
-    ],
+    [currentUnitId, inventory, resetAll, splitBatch, targetAction?.submitText],
   );
 
   return {
