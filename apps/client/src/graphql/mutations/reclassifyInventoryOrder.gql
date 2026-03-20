@@ -1,13 +1,8 @@
 mutation ReclassifyInventoryOrder(
-  $aggregatedKey: ID!
   $materialKey: ID!
   $items: [ReclassifyInventoryOrderItemInput!]!
 ) {
-  reclassifyInventoryOrder(
-    aggregatedKey: $aggregatedKey
-    materialKey: $materialKey
-    items: $items
-  ) {
+  reclassifyInventoryOrder(materialKey: $materialKey, items: $items) {
     id
     key
     createdAt
