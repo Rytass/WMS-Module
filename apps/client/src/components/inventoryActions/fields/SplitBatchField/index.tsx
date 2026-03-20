@@ -51,7 +51,7 @@ function SplitBatchField({ inventory }: SplitBatchFieldProps) {
           </Button>
         </div>
       </div>
-      {fields.length > 0 ? (
+      {fields.length > 0 && inventory ? (
         <SplitBatchFieldArray
           fields={fields}
           remove={remove}

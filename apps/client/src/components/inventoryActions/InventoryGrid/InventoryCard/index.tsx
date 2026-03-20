@@ -16,7 +16,10 @@ import {
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
-import { useInventoryActions } from '../../useInventoryActions';
+import {
+  useInventoryActions,
+  useInventorySignature,
+} from '../../useInventoryActions';
 import { isEnableActionStatus } from '../../utils';
 import { BASE_UNIT } from '../../../../utils/share';
 import classes from './index.module.scss';
@@ -34,7 +37,6 @@ const InventoryCard: FC<InventoryCardProps> = ({
 }) => {
   const {
     targetAction,
-    inventorySignature,
     errorSignature,
     updateInventoryQuantity,
     updateInventoryUnitId,
@@ -43,10 +45,14 @@ const InventoryCard: FC<InventoryCardProps> = ({
     removeErrorSignature,
   } = useInventoryActions();
 
-  const currentSignature = useMemo(
-    () => inventorySignature[inventory.id],
-    [inventory.id, inventorySignature],
-  );
+  const {
+    saleInformation,
+    currentUnitId,
+    unitOptions,
+    currentUnitName,
+    quantity,
+    inputQuantity,
+  } = useInventorySignature(inventory);
 
   const isDisabledCard = useMemo(
     () =>
@@ -58,57 +64,6 @@ const InventoryCard: FC<InventoryCardProps> = ({
   const currentErrorSignature = useMemo(
     () => errorSignature[inventory.id],
     [errorSignature, inventory.id],
-  );
-
-  const currentUnitId = useMemo(() => {
-    return currentSignature?.unitId;
-  }, [currentSignature?.unitId]);
-
-  const saleInformation = useMemo(
-    () =>
-      `${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`,
-    [inventory.saleId, inventory.saleSerialId],
-  );
-
-  const unitOptions = useMemo(
-    () => [
-      {
-        id: BASE_UNIT,
-        name: inventory.material.baseUnit.key,
-      },
-      ...inventory.material.materialUnits.map((u) => ({
-        id: u.id,
-        name: u.unit,
-      })),
-    ],
-    [inventory.material.baseUnit.key, inventory.material.materialUnits],
-  );
-
-  const currentUnitName = useMemo(() => {
-    return (
-      unitOptions.find((o) => o.id === (currentUnitId || BASE_UNIT))?.name ?? ''
-    );
-  }, [currentUnitId, unitOptions]);
-
-  const quantity = useMemo(() => {
-    if (currentUnitId) {
-      const conversionFactor = inventory.material.materialUnits.find(
-        (u) => u.id === currentUnitId,
-      )?.conversionFactor;
-
-      if (conversionFactor) {
-        return Math.round((inventory.quantity / conversionFactor) * 100) / 100;
-      }
-
-      return inventory.quantity;
-    }
-
-    return inventory.quantity;
-  }, [currentUnitId, inventory.material.materialUnits, inventory.quantity]);
-
-  const inputQuantity = useMemo(
-    () => currentSignature?.quantity,
-    [currentSignature?.quantity],
   );
 
   useEffect(() => {

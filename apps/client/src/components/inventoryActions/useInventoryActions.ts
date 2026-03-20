@@ -93,6 +93,12 @@ export function useInventorySignature(inventory: AggregatedStockFragment) {
     [inventory.id, inventorySignature],
   );
 
+  const saleInformation = useMemo(
+    () =>
+      `${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`,
+    [inventory.saleId, inventory.saleSerialId],
+  );
+
   const currentUnitId = useMemo(() => {
     return currentSignature?.unitId;
   }, [currentSignature?.unitId]);
@@ -139,6 +145,10 @@ export function useInventorySignature(inventory: AggregatedStockFragment) {
   );
 
   return {
+    currentSignature,
+    saleInformation,
+    currentUnitId,
+    unitOptions,
     currentUnitName,
     quantity,
     inputQuantity,

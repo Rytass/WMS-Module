@@ -7,7 +7,7 @@ import { SplitBatchFieldValues } from '../typing';
 interface SplitBatchFieldArrayProps {
   fields: FieldArrayWithId<SplitBatchFieldValues, 'items', 'id'>[];
   remove: UseFieldArrayRemove;
-  inventory?: AggregatedStockFragment;
+  inventory: AggregatedStockFragment;
 }
 
 const SplitBatchFieldArray: FC<SplitBatchFieldArrayProps> = ({
@@ -15,8 +15,6 @@ const SplitBatchFieldArray: FC<SplitBatchFieldArrayProps> = ({
   remove,
   inventory,
 }) => {
-  if (!inventory) return null;
-
   return (
     <>
       <SplitBatchReference inventory={inventory} />
