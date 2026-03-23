@@ -3,6 +3,7 @@ import { useInventoryActions } from '../../../inventoryActions/useInventoryActio
 import { InventoryActions } from '../../../inventoryActions/utils';
 import { useQueryInventoryList } from '../../../inventoryActions/useApi';
 import HostSection from './HostSection';
+import CreateTransferInventory from './CreateTransferInventory';
 import HoldInventory from './HoldInventory';
 import ReleaseInventoryHold from './ReleaseInventoryHold';
 import DeallocateInventory from './DeallocateInventory';
@@ -24,6 +25,14 @@ const OperateArea: FC = () => {
   );
 
   switch (targetAction?.id) {
+    case InventoryActions.CreateTransferInventory:
+      return (
+        <CreateTransferInventory
+          inventoryList={inventoryList}
+          queryInventoryListLoading={queryInventoryListLoading}
+        />
+      );
+
     case InventoryActions.HoldInventory:
       return (
         <HoldInventory

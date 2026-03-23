@@ -25,7 +25,10 @@ const CreateTransferInventory: FC<CreateTransferInventoryProps> = ({
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
     defaultValues: {
-      newKey: '',
+      location: null,
+      loader: null,
+      receiver: '',
+      description: '',
     },
   });
 
