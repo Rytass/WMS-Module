@@ -30,6 +30,17 @@ query ShipInventoryOrders(
   }
 }
 
+query ShipInventoryOrderOptions($offset: Int, $limit: Int) {
+  shipInventoryOrders(offset: $offset, limit: $limit) {
+    id
+    items {
+      id
+      key
+    }
+    total
+  }
+}
+
 query FullShipInventoryOrders(
   $offset: Int
   $limit: Int
