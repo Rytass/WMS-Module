@@ -5,6 +5,7 @@ import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import ShipInventoryField from '../../inventoryActions/fields/ShipInventoryField';
+import ShipInventoryMatcher from '../../inventoryActions/ShipInventoryMatcher';
 import { defaultValues } from '../../inventoryActions/fields/ShipInventoryField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
@@ -28,6 +29,8 @@ const ShipInventory: FC<ShipInventoryProps> = ({
     defaultValues,
   });
 
+  const shipInventoryOrder = methods.watch('shipInventoryOrder');
+
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -46,10 +49,14 @@ const ShipInventory: FC<ShipInventoryProps> = ({
         <div className={classes.fieldsWrapper}>
           <ShipInventoryField />
         </div>
-        <InventoryGrid
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
+        {shipInventoryOrder ? (
+          <ShipInventoryMatcher />
+        ) : (
+          <InventoryGrid
+            inventoryList={inventoryList}
+            queryInventoryListLoading={queryInventoryListLoading}
+          />
+        )}
       </div>
     </FormDrawerWrapper>
   );
