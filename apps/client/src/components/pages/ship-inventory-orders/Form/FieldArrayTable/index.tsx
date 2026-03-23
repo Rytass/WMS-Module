@@ -141,7 +141,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
           );
         }
 
-        return source.batch?.name;
+        return source.batch?.name || '-';
       },
     },
     {
