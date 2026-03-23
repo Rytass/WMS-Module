@@ -7,6 +7,7 @@ import CreateTransferInventoryField from '../../../inventoryActions/fields/Creat
 import AllocateInventoryField from '../../../inventoryActions/fields/AllocateInventoryField';
 import SplitBatchField from '../../../inventoryActions/fields/SplitBatchField';
 import MergeBatchField from '../../../inventoryActions/fields/MergeBatchField';
+import ReclassifyInventoryField from '../../../inventoryActions/fields/ReclassifyInventoryField';
 import ReturnFromVendorField from '../../../inventoryActions/fields/ReturnFromVendorField';
 import ReturnFromCustomerField from '../../../inventoryActions/fields/ReturnFromCustomerField';
 import { InventoryActions } from '../../../inventoryActions/utils';
@@ -33,6 +34,9 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
 
       case InventoryActions.MergeBatch:
         return <MergeBatchField />;
+
+      case InventoryActions.ReclassifyInventory:
+        return <ReclassifyInventoryField />;
 
       case InventoryActions.ReturnFromVendor:
         return <ReturnFromVendorField />;

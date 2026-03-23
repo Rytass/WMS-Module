@@ -10,6 +10,7 @@ import AllocateInventory from './AllocateInventory';
 import DeallocateInventory from './DeallocateInventory';
 import SplitBatch from './SplitBatch';
 import MergeBatch from './MergeBatch';
+import ReclassifyInventory from './ReclassifyInventory';
 import ReturnFromVendor from './ReturnFromVendor';
 import ReturnFromCustomer from './ReturnFromCustomer';
 import ScrapInventory from './ScrapInventory';
@@ -54,6 +55,9 @@ const OperateArea: FC = () => {
 
     case InventoryActions.MergeBatch:
       return <MergeBatch {...baseProps} />;
+
+    case InventoryActions.ReclassifyInventory:
+      return <ReclassifyInventory {...baseProps} />;
 
     case InventoryActions.ReturnFromVendor:
       return <ReturnFromVendor {...baseProps} />;

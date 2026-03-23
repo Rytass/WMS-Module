@@ -9,6 +9,7 @@ import AllocateInventory from './AllocateInventory';
 import DeallocateInventory from './DeallocateInventory';
 import SplitBatch from './SplitBatch';
 import MergeBatch from './MergeBatch';
+import ReclassifyInventory from './ReclassifyInventory';
 import ScrapInventory from './ScrapInventory';
 
 interface InventoryActionDrawersProps {
@@ -79,6 +80,9 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
 
     case InventoryActions.MergeBatch:
       return <MergeBatch {...baseProps} />;
+
+    case InventoryActions.ReclassifyInventory:
+      return <ReclassifyInventory {...baseProps} />;
 
     case InventoryActions.ScrapInventory:
       return <ScrapInventory {...baseProps} />;
