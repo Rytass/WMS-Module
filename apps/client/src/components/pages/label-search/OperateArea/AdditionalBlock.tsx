@@ -5,6 +5,7 @@ import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql'
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import CreateTransferInventoryField from '../../../inventoryActions/fields/CreateTransferInventoryField';
 import AllocateInventoryField from '../../../inventoryActions/fields/AllocateInventoryField';
+import ShipInventoryField from '../../../inventoryActions/fields/ShipInventoryField';
 import SplitBatchField from '../../../inventoryActions/fields/SplitBatchField';
 import MergeBatchField from '../../../inventoryActions/fields/MergeBatchField';
 import ReclassifyInventoryField from '../../../inventoryActions/fields/ReclassifyInventoryField';
@@ -28,6 +29,9 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
 
       case InventoryActions.AllocateInventory:
         return <AllocateInventoryField />;
+
+      case InventoryActions.ShipInventory:
+        return <ShipInventoryField />;
 
       case InventoryActions.SplitBatch:
         return <SplitBatchField inventory={inventoryList[0]} />;
