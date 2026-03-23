@@ -4,6 +4,7 @@ import { AggregatedStockFragment } from '../../../../../graphql/generated/.graph
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
+import { defaultValues } from '../../../../inventoryActions/fields/ReturnFromVendorField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 
@@ -18,10 +19,7 @@ function ReturnFromVendor({
 }: ReturnFromVendorProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      location: null,
-      loader: null,
-    },
+    defaultValues,
   });
 
   const formFooterProps = useShareFooterProps(inventoryList);

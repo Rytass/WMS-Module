@@ -5,6 +5,7 @@ import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import CreateTransferInventoryField from '../../inventoryActions/fields/CreateTransferInventoryField';
+import { defaultValues } from '../../inventoryActions/fields/CreateTransferInventoryField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import classes from '../index.module.scss';
@@ -24,12 +25,7 @@ const CreateTransferInventory: FC<CreateTransferInventoryProps> = ({
 }) => {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      location: null,
-      loader: null,
-      receiver: '',
-      description: '',
-    },
+    defaultValues,
   });
 
   const formFooterProps = useShareFooterProps({

@@ -317,10 +317,10 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.MergeBatch,
   // InventoryActions.ReclassifyInventory,
   // InventoryActions.TransferToVendor,
-  // InventoryActions.ReturnFromVendor,
+  InventoryActions.ReturnFromVendor,
   // InventoryActions.QualityInspection,
   // InventoryActions.DeliverToCustomer,
-  // InventoryActions.ReturnFromCustomer,
+  InventoryActions.ReturnFromCustomer,
   // InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,

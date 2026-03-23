@@ -5,6 +5,7 @@ import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import MergeBatchField from '../../inventoryActions/fields/MergeBatchField';
+import { defaultValues } from '../../inventoryActions/fields/MergeBatchField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import { useMergeBatch } from '../../inventoryActions/useApi';
@@ -25,9 +26,7 @@ const MergeBatch: FC<MergeBatchProps> = ({
 }) => {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      newKey: '',
-    },
+    defaultValues,
   });
 
   const { onSubmit } = useMergeBatch(inventoryList);
