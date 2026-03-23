@@ -6,6 +6,7 @@ import HostSection from './HostSection';
 import CreateTransferInventory from './CreateTransferInventory';
 import HoldInventory from './HoldInventory';
 import ReleaseInventoryHold from './ReleaseInventoryHold';
+import AllocateInventory from './AllocateInventory';
 import DeallocateInventory from './DeallocateInventory';
 import SplitBatch from './SplitBatch';
 import MergeBatch from './MergeBatch';
@@ -24,86 +25,47 @@ const OperateArea: FC = () => {
     [data?.aggregatedStocks.items],
   );
 
+  const baseProps = useMemo(
+    () => ({
+      inventoryList,
+      queryInventoryListLoading,
+    }),
+    [inventoryList, queryInventoryListLoading],
+  );
+
   switch (targetAction?.id) {
     case InventoryActions.CreateTransferInventory:
-      return (
-        <CreateTransferInventory
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <CreateTransferInventory {...baseProps} />;
 
     case InventoryActions.HoldInventory:
-      return (
-        <HoldInventory
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <HoldInventory {...baseProps} />;
 
     case InventoryActions.ReleaseInventoryHold:
-      return (
-        <ReleaseInventoryHold
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <ReleaseInventoryHold {...baseProps} />;
+
+    case InventoryActions.AllocateInventory:
+      return <AllocateInventory {...baseProps} />;
 
     case InventoryActions.DeallocateInventory:
-      return (
-        <DeallocateInventory
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <DeallocateInventory {...baseProps} />;
 
     case InventoryActions.SplitBatch:
-      return (
-        <SplitBatch
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <SplitBatch {...baseProps} />;
 
     case InventoryActions.MergeBatch:
-      return (
-        <MergeBatch
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <MergeBatch {...baseProps} />;
 
     case InventoryActions.ReturnFromVendor:
-      return (
-        <ReturnFromVendor
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <ReturnFromVendor {...baseProps} />;
 
     case InventoryActions.ReturnFromCustomer:
-      return (
-        <ReturnFromCustomer
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <ReturnFromCustomer {...baseProps} />;
 
     case InventoryActions.ScrapInventory:
-      return (
-        <ScrapInventory
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <ScrapInventory {...baseProps} />;
 
     default:
-      return (
-        <HostSection
-          inventoryList={inventoryList}
-          queryInventoryListLoading={queryInventoryListLoading}
-        />
-      );
+      return <HostSection {...baseProps} />;
   }
 };
 

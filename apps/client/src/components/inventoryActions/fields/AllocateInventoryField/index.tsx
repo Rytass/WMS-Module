@@ -17,6 +17,7 @@ function AllocateInventoryField() {
           // addable
           fuzzySearch={false}
           selectValueMode
+          required
         />
         <SaleOrdersField
           saleOrdersId={saleId?.id ?? ''}
@@ -24,6 +25,7 @@ function AllocateInventoryField() {
           // addable
           fuzzySearch={false}
           selectValueMode
+          required
           disabled={!saleId}
         />
       </div>
