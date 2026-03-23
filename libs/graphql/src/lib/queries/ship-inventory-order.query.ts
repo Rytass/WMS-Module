@@ -24,7 +24,10 @@ export class ShipInventoryOrderQuery {
   async shipInventoryOrders(
     @Args() args: FindShipInventoryOrderArgs,
   ): Promise<ShipInventoryOrders> {
-    const [items, total] = await this.shipInventoryOrderService.findMany(args);
+    const [items, total] = await this.shipInventoryOrderService.findMany({
+      ...args,
+      wildcard: args.key ? { key: 'key', value: args.key } : undefined,
+    });
     return { items, total };
   }
 }

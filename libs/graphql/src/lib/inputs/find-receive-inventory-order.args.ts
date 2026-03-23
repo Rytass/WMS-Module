@@ -23,4 +23,7 @@ export class FindReceiveInventoryOrderArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   description?: string;
+
+  @Field(() => String, { nullable: true })
+  key?: string;
 }

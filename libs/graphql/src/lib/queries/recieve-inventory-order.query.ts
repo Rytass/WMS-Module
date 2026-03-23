@@ -24,8 +24,10 @@ export class ReceiveInventoryOrderQuery {
   async receiveInventoryOrders(
     @Args() args: FindReceiveInventoryOrderArgs,
   ): Promise<ReceiveInventoryOrders> {
-    const [items, total] =
-      await this.receiveInventoryOrderService.findMany(args);
+    const [items, total] = await this.receiveInventoryOrderService.findMany({
+      ...args,
+      wildcard: args.key ? { key: 'key', value: args.key } : undefined,
+    });
     return { items, total };
   }
 }

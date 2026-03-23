@@ -428,7 +428,9 @@ export class ShipInventoryOrderService<
       .then(({ affected }) => !!affected && affected > 0);
   }
 
-  async findMany(options: FindShipInventoryOrderInput): Promise<[T[], number]> {
+  async findMany(
+    options: FindShipInventoryOrderInput<T>,
+  ): Promise<[T[], number]> {
     const queryBuilder = this.selectQueryBuilder('orders');
 
     if (options.id)
@@ -454,6 +456,13 @@ export class ShipInventoryOrderService<
       queryBuilder.andWhere(`status = :status`, {
         status: options.status,
       });
+
+    if (options.wildcard) {
+      const { key, value } = options.wildcard;
+      queryBuilder.andWhere(`orders."${String(key)}" ILIKE :value`, {
+        value: `%${value}%`,
+      });
+    }
 
     const total = await queryBuilder.getCount();
 
