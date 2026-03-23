@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { InventoryActions } from '../inventoryActions/utils';
 import { useInventoryActions } from '../inventoryActions/useInventoryActions';
 import { useLazyQueryInventoryList } from '../inventoryActions/useApi';
+import CreateTransferInventory from './CreateTransferInventory';
 import HoldInventory from './HoldInventory';
 import ReleaseInventoryHold from './ReleaseInventoryHold';
 import DeallocateInventory from './DeallocateInventory';
@@ -57,6 +58,9 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
   );
 
   switch (targetAction?.id) {
+    case InventoryActions.CreateTransferInventory:
+      return <CreateTransferInventory {...baseProps} />;
+
     case InventoryActions.HoldInventory:
       return <HoldInventory {...baseProps} />;
 
