@@ -11,6 +11,10 @@ import ShipInventory from './ShipInventory';
 import SplitBatch from './SplitBatch';
 import MergeBatch from './MergeBatch';
 import ReclassifyInventory from './ReclassifyInventory';
+import TransferToVendor from './TransferToVendor';
+import ReturnFromVendor from './ReturnFromVendor';
+import DeliverToCustomer from './DeliverToCustomer';
+import ReturnFromCustomer from './ReturnFromCustomer';
 import ScrapInventory from './ScrapInventory';
 
 interface InventoryActionDrawersProps {
@@ -87,6 +91,18 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
 
     case InventoryActions.ReclassifyInventory:
       return <ReclassifyInventory {...baseProps} />;
+
+    case InventoryActions.TransferToVendor:
+      return <TransferToVendor {...baseProps} />;
+
+    case InventoryActions.ReturnFromVendor:
+      return <ReturnFromVendor {...baseProps} />;
+
+    case InventoryActions.DeliverToCustomer:
+      return <DeliverToCustomer {...baseProps} />;
+
+    case InventoryActions.ReturnFromCustomer:
+      return <ReturnFromCustomer {...baseProps} />;
 
     case InventoryActions.ScrapInventory:
       return <ScrapInventory {...baseProps} />;

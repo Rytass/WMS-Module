@@ -9,7 +9,9 @@ import ShipInventoryField from '../../../inventoryActions/fields/ShipInventoryFi
 import SplitBatchField from '../../../inventoryActions/fields/SplitBatchField';
 import MergeBatchField from '../../../inventoryActions/fields/MergeBatchField';
 import ReclassifyInventoryField from '../../../inventoryActions/fields/ReclassifyInventoryField';
+import TransferToVendorField from '../../../inventoryActions/fields/TransferToVendorField';
 import ReturnFromVendorField from '../../../inventoryActions/fields/ReturnFromVendorField';
+import DeliverToCustomerField from '../../../inventoryActions/fields/DeliverToCustomerField';
 import ReturnFromCustomerField from '../../../inventoryActions/fields/ReturnFromCustomerField';
 import { InventoryActions } from '../../../inventoryActions/utils';
 import classes from './index.module.scss';
@@ -42,8 +44,14 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
       case InventoryActions.ReclassifyInventory:
         return <ReclassifyInventoryField />;
 
+      case InventoryActions.TransferToVendor:
+        return <TransferToVendorField />;
+
       case InventoryActions.ReturnFromVendor:
         return <ReturnFromVendorField />;
+
+      case InventoryActions.DeliverToCustomer:
+        return <DeliverToCustomerField />;
 
       case InventoryActions.ReturnFromCustomer:
         return <ReturnFromCustomerField />;
