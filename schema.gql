@@ -475,6 +475,24 @@ type ReclassifyInventoryOrderDto {
   items: [ReclassifyInventoryOrderItemDto!]!
 }
 
+type ScrapeOrderItemDto {
+  id: ID!
+  materialId: ID!
+  batchId: ID!
+  locationId: ID
+  loaderId: ID
+  orderId: ID!
+  unitId: ID
+  targetScrapedQuantity: Int!
+}
+
+type ScrapeOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [ScrapeOrderItemDto!]!
+}
+
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
@@ -546,6 +564,7 @@ type Mutation {
   splitBatch(aggregatedKey: ID!, unitId: ID, items: [SplitBatchItemInput!]!): SplitBatchOrderDto!
   mergeBatch(batchKey: String!, materialId: ID!, items: [MergeBatchItemInput!]!): MergeBatchOrderDto!
   reclassifyInventoryOrder(materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
+  scrapeMaterials(items: [ScrapeOrderItemInput!]!): ScrapeOrderDto!
 }
 
 input CreateLoadersArgs {
@@ -773,4 +792,10 @@ input MergeBatchItemInput {
 input ReclassifyInventoryOrderItemInput {
   quantity: Float!
   aggregatedKey: ID!
+}
+
+input ScrapeOrderItemInput {
+  aggregateKey: String!
+  unitId: ID
+  quantity: Int!
 }
