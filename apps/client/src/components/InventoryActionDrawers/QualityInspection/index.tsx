@@ -28,16 +28,19 @@ const QualityInspection: FC<QualityInspectionProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
+      {...formFooterProps}
       bottomSecondaryActionText="不通過"
       bottomSecondaryActionVariant="destructive-primary"
       bottomSecondaryActionIcon={DangerousOutlineIcon}
+      bottomSecondaryActionDisabled={
+        formFooterProps.bottomPrimaryActionDisabled
+      }
       bottomOnSecondaryActionClick={async (values) => {
         console.log('不通過！', values);
       }}
       onSubmit={async () => {
         //
       }}
-      {...formFooterProps}
     >
       <InventoryGrid
         inventoryList={inventoryList}

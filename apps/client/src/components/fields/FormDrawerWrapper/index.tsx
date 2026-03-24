@@ -56,7 +56,7 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
       bottomSecondaryActionText={bottomSecondaryActionText}
       bottomOnSecondaryActionClick={async () => {
         if (bottomOnSecondaryActionClick) {
-          methods.handleSubmit(bottomOnSecondaryActionClick)();
+          await methods.handleSubmit(bottomOnSecondaryActionClick)();
         }
       }}
       bottomSecondaryActionDisabled={bottomSecondaryActionDisabled || loading}
@@ -66,7 +66,7 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
       bottomSecondaryActionLoading={loading}
       bottomPrimaryActionText={bottomPrimaryActionText}
       bottomOnPrimaryActionClick={async () => {
-        methods.handleSubmit(onSubmit)();
+        await methods.handleSubmit(onSubmit)();
       }}
       bottomPrimaryActionIconType="leading"
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}

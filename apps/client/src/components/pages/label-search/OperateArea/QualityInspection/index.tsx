@@ -25,6 +25,10 @@ function QualityInspection({
       cancelText="不通過"
       secondaryButtonIcon={DangerousOutlineIcon}
       secondaryButtonVariant="destructive-primary"
+      disableCancelButton={formFooterProps.disableSubmitButton}
+      onSecondaryButtonSubmit={async (values) => {
+        console.log('不通過！', values);
+      }}
     >
       <HostSection
         inventoryList={inventoryList}
