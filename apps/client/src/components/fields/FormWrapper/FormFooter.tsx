@@ -21,6 +21,7 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
   primaryButtonIcon?: IconDefinition;
   cancelText?: string;
   secondaryButtonVariant?: ButtonVariant;
+  secondaryButtonIcon?: IconDefinition;
   supportingActionName?: string;
   supportingActionOnClick?: VoidFunction;
   haveCancelButton: boolean;
@@ -36,6 +37,7 @@ export const FormFooter = <T extends FieldValues>({
   primaryButtonIcon,
   cancelText = '取消',
   secondaryButtonVariant,
+  secondaryButtonIcon,
   supportingActionName,
   supportingActionOnClick,
   haveCancelButton,
@@ -77,6 +79,8 @@ export const FormFooter = <T extends FieldValues>({
               children: cancelText,
               type: 'button',
               variant: secondaryButtonVariant ?? 'base-secondary',
+              iconType: 'leading',
+              icon: secondaryButtonIcon,
               disabled: disableCancelButton(values) || loading,
               onClick: async () => {
                 await onCancel();

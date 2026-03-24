@@ -15,6 +15,7 @@ import TransferToVendor from './TransferToVendor';
 import ReturnFromVendor from './ReturnFromVendor';
 import DeliverToCustomer from './DeliverToCustomer';
 import ReturnFromCustomer from './ReturnFromCustomer';
+import QualityInspection from './QualityInspection';
 import ScrapInventory from './ScrapInventory';
 
 interface InventoryActionDrawersProps {
@@ -103,6 +104,9 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
 
     case InventoryActions.ReturnFromCustomer:
       return <ReturnFromCustomer {...baseProps} />;
+
+    case InventoryActions.QualityInspection:
+      return <QualityInspection {...baseProps} />;
 
     case InventoryActions.ScrapInventory:
       return <ScrapInventory {...baseProps} />;

@@ -16,6 +16,7 @@ import TransferToVendor from './TransferToVendor';
 import ReturnFromVendor from './ReturnFromVendor';
 import DeliverToCustomer from './DeliverToCustomer';
 import ReturnFromCustomer from './ReturnFromCustomer';
+import QualityInspection from './QualityInspection';
 import ScrapInventory from './ScrapInventory';
 
 const OperateArea: FC = () => {
@@ -76,6 +77,9 @@ const OperateArea: FC = () => {
 
     case InventoryActions.ReturnFromCustomer:
       return <ReturnFromCustomer {...baseProps} />;
+
+    case InventoryActions.QualityInspection:
+      return <QualityInspection {...baseProps} />;
 
     case InventoryActions.ScrapInventory:
       return <ScrapInventory {...baseProps} />;
