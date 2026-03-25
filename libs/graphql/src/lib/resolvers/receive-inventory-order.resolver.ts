@@ -7,6 +7,8 @@ import {
 } from '../dto';
 import { type LoaderType } from '../helpers';
 import {
+  BatchEntityClass,
+  BatchGroupEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
   MaterialEntityClass,
@@ -48,12 +50,17 @@ export class ReceiveInventoryOrderItemResolver {
   @ResolveField(() => BatchDto, { nullable: true })
   async batch(
     @Parent() { batchId }: ReceiveInventoryOrderItemEntityClass,
-    @Context() { loaders }: LoaderType<BatchEntity>,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
   ): Promise<BatchDto | null> {
     if (!batchId) return null;
-    return loaders.batchSingle.load({
-      __entity: BatchEntity,
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
       __from: { id: batchId },
+    });
+
+    return loaders.batchSingle.load({
+      __entity: BatchGroupEntityClass,
+      __from: { id: groupId },
     });
   }
 
