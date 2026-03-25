@@ -136,20 +136,21 @@ export class TransferVendorOrderService<
   ): Promise<T> {
     const repos = this.getRepositories(manager);
     const key = await this.helperService.getSeq(this.seqPrefix);
+    const { items, ...orderOptions } = options;
     const order = await repos.transferVendorOrder.save(
       repos.transferVendorOrder.create({
         key,
-        ...options,
+        ...orderOptions,
       }),
     );
 
-    if (options.items?.length) {
-      const items = options.items.map((item) => ({
+    if (items?.length) {
+      const processedItems = items.map((item) => ({
         ...item,
         orderId: order.id,
         vendorId: options.vendorId,
       }));
-      await this.processTransferVendorOrderItems(items, manager);
+      await this.processTransferVendorOrderItems(processedItems, manager);
     }
 
     return order as T;
@@ -163,16 +164,17 @@ export class TransferVendorOrderService<
     manager?: EntityManager;
   }): Promise<T> {
     const repos = this.getRepositories(manager);
+    const { items, ...orderOptions } = options;
 
     const order = await repos.transferVendorOrder.findOneBy({ id });
     if (!order) throw new Error(`Order with id ${id} not found`);
 
     const updated = await repos.transferVendorOrder.save({
       ...order,
-      ...options,
+      ...orderOptions,
     });
 
-    if (options.items?.length) {
+    if (items?.length) {
       const existingItemIds = new Set(
         (
           await repos.transferVendorOrderItem.find({

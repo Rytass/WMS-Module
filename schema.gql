@@ -207,7 +207,6 @@ type ShipInventoryOrderItemDto {
   batchId: ID
   removedAt: DateTime
   serialId: String!
-  aggregatedKey: String!
   material: MaterialDto!
   batch: BatchDto
   location: LocationDto

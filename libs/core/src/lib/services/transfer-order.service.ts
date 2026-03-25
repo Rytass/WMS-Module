@@ -217,14 +217,15 @@ export class TransferOrderService<
     manager = this.dataSource.manager,
   ): Promise<T> {
     const repos = this.getRepositories(manager);
+    const { items, ...orderOptions } = options;
 
     const key = await this.helperService.getSeq(this.seqPrefix, manager);
     const order = await repos.transferOrder.save(
-      repos.transferOrder.create({ key, ...options }),
+      repos.transferOrder.create({ key, ...orderOptions }),
     );
 
-    if (options.items?.length > 0) {
-      const items = options.items.map(
+    if (items?.length > 0) {
+      const processedItems = items.map(
         (item) =>
           ({
             ...item,
@@ -234,7 +235,7 @@ export class TransferOrderService<
           }) as Partial<TransferOrderItemEntityClass>,
       );
       // TODO: check stock availability before creating transfer order
-      await this.processTransferOrderItems(items, repos, manager);
+      await this.processTransferOrderItems(processedItems, repos, manager);
     }
 
     return order as T;
@@ -246,13 +247,14 @@ export class TransferOrderService<
     ...options
   }: UpdateTransferOrderInput & { manager?: EntityManager }): Promise<T> {
     const repos = this.getRepositories(manager);
+    const { items, ...orderOptions } = options;
 
     const order = await repos.transferOrder.findOneByOrFail({ id });
     const updated = await repos.transferOrder.save(
-      repos.transferOrder.create({ ...order, ...options }),
+      repos.transferOrder.create({ ...order, ...orderOptions }),
     );
 
-    if (options.items?.length) {
+    if (items?.length) {
       const existingItemIds = new Set(
         (await repos.transferOrderItem.find({ where: { orderId: id } })).map(
           (i) => i.id,
