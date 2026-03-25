@@ -1,3 +1,7 @@
+export type FieldArrayItem = {
+  serialId: string;
+};
+
 export type FormValues = {
-  test?: string;
+  items: FieldArrayItem[];
 };

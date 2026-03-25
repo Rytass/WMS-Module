@@ -9,6 +9,7 @@ import {
 } from '@mezzanine-ui/react';
 import { FormModalWrapper } from '../../../../../fields/FormModalWrapper';
 import SectionWrapper from '../../../../../SectionWrapper';
+import FieldArrayTable from './FieldArrayTable';
 import { formSchema } from '../schema';
 import { FormValues } from '../typing';
 import classes from './index.module.scss';
@@ -90,6 +91,7 @@ function InventoryMovementReceiveFormBody({
         <Typography variant="h3" color="text-neutral-solid">
           庫存項目
         </Typography>
+        <FieldArrayTable />
       </div>
     </FormModalWrapper>
   );

@@ -2,5 +2,11 @@ import * as Yup from 'yup';
 import { FormValues } from './typing';
 
 export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
-  test: Yup.string(),
+  items: Yup.array()
+    .of(
+      Yup.object({
+        serialId: Yup.string().required('必填'),
+      }),
+    )
+    .required('必填'),
 });

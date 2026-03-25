@@ -16,7 +16,13 @@ function InventoryMovementReceiveForm({
 
   return (
     <InventoryMovementReceiveFormBody
-      defaultValues={{ test: receiveInventoryOrder?.id }}
+      defaultValues={{
+        items: receiveInventoryOrder.items
+          .filter((item) => !item.removedAt)
+          .map((item) => ({
+            serialId: item.serialId,
+          })),
+      }}
       orderKey={receiveInventoryOrder.key}
       createdBy={receiveInventoryOrder.createdBy}
       createdAt={receiveInventoryOrder.createdAt}
