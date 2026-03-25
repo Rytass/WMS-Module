@@ -16,6 +16,7 @@ import {
   ShipInventoryOrderItemEntityClass,
   ShipInventoryOrderReferenceEntityClass,
   StockService,
+  StockStatus,
 } from '@wms-module/core';
 import { type LoaderType } from '../helpers';
 import { BatchDto } from '../dto/batch.dto';
@@ -58,6 +59,7 @@ export class ShipInventoryOrderItemResolver {
       ...parent,
       locationId: parent.locationId ?? '',
       loaderId: parent.loaderId ?? '',
+      status: StockStatus.FREE,
     });
   }
 
