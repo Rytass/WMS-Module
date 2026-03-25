@@ -1,10 +1,12 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { useFormContext } from 'react-hook-form';
 import { Typography } from '@mezzanine-ui/react';
 import { useQueryShipInventoryOrder, useQueryInventoryList } from './useApi';
 import MatchItem from './MatchItem';
 import InventoryCard from '../InventoryGrid/InventoryCard';
 import { useInventoryActions } from '../useInventoryActions';
 import { matchInventoryToReference } from './utils';
+import { ShipInventoryFieldValues } from '../fields/ShipInventoryField/typing';
 import classes from './index.module.scss';
 
 interface ShipInventoryMatcherProps {
@@ -12,6 +14,7 @@ interface ShipInventoryMatcherProps {
 }
 
 const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
+  const { setValue } = useFormContext<ShipInventoryFieldValues>();
   const { targetInventoryIds } = useInventoryActions();
 
   const { data } = useQueryShipInventoryOrder(orderId);
@@ -45,6 +48,31 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
       }),
     [inventoryList, references],
   );
+
+  useEffect(() => {
+    setValue(
+      'items',
+      references.reduce(
+        (prev, curr) => ({
+          ...prev,
+          [curr.serialId]: inventoryList
+            .filter((i) =>
+              matchInventoryToReference({
+                inventory: i,
+                reference: curr,
+              }),
+            )
+            .map((inventory) => ({
+              serialId: curr.serialId,
+              inventoryId: inventory.id,
+              quantity: 0,
+              unitId: curr.unitId || null,
+            })),
+        }),
+        {},
+      ),
+    );
+  }, [inventoryList, references, setValue]);
 
   return (
     <div className={classes.host}>
