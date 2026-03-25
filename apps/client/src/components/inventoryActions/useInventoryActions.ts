@@ -7,7 +7,7 @@ import {
 } from './InventoryActionsContext';
 import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
 import { BASE_UNIT } from '../../utils/share';
-import { InventoryActionItem } from './utils';
+import { InventoryActionItem, getQuantityWithUnitId } from './utils';
 
 export const useInventoryActions = (): InventoryActionsContextValues => {
   const context = useContext(InventoryActionsContext);
@@ -124,20 +124,11 @@ export function useInventorySignature(inventory: AggregatedStockFragment) {
   }, [currentUnitId, unitOptions]);
 
   const quantity = useMemo(() => {
-    if (currentUnitId) {
-      const conversionFactor = inventory.material.materialUnits.find(
-        (u) => u.id === currentUnitId,
-      )?.conversionFactor;
-
-      if (conversionFactor) {
-        return Math.round((inventory.quantity / conversionFactor) * 100) / 100;
-      }
-
-      return inventory.quantity;
-    }
-
-    return inventory.quantity;
-  }, [currentUnitId, inventory.material.materialUnits, inventory.quantity]);
+    return getQuantityWithUnitId({
+      inventory,
+      currentUnitId,
+    });
+  }, [currentUnitId, inventory]);
 
   const inputQuantity = useMemo(
     () => currentSignature?.quantity,

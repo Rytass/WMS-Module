@@ -22,6 +22,28 @@ import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
 import { StockStatus } from '../../graphql/generated/.graphql';
 import { InventorySignature } from './typing';
 
+export function getQuantityWithUnitId({
+  inventory,
+  currentUnitId,
+}: {
+  inventory: AggregatedStockFragment;
+  currentUnitId: string | null;
+}) {
+  if (currentUnitId) {
+    const conversionFactor = inventory.material.materialUnits.find(
+      (u) => u.id === currentUnitId,
+    )?.conversionFactor;
+
+    if (conversionFactor) {
+      return Math.round((inventory.quantity / conversionFactor) * 100) / 100;
+    }
+
+    return inventory.quantity;
+  }
+
+  return inventory.quantity;
+}
+
 export function stockStatusName(status?: StockStatus): string {
   switch (status) {
     case StockStatus.PENDING_INSPECTION:

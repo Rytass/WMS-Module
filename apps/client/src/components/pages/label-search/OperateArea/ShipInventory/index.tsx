@@ -33,7 +33,9 @@ function ShipInventory({
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
         customizedMainBlock={
-          shipInventoryOrder ? <ShipInventoryMatcher /> : undefined
+          shipInventoryOrder ? (
+            <ShipInventoryMatcher orderId={shipInventoryOrder.id} />
+          ) : undefined
         }
       />
     </FormWrapper>
