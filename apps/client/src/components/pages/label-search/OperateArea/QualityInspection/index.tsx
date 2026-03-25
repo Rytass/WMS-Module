@@ -1,9 +1,13 @@
 import { useForm } from 'react-hook-form';
 import { DangerousOutlineIcon } from '@mezzanine-ui/icons';
+import { yupResolver } from '@hookform/resolvers/yup';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
+import { defaultValues } from '../../../../inventoryActions/fields/QualityInspectionField/defaultValues';
+import { formSchema } from './schema';
+import { FormValues } from './typing';
 
 interface QualityInspectionProps {
   inventoryList: AggregatedStockFragment[];
@@ -14,7 +18,10 @@ function QualityInspection({
   inventoryList,
   queryInventoryListLoading,
 }: QualityInspectionProps) {
-  const methods = useForm();
+  const methods = useForm<FormValues>({
+    resolver: yupResolver(formSchema),
+    defaultValues,
+  });
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (

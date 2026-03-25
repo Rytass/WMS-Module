@@ -13,6 +13,7 @@ import TransferToVendorField from '../../../inventoryActions/fields/TransferToVe
 import ReturnFromVendorField from '../../../inventoryActions/fields/ReturnFromVendorField';
 import DeliverToCustomerField from '../../../inventoryActions/fields/DeliverToCustomerField';
 import ReturnFromCustomerField from '../../../inventoryActions/fields/ReturnFromCustomerField';
+import QualityInspectionField from '../../../inventoryActions/fields/QualityInspectionField';
 import { InventoryActions } from '../../../inventoryActions/utils';
 import classes from './index.module.scss';
 
@@ -55,6 +56,9 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
 
       case InventoryActions.ReturnFromCustomer:
         return <ReturnFromCustomerField />;
+
+      case InventoryActions.QualityInspection:
+        return <QualityInspectionField />;
 
       default:
         return null;
