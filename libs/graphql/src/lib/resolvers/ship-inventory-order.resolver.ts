@@ -16,6 +16,7 @@ import {
   ShipInventoryOrderItemEntityClass,
   ShipInventoryOrderReferenceEntityClass,
   StockService,
+  StockStatus,
 } from '@wms-module/core';
 import { type LoaderType } from '../helpers';
 import { BatchDto } from '../dto/batch.dto';
@@ -50,17 +51,6 @@ export class ShipInventoryOrderResolver {
 
 @Resolver(() => ShipInventoryOrderItemDto)
 export class ShipInventoryOrderItemResolver {
-  constructor(private readonly stockService: StockService) {}
-
-  @ResolveField(() => String)
-  aggregatedKey(@Parent() parent: ShipInventoryOrderItemEntityClass): string {
-    return this.stockService.generatedAggregateKey({
-      ...parent,
-      locationId: parent.locationId ?? '',
-      loaderId: parent.loaderId ?? '',
-    });
-  }
-
   @ResolveField(() => MaterialDto)
   material(
     @Parent() { materialId }: ShipInventoryOrderItemEntityClass,

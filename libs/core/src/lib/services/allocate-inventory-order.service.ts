@@ -135,19 +135,20 @@ export class AllocateInventoryOrderService<
   ): Promise<T> {
     const repos = this.getRepositories(manager);
     const key = await this.helperService.getSeq(this.seqPrefix);
+    const { items, ...orderOptions } = options;
     const order = await repos.allocateInventoryOrder.save(
       repos.allocateInventoryOrder.create({
         key,
-        ...options,
+        ...orderOptions,
       }),
     );
 
-    if (options.items?.length) {
-      const items = options.items.map((item) => ({
+    if (items?.length) {
+      const processedItems = items.map((item) => ({
         ...item,
         orderId: order.id,
       }));
-      await this.processAllocateInventoryOrderItems(items, manager);
+      await this.processAllocateInventoryOrderItems(processedItems, manager);
     }
 
     return order as T;
@@ -161,14 +162,15 @@ export class AllocateInventoryOrderService<
     manager?: EntityManager;
   }): Promise<T> {
     const repos = this.getRepositories(manager);
+    const { items, ...orderOptions } = options;
 
     const order = await repos.allocateInventoryOrder.findOneBy({ id });
     const updated = await repos.allocateInventoryOrder.save({
       ...order,
-      ...options,
+      ...orderOptions,
     });
 
-    if (options.items?.length) {
+    if (items?.length) {
       const existingItemIds = new Set(
         (
           await repos.allocateInventoryOrderItem.find({

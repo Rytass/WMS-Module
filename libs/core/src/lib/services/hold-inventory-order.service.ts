@@ -130,18 +130,19 @@ export class HoldInventoryOrderService<
     manager = this.dataSource.manager,
   ): Promise<T> {
     const repos = this.getRepositories(manager);
+    const { items, ...orderOptions } = options;
 
     const key = await this.helperService.getSeq(this.seqPrefix, manager);
     const order = await repos.holdInventoryOrder.save(
-      repos.holdInventoryOrder.create({ key, ...options }),
+      repos.holdInventoryOrder.create({ key, ...orderOptions }),
     );
 
-    if (options.items?.length > 0) {
-      const items = options.items.map((item) => ({
+    if (items?.length > 0) {
+      const processedItems = items.map((item) => ({
         ...item,
         orderId: order.id,
       }));
-      await this.processHoldInventoryOrderItems(items, repos, manager);
+      await this.processHoldInventoryOrderItems(processedItems, repos, manager);
     }
     return order as T;
   }
@@ -152,14 +153,15 @@ export class HoldInventoryOrderService<
     ...options
   }: UpdateHoldInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     const repos = this.getRepositories(manager);
+    const { items, ...orderOptions } = options;
 
     const order = await repos.holdInventoryOrder.findOneBy({ id });
     const updated = await repos.holdInventoryOrder.save({
       ...order,
-      ...options,
+      ...orderOptions,
     });
 
-    if (options.items?.length) {
+    if (items?.length) {
       const existingItemIds = new Set(
         (
           await repos.holdInventoryOrderItem.find({ where: { orderId: id } })
