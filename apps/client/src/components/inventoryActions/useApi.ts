@@ -12,6 +12,8 @@ import {
   ReleaseDocument,
   SplitBatchDocument,
   MergeBatchDocument,
+  ReclassifyInventoryOrderDocument,
+  ScrapeMaterialsDocument,
 } from '../../graphql/generated/.graphql';
 import { formatAvailableInventoryList, getSaleInformation } from './utils';
 import { CreateTransferInventoryFieldValues } from './fields/CreateTransferInventoryField/typing';
@@ -312,6 +314,48 @@ export function useMergeBatch(inventoryList: AggregatedStockFragment[]) {
     },
     [inventoryList, inventorySignature, mergeBatch, resetAll, targetAction],
   );
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useScrapInventory(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [scrapInventory] = useMutation(ScrapeMaterialsDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(async () => {
+    try {
+      const { data } = await scrapInventory({
+        variables: {
+          items: formatAvailableInventoryList({
+            inventoryList,
+            targetAction,
+            inventorySignature,
+          }).map((s) => ({
+            aggregateKey: s.id,
+            unitId: s.unitId,
+            quantity: s.quantity,
+          })),
+        },
+      });
+
+      if (data?.scrapeMaterials.id) {
+        Message.success(`${targetAction?.submitText}成功`);
+        resetAll();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, [
+    inventoryList,
+    inventorySignature,
+    resetAll,
+    scrapInventory,
+    targetAction,
+  ]);
 
   return {
     onSubmit,
