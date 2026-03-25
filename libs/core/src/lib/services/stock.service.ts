@@ -12,7 +12,7 @@ import {
   MaterialEntity,
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
-import { ChangeType, StockStatus } from '../constants/stock-status';
+import { StockStatus, ChangeType } from '../constants/stock-status';
 import { AggregatedStock, ChangeLog } from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import { LoadersEntityClass, LocationEntityClass } from '../models';
@@ -56,6 +56,7 @@ export class StockService<
     this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
     // select builder for status and quantity calculation, calculated field will override fields in stock entity.
     // every query should use this selectQueryBuilder to ensure status and quantity are correct
+    // status is resolved from batch flags: inShipment → IN_SHIPMENT, held → HELD, inTransfer → IN_TRANSFER, else → FREE
     this.selectQueryBuilder = (
       alias: string,
       qb = this.dataSource
@@ -68,109 +69,26 @@ export class StockService<
             subQuery
               .select(
                 `CASE
-                  WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.PENDING_INSPECTION}'
-                  WHEN qi_changes.id IS NOT NULL THEN '${StockStatus.INSPECTION_FAILED}'
-                  WHEN hi_changes.id IS NOT NULL AND (s.quantity * hi_changes."quantityChanged") > 0 THEN '${StockStatus.HELD}'
-                  WHEN to_changes.id IS NOT NULL AND (s.quantity * to_changes."quantityChanged") > 0 THEN '${StockStatus.IN_TRANSFER}'
-                  WHEN ai_changes.id IS NOT NULL THEN '${StockStatus.ALLOCATED}'
-                  WHEN tv_changes.id IS NOT NULL THEN '${StockStatus.VENDOR_INVENTORY}'
-                  WHEN tc_changes.id IS NOT NULL THEN '${StockStatus.CUSTOMER_INVENTORY}'
+                  WHEN b."inShipment" = true THEN '${StockStatus.IN_SHIPMENT}'
+                  WHEN b."held" = true THEN '${StockStatus.HELD}'
+                  WHEN b."inTransfer" = true THEN '${StockStatus.IN_TRANSFER}'
                   ELSE '${StockStatus.FREE}'
                 END`,
                 'status',
               )
-              .addSelect(
-                `CASE
-                WHEN rio_changes.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
-                WHEN sio_changes.id IS NOT NULL THEN '${ChangeType.SHIPPED}'
-                WHEN to_changes.id IS NOT NULL AND s.quantity < 0 THEN '${ChangeType.IN_TRANSFER}'
-                WHEN to_changes.id IS NOT NULL AND s.quantity > 0 THEN '${ChangeType.TRANSFERRED}'
-                WHEN hi_changes.id IS NOT NULL AND s.quantity < 0 THEN '${ChangeType.HELD}'
-                WHEN hi_changes.id IS NOT NULL AND s.quantity > 0 THEN '${ChangeType.RELEASED}'
-                WHEN sbo_changes.id IS NOT NULL THEN '${ChangeType.SPLITTED}'
-                WHEN mbo_changes.id IS NOT NULL THEN '${ChangeType.MERGED}'
-                ELSE NULL
-                END`,
-                'changeType',
-              )
               .addSelect('s.id', 'stockId')
+              .addSelect('b."inTransfer"', 'inTransfer')
+              .addSelect('b."held"', 'held')
+              .addSelect('b."inShipment"', 'inShipment')
               .from('stocks', 's')
-              .innerJoin('orders', 'o', 's."orderId" = o.id')
-              // Quality Inspection Order - PENDING_INSPECTION when joined but result is null, INSPECTION_FAILED when result is false
-              .leftJoin(
-                'quality_inspection_order_changes',
-                'qi_changes',
-                'qi_changes.id = o.id AND qi_changes."result" IS NULL',
-              )
-              .leftJoin(
-                'quality_inspection_order_changes',
-                'qi_failed',
-                'qi_failed.id = o.id AND qi_failed."result" = false',
-              )
-              // Hold Inventory Order
-              .leftJoin(
-                'hold_inventory_order_changes',
-                'hi_changes',
-                'hi_changes.id = o.id',
-              )
-              // Transfer Order
-              .leftJoin(
-                'transfer_order_changes',
-                'to_changes',
-                'to_changes.id = o.id',
-              )
-              // Allocate Inventory Order
-              .leftJoin(
-                'allocate_inventory_order_changes',
-                'ai_changes',
-                'ai_changes.id = o.id',
-              )
-              // Transfer Vendor Order
-              .leftJoin(
-                'transfer_vendor_order_changes',
-                'tv_changes',
-                'tv_changes.id = o.id',
-              )
-              // Transfer Customer Order
-              .leftJoin(
-                'transfer_customer_order_changes',
-                'tc_changes',
-                'tc_changes.id = o.id',
-              )
-              // Receive Inventory Order
-              .leftJoin(
-                'receive_inventory_order_changes',
-                'rio_changes',
-                'rio_changes.id = o.id',
-              )
-              // Ship Inventory Order
-              .leftJoin(
-                'ship_inventory_order_changes',
-                'sio_changes',
-                'sio_changes.id = o.id',
-              )
-              // Split Batch Order
-              .leftJoin(
-                'split_batch_order_changes',
-                'sbo_changes',
-                'sbo_changes.id = o.id',
-              )
-              // Merge Batch Order
-              .leftJoin(
-                'merge_batch_order_changes',
-                'mbo_changes',
-                'mbo_changes.id = o.id',
-              )
-              // Reclassify Inventory Order
-              .leftJoin(
-                'reclassify_inventory_order_changes',
-                'rci_changes',
-                'rci_changes.id = o.id',
-              ),
+              .innerJoin('batches', 'b', 's."batchId" = b.id'),
           'stock_status',
           `stock_status."stockId" = ${alias}.id`,
         )
         .addSelect('stock_status.status', 'status')
+        .addSelect('stock_status.inTransfer', 'inTransfer')
+        .addSelect('stock_status.held', 'held')
+        .addSelect('stock_status.inShipment', 'inShipment')
         .addSelect(`${alias}.*`);
   }
 
@@ -268,33 +186,49 @@ export class StockService<
       queryBuilder.take(options.limit);
 
     if (aggregated) {
-      const aggregateExpression = this.aggregateKeys
-        .map(
-          (key) =>
-            `COALESCE(${key === 'status' ? 'stock_status' : 'stock'}."${key}"::text, '')`,
-        )
-        .join(" || '|' || ");
-      queryBuilder.select('stock.materialId', 'materialId');
-      queryBuilder.addSelect('stock.batchId', 'batchId');
-      queryBuilder.addSelect('stock.locationId', 'locationId');
-      queryBuilder.addSelect('stock.loaderId', 'loaderId');
+      queryBuilder.innerJoin('batches', 'b', 'stock."batchId" = b.id');
+      queryBuilder.select('stock."materialId"', 'materialId');
+      queryBuilder.addSelect('stock."batchId"', 'batchId');
+      queryBuilder.addSelect('stock."locationId"', 'locationId');
+      queryBuilder.addSelect('stock."loaderId"', 'loaderId');
       queryBuilder.addSelect('stock_status.status', 'status');
+      queryBuilder.addSelect('stock_status."inTransfer"', 'inTransfer');
+      queryBuilder.addSelect('stock_status."held"', 'held');
+      queryBuilder.addSelect('stock_status."inShipment"', 'inShipment');
+      queryBuilder.addSelect('b."saleId"', 'saleId');
+      queryBuilder.addSelect('b."saleSerialId"', 'saleSerialId');
+      queryBuilder.addSelect('b."customerId"', 'customerId');
+      queryBuilder.addSelect('b."vendorId"', 'vendorId');
+      queryBuilder.addSelect('b."inspectionId"', 'inspectionId');
       queryBuilder.addSelect('SUM(stock.quantity)', 'quantity');
-      queryBuilder.groupBy('stock.materialId');
-      queryBuilder.addGroupBy('stock.batchId');
-      queryBuilder.addGroupBy('stock.locationId');
-      queryBuilder.addGroupBy('stock.loaderId');
+      queryBuilder.groupBy('stock."materialId"');
+      queryBuilder.addGroupBy('stock."batchId"');
+      queryBuilder.addGroupBy('stock."locationId"');
+      queryBuilder.addGroupBy('stock."loaderId"');
       queryBuilder.addGroupBy('stock_status.status');
+      queryBuilder.addGroupBy('stock_status."inTransfer"');
+      queryBuilder.addGroupBy('stock_status."held"');
+      queryBuilder.addGroupBy('stock_status."inShipment"');
+      queryBuilder.addGroupBy('b."saleId"');
+      queryBuilder.addGroupBy('b."saleSerialId"');
+      queryBuilder.addGroupBy('b."customerId"');
+      queryBuilder.addGroupBy('b."vendorId"');
+      queryBuilder.addGroupBy('b."inspectionId"');
       queryBuilder.having('SUM(stock.quantity) <> 0');
 
-      if (options.aggregatedKeys?.length) {
+      if (options.aggregatedKeys?.length)
         queryBuilder.andHaving(
-          `${aggregateExpression} IN (:...aggregatedKeys)`,
+          [
+            'stock."materialId"',
+            'stock."batchId"',
+            'stock."locationId"',
+            'stock."loaderId"',
+            'stock_status.status',
+          ].join(" || '|' || ") + ' IN (:...aggregatedKeys)',
           {
             aggregatedKeys: options.aggregatedKeys,
           },
         );
-      }
     }
 
     return queryBuilder;
@@ -358,6 +292,15 @@ export class StockService<
     this.aggregateKeys.forEach((key) =>
       paginatedQueryBuilder.addSelect(`agg."${key}"`, key),
     );
+    // Add batch-related fields
+    paginatedQueryBuilder.addSelect('agg."inTransfer"', 'inTransfer');
+    paginatedQueryBuilder.addSelect('agg."held"', 'held');
+    paginatedQueryBuilder.addSelect('agg."inShipment"', 'inShipment');
+    paginatedQueryBuilder.addSelect('agg."saleId"', 'saleId');
+    paginatedQueryBuilder.addSelect('agg."saleSerialId"', 'saleSerialId');
+    paginatedQueryBuilder.addSelect('agg."customerId"', 'customerId');
+    paginatedQueryBuilder.addSelect('agg."vendorId"', 'vendorId');
+    paginatedQueryBuilder.addSelect('agg."inspectionId"', 'inspectionId');
 
     // Apply pagination to the outer query
     if (options.offset !== undefined && options.offset >= 0) {
@@ -390,45 +333,120 @@ export class StockService<
   async findChangeLogs(
     options: FindStockInput<T>,
   ): Promise<[ChangeLog[], number]> {
-    const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
+    // Build base query with all change entity joins
+    const changesQueryBuilder = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
       false,
-    );
+    )
+      .leftJoin(
+        'receive_inventory_order_changes',
+        'receive_change',
+        'stock."orderId" = receive_change.id',
+      )
+      .leftJoin(
+        'ship_inventory_order_changes',
+        'ship_change',
+        'stock."orderId" = ship_change.id',
+      )
+      .leftJoin(
+        'transfer_order_changes',
+        'transfer_change',
+        'stock."orderId" = transfer_change.id',
+      )
+      .leftJoin(
+        'transfer_vendor_order_changes',
+        'vendor_change',
+        'stock."orderId" = vendor_change.id',
+      )
+      .leftJoin(
+        'transfer_customer_order_changes',
+        'customer_change',
+        'stock."orderId" = customer_change.id',
+      )
+      .leftJoin(
+        'split_batch_order_changes',
+        'split_change',
+        'stock."orderId" = split_change.id',
+      )
+      .leftJoin(
+        'merge_batch_order_changes',
+        'merge_change',
+        'stock."orderId" = merge_change.id',
+      )
+      .leftJoin(
+        'allocate_inventory_order_changes',
+        'allocate_change',
+        'stock."orderId" = allocate_change.id',
+      )
+      .andWhere(
+        `(
+          (receive_change.id IS NOT NULL AND receive_change."quantityChanged" * stock.quantity > 0)
+          OR (ship_change.id IS NOT NULL AND ship_change."quantityChanged" * stock.quantity > 0)
+          OR (transfer_change.id IS NOT NULL AND transfer_change."quantityChanged" * stock.quantity > 0)
+          OR (vendor_change.id IS NOT NULL AND vendor_change."quantityChanged" * stock.quantity > 0)
+          OR (customer_change.id IS NOT NULL AND customer_change."quantityChanged" * stock.quantity > 0)
+          OR (split_change.id IS NOT NULL AND split_change."quantityChanged" * stock.quantity > 0)
+          OR (merge_change.id IS NOT NULL AND merge_change."quantityChanged" * stock.quantity > 0)
+          OR (allocate_change.id IS NOT NULL AND allocate_change."quantityChanged" * stock.quantity > 0)
+        )`,
+      );
 
-    const paginatedQueryBuilder = this.dataSource
-      .createQueryBuilder()
-      .addSelect('agg.quantity', 'quantity')
-      .addSelect('agg.id', 'id')
-      .from(`(${aggregateSubquery.getQuery()})`, 'agg')
-      .setParameters(aggregateSubquery.getParameters());
-
-    this.aggregateKeys.forEach((key) =>
-      paginatedQueryBuilder.addSelect(`agg."${key}"`, key),
-    );
-
-    if (options.offset !== undefined && options.offset >= 0) {
-      paginatedQueryBuilder.skip(options.offset);
-    }
-    if (options.limit !== undefined && options.limit > 0) {
-      paginatedQueryBuilder.take(options.limit);
-    }
-
-    const countBuilder = this.pipeSelectOptionsToQueryBuilder(
-      { ...options, offset: undefined, limit: undefined },
-      this.selectQueryBuilder('stock'),
-      false,
-    );
-
+    // Get count from the filtered base query (before adding expensive CASE)
+    const countQuerySimple = changesQueryBuilder
+      .clone()
+      .select('COUNT(DISTINCT stock.id)', 'count');
     const countResult = await this.dataSource
       .createQueryBuilder()
-      .select('COUNT(*)', 'count')
-      .from(`(${countBuilder.getQuery()})`, 'grouped')
-      .setParameters(countBuilder.getParameters())
-      .getRawOne<{ count: string }>();
-    const count = parseInt(countResult?.count ?? '0', 10);
+      .select('SUM(counted.count)', 'total')
+      .from(`(${countQuerySimple.getQuery()})`, 'counted')
+      .setParameters(countQuerySimple.getParameters())
+      .getRawOne<{ total: string }>();
+    const count = parseInt(countResult?.total ?? '0', 10);
 
-    const items = await paginatedQueryBuilder.getRawMany<ChangeLog>();
+    // Add changeType CASE only after we have the filtered result set, apply pagination
+    const resultQueryBuilder = changesQueryBuilder.clone();
+
+    if (options.offset !== undefined && options.offset >= 0) {
+      resultQueryBuilder.skip(options.offset);
+    }
+    if (options.limit !== undefined && options.limit > 0) {
+      resultQueryBuilder.take(options.limit);
+    }
+
+    // Explicitly select only the fields needed for ChangeLog
+    resultQueryBuilder
+      .select('stock.id', 'id')
+      .addSelect('stock.quantity', 'quantity')
+      .addSelect('stock_status.status', 'status')
+      .addSelect('stock."materialId"', 'materialId')
+      .addSelect('stock."batchId"', 'batchId')
+      .addSelect('stock."locationId"', 'locationId')
+      .addSelect('stock."loaderId"', 'loaderId')
+      .addSelect(
+        `CASE
+          WHEN receive_change.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
+          WHEN ship_change.id IS NOT NULL THEN '${ChangeType.SHIPPED}'
+          WHEN transfer_change.id IS NOT NULL THEN
+            CASE WHEN transfer_change."quantityChanged" > 0 THEN '${ChangeType.IN_TRANSFER}'
+                 ELSE '${ChangeType.TRANSFERRED}' END
+          WHEN vendor_change.id IS NOT NULL THEN
+            CASE WHEN vendor_change."quantityChanged" > 0 THEN '${ChangeType.VENDOR_TRANSFERRED}'
+                 ELSE '${ChangeType.VENDOR_RETURNED}' END
+          WHEN customer_change.id IS NOT NULL THEN
+            CASE WHEN customer_change."quantityChanged" > 0 THEN '${ChangeType.HELD}'
+                 ELSE '${ChangeType.RELEASED}' END
+          WHEN split_change.id IS NOT NULL THEN '${ChangeType.SPLITTED}'
+          WHEN merge_change.id IS NOT NULL THEN '${ChangeType.MERGED}'
+          WHEN allocate_change.id IS NOT NULL THEN
+            CASE WHEN allocate_change."quantityChanged" > 0 THEN '${ChangeType.ALLOCATED}'
+                 ELSE '${ChangeType.DEALLOCATED}' END
+          ELSE NULL
+        END`,
+        'changeType',
+      );
+
+    const items = await resultQueryBuilder.getRawMany<ChangeLog>();
 
     return [items, count];
   }
