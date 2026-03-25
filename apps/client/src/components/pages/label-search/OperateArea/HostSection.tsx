@@ -18,6 +18,8 @@ interface HostSectionProps {
   customizedMainBlock?: ReactNode;
   onlySelectUnit?: boolean;
   notUpdateError?: boolean;
+  disabledInput?: boolean;
+  disabledCard?: boolean;
 }
 
 const HostSection: FC<HostSectionProps> = ({
@@ -26,6 +28,8 @@ const HostSection: FC<HostSectionProps> = ({
   customizedMainBlock,
   onlySelectUnit,
   notUpdateError,
+  disabledInput,
+  disabledCard,
 }) => {
   const { openDialog } = useDialog();
   const { targetAction, targetInventoryIds, removeInventoryByIds } =
@@ -113,6 +117,8 @@ const HostSection: FC<HostSectionProps> = ({
                 expandedLayout
                 notUpdateError={notUpdateError}
                 onlySelectUnit={onlySelectUnit}
+                disabledInput={disabledInput}
+                disabledCard={disabledCard}
               />
             ) : (
               <div className={classes.placeholderWrapper}>

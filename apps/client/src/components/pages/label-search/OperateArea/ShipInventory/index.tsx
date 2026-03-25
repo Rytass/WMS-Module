@@ -28,7 +28,16 @@ function ShipInventory({
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} {...formFooterProps}>
+    <FormWrapper
+      methods={methods}
+      onSubmit={(values) => {
+        console.log('values', values);
+      }}
+      {...formFooterProps}
+      disableSubmitButton={() =>
+        formFooterProps.disableSubmitButton() || !shipInventoryOrder
+      }
+    >
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
@@ -37,8 +46,7 @@ function ShipInventory({
             <ShipInventoryMatcher orderId={shipInventoryOrder.id} />
           ) : undefined
         }
-        notUpdateError
-        onlySelectUnit
+        disabledInput
       />
     </FormWrapper>
   );

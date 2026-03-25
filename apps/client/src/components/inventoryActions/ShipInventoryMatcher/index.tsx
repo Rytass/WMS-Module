@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Typography } from '@mezzanine-ui/react';
 import { useQueryShipInventoryOrder, useQueryInventoryList } from './useApi';
 import MatchItem from './MatchItem';
+import InventoryCard from '../InventoryGrid/InventoryCard';
 import { useInventoryActions } from '../useInventoryActions';
 import { matchInventoryToReference } from './utils';
 import classes from './index.module.scss';
@@ -63,6 +64,13 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
         <Typography variant="label-primary" color="text-neutral-solid">
           {`未配對項目 (${notMatchList.length})`}
         </Typography>
+        {notMatchList.map((inventory) => (
+          <InventoryCard
+            key={inventory.id}
+            inventory={inventory}
+            disabledCard
+          />
+        ))}
       </div>
     </div>
   );

@@ -44,6 +44,9 @@ const ShipInventory: FC<ShipInventoryProps> = ({
         //
       }}
       {...formFooterProps}
+      bottomPrimaryActionDisabled={
+        formFooterProps.bottomPrimaryActionDisabled || !shipInventoryOrder
+      }
     >
       <div className={classes.wrapper}>
         <div className={classes.fieldsWrapper}>
@@ -55,8 +58,7 @@ const ShipInventory: FC<ShipInventoryProps> = ({
           <InventoryGrid
             inventoryList={inventoryList}
             queryInventoryListLoading={queryInventoryListLoading}
-            onlySelectUnit
-            notUpdateError
+            disabledInput
           />
         )}
       </div>

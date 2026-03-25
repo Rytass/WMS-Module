@@ -12,6 +12,8 @@ interface InventoryGridProps {
   expandedLayout?: boolean;
   onlySelectUnit?: boolean;
   notUpdateError?: boolean;
+  disabledInput?: boolean;
+  disabledCard?: boolean;
 }
 
 const InventoryGrid: FC<InventoryGridProps> = ({
@@ -21,6 +23,8 @@ const InventoryGrid: FC<InventoryGridProps> = ({
   expandedLayout = false,
   onlySelectUnit = false,
   notUpdateError = false,
+  disabledInput = false,
+  disabledCard = false,
 }) => {
   return (
     <div className={classes.host}>
@@ -46,6 +50,8 @@ const InventoryGrid: FC<InventoryGridProps> = ({
               }
               notUpdateError={notUpdateError}
               onlySelectUnit={onlySelectUnit}
+              disabledInput={disabledInput}
+              disabledCard={disabledCard}
             />
           ))}
         </div>
