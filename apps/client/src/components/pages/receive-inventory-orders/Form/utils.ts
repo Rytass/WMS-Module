@@ -26,7 +26,6 @@ export function fragmentToDefaultValues(
             name: item.location.key,
           }
         : null,
-
       loader: item.loader
         ? {
             id: item.loader.id,
