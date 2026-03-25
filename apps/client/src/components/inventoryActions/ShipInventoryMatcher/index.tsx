@@ -26,9 +26,16 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
     [data?.shipInventoryOrder],
   );
 
+  const references = useMemo(
+    () => (shipInventoryOrder?.references ?? []).filter((r) => !r.removedAt),
+    [shipInventoryOrder?.references],
+  );
+
   console.log('shipInventoryOrder', shipInventoryOrder);
 
   console.log('inventoryList', inventoryList);
+
+  // const matchList = useMemo(() => inventoryList.filter((i) => {}), []);
 
   return (
     <div className={classes.host}>
@@ -36,13 +43,9 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
         <Typography variant="label-primary" color="text-neutral-solid">
           {`已配對項目 (1)`}
         </Typography>
-        {shipInventoryOrder && (
-          <>
-            {shipInventoryOrder.references.map((reference) => (
-              <MatchItem key={reference.id} reference={reference} />
-            ))}
-          </>
-        )}
+        {references.map((reference) => (
+          <MatchItem key={reference.id} reference={reference} />
+        ))}
       </div>
       <div className={classes.section}>
         <Typography variant="label-primary" color="text-neutral-solid">
