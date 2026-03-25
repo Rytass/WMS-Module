@@ -51,18 +51,6 @@ export class ShipInventoryOrderResolver {
 
 @Resolver(() => ShipInventoryOrderItemDto)
 export class ShipInventoryOrderItemResolver {
-  constructor(private readonly stockService: StockService) {}
-
-  @ResolveField(() => String)
-  aggregatedKey(@Parent() parent: ShipInventoryOrderItemEntityClass): string {
-    return this.stockService.generatedAggregateKey({
-      ...parent,
-      locationId: parent.locationId ?? '',
-      loaderId: parent.loaderId ?? '',
-      status: StockStatus.FREE,
-    });
-  }
-
   @ResolveField(() => MaterialDto)
   material(
     @Parent() { materialId }: ShipInventoryOrderItemEntityClass,
