@@ -9,6 +9,7 @@ import ShipInventoryMatcher from '../../inventoryActions/ShipInventoryMatcher';
 import { defaultValues } from '../../inventoryActions/fields/ShipInventoryField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useShipInventory } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface ShipInventoryProps {
@@ -31,6 +32,8 @@ const ShipInventory: FC<ShipInventoryProps> = ({
 
   const shipInventoryOrder = methods.watch('shipInventoryOrder');
 
+  const { onSubmit } = useShipInventory(inventoryList);
+
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -40,21 +43,23 @@ const ShipInventory: FC<ShipInventoryProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={() => {
-        //
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
+      bottomPrimaryActionDisabled={
+        formFooterProps.bottomPrimaryActionDisabled || !shipInventoryOrder
+      }
     >
       <div className={classes.wrapper}>
         <div className={classes.fieldsWrapper}>
           <ShipInventoryField />
         </div>
         {shipInventoryOrder ? (
-          <ShipInventoryMatcher />
+          <ShipInventoryMatcher orderId={shipInventoryOrder.id} />
         ) : (
           <InventoryGrid
             inventoryList={inventoryList}
             queryInventoryListLoading={queryInventoryListLoading}
+            disabledInput
           />
         )}
       </div>

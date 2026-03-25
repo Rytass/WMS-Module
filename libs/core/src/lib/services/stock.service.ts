@@ -29,23 +29,22 @@ export class StockService<
   ) => SelectQueryBuilder<T>;
   readonly aggregateKeys: (keyof Pick<
     T,
-    'materialId' | 'batchId' | 'locationId' | 'loaderId' | 'status'
-  >)[] = ['materialId', 'batchId', 'locationId', 'loaderId', 'status'];
+    'materialId' | 'batchId' | 'locationId' | 'loaderId'
+  >)[] = ['materialId', 'batchId', 'locationId', 'loaderId'];
   readonly generatedAggregateKey = <
     A extends { [key in (typeof this.aggregateKeys)[number]]: T[key] },
   >(
     aggregated: A,
   ) => {
-    return this.aggregateKeys.map((key) => aggregated[key]).join('|');
+    return this.aggregateKeys.map((key) => aggregated[key] ?? '').join('|');
   };
   readonly destructAggregateKey = (key: string) => {
-    const [materialId, batchId, locationId, loaderId, status] = key.split('|');
+    const [materialId, batchId, locationId, loaderId] = key.split('|');
     return {
       materialId,
       batchId,
       locationId,
       loaderId,
-      status: status as StockStatus,
     };
   };
   constructor(

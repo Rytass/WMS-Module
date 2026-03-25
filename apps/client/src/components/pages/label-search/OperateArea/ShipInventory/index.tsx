@@ -8,6 +8,7 @@ import ShipInventoryMatcher from '../../../../inventoryActions/ShipInventoryMatc
 import { defaultValues } from '../../../../inventoryActions/fields/ShipInventoryField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useShipInventory } from '../../../../inventoryActions/useApi';
 
 interface ShipInventoryProps {
   inventoryList: AggregatedStockFragment[];
@@ -25,16 +26,27 @@ function ShipInventory({
 
   const shipInventoryOrder = methods.watch('shipInventoryOrder');
 
+  const { onSubmit } = useShipInventory(inventoryList);
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} {...formFooterProps}>
+    <FormWrapper
+      methods={methods}
+      onSubmit={onSubmit}
+      {...formFooterProps}
+      disableSubmitButton={() =>
+        formFooterProps.disableSubmitButton() || !shipInventoryOrder
+      }
+    >
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
         customizedMainBlock={
-          shipInventoryOrder ? <ShipInventoryMatcher /> : undefined
+          shipInventoryOrder ? (
+            <ShipInventoryMatcher orderId={shipInventoryOrder.id} />
+          ) : undefined
         }
+        disabledInput
       />
     </FormWrapper>
   );

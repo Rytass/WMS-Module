@@ -104,21 +104,18 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             addable
             fuzzySearch={false}
             selectValueMode
-            required
           />
           <LocationsField
             name="location"
             label="目標位置"
             fuzzySearch={false}
             selectValueMode
-            required
           />
           <LoadersField
             name="loader"
             label="目標載具"
             fuzzySearch={false}
             selectValueMode
-            required
           />
           <NumberInputField
             name="quantity"

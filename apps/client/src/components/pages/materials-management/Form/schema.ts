@@ -9,7 +9,10 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
     .of(
       Yup.object({
         unit: Yup.string().required('必填'),
-        conversionFactor: Yup.number().min(0, '不可小於 0').required('必填'),
+        conversionFactor: Yup.number()
+          .integer('必須為整數')
+          .min(0, '不可小於 0')
+          .required('必填'),
         isExisted: Yup.boolean().required('必填'),
         isActive: Yup.boolean().required('必填'),
       }),

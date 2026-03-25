@@ -6,8 +6,13 @@ import {
   InventoryActionsContextValues,
 } from './InventoryActionsContext';
 import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
-import { BASE_UNIT } from '../../utils/share';
-import { InventoryActionItem } from './utils';
+import {
+  InventoryActionItem,
+  getQuantityWithUnitId,
+  getMaterialUnitOptions,
+  getUnitName,
+  getSaleInformation,
+} from './utils';
 
 export const useInventoryActions = (): InventoryActionsContextValues => {
   const context = useContext(InventoryActionsContext);
@@ -95,7 +100,10 @@ export function useInventorySignature(inventory: AggregatedStockFragment) {
 
   const saleInformation = useMemo(
     () =>
-      `${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`,
+      getSaleInformation({
+        saleId: inventory.saleId,
+        saleSerialId: inventory.saleSerialId,
+      }),
     [inventory.saleId, inventory.saleSerialId],
   );
 
@@ -104,40 +112,23 @@ export function useInventorySignature(inventory: AggregatedStockFragment) {
   }, [currentSignature?.unitId]);
 
   const unitOptions = useMemo(
-    () => [
-      {
-        id: BASE_UNIT,
-        name: inventory.material.baseUnit.key,
-      },
-      ...inventory.material.materialUnits.map((u) => ({
-        id: u.id,
-        name: u.unit,
-      })),
-    ],
-    [inventory.material.baseUnit.key, inventory.material.materialUnits],
+    () => getMaterialUnitOptions(inventory.material),
+    [inventory.material],
   );
 
   const currentUnitName = useMemo(() => {
-    return (
-      unitOptions.find((o) => o.id === (currentUnitId || BASE_UNIT))?.name ?? ''
-    );
+    return getUnitName({
+      unitId: currentUnitId,
+      options: unitOptions,
+    });
   }, [currentUnitId, unitOptions]);
 
   const quantity = useMemo(() => {
-    if (currentUnitId) {
-      const conversionFactor = inventory.material.materialUnits.find(
-        (u) => u.id === currentUnitId,
-      )?.conversionFactor;
-
-      if (conversionFactor) {
-        return Math.round((inventory.quantity / conversionFactor) * 100) / 100;
-      }
-
-      return inventory.quantity;
-    }
-
-    return inventory.quantity;
-  }, [currentUnitId, inventory.material.materialUnits, inventory.quantity]);
+    return getQuantityWithUnitId({
+      inventory,
+      currentUnitId,
+    });
+  }, [currentUnitId, inventory]);
 
   const inputQuantity = useMemo(
     () => currentSignature?.quantity,

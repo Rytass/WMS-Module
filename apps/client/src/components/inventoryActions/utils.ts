@@ -17,10 +17,69 @@ import {
   UnlinkIcon,
   UpRightIcon,
 } from '../../icons';
-import { DropdownOption } from '@mezzanine-ui/react';
-import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
-import { StockStatus } from '../../graphql/generated/.graphql';
+import { DropdownOption, SelectValue } from '@mezzanine-ui/react';
+import {
+  StockStatus,
+  AggregatedStockFragment,
+  MaterialFragment,
+} from '../../graphql/generated/.graphql';
+import { BASE_UNIT } from '../../utils/share';
 import { InventorySignature } from './typing';
+
+export function getQuantityWithUnitId({
+  inventory,
+  currentUnitId,
+}: {
+  inventory: AggregatedStockFragment;
+  currentUnitId: string | null;
+}) {
+  if (currentUnitId) {
+    const conversionFactor = inventory.material.materialUnits.find(
+      (u) => u.id === currentUnitId,
+    )?.conversionFactor;
+
+    if (conversionFactor) {
+      return Math.round((inventory.quantity / conversionFactor) * 100) / 100;
+    }
+
+    return inventory.quantity;
+  }
+
+  return inventory.quantity;
+}
+
+export function getMaterialUnitOptions(material: MaterialFragment) {
+  return [
+    {
+      id: BASE_UNIT,
+      name: material.baseUnit.key,
+    },
+    ...material.materialUnits.map((u) => ({
+      id: u.id,
+      name: u.unit,
+    })),
+  ];
+}
+
+export function getUnitName({
+  unitId,
+  options,
+}: {
+  unitId: string | null;
+  options: SelectValue[];
+}) {
+  return options.find((o) => o.id === (unitId || BASE_UNIT))?.name ?? '';
+}
+
+export function getSaleInformation({
+  saleId,
+  saleSerialId,
+}: {
+  saleId?: string | null;
+  saleSerialId?: string | null;
+}) {
+  return saleId ? `${saleId}${saleSerialId ? `-${saleSerialId}` : ''}` : '';
+}
 
 export function stockStatusName(status?: StockStatus): string {
   switch (status) {

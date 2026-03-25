@@ -157,7 +157,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
           );
         }
 
-        return source.batch?.name;
+        return source.batch?.name || '-';
       },
     },
     {
@@ -178,7 +178,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
           );
         }
 
-        return source.location?.name;
+        return source.location?.name || '-';
       },
     },
     {
@@ -199,7 +199,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
           );
         }
 
-        return source.loader?.name;
+        return source.loader?.name || '-';
       },
     },
     {

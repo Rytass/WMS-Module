@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from 'react';
+import { flatten, groupBy } from 'lodash';
 import { Message } from '@mezzanine-ui/react';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
 import {
@@ -11,10 +12,15 @@ import {
   ReleaseDocument,
   SplitBatchDocument,
   MergeBatchDocument,
+  // ReclassifyInventoryOrderDocument,
+  ScrapeMaterialsDocument,
 } from '../../graphql/generated/.graphql';
-import { formatAvailableInventoryList } from './utils';
+import { formatAvailableInventoryList, getSaleInformation } from './utils';
+import { CreateTransferInventoryFieldValues } from './fields/CreateTransferInventoryField/typing';
+import { ShipInventoryFieldValues } from './fields/ShipInventoryField/typing';
 import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
 import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
+// import { ReclassifyInventoryFieldValues } from './fields/ReclassifyInventoryField/typing';
 import { useInventoryActions } from './useInventoryActions';
 
 const refetchQueriesAfterInventoryActions = [
@@ -62,6 +68,48 @@ export function useCreateTransferInventory(
   const [createTransferInventory] = useMutation(CreateTransferOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
+
+  const onSubmit = useCallback(
+    async (values: CreateTransferInventoryFieldValues) => {
+      try {
+        const { data } = await createTransferInventory({
+          variables: {
+            locationId: values.location?.id ?? '',
+            loaderId: values.loader?.id,
+            receiver: values.receiver || '',
+            description: values.description || '',
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregatedKey: s.id,
+              unitId: s.unitId,
+              targetTransferredQuantity: s.quantity,
+            })),
+          },
+        });
+
+        if (data?.createTransferOrder.id) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [
+      createTransferInventory,
+      inventoryList,
+      inventorySignature,
+      resetAll,
+      targetAction,
+    ],
+  );
+
+  return {
+    onSubmit,
+  };
 }
 
 export function useHoldInventory(inventoryList: AggregatedStockFragment[]) {
@@ -150,6 +198,47 @@ export function useReleaseHoldInventory(
   };
 }
 
+export function useShipInventory(inventoryList: AggregatedStockFragment[]) {
+  const onSubmit = useCallback(
+    async (values: ShipInventoryFieldValues) => {
+      try {
+        const targetItems = flatten(Object.values(values.items));
+        const grouped = groupBy(targetItems, 'inventoryId');
+        const validation = inventoryList.every((inventory) => {
+          const groupedSignature = grouped[inventory.id];
+          const targetQuantity = groupedSignature.reduce((prev, curr) => {
+            const conversionFactor = curr.unitId
+              ? (inventory.material.materialUnits.find(
+                  (mu) => mu.id === curr.unitId,
+                )?.conversionFactor ?? 1)
+              : 1;
+
+            return prev + curr.quantity * conversionFactor;
+          }, 0);
+
+          if (inventory.quantity < targetQuantity) {
+            Message.error(`料號：${inventory.material.key} / 批號：${inventory.batch.key}${inventory.saleId ? ` / 銷售單號：${getSaleInformation({ saleId: inventory.saleId, saleSerialId: inventory.saleSerialId })}` : ''}
+庫存不足。`);
+          }
+
+          return inventory.quantity >= targetQuantity;
+        });
+
+        if (validation) {
+          console.log('targetItems', targetItems);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [inventoryList],
+  );
+
+  return {
+    onSubmit,
+  };
+}
+
 export function useSplitBatch(inventory?: AggregatedStockFragment) {
   const { inventorySignature, targetAction, resetAll } = useInventoryActions();
   const [splitBatch] = useMutation(SplitBatchDocument, {
@@ -226,6 +315,96 @@ export function useMergeBatch(inventoryList: AggregatedStockFragment[]) {
     },
     [inventoryList, inventorySignature, mergeBatch, resetAll, targetAction],
   );
+
+  return {
+    onSubmit,
+  };
+}
+
+// export function useReclassifyInventory(
+//   inventoryList: AggregatedStockFragment[],
+// ) {
+//   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+//   const [reclassifyInventory] = useMutation(ReclassifyInventoryOrderDocument, {
+//     refetchQueries: refetchQueriesAfterInventoryActions,
+//   });
+
+//   const onSubmit = useCallback(
+//     async (values: ReclassifyInventoryFieldValues) => {
+//       try {
+//         const { data } = await reclassifyInventory({
+//           variables: {
+//             materialKey: values.material?.name ?? '',
+//             items: formatAvailableInventoryList({
+//               inventoryList,
+//               targetAction,
+//               inventorySignature,
+//             }).map((s) => ({
+//               aggregatedKey: s.id,
+//               unitId: s.unitId,
+//               quantity: s.quantity,
+//             })),
+//           },
+//         });
+
+//         if (data?.reclassifyInventoryOrder.id) {
+//           Message.success(`${targetAction?.submitText}成功`);
+//           resetAll();
+//         }
+//       } catch (error) {
+//         console.error(error);
+//       }
+//     },
+//     [
+//       inventoryList,
+//       inventorySignature,
+//       reclassifyInventory,
+//       resetAll,
+//       targetAction,
+//     ],
+//   );
+
+//   return {
+//     onSubmit,
+//   };
+// }
+
+export function useScrapInventory(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [scrapInventory] = useMutation(ScrapeMaterialsDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(async () => {
+    try {
+      const { data } = await scrapInventory({
+        variables: {
+          items: formatAvailableInventoryList({
+            inventoryList,
+            targetAction,
+            inventorySignature,
+          }).map((s) => ({
+            aggregateKey: s.id,
+            unitId: s.unitId,
+            quantity: s.quantity,
+          })),
+        },
+      });
+
+      if (data?.scrapeMaterials.id) {
+        Message.success(`${targetAction?.submitText}成功`);
+        resetAll();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, [
+    inventoryList,
+    inventorySignature,
+    resetAll,
+    scrapInventory,
+    targetAction,
+  ]);
 
   return {
     onSubmit,

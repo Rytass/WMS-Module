@@ -11,6 +11,7 @@ query ShipInventoryOrders(
   $key: String
   $createdBy: String
   $status: ShipInventoryOrderStatus
+  $statuses: [ShipInventoryOrderStatus!]
   $dateRange: DateRangeArgs
   $description: String
 ) {
@@ -21,6 +22,7 @@ query ShipInventoryOrders(
     key: $key
     createdBy: $createdBy
     status: $status
+    statuses: $statuses
     dateRange: $dateRange
     description: $description
   ) {
@@ -50,6 +52,7 @@ query FullShipInventoryOrders(
   $key: String
   $createdBy: String
   $status: ShipInventoryOrderStatus
+  $statuses: [ShipInventoryOrderStatus!]
   $dateRange: DateRangeArgs
   $description: String
 ) {
@@ -60,6 +63,7 @@ query FullShipInventoryOrders(
     key: $key
     createdBy: $createdBy
     status: $status
+    statuses: $statuses
     dateRange: $dateRange
     description: $description
   ) {

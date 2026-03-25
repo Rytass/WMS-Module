@@ -6,6 +6,8 @@ fragment ShipInventoryOrderItem on ShipInventoryOrderItemDto {
   materialId
   batchId
   removedAt
+  serialId
+  aggregatedKey
   material {
     ...SimpleMaterial
   }
