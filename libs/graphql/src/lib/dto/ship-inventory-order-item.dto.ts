@@ -23,6 +23,9 @@ export class ShipInventoryOrderItemDto {
 
   @Field(() => Date, { nullable: true })
   removedAt!: Date | null;
+
+  @Field(() => String)
+  serialId!: string;
 }
 
 @ObjectType()

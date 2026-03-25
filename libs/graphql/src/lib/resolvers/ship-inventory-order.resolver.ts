@@ -6,6 +6,8 @@ import {
   ShipInventoryOrderItemDto,
 } from '../dto';
 import {
+  BatchEntityClass,
+  BatchGroupEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
   MaterialEntityClass,
@@ -13,10 +15,10 @@ import {
   ShipInventoryOrderEntityClass,
   ShipInventoryOrderItemEntityClass,
   ShipInventoryOrderReferenceEntityClass,
+  StockService,
 } from '@wms-module/core';
 import { type LoaderType } from '../helpers';
 import { BatchDto } from '../dto/batch.dto';
-import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import { LocationDto } from '../dto/location.dto';
 import { ShipInventoryOrderReferenceDto } from '../dto/ship-inventory-order-reference.dto';
 
@@ -48,6 +50,17 @@ export class ShipInventoryOrderResolver {
 
 @Resolver(() => ShipInventoryOrderItemDto)
 export class ShipInventoryOrderItemResolver {
+  constructor(private readonly stockService: StockService) {}
+
+  @ResolveField(() => String)
+  aggregatedKey(@Parent() parent: ShipInventoryOrderItemEntityClass): string {
+    return this.stockService.generatedAggregateKey({
+      ...parent,
+      locationId: parent.locationId ?? '',
+      loaderId: parent.loaderId ?? '',
+    });
+  }
+
   @ResolveField(() => MaterialDto)
   material(
     @Parent() { materialId }: ShipInventoryOrderItemEntityClass,
@@ -62,12 +75,17 @@ export class ShipInventoryOrderItemResolver {
   @ResolveField(() => BatchDto, { nullable: true })
   async batch(
     @Parent() { batchId }: ShipInventoryOrderItemEntityClass,
-    @Context() { loaders }: LoaderType<BatchEntity>,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
   ): Promise<BatchDto | null> {
     if (!batchId) return null;
-    return loaders.batchSingle.load({
-      __entity: BatchEntity,
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
       __from: { id: batchId },
+    });
+
+    return loaders.batchSingle.load({
+      __entity: BatchGroupEntityClass,
+      __from: { id: groupId },
     });
   }
 
@@ -148,12 +166,17 @@ export class ShipInventoryOrderReferenceResolver {
   @ResolveField(() => BatchDto, { nullable: true })
   async batch(
     @Parent() { batchId }: ShipInventoryOrderReferenceEntityClass,
-    @Context() { loaders }: LoaderType<BatchEntity>,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
   ): Promise<BatchDto | null> {
     if (!batchId) return null;
-    return loaders.batchSingle.load({
-      __entity: BatchEntity,
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
       __from: { id: batchId },
+    });
+
+    return loaders.batchSingle.load({
+      __entity: BatchGroupEntityClass,
+      __from: { id: groupId },
     });
   }
 
