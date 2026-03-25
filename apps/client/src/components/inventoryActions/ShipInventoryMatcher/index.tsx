@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Typography } from '@mezzanine-ui/react';
-import { useQueryShipInventoryOrder } from './useApi';
+import { useQueryShipInventoryOrder, useQueryInventoryList } from './useApi';
 import MatchItem from './MatchItem';
+import { useInventoryActions } from '../useInventoryActions';
 import classes from './index.module.scss';
 
 interface ShipInventoryMatcherProps {
@@ -9,14 +10,25 @@ interface ShipInventoryMatcherProps {
 }
 
 const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
+  const { targetInventoryIds } = useInventoryActions();
+
   const { data } = useQueryShipInventoryOrder(orderId);
+
+  const { data: inventoryListData } = useQueryInventoryList(targetInventoryIds);
+
+  const inventoryList = useMemo(
+    () => inventoryListData?.aggregatedStocks.items ?? [],
+    [inventoryListData?.aggregatedStocks.items],
+  );
 
   const shipInventoryOrder = useMemo(
     () => data?.shipInventoryOrder ?? null,
     [data?.shipInventoryOrder],
   );
 
-  console.log('data', shipInventoryOrder);
+  console.log('shipInventoryOrder', shipInventoryOrder);
+
+  console.log('inventoryList', inventoryList);
 
   return (
     <div className={classes.host}>

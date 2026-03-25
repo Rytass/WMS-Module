@@ -18,8 +18,12 @@ import {
   UpRightIcon,
 } from '../../icons';
 import { DropdownOption } from '@mezzanine-ui/react';
-import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
-import { StockStatus } from '../../graphql/generated/.graphql';
+import {
+  StockStatus,
+  AggregatedStockFragment,
+  MaterialFragment,
+} from '../../graphql/generated/.graphql';
+import { BASE_UNIT } from '../../utils/share';
 import { InventorySignature } from './typing';
 
 export function getQuantityWithUnitId({
@@ -42,6 +46,19 @@ export function getQuantityWithUnitId({
   }
 
   return inventory.quantity;
+}
+
+export function getMaterialUnitOptions(material: MaterialFragment) {
+  return [
+    {
+      id: BASE_UNIT,
+      name: material.baseUnit.key,
+    },
+    ...material.materialUnits.map((u) => ({
+      id: u.id,
+      name: u.unit,
+    })),
+  ];
 }
 
 export function stockStatusName(status?: StockStatus): string {

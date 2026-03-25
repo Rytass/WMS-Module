@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   Typography,
   Description,
@@ -7,6 +8,8 @@ import {
 } from '@mezzanine-ui/react';
 import { ShipInventoryOrderReferenceFragment } from '../../../../graphql/generated/.graphql';
 import MatchInventory from './MatchInventory';
+import { getMaterialUnitOptions } from '../../utils';
+import { BASE_UNIT } from '../../../../utils/share';
 import classes from './index.module.scss';
 
 interface MatchItemProps {
@@ -14,37 +17,53 @@ interface MatchItemProps {
 }
 
 const MatchItem: FC<MatchItemProps> = ({ reference }) => {
+  const unitOptions = useMemo(
+    () => getMaterialUnitOptions(reference.material),
+    [reference.material],
+  );
+
+  const currentUnitName = useMemo(() => {
+    return (
+      unitOptions.find((o) => o.id === (reference.unitId || BASE_UNIT))?.name ??
+      ''
+    );
+  }, [reference.unitId, unitOptions]);
+
   return (
     <div className={classes.host}>
       <div className={cx(classes.wrapper, classes.bottomBorder)}>
         <div className={classes.titleWrapper}>
           <Typography variant="body-highlight" color="text-neutral-solid">
-            料號
+            {reference.material.key}
           </Typography>
-          <Typography variant="caption" color="text-neutral">
-            銷售
-          </Typography>
+          {reference.saleId && (
+            <Typography variant="caption" color="text-neutral">
+              {`${reference.saleId}${reference.saleSerialId ? `-${reference.saleSerialId}` : ''}`}
+            </Typography>
+          )}
         </div>
         <div className={classes.shipWrapper}>
           <div className={classes.tagsWrapper}>
+            {reference.batch && (
+              <Typography
+                variant="label-secondary"
+                color="text-neutral"
+                className={classes.tag}
+              >
+                {reference.batch.key}
+              </Typography>
+            )}
             <Typography
               variant="label-secondary"
               color="text-neutral"
               className={classes.tag}
             >
-              批號
-            </Typography>
-            <Typography
-              variant="label-secondary"
-              color="text-neutral"
-              className={classes.tag}
-            >
-              出庫項次 : 10
+              {`出庫項次 : ${reference.serialId}`}
             </Typography>
           </div>
           <div>
             <Description title="需出貨量 :" widthType="hug">
-              <DescriptionContent>1000 KG</DescriptionContent>
+              <DescriptionContent>{`${reference.targetShippedQuantity} ${currentUnitName}`}</DescriptionContent>
             </Description>
           </div>
         </div>

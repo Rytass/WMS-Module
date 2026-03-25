@@ -1,5 +1,8 @@
 import { useQuery } from '@apollo/client/react';
-import { ShipInventoryOrderDocument } from '../../../graphql/generated/.graphql';
+import {
+  ShipInventoryOrderDocument,
+  AggregatedStocksForInventoryActionsDocument,
+} from '../../../graphql/generated/.graphql';
 
 export function useQueryShipInventoryOrder(id: string) {
   const { data, loading } = useQuery(ShipInventoryOrderDocument, {
@@ -8,6 +11,24 @@ export function useQueryShipInventoryOrder(id: string) {
     },
     fetchPolicy: 'cache-and-network',
   });
+
+  return {
+    data,
+    loading,
+  };
+}
+
+export function useQueryInventoryList(ids: string[]) {
+  const { data, loading } = useQuery(
+    AggregatedStocksForInventoryActionsDocument,
+    {
+      variables: {
+        ids,
+      },
+      skip: ids.length === 0,
+      fetchPolicy: 'cache-and-network',
+    },
+  );
 
   return {
     data,
