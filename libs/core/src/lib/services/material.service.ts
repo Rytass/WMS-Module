@@ -147,7 +147,7 @@ export class MaterialService<
         await Promise.all(
           existingUnits.map((unit) =>
             materialUnitRepository.update(
-              { materialId: unit.materialId, unit: unit.unit },
+              { materialId: options.id, unit: unit.unit },
               unit,
             ),
           ),

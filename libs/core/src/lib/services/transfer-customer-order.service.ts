@@ -136,20 +136,21 @@ export class TransferCustomerOrderService<
   ): Promise<T> {
     const repos = this.getRepositories(manager);
     const key = await this.helperService.getSeq(this.seqPrefix);
+    const { items, ...orderOptions } = options;
     const order = await repos.transferCustomerOrder.save(
       repos.transferCustomerOrder.create({
         key,
-        ...options,
+        ...orderOptions,
       }),
     );
 
-    if (options.items?.length) {
-      const items = options.items.map((item) => ({
+    if (items?.length) {
+      const processedItems = items.map((item) => ({
         ...item,
         orderId: order.id,
         customerId: options.customerId,
       }));
-      await this.processTransferCustomerOrderItems(items, manager);
+      await this.processTransferCustomerOrderItems(processedItems, manager);
     }
 
     return order as T;
@@ -163,16 +164,17 @@ export class TransferCustomerOrderService<
     manager?: EntityManager;
   }): Promise<T> {
     const repos = this.getRepositories(manager);
+    const { items, ...orderOptions } = options;
 
     const order = await repos.transferCustomerOrder.findOneBy({ id });
     if (!order) throw new Error(`Order with id ${id} not found`);
 
     const updated = await repos.transferCustomerOrder.save({
       ...order,
-      ...options,
+      ...orderOptions,
     });
 
-    if (options.items?.length) {
+    if (items?.length) {
       const existingItemIds = new Set(
         (
           await repos.transferCustomerOrderItem.find({
