@@ -1,4 +1,5 @@
 import { useMemo, useCallback } from 'react';
+import { flatten, groupBy } from 'lodash';
 import { Message } from '@mezzanine-ui/react';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
 import {
@@ -12,7 +13,7 @@ import {
   SplitBatchDocument,
   MergeBatchDocument,
 } from '../../graphql/generated/.graphql';
-import { formatAvailableInventoryList } from './utils';
+import { formatAvailableInventoryList, getSaleInformation } from './utils';
 import { ShipInventoryFieldValues } from './fields/ShipInventoryField/typing';
 import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
 import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
@@ -152,13 +153,40 @@ export function useReleaseHoldInventory(
 }
 
 export function useShipInventory(inventoryList: AggregatedStockFragment[]) {
-  const onSubmit = useCallback(async (values: ShipInventoryFieldValues) => {
-    try {
-      console.log('values', values);
-    } catch (error) {
-      console.error(error);
-    }
-  }, []);
+  const onSubmit = useCallback(
+    async (values: ShipInventoryFieldValues) => {
+      try {
+        const targetItems = flatten(Object.values(values.items));
+        const grouped = groupBy(targetItems, 'inventoryId');
+        const validation = inventoryList.every((inventory) => {
+          const groupedSignature = grouped[inventory.id];
+          const targetQuantity = groupedSignature.reduce((prev, curr) => {
+            const conversionFactor = curr.unitId
+              ? (inventory.material.materialUnits.find(
+                  (mu) => mu.id === curr.unitId,
+                )?.conversionFactor ?? 1)
+              : 1;
+
+            return prev + curr.quantity * conversionFactor;
+          }, 0);
+
+          if (inventory.quantity < targetQuantity) {
+            Message.error(`料號：${inventory.material.key} / 批號：${inventory.batch.key}${inventory.saleId ? ` / 銷售單號：${getSaleInformation({ saleId: inventory.saleId, saleSerialId: inventory.saleSerialId })}` : ''}
+庫存不足。`);
+          }
+
+          return inventory.quantity >= targetQuantity;
+        });
+
+        if (validation) {
+          console.log('targetItems', targetItems);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [inventoryList],
+  );
 
   return {
     onSubmit,
