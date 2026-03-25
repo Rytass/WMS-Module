@@ -21,6 +21,11 @@ function InventoryMovementReceiveForm({
           .filter((item) => !item.removedAt)
           .map((item) => ({
             serialId: item.serialId,
+            material: {
+              id: item.material.id,
+              name: item.material.key,
+            },
+            materialDescription: item.material.description,
             targetReceivedQuantity: item.targetReceivedQuantity,
             receivedQuantity: item.receivedQuantity,
           })),
