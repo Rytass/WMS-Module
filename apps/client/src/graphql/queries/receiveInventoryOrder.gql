@@ -8,8 +8,10 @@ query ReceiveInventoryOrders(
   $offset: Int
   $limit: Int
   $receiveInventoryOrdersId: ID
+  $key: String
   $createdBy: String
   $status: ReceiveInventoryOrderStatus
+  $statuses: [ReceiveInventoryOrderStatus!]
   $dateRange: DateRangeArgs
   $description: String
 ) {
@@ -17,8 +19,10 @@ query ReceiveInventoryOrders(
     offset: $offset
     limit: $limit
     id: $receiveInventoryOrdersId
+    key: $key
     createdBy: $createdBy
     status: $status
+    statuses: $statuses
     dateRange: $dateRange
     description: $description
   ) {
@@ -34,8 +38,10 @@ query FullReceiveInventoryOrders(
   $offset: Int
   $limit: Int
   $receiveInventoryOrdersId: ID
+  $key: String
   $createdBy: String
   $status: ReceiveInventoryOrderStatus
+  $statuses: [ReceiveInventoryOrderStatus!]
   $dateRange: DateRangeArgs
   $description: String
 ) {
@@ -43,8 +49,10 @@ query FullReceiveInventoryOrders(
     offset: $offset
     limit: $limit
     id: $receiveInventoryOrdersId
+    key: $key
     createdBy: $createdBy
     status: $status
+    statuses: $statuses
     dateRange: $dateRange
     description: $description
   ) {

@@ -299,7 +299,7 @@ export class ReceiveInventoryOrderService<
   }
 
   async findMany(
-    options: FindReceiveInventoryOrderInput,
+    options: FindReceiveInventoryOrderInput<T>,
   ): Promise<[T[], number]> {
     const queryBuilder = this.selectQueryBuilder('orders');
 
@@ -326,6 +326,18 @@ export class ReceiveInventoryOrderService<
       queryBuilder.andWhere(`status = :status`, {
         status: options.status,
       });
+
+    if (options.statuses && options.statuses.length > 0)
+      queryBuilder.andWhere(`status IN (:...statuses)`, {
+        statuses: options.statuses,
+      });
+
+    if (options.wildcard) {
+      const { key, value } = options.wildcard;
+      queryBuilder.andWhere(`orders."${String(key)}" ILIKE :value`, {
+        value: `%${value}%`,
+      });
+    }
 
     const total = await queryBuilder.getCount();
 

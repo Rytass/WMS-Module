@@ -5,6 +5,7 @@ import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import ReturnFromCustomerField from '../../inventoryActions/fields/ReturnFromCustomerField';
+import { defaultValues } from '../../inventoryActions/fields/ReturnFromCustomerField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import classes from '../index.module.scss';
@@ -24,10 +25,7 @@ const ReturnFromCustomer: FC<ReturnFromCustomerProps> = ({
 }) => {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      location: null,
-      loader: null,
-    },
+    defaultValues,
   });
 
   const formFooterProps = useShareFooterProps({

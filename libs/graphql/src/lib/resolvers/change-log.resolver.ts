@@ -1,6 +1,8 @@
 import { Context, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { ChangeLogDto, MaterialDto } from '../dto';
 import {
+  BatchEntityClass,
+  BatchGroupEntityClass,
   LocationEntityClass,
   MaterialEntityClass,
   StockEntityClass,
@@ -8,7 +10,6 @@ import {
 import { type LoaderType } from '../helpers';
 import { LocationDto } from '../dto/location.dto';
 import { BatchDto } from '../dto/batch.dto';
-import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 
 @Resolver(() => ChangeLogDto)
 export class ChangeLogResolver {
@@ -35,13 +36,18 @@ export class ChangeLogResolver {
   }
 
   @ResolveField(() => BatchDto)
-  batch(
+  async batch(
     @Parent() { batchId }: StockEntityClass,
-    @Context() { loaders }: LoaderType<BatchEntity>,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
   ): Promise<BatchDto> {
-    return loaders.batchSingle.load({
-      __entity: BatchEntity,
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
       __from: { id: batchId },
+    });
+
+    return loaders.batchSingle.load({
+      __entity: BatchGroupEntityClass,
+      __from: { id: groupId },
     });
   }
 }

@@ -30,6 +30,8 @@ interface InventoryCardProps {
   onlySelectUnit?: boolean;
   notUpdateError?: boolean;
   isAllSameMaterial?: boolean;
+  disabledInput?: boolean;
+  disabledCard?: boolean;
 }
 
 const InventoryCard: FC<InventoryCardProps> = ({
@@ -37,6 +39,8 @@ const InventoryCard: FC<InventoryCardProps> = ({
   onlySelectUnit,
   notUpdateError,
   isAllSameMaterial,
+  disabledInput,
+  disabledCard,
 }) => {
   const {
     targetAction,
@@ -60,8 +64,9 @@ const InventoryCard: FC<InventoryCardProps> = ({
   const isDisabledCard = useMemo(
     () =>
       !isEnableActionStatus(inventory.status, targetAction?.status) ||
-      (targetAction?.needSameMaterial && !isAllSameMaterial),
-    [inventory.status, targetAction, isAllSameMaterial],
+      (targetAction?.needSameMaterial && !isAllSameMaterial) ||
+      disabledCard,
+    [inventory.status, targetAction, isAllSameMaterial, disabledCard],
   );
 
   const currentErrorSignature = useMemo(
@@ -188,6 +193,7 @@ const InventoryCard: FC<InventoryCardProps> = ({
                         (o) => o.id === (currentUnitId || BASE_UNIT),
                       )}
                       options={unitOptions}
+                      disabled={isDisabledCard || disabledInput || undefined}
                     />
                   </FormField>
                 </div>
@@ -256,7 +262,7 @@ const InventoryCard: FC<InventoryCardProps> = ({
                     textAlign: 'right',
                   },
                 }}
-                disabled={isDisabledCard || undefined}
+                disabled={isDisabledCard || disabledInput || undefined}
               />
             </FormField>
           </div>

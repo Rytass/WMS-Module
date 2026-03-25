@@ -1,0 +1,5 @@
+mutation ScrapeMaterials($items: [ScrapeOrderItemInput!]!) {
+  scrapeMaterials(items: $items) {
+    ...ScrapeOrder
+  }
+}

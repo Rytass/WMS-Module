@@ -332,14 +332,12 @@ export class ShipInventoryOrderService<
         [];
 
       const items = await shipInventoryOrderReferenceRepository.find({
-        where: { orderId: id },
+        where: { orderId: id, removedAt: IsNull() },
       });
       const itemSet = new Set(items.map((i) => i.id));
 
-      // Use Promise.all with map to wait for all async operations to complete
       const results = await Promise.all(
         (options.references || []).map(async (item) => {
-          if (item.removedAt) return null;
           let batch: BatchEntity | null = null;
           if (item.batchKey) {
             const material = await materialRepository.findOneByOrFail({
@@ -364,7 +362,6 @@ export class ShipInventoryOrderService<
           existingItems.push({ ...item, batchId: batch?.id || null });
       });
 
-      console.log({ newItems, existingItems });
       if (newItems.length) {
         const processedNewItems =
           await this.processShipInventoryOrderReferences(newItems, manager);
@@ -392,12 +389,10 @@ export class ShipInventoryOrderService<
       const existingItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
 
       await shipInventoryOrderItemRepository
-        .find({ where: { orderId: id } })
+        .find({ where: { orderId: id, removedAt: IsNull() } })
         .then((items) => {
           const itemSet = new Set(items.map((i) => i.id));
           options.items?.forEach((item) => {
-            if (item.removedAt) return;
-
             if (!item.id) newItems.push({ ...item, orderId: id });
             else if (itemSet.has(item.id)) existingItems.push(item);
           });
@@ -428,7 +423,9 @@ export class ShipInventoryOrderService<
       .then(({ affected }) => !!affected && affected > 0);
   }
 
-  async findMany(options: FindShipInventoryOrderInput): Promise<[T[], number]> {
+  async findMany(
+    options: FindShipInventoryOrderInput<T>,
+  ): Promise<[T[], number]> {
     const queryBuilder = this.selectQueryBuilder('orders');
 
     if (options.id)
@@ -454,6 +451,18 @@ export class ShipInventoryOrderService<
       queryBuilder.andWhere(`status = :status`, {
         status: options.status,
       });
+
+    if (options.statuses && options.statuses.length > 0)
+      queryBuilder.andWhere(`status IN (:...statuses)`, {
+        statuses: options.statuses,
+      });
+
+    if (options.wildcard) {
+      const { key, value } = options.wildcard;
+      queryBuilder.andWhere(`orders."${String(key)}" ILIKE :value`, {
+        value: `%${value}%`,
+      });
+    }
 
     const total = await queryBuilder.getCount();
 

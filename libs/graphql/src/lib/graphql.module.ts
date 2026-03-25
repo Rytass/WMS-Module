@@ -52,6 +52,7 @@ import { TransferVendorOrderMutation } from './mutations/transfer-vendor-order.m
 import { TransferVendorOrderResolver } from './resolvers/transfer-vendor-order.resolver';
 import { SplitBatchResolver } from './resolvers/split-batch.resolver';
 import { MergeBatchOrderResolver } from './resolvers/merge-batch.resolver';
+import { ScrapeMutation } from './mutations/scrape-order.mutation';
 
 const exportDependencies = [
   UnitQuery,
@@ -110,6 +111,8 @@ const exportDependencies = [
   MergeBatchMutation,
   MergeBatchOrderResolver,
   ReclassifyInventoryOrderMutation,
+
+  ScrapeMutation,
 ];
 @Module({
   providers: exportDependencies,

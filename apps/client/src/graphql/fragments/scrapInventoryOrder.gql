@@ -1,0 +1,19 @@
+fragment ScrapeOrderItem on ScrapeOrderItemDto {
+  id
+  materialId
+  batchId
+  locationId
+  loaderId
+  orderId
+  unitId
+  targetScrapedQuantity
+}
+
+fragment ScrapeOrder on ScrapeOrderDto {
+  id
+  key
+  createdAt
+  items {
+    ...ScrapeOrderItem
+  }
+}

@@ -5,9 +5,9 @@ export type AddFormValues = {
   inspection: YesOrNo;
   material: SelectValue | null;
   description?: string;
-  batch: SelectValue | null;
-  location: SelectValue | null;
-  loader: SelectValue | null;
+  batch?: SelectValue | null;
+  location?: SelectValue | null;
+  loader?: SelectValue | null;
   quantity: number;
   unit: string;
 };

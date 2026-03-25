@@ -1,6 +1,8 @@
 import { Context, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { MaterialDto, StockDto } from '../dto';
 import {
+  BatchEntityClass,
+  BatchGroupEntityClass,
   LocationEntityClass,
   MaterialEntityClass,
   StockEntityClass,
@@ -35,13 +37,18 @@ export class StockResolver {
   }
 
   @ResolveField(() => BatchDto)
-  batch(
+  async batch(
     @Parent() { batchId }: StockEntityClass,
-    @Context() { loaders }: LoaderType<BatchEntity>,
-  ): Promise<BatchDto> {
-    return loaders.batchSingle.load({
-      __entity: BatchEntity,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
+  ): Promise<BatchDto | null> {
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
       __from: { id: batchId },
+    });
+
+    return loaders.batchSingle.load({
+      __entity: BatchGroupEntityClass,
+      __from: { id: groupId },
     });
   }
 }

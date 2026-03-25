@@ -6,6 +6,7 @@ import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
 import SplitTarget from '../../../../inventoryActions/SplitTarget';
+import { defaultValues } from '../../../../inventoryActions/fields/SplitBatchField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import { useSplitBatch } from '../../../../inventoryActions/useApi';
@@ -21,9 +22,7 @@ function SplitBatch({
 }: SplitBatchProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      items: [],
-    },
+    defaultValues,
   });
 
   const inventory = useMemo(() => inventoryList[0], [inventoryList]);

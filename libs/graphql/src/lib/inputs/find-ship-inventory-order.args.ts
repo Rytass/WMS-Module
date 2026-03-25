@@ -18,9 +18,15 @@ export class FindShipInventoryOrderArgs extends PaginationArgs {
   @Field(() => ShipInventoryOrderStatus, { nullable: true })
   status?: ShipInventoryOrderStatus;
 
+  @Field(() => [ShipInventoryOrderStatus], { nullable: true })
+  statuses?: ShipInventoryOrderStatus[];
+
   @Field(() => DateRangeArgs, { nullable: true })
   dateRange?: DateRangeArgs;
 
   @Field(() => String, { nullable: true })
   description?: string;
+
+  @Field(() => String, { nullable: true })
+  key?: string;
 }

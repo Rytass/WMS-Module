@@ -16,12 +16,20 @@ interface HostSectionProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
   customizedMainBlock?: ReactNode;
+  onlySelectUnit?: boolean;
+  notUpdateError?: boolean;
+  disabledInput?: boolean;
+  disabledCard?: boolean;
 }
 
 const HostSection: FC<HostSectionProps> = ({
   inventoryList,
   queryInventoryListLoading,
   customizedMainBlock,
+  onlySelectUnit,
+  notUpdateError,
+  disabledInput,
+  disabledCard,
 }) => {
   const { openDialog } = useDialog();
   const { targetAction, targetInventoryIds, removeInventoryByIds } =
@@ -107,6 +115,10 @@ const HostSection: FC<HostSectionProps> = ({
                 queryInventoryListLoading={queryInventoryListLoading}
                 haveTitle={false}
                 expandedLayout
+                notUpdateError={notUpdateError}
+                onlySelectUnit={onlySelectUnit}
+                disabledInput={disabledInput}
+                disabledCard={disabledCard}
               />
             ) : (
               <div className={classes.placeholderWrapper}>

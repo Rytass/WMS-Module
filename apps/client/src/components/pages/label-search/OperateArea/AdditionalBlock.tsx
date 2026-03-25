@@ -3,10 +3,17 @@ import { Typography, Empty } from '@mezzanine-ui/react';
 import SectionWrapper from '../../../SectionWrapper';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
+import CreateTransferInventoryField from '../../../inventoryActions/fields/CreateTransferInventoryField';
+import AllocateInventoryField from '../../../inventoryActions/fields/AllocateInventoryField';
+import ShipInventoryField from '../../../inventoryActions/fields/ShipInventoryField';
 import SplitBatchField from '../../../inventoryActions/fields/SplitBatchField';
 import MergeBatchField from '../../../inventoryActions/fields/MergeBatchField';
+import ReclassifyInventoryField from '../../../inventoryActions/fields/ReclassifyInventoryField';
+import TransferToVendorField from '../../../inventoryActions/fields/TransferToVendorField';
 import ReturnFromVendorField from '../../../inventoryActions/fields/ReturnFromVendorField';
+import DeliverToCustomerField from '../../../inventoryActions/fields/DeliverToCustomerField';
 import ReturnFromCustomerField from '../../../inventoryActions/fields/ReturnFromCustomerField';
+import QualityInspectionField from '../../../inventoryActions/fields/QualityInspectionField';
 import { InventoryActions } from '../../../inventoryActions/utils';
 import classes from './index.module.scss';
 
@@ -20,17 +27,38 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
 
   const additionalFields = useMemo(() => {
     switch (targetAction?.id) {
+      case InventoryActions.CreateTransferInventory:
+        return <CreateTransferInventoryField />;
+
+      case InventoryActions.AllocateInventory:
+        return <AllocateInventoryField />;
+
+      case InventoryActions.ShipInventory:
+        return <ShipInventoryField />;
+
       case InventoryActions.SplitBatch:
         return <SplitBatchField inventory={inventoryList[0]} />;
 
       case InventoryActions.MergeBatch:
         return <MergeBatchField />;
 
+      case InventoryActions.ReclassifyInventory:
+        return <ReclassifyInventoryField />;
+
+      case InventoryActions.TransferToVendor:
+        return <TransferToVendorField />;
+
       case InventoryActions.ReturnFromVendor:
         return <ReturnFromVendorField />;
 
+      case InventoryActions.DeliverToCustomer:
+        return <DeliverToCustomerField />;
+
       case InventoryActions.ReturnFromCustomer:
         return <ReturnFromCustomerField />;
+
+      case InventoryActions.QualityInspection:
+        return <QualityInspectionField />;
 
       default:
         return null;
