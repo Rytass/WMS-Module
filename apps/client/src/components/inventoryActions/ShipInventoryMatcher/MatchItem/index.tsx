@@ -11,8 +11,11 @@ import {
   AggregatedStockFragment,
 } from '../../../../graphql/generated/.graphql';
 import MatchInventory from './MatchInventory';
-import { getMaterialUnitOptions, getSaleInformation } from '../../utils';
-import { BASE_UNIT } from '../../../../utils/share';
+import {
+  getMaterialUnitOptions,
+  getUnitName,
+  getSaleInformation,
+} from '../../utils';
 import { matchInventoryToReference } from '../utils';
 import classes from './index.module.scss';
 
@@ -28,10 +31,10 @@ const MatchItem: FC<MatchItemProps> = ({ reference, inventoryList }) => {
   );
 
   const currentUnitName = useMemo(() => {
-    return (
-      unitOptions.find((o) => o.id === (reference.unitId || BASE_UNIT))?.name ??
-      ''
-    );
+    return getUnitName({
+      unitId: reference.unitId ?? null,
+      options: unitOptions,
+    });
   }, [reference.unitId, unitOptions]);
 
   const matchList = useMemo(

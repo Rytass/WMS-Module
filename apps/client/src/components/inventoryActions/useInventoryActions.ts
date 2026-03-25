@@ -6,11 +6,11 @@ import {
   InventoryActionsContextValues,
 } from './InventoryActionsContext';
 import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
-import { BASE_UNIT } from '../../utils/share';
 import {
   InventoryActionItem,
   getQuantityWithUnitId,
   getMaterialUnitOptions,
+  getUnitName,
   getSaleInformation,
 } from './utils';
 
@@ -117,9 +117,10 @@ export function useInventorySignature(inventory: AggregatedStockFragment) {
   );
 
   const currentUnitName = useMemo(() => {
-    return (
-      unitOptions.find((o) => o.id === (currentUnitId || BASE_UNIT))?.name ?? ''
-    );
+    return getUnitName({
+      unitId: currentUnitId,
+      options: unitOptions,
+    });
   }, [currentUnitId, unitOptions]);
 
   const quantity = useMemo(() => {

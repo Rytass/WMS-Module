@@ -17,7 +17,7 @@ import {
   UnlinkIcon,
   UpRightIcon,
 } from '../../icons';
-import { DropdownOption } from '@mezzanine-ui/react';
+import { DropdownOption, SelectValue } from '@mezzanine-ui/react';
 import {
   StockStatus,
   AggregatedStockFragment,
@@ -59,6 +59,16 @@ export function getMaterialUnitOptions(material: MaterialFragment) {
       name: u.unit,
     })),
   ];
+}
+
+export function getUnitName({
+  unitId,
+  options,
+}: {
+  unitId: string | null;
+  options: SelectValue[];
+}) {
+  return options.find((o) => o.id === (unitId || BASE_UNIT))?.name ?? '';
 }
 
 export function getSaleInformation({
