@@ -95,6 +95,12 @@ import {
   TransferCustomerOrderItemEntityClass,
   TransferCustomerOrderChangeEntity,
   TransferCustomerOrderChangeEntityClass,
+  ScrapeOrderEntity,
+  ScrapeOrderEntityClass,
+  ScrapeOrderItemEntity,
+  ScrapeOrderItemEntityClass,
+  ScrapeOrderChangeEntity,
+  ScrapeOrderChangeEntityClass,
 } from './extensions';
 
 const entities = [
@@ -147,6 +153,9 @@ const entities = [
   [TransferCustomerOrderEntity, TransferCustomerOrderEntityClass],
   [TransferCustomerOrderItemEntity, TransferCustomerOrderItemEntityClass],
   [TransferCustomerOrderChangeEntity, TransferCustomerOrderChangeEntityClass],
+  [ScrapeOrderEntity, ScrapeOrderEntityClass],
+  [ScrapeOrderItemEntity, ScrapeOrderItemEntityClass],
+  [ScrapeOrderChangeEntity, ScrapeOrderChangeEntityClass],
 ] as [symbol, new () => object][];
 
 export const ResolvedEntitiesProviders = entities.map(([token, entity]) => ({

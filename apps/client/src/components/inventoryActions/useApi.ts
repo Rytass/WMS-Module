@@ -6,7 +6,7 @@ import {
   StocksGroupedByMaterialDocument,
   AggregatedStocksDocument,
   AggregatedStocksForInventoryActionsDocument,
-  // CreateTransferOrderDocument,
+  CreateTransferOrderDocument,
   CreateHoldInventoryOrderDocument,
   ReleaseDocument,
   SplitBatchDocument,
@@ -53,6 +53,15 @@ export function useQueryInventoryList(ids: string[]) {
     data,
     loading,
   };
+}
+
+export function useCreateTransferInventory(
+  inventoryList: AggregatedStockFragment[],
+) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [createTransferInventory] = useMutation(CreateTransferOrderDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
 }
 
 export function useHoldInventory(inventoryList: AggregatedStockFragment[]) {

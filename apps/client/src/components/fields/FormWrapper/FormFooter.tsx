@@ -21,6 +21,8 @@ interface FormFooterProps<T extends FieldValues = FieldValues> {
   primaryButtonIcon?: IconDefinition;
   cancelText?: string;
   secondaryButtonVariant?: ButtonVariant;
+  secondaryButtonIcon?: IconDefinition;
+  onSecondaryButtonSubmit?: SubmitHandler<T>;
   supportingActionName?: string;
   supportingActionOnClick?: VoidFunction;
   haveCancelButton: boolean;
@@ -36,6 +38,8 @@ export const FormFooter = <T extends FieldValues>({
   primaryButtonIcon,
   cancelText = '取消',
   secondaryButtonVariant,
+  secondaryButtonIcon,
+  onSecondaryButtonSubmit,
   supportingActionName,
   supportingActionOnClick,
   haveCancelButton,
@@ -50,8 +54,12 @@ export const FormFooter = <T extends FieldValues>({
   const loading = useMemo(() => isSubmitting, [isSubmitting]);
 
   const onCancel = useCallback(async () => {
-    await onFormCancel();
-  }, [onFormCancel]);
+    if (onSecondaryButtonSubmit) {
+      await handleSubmit(onSecondaryButtonSubmit)();
+    } else {
+      await onFormCancel();
+    }
+  }, [handleSubmit, onFormCancel, onSecondaryButtonSubmit]);
 
   return (
     <PageFooter
@@ -77,6 +85,8 @@ export const FormFooter = <T extends FieldValues>({
               children: cancelText,
               type: 'button',
               variant: secondaryButtonVariant ?? 'base-secondary',
+              iconType: 'leading',
+              icon: secondaryButtonIcon,
               disabled: disableCancelButton(values) || loading,
               onClick: async () => {
                 await onCancel();

@@ -14,7 +14,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         batch: Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
-        }).required('必填'),
+        }).nullable(),
         quantity: Yup.number()
           .integer('必須為整數')
           .required('必填')

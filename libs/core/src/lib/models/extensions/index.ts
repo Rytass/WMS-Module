@@ -32,3 +32,6 @@ export * from './quality-inspection-order/quality-inspection-order-change.entity
 export * from './transfer-customer-order/transfer-customer-order.entity';
 export * from './transfer-customer-order/transfer-customer-order-item.entity';
 export * from './transfer-customer-order/transfer-customer-order-change.entity';
+export * from './scrape-order/scrape-order.entity';
+export * from './scrape-order/scrape-order-item.entity';
+export * from './scrape-order/scrape-order-change.entity';

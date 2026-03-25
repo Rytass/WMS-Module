@@ -6,6 +6,7 @@ import SplitTarget from '../../inventoryActions/SplitTarget';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import SplitBatchField from '../../inventoryActions/fields/SplitBatchField';
+import { defaultValues } from '../../inventoryActions/fields/SplitBatchField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import { useSplitBatch } from '../../inventoryActions/useApi';
@@ -26,9 +27,7 @@ const SplitBatch: FC<SplitBatchProps> = ({
 }) => {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
-    defaultValues: {
-      items: [],
-    },
+    defaultValues,
   });
 
   const inventory = useMemo(() => inventoryList[0], [inventoryList]);

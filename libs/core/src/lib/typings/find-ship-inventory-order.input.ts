@@ -7,7 +7,7 @@ export enum ShipInventoryOrderStatus {
   PARTIAL_SHIPPED = 'PARTIAL_SHIPPED',
 }
 
-export type FindShipInventoryOrderInput = PaginationInput & {
+export type FindShipInventoryOrderInput<T> = PaginationInput & {
   id?: string;
   createdBy?: string;
   status?: ShipInventoryOrderStatus;
@@ -16,4 +16,8 @@ export type FindShipInventoryOrderInput = PaginationInput & {
     to: Date;
   };
   description?: string;
+  wildcard?: {
+    key: keyof T;
+    value: string;
+  };
 };

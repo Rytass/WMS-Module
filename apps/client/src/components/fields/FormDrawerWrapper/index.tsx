@@ -14,6 +14,9 @@ type FormDrawerWrapperProps<T extends FieldValues = FieldValues> = {
   bottomOnSecondaryActionClick?: SubmitHandler<T>;
   bottomGhostActionText?: string;
   bottomSecondaryActionText?: string;
+  bottomSecondaryActionIcon?: IconDefinition;
+  bottomSecondaryActionVariant?: ButtonVariant;
+  bottomSecondaryActionDisabled?: boolean;
   bottomPrimaryActionText: string;
   bottomPrimaryActionIcon?: IconDefinition;
   bottomPrimaryActionVariant?: ButtonVariant;
@@ -31,6 +34,9 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
   bottomOnSecondaryActionClick,
   bottomGhostActionText = '清空所有選項',
   bottomSecondaryActionText,
+  bottomSecondaryActionIcon,
+  bottomSecondaryActionVariant,
+  bottomSecondaryActionDisabled = false,
   bottomPrimaryActionText,
   bottomPrimaryActionIcon,
   bottomPrimaryActionVariant,
@@ -50,13 +56,17 @@ function FormDrawerWrapper<T extends FieldValues = FieldValues>({
       bottomSecondaryActionText={bottomSecondaryActionText}
       bottomOnSecondaryActionClick={async () => {
         if (bottomOnSecondaryActionClick) {
-          methods.handleSubmit(bottomOnSecondaryActionClick)();
+          await methods.handleSubmit(bottomOnSecondaryActionClick)();
         }
       }}
-      bottomSecondaryActionDisabled={loading}
+      bottomSecondaryActionDisabled={bottomSecondaryActionDisabled || loading}
+      bottomSecondaryActionVariant={bottomSecondaryActionVariant}
+      bottomSecondaryActionIcon={bottomSecondaryActionIcon}
+      bottomSecondaryActionIconType="leading"
+      bottomSecondaryActionLoading={loading}
       bottomPrimaryActionText={bottomPrimaryActionText}
       bottomOnPrimaryActionClick={async () => {
-        methods.handleSubmit(onSubmit)();
+        await methods.handleSubmit(onSubmit)();
       }}
       bottomPrimaryActionIconType="leading"
       bottomPrimaryActionIcon={bottomPrimaryActionIcon}
