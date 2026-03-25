@@ -45,10 +45,6 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
     [inventoryList, references],
   );
 
-  console.log('shipInventoryOrder', shipInventoryOrder);
-
-  console.log('inventoryList', inventoryList, notMatchList);
-
   return (
     <div className={classes.host}>
       <div className={classes.section}>

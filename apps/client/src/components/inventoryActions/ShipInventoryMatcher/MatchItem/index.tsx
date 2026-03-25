@@ -11,7 +11,7 @@ import {
   AggregatedStockFragment,
 } from '../../../../graphql/generated/.graphql';
 import MatchInventory from './MatchInventory';
-import { getMaterialUnitOptions } from '../../utils';
+import { getMaterialUnitOptions, getSaleInformation } from '../../utils';
 import { BASE_UNIT } from '../../../../utils/share';
 import { matchInventoryToReference } from '../utils';
 import classes from './index.module.scss';
@@ -54,7 +54,10 @@ const MatchItem: FC<MatchItemProps> = ({ reference, inventoryList }) => {
           </Typography>
           {reference.saleId && (
             <Typography variant="caption" color="text-neutral">
-              {`${reference.saleId}${reference.saleSerialId ? `-${reference.saleSerialId}` : ''}`}
+              {getSaleInformation({
+                saleId: reference.saleId,
+                saleSerialId: reference.saleSerialId,
+              })}
             </Typography>
           )}
         </div>
@@ -79,7 +82,9 @@ const MatchItem: FC<MatchItemProps> = ({ reference, inventoryList }) => {
           </div>
           <div>
             <Description title="需出貨量 :" widthType="hug">
-              <DescriptionContent>{`${reference.targetShippedQuantity} ${currentUnitName}`}</DescriptionContent>
+              <DescriptionContent>
+                {`${reference.targetShippedQuantity.toLocaleString()} ${currentUnitName}`}
+              </DescriptionContent>
             </Description>
           </div>
         </div>
@@ -94,7 +99,12 @@ const MatchItem: FC<MatchItemProps> = ({ reference, inventoryList }) => {
           </Button>
         </div>
         {matchList.map((inventory) => (
-          <MatchInventory key={inventory.id} />
+          <MatchInventory
+            key={inventory.id}
+            inventory={inventory}
+            unitId={reference.unitId}
+            currentUnitName={currentUnitName}
+          />
         ))}
       </div>
     </div>

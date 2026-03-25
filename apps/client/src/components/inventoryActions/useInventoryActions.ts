@@ -11,6 +11,7 @@ import {
   InventoryActionItem,
   getQuantityWithUnitId,
   getMaterialUnitOptions,
+  getSaleInformation,
 } from './utils';
 
 export const useInventoryActions = (): InventoryActionsContextValues => {
@@ -99,7 +100,10 @@ export function useInventorySignature(inventory: AggregatedStockFragment) {
 
   const saleInformation = useMemo(
     () =>
-      `${inventory.saleId}${inventory.saleSerialId ? `-${inventory.saleSerialId}` : ''}`,
+      getSaleInformation({
+        saleId: inventory.saleId,
+        saleSerialId: inventory.saleSerialId,
+      }),
     [inventory.saleId, inventory.saleSerialId],
   );
 

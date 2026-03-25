@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   ControlFieldSlotLayout,
   FormFieldLayout,
@@ -5,14 +6,33 @@ import {
 } from '@mezzanine-ui/core/form';
 import { Select } from '@mezzanine-ui/react';
 import FormField from '@mezzanine-ui/react/Form/FormField';
+import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { getQuantityWithUnitId, getSaleInformation } from '../../utils';
 import classes from './index.module.scss';
 
-const MatchInventory: FC = () => {
+interface MatchInventoryProps {
+  inventory: AggregatedStockFragment;
+  unitId?: string | null;
+  currentUnitName: string;
+}
+
+const MatchInventory: FC<MatchInventoryProps> = ({
+  inventory,
+  unitId,
+  currentUnitName,
+}) => {
+  const quantity = useMemo(() => {
+    return getQuantityWithUnitId({
+      inventory,
+      currentUnitId: unitId ?? null,
+    });
+  }, [unitId, inventory]);
+
   return (
     <FormField
       name={`match-inventory`}
       severity="info"
-      hintText={`可用庫存量：1,000 KG`}
+      hintText={`可用庫存量：${quantity.toLocaleString()} ${currentUnitName}`}
       layout={FormFieldLayout.VERTICAL}
       controlFieldSlotLayout={ControlFieldSlotLayout.SUB}
       labelSpacing={FormFieldLabelSpacing.SUB}
@@ -22,8 +42,8 @@ const MatchInventory: FC = () => {
           size="sub"
           mode="single"
           value={{
-            id: '批號',
-            name: '批號',
+            id: inventory.batch ? inventory.batch.id : '批號',
+            name: inventory.batch ? inventory.batch.key : '批號',
           }}
           options={[]}
           disabled
@@ -32,8 +52,13 @@ const MatchInventory: FC = () => {
           size="sub"
           mode="single"
           value={{
-            id: '銷售號',
-            name: '銷售號',
+            id: inventory.saleId ? inventory.saleId : '銷售單號',
+            name: inventory.saleId
+              ? getSaleInformation({
+                  saleId: inventory.saleId,
+                  saleSerialId: inventory.saleSerialId,
+                })
+              : '銷售單號',
           }}
           options={[]}
           disabled

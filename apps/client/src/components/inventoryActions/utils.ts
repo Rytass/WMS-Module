@@ -61,6 +61,16 @@ export function getMaterialUnitOptions(material: MaterialFragment) {
   ];
 }
 
+export function getSaleInformation({
+  saleId,
+  saleSerialId,
+}: {
+  saleId?: string | null;
+  saleSerialId?: string | null;
+}) {
+  return saleId ? `${saleId}${saleSerialId ? `-${saleSerialId}` : ''}` : '';
+}
+
 export function stockStatusName(status?: StockStatus): string {
   switch (status) {
     case StockStatus.PENDING_INSPECTION:
