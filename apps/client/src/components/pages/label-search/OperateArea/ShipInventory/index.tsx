@@ -37,6 +37,8 @@ function ShipInventory({
             <ShipInventoryMatcher orderId={shipInventoryOrder.id} />
           ) : undefined
         }
+        notUpdateError
+        onlySelectUnit
       />
     </FormWrapper>
   );

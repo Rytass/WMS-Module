@@ -10,6 +10,8 @@ interface InventoryGridProps {
   queryInventoryListLoading: boolean;
   haveTitle?: boolean;
   expandedLayout?: boolean;
+  onlySelectUnit?: boolean;
+  notUpdateError?: boolean;
 }
 
 const InventoryGrid: FC<InventoryGridProps> = ({
@@ -17,6 +19,8 @@ const InventoryGrid: FC<InventoryGridProps> = ({
   queryInventoryListLoading,
   haveTitle = true,
   expandedLayout = false,
+  onlySelectUnit = false,
+  notUpdateError = false,
 }) => {
   return (
     <div className={classes.host}>
@@ -40,6 +44,8 @@ const InventoryGrid: FC<InventoryGridProps> = ({
               isAllSameMaterial={
                 uniq(inventoryList.map((i) => i.material.key)).length == 1
               }
+              notUpdateError={notUpdateError}
+              onlySelectUnit={onlySelectUnit}
             />
           ))}
         </div>

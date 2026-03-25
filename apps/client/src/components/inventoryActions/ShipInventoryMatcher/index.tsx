@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Typography } from '@mezzanine-ui/react';
 import { useQueryShipInventoryOrder } from './useApi';
+import MatchItem from './MatchItem';
 import classes from './index.module.scss';
 
 interface ShipInventoryMatcherProps {
@@ -23,6 +24,7 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
         <Typography variant="label-primary" color="text-neutral-solid">
           {`已配對項目 (1)`}
         </Typography>
+        <MatchItem />
       </div>
       <div className={classes.section}>
         <Typography variant="label-primary" color="text-neutral-solid">

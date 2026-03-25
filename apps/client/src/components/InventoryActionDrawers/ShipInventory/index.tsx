@@ -55,6 +55,8 @@ const ShipInventory: FC<ShipInventoryProps> = ({
           <InventoryGrid
             inventoryList={inventoryList}
             queryInventoryListLoading={queryInventoryListLoading}
+            onlySelectUnit
+            notUpdateError
           />
         )}
       </div>
