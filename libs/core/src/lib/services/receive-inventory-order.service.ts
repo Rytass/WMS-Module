@@ -327,6 +327,11 @@ export class ReceiveInventoryOrderService<
         status: options.status,
       });
 
+    if (options.statuses && options.statuses.length > 0)
+      queryBuilder.andWhere(`status IN (:...statuses)`, {
+        statuses: options.statuses,
+      });
+
     if (options.wildcard) {
       const { key, value } = options.wildcard;
       queryBuilder.andWhere(`orders."${String(key)}" ILIKE :value`, {
