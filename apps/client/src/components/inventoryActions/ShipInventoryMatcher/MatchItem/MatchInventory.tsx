@@ -46,6 +46,7 @@ const MatchInventory: FC<MatchInventoryProps> = ({
         <Select
           size="sub"
           mode="single"
+          className={classes.field}
           value={{
             id: inventory.batch ? inventory.batch.id : '批號',
             name: inventory.batch ? inventory.batch.key : '批號',
@@ -56,6 +57,7 @@ const MatchInventory: FC<MatchInventoryProps> = ({
         <Select
           size="sub"
           mode="single"
+          className={classes.field}
           value={{
             id: inventory.saleId ? inventory.saleId : '銷售單號',
             name: inventory.saleId

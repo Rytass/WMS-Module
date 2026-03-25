@@ -14,6 +14,7 @@ import {
   MergeBatchDocument,
 } from '../../graphql/generated/.graphql';
 import { formatAvailableInventoryList, getSaleInformation } from './utils';
+import { CreateTransferInventoryFieldValues } from './fields/CreateTransferInventoryField/typing';
 import { ShipInventoryFieldValues } from './fields/ShipInventoryField/typing';
 import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
 import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
@@ -64,6 +65,48 @@ export function useCreateTransferInventory(
   const [createTransferInventory] = useMutation(CreateTransferOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
+
+  const onSubmit = useCallback(
+    async (values: CreateTransferInventoryFieldValues) => {
+      try {
+        const { data } = await createTransferInventory({
+          variables: {
+            locationId: values.location?.id ?? '',
+            loaderId: values.loader?.id,
+            receiver: values.receiver || '',
+            description: values.description || '',
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregatedKey: s.id,
+              unitId: s.unitId,
+              targetTransferredQuantity: s.quantity,
+            })),
+          },
+        });
+
+        if (data?.createTransferOrder.id) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [
+      createTransferInventory,
+      inventoryList,
+      inventorySignature,
+      resetAll,
+      targetAction,
+    ],
+  );
+
+  return {
+    onSubmit,
+  };
 }
 
 export function useHoldInventory(inventoryList: AggregatedStockFragment[]) {
