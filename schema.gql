@@ -511,7 +511,7 @@ type Query {
   aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): AggregatedStocks!
   changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): ChangeLogs!
   receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
-  receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, dateRange: DateRangeArgs, description: String, key: String): ReceiveInventoryOrders!
+  receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, statuses: [ReceiveInventoryOrderStatus!], dateRange: DateRangeArgs, description: String, key: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
   shipInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ShipInventoryOrderStatus, statuses: [ShipInventoryOrderStatus!], dateRange: DateRangeArgs, description: String, key: String): ShipInventoryOrders!
   transferOrders(offset: Int, limit: Int, key: String, receiver: String, dateRange: DateRangeArgs, description: String, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): TransferOrders!

@@ -11,6 +11,7 @@ export type FindReceiveInventoryOrderInput<T> = PaginationInput & {
   id?: string;
   createdBy?: string;
   status?: ReceiveInventoryOrderStatus;
+  statuses?: ReceiveInventoryOrderStatus[];
   dateRange?: {
     from: Date;
     to: Date;

@@ -18,6 +18,9 @@ export class FindReceiveInventoryOrderArgs extends PaginationArgs {
   @Field(() => ReceiveInventoryOrderStatus, { nullable: true })
   status?: ReceiveInventoryOrderStatus;
 
+  @Field(() => [ReceiveInventoryOrderStatus], { nullable: true })
+  statuses?: ReceiveInventoryOrderStatus[];
+
   @Field(() => DateRangeArgs, { nullable: true })
   dateRange?: DateRangeArgs;
 
