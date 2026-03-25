@@ -14,6 +14,20 @@ const FieldArrayTable: FC = () => {
       minWidth: 100,
       render: (source) => source.serialId,
     },
+    {
+      key: 'receivedQuantity',
+      title: '已入數量',
+      minWidth: 100,
+      align: 'end',
+      render: (source) => source.receivedQuantity,
+    },
+    {
+      key: 'targetReceivedQuantity',
+      title: '應入數量',
+      minWidth: 100,
+      align: 'end',
+      render: (source) => source.targetReceivedQuantity,
+    },
   ];
 
   return (

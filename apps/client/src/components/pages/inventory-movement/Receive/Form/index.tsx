@@ -21,6 +21,8 @@ function InventoryMovementReceiveForm({
           .filter((item) => !item.removedAt)
           .map((item) => ({
             serialId: item.serialId,
+            targetReceivedQuantity: item.targetReceivedQuantity,
+            receivedQuantity: item.receivedQuantity,
           })),
       }}
       orderKey={receiveInventoryOrder.key}

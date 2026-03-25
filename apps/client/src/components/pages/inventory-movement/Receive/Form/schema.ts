@@ -6,6 +6,8 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
     .of(
       Yup.object({
         serialId: Yup.string().required('必填'),
+        targetReceivedQuantity: Yup.number().required('必填'),
+        receivedQuantity: Yup.number().required('必填'),
       }),
     )
     .required('必填'),
