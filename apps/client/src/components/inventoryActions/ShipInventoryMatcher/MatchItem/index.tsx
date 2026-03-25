@@ -6,17 +6,22 @@ import {
   Button,
   cx,
 } from '@mezzanine-ui/react';
-import { ShipInventoryOrderReferenceFragment } from '../../../../graphql/generated/.graphql';
+import {
+  ShipInventoryOrderReferenceFragment,
+  AggregatedStockFragment,
+} from '../../../../graphql/generated/.graphql';
 import MatchInventory from './MatchInventory';
 import { getMaterialUnitOptions } from '../../utils';
 import { BASE_UNIT } from '../../../../utils/share';
+import { matchInventoryToReference } from '../utils';
 import classes from './index.module.scss';
 
 interface MatchItemProps {
   reference: ShipInventoryOrderReferenceFragment;
+  inventoryList: AggregatedStockFragment[];
 }
 
-const MatchItem: FC<MatchItemProps> = ({ reference }) => {
+const MatchItem: FC<MatchItemProps> = ({ reference, inventoryList }) => {
   const unitOptions = useMemo(
     () => getMaterialUnitOptions(reference.material),
     [reference.material],
@@ -28,6 +33,17 @@ const MatchItem: FC<MatchItemProps> = ({ reference }) => {
       ''
     );
   }, [reference.unitId, unitOptions]);
+
+  const matchList = useMemo(
+    () =>
+      inventoryList.filter((i) =>
+        matchInventoryToReference({
+          inventory: i,
+          reference,
+        }),
+      ),
+    [inventoryList, reference],
+  );
 
   return (
     <div className={classes.host}>
@@ -77,8 +93,9 @@ const MatchItem: FC<MatchItemProps> = ({ reference }) => {
             加入庫存
           </Button>
         </div>
-        <MatchInventory />
-        <MatchInventory />
+        {matchList.map((inventory) => (
+          <MatchInventory key={inventory.id} />
+        ))}
       </div>
     </div>
   );

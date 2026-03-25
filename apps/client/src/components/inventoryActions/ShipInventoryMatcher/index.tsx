@@ -3,6 +3,7 @@ import { Typography } from '@mezzanine-ui/react';
 import { useQueryShipInventoryOrder, useQueryInventoryList } from './useApi';
 import MatchItem from './MatchItem';
 import { useInventoryActions } from '../useInventoryActions';
+import { matchInventoryToReference } from './utils';
 import classes from './index.module.scss';
 
 interface ShipInventoryMatcherProps {
@@ -31,25 +32,40 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
     [shipInventoryOrder?.references],
   );
 
+  const notMatchList = useMemo(
+    () =>
+      inventoryList.filter((i) => {
+        return !references.some((r) =>
+          matchInventoryToReference({
+            inventory: i,
+            reference: r,
+          }),
+        );
+      }),
+    [inventoryList, references],
+  );
+
   console.log('shipInventoryOrder', shipInventoryOrder);
 
-  console.log('inventoryList', inventoryList);
-
-  // const matchList = useMemo(() => inventoryList.filter((i) => {}), []);
+  console.log('inventoryList', inventoryList, notMatchList);
 
   return (
     <div className={classes.host}>
       <div className={classes.section}>
         <Typography variant="label-primary" color="text-neutral-solid">
-          {`已配對項目 (1)`}
+          {`已配對項目 (${references.length})`}
         </Typography>
         {references.map((reference) => (
-          <MatchItem key={reference.id} reference={reference} />
+          <MatchItem
+            key={reference.id}
+            reference={reference}
+            inventoryList={inventoryList}
+          />
         ))}
       </div>
       <div className={classes.section}>
         <Typography variant="label-primary" color="text-neutral-solid">
-          {`未配對項目 (1)`}
+          {`未配對項目 (${notMatchList.length})`}
         </Typography>
       </div>
     </div>
