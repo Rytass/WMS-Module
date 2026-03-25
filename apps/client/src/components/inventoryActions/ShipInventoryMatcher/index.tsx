@@ -11,9 +11,13 @@ import classes from './index.module.scss';
 
 interface ShipInventoryMatcherProps {
   orderId: string;
+  haveFilterButton?: boolean;
 }
 
-const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
+const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({
+  orderId,
+  haveFilterButton,
+}) => {
   const { setValue } = useFormContext<ShipInventoryFieldValues>();
   const { targetInventoryIds } = useInventoryActions();
 
@@ -85,6 +89,7 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
             key={reference.id}
             reference={reference}
             inventoryList={inventoryList}
+            haveFilterButton={haveFilterButton}
           />
         ))}
       </div>

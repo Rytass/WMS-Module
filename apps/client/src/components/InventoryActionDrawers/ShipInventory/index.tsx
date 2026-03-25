@@ -54,7 +54,10 @@ const ShipInventory: FC<ShipInventoryProps> = ({
           <ShipInventoryField />
         </div>
         {shipInventoryOrder ? (
-          <ShipInventoryMatcher orderId={shipInventoryOrder.id} />
+          <ShipInventoryMatcher
+            orderId={shipInventoryOrder.id}
+            haveFilterButton
+          />
         ) : (
           <InventoryGrid
             inventoryList={inventoryList}
