@@ -181,7 +181,7 @@ export class HoldInventoryOrderService<
       if (newItems.length)
         await this.processHoldInventoryOrderItems(newItems, repos, manager);
       if (existingItems.length)
-        repos.holdInventoryOrderItem.save(
+        await repos.holdInventoryOrderItem.save(
           await Promise.all(
             existingItems.map((item) =>
               repos.holdInventoryOrderItem.create(item),
@@ -312,7 +312,7 @@ export class HoldInventoryOrderService<
                 batchId: item.batchId, // original batch
                 locationId: item.locationId || undefined,
                 loaderId: item.loaderId || undefined,
-                quantity: -1 * change.quantityChanged * conversionFactor,
+                quantity: -1 * change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
               // add to splitted batch in released state
               {
@@ -321,7 +321,7 @@ export class HoldInventoryOrderService<
                 batchId: splittedBatch.id, // splitted batch marked released
                 locationId: item.locationId || undefined,
                 loaderId: item.loaderId || undefined,
-                quantity: change.quantityChanged * conversionFactor,
+                quantity: change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
             ]),
           );

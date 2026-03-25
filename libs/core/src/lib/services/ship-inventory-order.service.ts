@@ -319,14 +319,15 @@ export class ShipInventoryOrderService<
       id,
       removedAt: IsNull(),
     });
+    const { references, items, ...orderOptions } = options;
     const updated = await shipInventoryOrderRepository.save(
       shipInventoryOrderRepository.create({
         ...order,
-        ...options,
+        ...orderOptions,
       }),
     );
 
-    if (options.references?.length) {
+    if (references?.length) {
       const newItems: Partial<ShipInventoryOrderReferenceEntityClass>[] = [];
       const existingItems: Partial<ShipInventoryOrderReferenceEntityClass>[] =
         [];
@@ -337,7 +338,7 @@ export class ShipInventoryOrderService<
       const itemSet = new Set(items.map((i) => i.id));
 
       const results = await Promise.all(
-        (options.references || []).map(async (item) => {
+        (references || []).map(async (item) => {
           let batch: BatchEntity | null = null;
           if (item.batchKey) {
             const material = await materialRepository.findOneByOrFail({
@@ -384,15 +385,15 @@ export class ShipInventoryOrderService<
         );
     }
 
-    if (options.items?.length) {
+    if (items?.length) {
       const newItems: Partial<CreateShipInventoryOrderItemInput>[] = [];
       const existingItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
 
       await shipInventoryOrderItemRepository
         .find({ where: { orderId: id, removedAt: IsNull() } })
-        .then((items) => {
-          const itemSet = new Set(items.map((i) => i.id));
-          options.items?.forEach((item) => {
+        .then((dbItems) => {
+          const itemSet = new Set(dbItems.map((i) => i.id));
+          items?.forEach((item) => {
             if (!item.id) newItems.push({ ...item, orderId: id });
             else if (itemSet.has(item.id)) existingItems.push(item);
           });

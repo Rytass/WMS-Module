@@ -28,6 +28,18 @@ const FieldArrayTable: FC = () => {
       align: 'end',
       render: (source) => source.targetReceivedQuantity,
     },
+    {
+      key: 'material',
+      title: '料號',
+      minWidth: 160,
+      render: (source) => source.material.name,
+    },
+    {
+      key: 'materialDescription',
+      title: '物料說明',
+      minWidth: 140,
+      render: (source) => source.materialDescription || '-',
+    },
   ];
 
   return (

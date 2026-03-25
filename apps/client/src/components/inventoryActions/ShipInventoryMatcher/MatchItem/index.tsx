@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { sumBy } from 'lodash';
 import {
   Typography,
   Description,
@@ -22,9 +23,14 @@ import classes from './index.module.scss';
 interface MatchItemProps {
   reference: ShipInventoryOrderReferenceFragment;
   inventoryList: AggregatedStockFragment[];
+  haveFilterButton?: boolean;
 }
 
-const MatchItem: FC<MatchItemProps> = ({ reference, inventoryList }) => {
+const MatchItem: FC<MatchItemProps> = ({
+  reference,
+  inventoryList,
+  haveFilterButton,
+}) => {
   const unitOptions = useMemo(
     () => getMaterialUnitOptions(reference.material),
     [reference.material],
@@ -84,9 +90,9 @@ const MatchItem: FC<MatchItemProps> = ({ reference, inventoryList }) => {
             </Typography>
           </div>
           <div>
-            <Description title="需出貨量 :" widthType="hug">
+            <Description title="已出貨 / 需出貨 :" widthType="hug">
               <DescriptionContent>
-                {`${reference.targetShippedQuantity.toLocaleString()} ${currentUnitName}`}
+                {`${sumBy(reference.items, 'targetShippedQuantity').toLocaleString()} / ${reference.targetShippedQuantity.toLocaleString()} ${currentUnitName}`}
               </DescriptionContent>
             </Description>
           </div>
@@ -97,9 +103,11 @@ const MatchItem: FC<MatchItemProps> = ({ reference, inventoryList }) => {
           <Typography variant="label-primary" color="text-neutral-solid">
             出貨庫存明細
           </Typography>
-          <Button type="button" variant="base-secondary" size="minor">
-            加入庫存
-          </Button>
+          {haveFilterButton && (
+            <Button type="button" variant="base-secondary" size="minor">
+              加入庫存
+            </Button>
+          )}
         </div>
         {matchList.map((inventory, index) => (
           <MatchInventory
