@@ -24,7 +24,13 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({ orderId }) => {
         <Typography variant="label-primary" color="text-neutral-solid">
           {`已配對項目 (1)`}
         </Typography>
-        <MatchItem />
+        {shipInventoryOrder && (
+          <>
+            {shipInventoryOrder.references.map((reference) => (
+              <MatchItem key={reference.id} reference={reference} />
+            ))}
+          </>
+        )}
       </div>
       <div className={classes.section}>
         <Typography variant="label-primary" color="text-neutral-solid">

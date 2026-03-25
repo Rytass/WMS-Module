@@ -5,9 +5,15 @@ import {
   Button,
   cx,
 } from '@mezzanine-ui/react';
+import { ShipInventoryOrderReferenceFragment } from '../../../../graphql/generated/.graphql';
+import MatchInventory from './MatchInventory';
 import classes from './index.module.scss';
 
-const MatchItem: FC = () => {
+interface MatchItemProps {
+  reference: ShipInventoryOrderReferenceFragment;
+}
+
+const MatchItem: FC<MatchItemProps> = ({ reference }) => {
   return (
     <div className={classes.host}>
       <div className={cx(classes.wrapper, classes.bottomBorder)}>
@@ -52,6 +58,8 @@ const MatchItem: FC = () => {
             加入庫存
           </Button>
         </div>
+        <MatchInventory />
+        <MatchInventory />
       </div>
     </div>
   );
