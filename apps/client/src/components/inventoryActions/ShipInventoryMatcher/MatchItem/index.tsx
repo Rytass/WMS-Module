@@ -90,14 +90,9 @@ const MatchItem: FC<MatchItemProps> = ({
             </Typography>
           </div>
           <div>
-            <Description title="需出貨量 :" widthType="hug">
+            <Description title="已出貨 / 需出貨 :" widthType="hug">
               <DescriptionContent>
-                {`${reference.targetShippedQuantity.toLocaleString()} ${currentUnitName}`}
-              </DescriptionContent>
-            </Description>
-            <Description title="已出貨量 :" widthType="hug">
-              <DescriptionContent>
-                {`${sumBy(reference.items, 'targetShippedQuantity').toLocaleString()} ${currentUnitName}`}
+                {`${sumBy(reference.items, 'targetShippedQuantity').toLocaleString()} / ${reference.targetShippedQuantity.toLocaleString()} ${currentUnitName}`}
               </DescriptionContent>
             </Description>
           </div>
