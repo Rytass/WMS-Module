@@ -13,6 +13,7 @@ import {
   MergeBatchDocument,
 } from '../../graphql/generated/.graphql';
 import { formatAvailableInventoryList } from './utils';
+import { ShipInventoryFieldValues } from './fields/ShipInventoryField/typing';
 import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
 import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
 import { useInventoryActions } from './useInventoryActions';
@@ -144,6 +145,20 @@ export function useReleaseHoldInventory(
     resetAll,
     targetAction,
   ]);
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useShipInventory(inventoryList: AggregatedStockFragment[]) {
+  const onSubmit = useCallback(async (values: ShipInventoryFieldValues) => {
+    try {
+      console.log('values', values);
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
 
   return {
     onSubmit,

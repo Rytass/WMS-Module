@@ -98,9 +98,11 @@ const MatchItem: FC<MatchItemProps> = ({ reference, inventoryList }) => {
             加入庫存
           </Button>
         </div>
-        {matchList.map((inventory) => (
+        {matchList.map((inventory, index) => (
           <MatchInventory
             key={inventory.id}
+            index={index}
+            serialId={reference.serialId}
             inventory={inventory}
             unitId={reference.unitId}
             currentUnitName={currentUnitName}

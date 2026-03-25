@@ -6,18 +6,23 @@ import {
 } from '@mezzanine-ui/core/form';
 import { Select } from '@mezzanine-ui/react';
 import FormField from '@mezzanine-ui/react/Form/FormField';
+import NumberInputField from '../../../fields/NumberInputField';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { getQuantityWithUnitId, getSaleInformation } from '../../utils';
 import classes from './index.module.scss';
 
 interface MatchInventoryProps {
   inventory: AggregatedStockFragment;
+  index: number;
+  serialId: string;
   unitId?: string | null;
   currentUnitName: string;
 }
 
 const MatchInventory: FC<MatchInventoryProps> = ({
   inventory,
+  index,
+  serialId,
   unitId,
   currentUnitName,
 }) => {
@@ -62,6 +67,11 @@ const MatchInventory: FC<MatchInventoryProps> = ({
           }}
           options={[]}
           disabled
+        />
+        <NumberInputField
+          name={`items.${serialId}.${index}.quantity`}
+          placeholder="出庫數量"
+          suffix={currentUnitName}
         />
       </div>
     </FormField>
