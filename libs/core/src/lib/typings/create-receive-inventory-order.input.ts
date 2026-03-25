@@ -4,7 +4,7 @@ export type CreateReceiveInventoryOrderItemInput = {
   serialId: string;
   loaderKey?: string;
   locationKey?: string;
-  batchKey?: string;
+  batchKey: string;
   materialKey: string;
   targetReceivedQuantity: number;
   requireInspection?: boolean;
