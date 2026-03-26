@@ -29,7 +29,10 @@ function InventoryList() {
           setCurrentFilter(values);
         }}
       />
-      <InventoryTable currentFilter={currentFilter} />
+      <InventoryTable
+        currentFilter={currentFilter}
+        setCurrentFilter={setCurrentFilter}
+      />
     </PageWrapper>
   );
 }

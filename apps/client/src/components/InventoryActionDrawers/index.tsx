@@ -1,4 +1,5 @@
-import { useEffect, useMemo } from 'react';
+import { Dispatch, SetStateAction, useEffect, useMemo } from 'react';
+import { FilterValues } from '../../components/pages/inventory-list/typing';
 import { InventoryActions } from '../inventoryActions/utils';
 import { useInventoryActions } from '../inventoryActions/useInventoryActions';
 import { useLazyQueryInventoryList } from '../inventoryActions/useApi';
@@ -21,11 +22,13 @@ import ScrapInventory from './ScrapInventory';
 interface InventoryActionDrawersProps {
   onClose: VoidFunction;
   open: boolean;
+  setCurrentFilter: Dispatch<SetStateAction<FilterValues | undefined>>;
 }
 
 const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
   onClose,
   open,
+  setCurrentFilter,
 }) => {
   const {
     fetchInventoryList,
@@ -82,7 +85,9 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
       return <DeallocateInventory {...baseProps} />;
 
     case InventoryActions.ShipInventory:
-      return <ShipInventory {...baseProps} />;
+      return (
+        <ShipInventory {...baseProps} setCurrentFilter={setCurrentFilter} />
+      );
 
     case InventoryActions.SplitBatch:
       return <SplitBatch {...baseProps} />;

@@ -1,6 +1,7 @@
-import { useMemo, useEffect } from 'react';
+import { Dispatch, SetStateAction, useMemo, useEffect } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { Typography } from '@mezzanine-ui/react';
+import { FilterValues } from '../../../components/pages/inventory-list/typing';
 import { useQueryShipInventoryOrder, useQueryInventoryList } from './useApi';
 import MatchItem from './MatchItem';
 import InventoryCard from '../InventoryGrid/InventoryCard';
@@ -12,11 +13,15 @@ import classes from './index.module.scss';
 interface ShipInventoryMatcherProps {
   orderId: string;
   haveFilterButton?: boolean;
+  setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
+  onClose?: VoidFunction;
 }
 
 const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({
   orderId,
   haveFilterButton,
+  setCurrentFilter,
+  onClose,
 }) => {
   const { setValue } = useFormContext<ShipInventoryFieldValues>();
   const { targetInventoryIds } = useInventoryActions();
@@ -90,6 +95,8 @@ const ShipInventoryMatcher: FC<ShipInventoryMatcherProps> = ({
             reference={reference}
             inventoryList={inventoryList}
             haveFilterButton={haveFilterButton}
+            setCurrentFilter={setCurrentFilter}
+            onClose={onClose}
           />
         ))}
       </div>

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { Dispatch, SetStateAction, useCallback, useMemo } from 'react';
 import { sumBy } from 'lodash';
 import {
   Typography,
@@ -7,6 +7,7 @@ import {
   Button,
   cx,
 } from '@mezzanine-ui/react';
+import { FilterValues } from '../../../../components/pages/inventory-list/typing';
 import {
   ShipInventoryOrderReferenceFragment,
   AggregatedStockFragment,
@@ -24,13 +25,26 @@ interface MatchItemProps {
   reference: ShipInventoryOrderReferenceFragment;
   inventoryList: AggregatedStockFragment[];
   haveFilterButton?: boolean;
+  setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
+  onClose?: VoidFunction;
 }
 
 const MatchItem: FC<MatchItemProps> = ({
   reference,
   inventoryList,
   haveFilterButton,
+  setCurrentFilter,
+  onClose,
 }) => {
+  const onClickFilter = useCallback(() => {
+    setCurrentFilter?.((prevFilter) => ({
+      ...prevFilter,
+      material: reference.material.key,
+      batch: reference.batch?.key || '',
+    }));
+    onClose?.();
+  }, [setCurrentFilter, reference, onClose]);
+
   const unitOptions = useMemo(
     () => getMaterialUnitOptions(reference.material),
     [reference.material],
@@ -104,7 +118,12 @@ const MatchItem: FC<MatchItemProps> = ({
             出貨庫存明細
           </Typography>
           {haveFilterButton && (
-            <Button type="button" variant="base-secondary" size="minor">
+            <Button
+              type="button"
+              variant="base-secondary"
+              size="minor"
+              onClick={onClickFilter}
+            >
               加入庫存
             </Button>
           )}

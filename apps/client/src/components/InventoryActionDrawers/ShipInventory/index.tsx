@@ -1,5 +1,7 @@
+import { Dispatch, SetStateAction } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { FilterValues } from '../../../components/pages/inventory-list/typing';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
@@ -15,6 +17,7 @@ import classes from '../index.module.scss';
 interface ShipInventoryProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
+  setCurrentFilter: Dispatch<SetStateAction<FilterValues | undefined>>;
   onClose: VoidFunction;
   open: boolean;
 }
@@ -22,6 +25,7 @@ interface ShipInventoryProps {
 const ShipInventory: FC<ShipInventoryProps> = ({
   inventoryList,
   queryInventoryListLoading,
+  setCurrentFilter,
   onClose,
   open,
 }) => {
@@ -57,6 +61,8 @@ const ShipInventory: FC<ShipInventoryProps> = ({
           <ShipInventoryMatcher
             orderId={shipInventoryOrder.id}
             haveFilterButton
+            setCurrentFilter={setCurrentFilter}
+            onClose={onClose}
           />
         ) : (
           <InventoryGrid
