@@ -13,7 +13,7 @@ interface UnitsFieldProps {
   size?: TextFieldSize;
   required?: boolean;
   disabled?: boolean;
-  selectValueMode?: boolean;
+  selectValueMode: boolean;
 }
 
 const UnitsField: FC<UnitsFieldProps> = ({
@@ -24,7 +24,7 @@ const UnitsField: FC<UnitsFieldProps> = ({
   size,
   required = false,
   disabled = false,
-  selectValueMode = false,
+  selectValueMode,
 }) => {
   const { currentOptions, setCurrentOptions } = useQueryUnits();
   const handleInsert = useInsertOption(setCurrentOptions);

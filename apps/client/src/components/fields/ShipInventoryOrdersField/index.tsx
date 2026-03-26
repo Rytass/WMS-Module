@@ -12,7 +12,7 @@ interface ShipInventoryOrdersFieldProps {
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
-  selectValueMode?: boolean;
+  selectValueMode: boolean;
 }
 
 const ShipInventoryOrdersField: FC<ShipInventoryOrdersFieldProps> = ({
@@ -22,7 +22,7 @@ const ShipInventoryOrdersField: FC<ShipInventoryOrdersFieldProps> = ({
   fuzzySearch = true,
   required,
   disabled,
-  selectValueMode = false,
+  selectValueMode,
 }) => {
   const { fetchShipInventoryOrders } = useLazyQueryShipInventoryOrders();
 

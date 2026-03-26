@@ -12,7 +12,7 @@ interface LoaderTypesFieldProps {
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
-  selectValueMode?: boolean;
+  selectValueMode: boolean;
 }
 
 const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
@@ -22,7 +22,7 @@ const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
   fuzzySearch = true,
   required,
   disabled,
-  selectValueMode = false,
+  selectValueMode,
 }) => {
   const { fetchLoaderTypes } = useLazyQueryLoaderTypes();
 

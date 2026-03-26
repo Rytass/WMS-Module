@@ -16,7 +16,7 @@ interface BatchesFieldProps {
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
-  selectValueMode?: boolean;
+  selectValueMode: boolean;
 }
 
 const BatchesField: FC<BatchesFieldProps> = ({
@@ -27,7 +27,7 @@ const BatchesField: FC<BatchesFieldProps> = ({
   fuzzySearch = true,
   required,
   disabled,
-  selectValueMode = false,
+  selectValueMode,
 }) => {
   const { fetchBatches } = useLazyQueryBatches();
 

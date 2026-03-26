@@ -14,7 +14,7 @@ interface LoaderUnitsFieldProps {
   size?: TextFieldSize;
   required?: boolean;
   disabled?: boolean;
-  selectValueMode?: boolean;
+  selectValueMode: boolean;
 }
 
 const LoaderUnitsField: FC<LoaderUnitsFieldProps> = ({
@@ -26,7 +26,7 @@ const LoaderUnitsField: FC<LoaderUnitsFieldProps> = ({
   size,
   required = false,
   disabled = false,
-  selectValueMode = false,
+  selectValueMode,
 }) => {
   const { currentOptions } = useQueryLoaderUnits(type);
 

@@ -45,6 +45,7 @@ const UnitsFieldArray: FC = () => {
             label=""
             placeholder="單位"
             menuMaxHeight={200}
+            selectValueMode={false}
           />
         ),
     },
