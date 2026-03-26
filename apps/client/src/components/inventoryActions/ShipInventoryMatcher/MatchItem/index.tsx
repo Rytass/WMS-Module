@@ -39,8 +39,16 @@ const MatchItem: FC<MatchItemProps> = ({
   const onClickFilter = useCallback(() => {
     setCurrentFilter?.((prevFilter) => ({
       ...prevFilter,
-      material: reference.material.key,
-      batch: reference.batch?.key || '',
+      material: {
+        id: reference.material.id,
+        name: reference.material.key,
+      },
+      batch: reference.batch
+        ? {
+            id: reference.batch.id,
+            name: reference.batch.key,
+          }
+        : null,
     }));
     onClose?.();
   }, [setCurrentFilter, reference, onClose]);

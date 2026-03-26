@@ -44,24 +44,16 @@ export function renderFilter(filter: FilterType | ReactNode) {
       );
 
     case FilterType.material:
-      return (
-        <MaterialsField key={filter} name={filter} selectValueMode={false} />
-      );
+      return <MaterialsField key={filter} name={filter} selectValueMode />;
 
     case FilterType.batch:
-      return (
-        <BatchesField key={filter} name={filter} selectValueMode={false} />
-      );
+      return <BatchesField key={filter} name={filter} selectValueMode />;
 
     case FilterType.location:
-      return (
-        <LocationsField key={filter} name={filter} selectValueMode={false} />
-      );
+      return <LocationsField key={filter} name={filter} selectValueMode />;
 
     case FilterType.loader:
-      return (
-        <LoadersField key={filter} name={filter} selectValueMode={false} />
-      );
+      return <LoadersField key={filter} name={filter} selectValueMode />;
 
     default:
       return null;

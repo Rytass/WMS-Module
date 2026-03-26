@@ -12,8 +12,11 @@ function InventoryList() {
     <PageWrapper title="庫存清單">
       <FilterWrapper<FilterValues>
         defaultValues={{
-          material: '',
+          material: null,
           materialDescription: '',
+          batch: null,
+          location: null,
+          loader: null,
         }}
         baseFilters={{
           filters: [

@@ -17,7 +17,7 @@ import classes from '../index.module.scss';
 interface ShipInventoryProps {
   inventoryList: AggregatedStockFragment[];
   queryInventoryListLoading: boolean;
-  setCurrentFilter: Dispatch<SetStateAction<FilterValues | undefined>>;
+  setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
   onClose: VoidFunction;
   open: boolean;
 }

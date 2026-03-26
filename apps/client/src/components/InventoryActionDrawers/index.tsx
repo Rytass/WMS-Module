@@ -22,7 +22,7 @@ import ScrapInventory from './ScrapInventory';
 interface InventoryActionDrawersProps {
   onClose: VoidFunction;
   open: boolean;
-  setCurrentFilter: Dispatch<SetStateAction<FilterValues | undefined>>;
+  setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
 }
 
 const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({

@@ -19,7 +19,7 @@ enum Mode {
 
 interface InventoryTableProps {
   currentFilter?: FilterValues;
-  setCurrentFilter: Dispatch<SetStateAction<FilterValues | undefined>>;
+  setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
   onlyListMode?: boolean;
 }
 
