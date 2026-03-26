@@ -1,12 +1,14 @@
-import { ReactNode, useState, useCallback } from 'react';
+import { ReactNode, useState, useCallback, useEffect } from 'react';
 import {
   useForm,
   DefaultValues,
   SubmitHandler,
   FieldValues,
 } from 'react-hook-form';
+import { isEqual } from 'lodash';
 import { Button, cx } from '@mezzanine-ui/react';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
+import { usePreviousValue } from '../../hooks/usePreviousValue';
 import { FormWrapper } from '../fields/FormWrapper';
 import FormActionButtons from '../FormActionButtons';
 import { renderFilter } from './utils';
@@ -22,6 +24,7 @@ interface FilterWrapperProps<T extends FieldValues> {
   };
   expandedFilters?: ReactNode;
   onSubmit?: SubmitHandler<T>;
+  syncValues?: T;
 }
 
 const FilterWrapper = <T extends FieldValues>({
@@ -30,11 +33,27 @@ const FilterWrapper = <T extends FieldValues>({
   expandedFilters,
   baseFilters,
   onSubmit,
+  syncValues,
 }: FilterWrapperProps<T>) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const methods = useForm<T>({
     defaultValues,
   });
+
+  const filterValues = methods.watch();
+
+  console.log('filterValues', filterValues);
+
+  const prevSyncValues = usePreviousValue(syncValues);
+
+  useEffect(() => {
+    if (syncValues && !isEqual(prevSyncValues, syncValues)) {
+      methods.reset(syncValues, {
+        keepDefaultValues: true,
+        keepDirty: true,
+      });
+    }
+  }, [methods, prevSyncValues, syncValues]);
 
   const onReset = useCallback(() => {
     methods.reset();

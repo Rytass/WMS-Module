@@ -28,6 +28,7 @@ function InventoryList() {
         onSubmit={(values) => {
           setCurrentFilter(values);
         }}
+        syncValues={currentFilter}
       />
       <InventoryTable
         currentFilter={currentFilter}
