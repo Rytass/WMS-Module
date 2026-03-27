@@ -52,6 +52,7 @@ const UnitsFieldArray: FC = () => {
     {
       key: 'equal',
       title: '等於',
+      minWidth: 48,
       width: 48,
       align: 'center',
       render: () => '=',
@@ -79,7 +80,8 @@ const UnitsFieldArray: FC = () => {
     {
       key: 'action',
       title: '操作',
-      width: 80,
+      minWidth: 84,
+      width: 84,
       align: 'center',
       render: (source, index) =>
         source.isExisted ? (

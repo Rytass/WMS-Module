@@ -48,7 +48,7 @@ function LoadersManagementTypesTable() {
       key: 'actions',
       title: '操作',
       align: 'center',
-      width: 74,
+      width: 84,
       render: (source) => <Actions source={source} />,
     },
     {

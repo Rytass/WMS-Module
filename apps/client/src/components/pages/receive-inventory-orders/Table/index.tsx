@@ -60,7 +60,7 @@ function ReceiveInventoryOrdersTable() {
     {
       key: 'actions',
       title: '操作',
-      width: 140,
+      width: 152,
       render: (source) => <Actions source={source} />,
     },
     {
