@@ -1,5 +1,6 @@
 import { ReceiveInventoryOrderFragment } from '../../../../graphql/generated/.graphql';
 import { YesOrNo, BASE_UNIT } from '../../../../utils/share';
+import { getMaterialUnitOptions } from '../../../inventoryActions/utils';
 import { FormValues } from './typing';
 
 export function fragmentToDefaultValues(
@@ -38,16 +39,7 @@ export function fragmentToDefaultValues(
       itemId: item.id,
       serialId: item.serialId,
       receivedQuantity: item.receivedQuantity,
-      unitOptions: [
-        {
-          id: BASE_UNIT,
-          name: item.material.baseUnit.key,
-        },
-        ...item.material.materialUnits.map((u) => ({
-          id: u.id,
-          name: u.unit,
-        })),
-      ],
+      unitOptions: getMaterialUnitOptions(item.material),
       isExisted: true,
       removedAt: item.removedAt || '',
     })),

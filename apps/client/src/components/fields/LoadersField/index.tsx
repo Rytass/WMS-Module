@@ -12,7 +12,7 @@ interface LoadersFieldProps {
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
-  selectValueMode?: boolean;
+  selectValueMode: boolean;
 }
 
 const LoadersField: FC<LoadersFieldProps> = ({
@@ -22,7 +22,7 @@ const LoadersField: FC<LoadersFieldProps> = ({
   fuzzySearch = true,
   required,
   disabled,
-  selectValueMode = false,
+  selectValueMode,
 }) => {
   const { fetchLoaders } = useLazyQueryLoaders();
 

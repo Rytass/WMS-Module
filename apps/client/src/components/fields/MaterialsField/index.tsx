@@ -12,7 +12,7 @@ interface MaterialsFieldProps {
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
-  selectValueMode?: boolean;
+  selectValueMode: boolean;
 }
 
 const MaterialsField: FC<MaterialsFieldProps> = ({
@@ -22,7 +22,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
   fuzzySearch = true,
   required,
   disabled,
-  selectValueMode = false,
+  selectValueMode,
 }) => {
   const { fetchMaterials } = useLazyQueryMaterials();
 

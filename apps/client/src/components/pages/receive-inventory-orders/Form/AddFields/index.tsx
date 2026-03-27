@@ -11,7 +11,8 @@ import MaterialsField from '../../../../fields/MaterialsField';
 import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
 import LoadersField from '../../../../fields/LoadersField';
-import { BASE_UNIT, YesOrNo } from '../../../../../utils/share';
+import { YesOrNo } from '../../../../../utils/share';
+import { getMaterialUnitOptions } from '../../../../inventoryActions/utils';
 import { useLazyQueryMaterial } from '../useApi';
 import { formSchema } from './schema';
 import { AddFormValues } from './typing';
@@ -51,16 +52,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
       methods.setValue('description', material.description);
       methods.setValue('unit', '');
 
-      setUnitOptions([
-        {
-          id: BASE_UNIT,
-          name: material.baseUnit.key,
-        },
-        ...material.materialUnits.map((u) => ({
-          id: u.id,
-          name: u.unit,
-        })),
-      ]);
+      setUnitOptions(getMaterialUnitOptions(material));
     }
   }, [fetchMaterial, materialSelectValue?.name, methods]);
 

@@ -31,7 +31,7 @@ const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
     {
       key: 'action',
       title: '操作',
-      width: 74,
+      width: 84,
       align: 'center',
       render: (source) => (
         <Button

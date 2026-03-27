@@ -1,3 +1,4 @@
+import { SelectValue } from '@mezzanine-ui/react';
 import { DateType } from '@mezzanine-ui/core/calendar';
 
 export enum FilterType {
@@ -14,12 +15,12 @@ export type FilterValues = {
   [FilterType.createdAt]?: DateType;
   [FilterType.description]?: string;
   [FilterType.materialDescription]?: string;
-  [FilterType.material]?: string;
+  [FilterType.material]?: SelectValue | null;
   'material-search'?: string;
-  [FilterType.batch]?: string;
+  [FilterType.batch]?: SelectValue | null;
   'batch-search'?: string;
-  [FilterType.location]?: string;
+  [FilterType.location]?: SelectValue | null;
   'location-search'?: string;
-  [FilterType.loader]?: string;
+  [FilterType.loader]?: SelectValue | null;
   'loader-search'?: string;
 };

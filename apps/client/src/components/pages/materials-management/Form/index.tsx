@@ -72,6 +72,7 @@ function MaterialsManagementForm({
             placeholder="輸入基礎計量單位"
             size="main"
             required
+            selectValueMode={false}
             disabled={mode === 'edit'}
           />
         </div>

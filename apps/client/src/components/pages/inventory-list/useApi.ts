@@ -18,19 +18,19 @@ export function useQueryStocksGrouped(currentFilter?: FilterValues) {
       limit,
       offset,
       materialKey:
-        currentFilter?.[FilterType.material] ||
+        currentFilter?.[FilterType.material]?.name ||
         currentFilter?.['material-search'] ||
         undefined,
       batchKey:
-        currentFilter?.[FilterType.batch] ||
+        currentFilter?.[FilterType.batch]?.name ||
         currentFilter?.['batch-search'] ||
         undefined,
       locationKey:
-        currentFilter?.[FilterType.location] ||
+        currentFilter?.[FilterType.location]?.name ||
         currentFilter?.['location-search'] ||
         undefined,
       loaderKey:
-        currentFilter?.[FilterType.loader] ||
+        currentFilter?.[FilterType.loader]?.name ||
         currentFilter?.['loader-search'] ||
         undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,
@@ -64,19 +64,19 @@ export function useQueryStocks(currentFilter?: FilterValues) {
       limit,
       offset,
       materialKey:
-        currentFilter?.[FilterType.material] ||
+        currentFilter?.[FilterType.material]?.name ||
         currentFilter?.['material-search'] ||
         undefined,
       batchKey:
-        currentFilter?.[FilterType.batch] ||
+        currentFilter?.[FilterType.batch]?.name ||
         currentFilter?.['batch-search'] ||
         undefined,
       locationKey:
-        currentFilter?.[FilterType.location] ||
+        currentFilter?.[FilterType.location]?.name ||
         currentFilter?.['location-search'] ||
         undefined,
       loaderKey:
-        currentFilter?.[FilterType.loader] ||
+        currentFilter?.[FilterType.loader]?.name ||
         currentFilter?.['loader-search'] ||
         undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useMemo, useState } from 'react';
 import { Button, Radio, RadioGroup } from '@mezzanine-ui/react';
 import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
@@ -19,11 +19,13 @@ enum Mode {
 
 interface InventoryTableProps {
   currentFilter?: FilterValues;
+  setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
   onlyListMode?: boolean;
 }
 
 function InventoryTable({
   currentFilter,
+  setCurrentFilter,
   onlyListMode = false,
 }: InventoryTableProps) {
   const { openDialog } = useDialog();
@@ -147,6 +149,7 @@ function InventoryTable({
           setOpen(false);
         }}
         open={open}
+        setCurrentFilter={setCurrentFilter}
       />
     </>
   );

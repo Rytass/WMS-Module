@@ -14,6 +14,7 @@ export const BASE_UNIT = 'BASE_UNIT';
 export enum YesOrNo {
   YES = 'YES',
   NO = 'NO',
+  NULL = 'NULL',
 }
 
 export function yesNoName(option: YesOrNo): string {

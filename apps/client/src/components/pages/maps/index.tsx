@@ -13,8 +13,9 @@ function Maps() {
       <div>map area</div>
       <FilterWrapper<FilterValues>
         defaultValues={{
-          material: '',
+          material: null,
           materialDescription: '',
+          batch: null,
         }}
         baseFilters={{
           filters: [

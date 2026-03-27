@@ -11,6 +11,7 @@ function ShipInventoryField() {
           label="出庫單號"
           fuzzySearch={false}
           selectValueMode
+          fetchOnlyPending
           required
         />
         <InputField name="description" label="備註" placeholder="輸入備註" />
