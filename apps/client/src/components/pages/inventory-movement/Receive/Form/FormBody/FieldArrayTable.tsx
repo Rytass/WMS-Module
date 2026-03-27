@@ -10,6 +10,8 @@ import NumberInputField from '../../../../../fields/NumberInputField';
 import BatchesField from '../../../../../fields/BatchesField';
 import LocationsField from '../../../../../fields/LocationsField';
 import LoadersField from '../../../../../fields/LoadersField';
+import SingleSelectByIdField from '../../../../../fields/SingleSelectByIdField';
+import { YesOrNo } from '../../../../../../utils/share';
 import { FormValues, FieldArrayItem } from '../typing';
 
 const FieldArrayTable: FC = () => {
@@ -100,6 +102,39 @@ const FieldArrayTable: FC = () => {
             fuzzySearch={false}
             selectValueMode
             disabled={source.receivedQuantity > 0 || !!source.removedAt}
+          />
+        );
+      },
+    },
+    {
+      key: 'inspectionResult',
+      title: '檢驗結果',
+      minWidth: 120,
+      render: (source, index) => {
+        return (
+          <SingleSelectByIdField
+            name={`items.${index}.inspectionResult`}
+            placeholder="檢驗結果"
+            options={[
+              {
+                id: YesOrNo.YES,
+                name: '通過',
+              },
+              {
+                id: YesOrNo.NO,
+                name: '不通過',
+              },
+              {
+                id: YesOrNo.NULL,
+                name: '不檢驗',
+              },
+            ]}
+            size="sub"
+            disabled={
+              source.receivedQuantity > 0 ||
+              !!source.removedAt ||
+              source.inspectionResult === YesOrNo.NULL
+            }
           />
         );
       },
