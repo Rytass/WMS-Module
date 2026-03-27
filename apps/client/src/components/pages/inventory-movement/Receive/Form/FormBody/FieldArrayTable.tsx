@@ -1,5 +1,6 @@
 import { useFieldArray } from 'react-hook-form';
 import { Table, TableColumn, TableDataSourceWithId } from '@mezzanine-ui/react';
+import { getUnitName } from '../../../../../inventoryActions/utils';
 import { FormValues, FieldArrayItem } from '../typing';
 
 const FieldArrayTable: FC = () => {
@@ -27,6 +28,18 @@ const FieldArrayTable: FC = () => {
       minWidth: 100,
       align: 'end',
       render: (source) => source.targetReceivedQuantity,
+    },
+    {
+      key: 'unitId',
+      title: '單位',
+      minWidth: 80,
+      align: 'center',
+      render: (source) => {
+        return getUnitName({
+          unitId: source.unitId || null,
+          options: source.unitOptions,
+        });
+      },
     },
     {
       key: 'material',

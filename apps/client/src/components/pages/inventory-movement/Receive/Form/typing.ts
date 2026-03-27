@@ -1,5 +1,10 @@
 export type FieldArrayItem = {
   serialId: string;
+  unitId?: string | null;
+  unitOptions: {
+    id: string;
+    name: string;
+  }[];
   material: {
     id: string;
     name: string;

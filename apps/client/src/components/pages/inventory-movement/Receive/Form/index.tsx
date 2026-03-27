@@ -1,4 +1,5 @@
 import { ReceiveInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
+import { getMaterialUnitOptions } from '../../../../inventoryActions/utils';
 import InventoryMovementReceiveFormBody from './FormBody';
 
 interface InventoryMovementReceiveFormProps {
@@ -21,6 +22,8 @@ function InventoryMovementReceiveForm({
           .filter((item) => !item.removedAt)
           .map((item) => ({
             serialId: item.serialId,
+            unitId: item.unitId,
+            unitOptions: getMaterialUnitOptions(item.material),
             material: {
               id: item.material.id,
               name: item.material.key,

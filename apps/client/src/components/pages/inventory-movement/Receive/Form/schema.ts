@@ -6,6 +6,15 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
     .of(
       Yup.object({
         serialId: Yup.string().required('必填'),
+        unitId: Yup.string().nullable(),
+        unitOptions: Yup.array()
+          .of(
+            Yup.object({
+              id: Yup.string().required('必填'),
+              name: Yup.string().required('必填'),
+            }),
+          )
+          .required('必填'),
         material: Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
