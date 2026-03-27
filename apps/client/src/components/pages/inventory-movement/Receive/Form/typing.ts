@@ -1,6 +1,9 @@
 import { SelectValue } from '@mezzanine-ui/react';
 
 export type FieldArrayItem = {
+  quantity: number;
+  targetReceivedQuantity: number;
+  receivedQuantity: number;
   serialId: string;
   unitId?: string | null;
   unitOptions: SelectValue[];
@@ -9,8 +12,6 @@ export type FieldArrayItem = {
   location?: SelectValue | null;
   loader?: SelectValue | null;
   materialDescription?: string;
-  targetReceivedQuantity: number;
-  receivedQuantity: number;
 };
 
 export type FormValues = {

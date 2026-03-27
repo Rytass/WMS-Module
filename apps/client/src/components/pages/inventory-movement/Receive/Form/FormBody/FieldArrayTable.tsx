@@ -6,6 +6,7 @@ import {
   Button,
 } from '@mezzanine-ui/react';
 import { getUnitName } from '../../../../../inventoryActions/utils';
+import NumberInputField from '../../../../../fields/NumberInputField';
 import BatchesField from '../../../../../fields/BatchesField';
 import LocationsField from '../../../../../fields/LocationsField';
 import LoadersField from '../../../../../fields/LoadersField';
@@ -33,6 +34,19 @@ const FieldArrayTable: FC = () => {
       title: '項次',
       minWidth: 100,
       render: (source) => source.serialId,
+    },
+    {
+      key: 'quantity',
+      title: '執行數量',
+      minWidth: 120,
+      align: 'end',
+      render: (source, index) => (
+        <NumberInputField
+          name={`items.${index}.quantity`}
+          placeholder="執行數量"
+          disabled={!!source.removedAt || undefined}
+        />
+      ),
     },
     {
       key: 'receivedQuantity',

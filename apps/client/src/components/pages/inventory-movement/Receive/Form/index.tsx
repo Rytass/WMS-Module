@@ -21,6 +21,7 @@ function InventoryMovementReceiveForm({
         items: receiveInventoryOrder.items
           .filter((item) => !item.removedAt)
           .map((item) => ({
+            quantity: 0,
             serialId: item.serialId,
             unitId: item.unitId,
             unitOptions: getMaterialUnitOptions(item.material),
