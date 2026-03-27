@@ -427,8 +427,7 @@ function InventoryGroupTable({
             }}
           />
         ),
-        rowExpandable: (record) =>
-          (record.filteredAggregatedStock?.length ?? 0) >= 2,
+        rowExpandable: (record) => (record.aggregatedStock?.length ?? 0) >= 2,
         onExpandedRowsChange: (keys) => {
           setExpandedRowKeys(keys);
         },

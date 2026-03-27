@@ -40,10 +40,6 @@ const FilterWrapper = <T extends FieldValues>({
     defaultValues,
   });
 
-  const filterValues = methods.watch();
-
-  console.log('filterValues', filterValues);
-
   const prevSyncValues = usePreviousValue(syncValues);
 
   useEffect(() => {
