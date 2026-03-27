@@ -9,6 +9,8 @@ import {
   ShipInventoryOrderDocument,
   FullReceiveInventoryOrdersDocument,
   ReceiveInventoryOrderDocument,
+  ShipInventoryOrderStatus,
+  ReceiveInventoryOrderStatus,
 } from '../../../graphql/generated/.graphql';
 
 export function useQueryTransferOrders() {
@@ -47,6 +49,10 @@ export function useQueryShipInventoryOrders() {
     variables: {
       limit,
       offset,
+      statuses: [
+        ShipInventoryOrderStatus.PARTIAL_SHIPPED,
+        ShipInventoryOrderStatus.PENDING,
+      ],
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -91,6 +97,10 @@ export function useQueryReceiveInventoryOrders() {
     variables: {
       limit,
       offset,
+      statuses: [
+        ReceiveInventoryOrderStatus.PARTIAL_RECEIVED,
+        ReceiveInventoryOrderStatus.PENDING,
+      ],
     },
     fetchPolicy: 'cache-and-network',
   });

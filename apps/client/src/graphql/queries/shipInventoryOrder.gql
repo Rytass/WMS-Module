@@ -45,6 +45,26 @@ query ShipInventoryOrderOptions($offset: Int, $limit: Int, $key: String) {
   }
 }
 
+query ShipInventoryOrderPendingOptions(
+  $offset: Int
+  $limit: Int
+  $key: String
+) {
+  shipInventoryOrders(
+    offset: $offset
+    limit: $limit
+    key: $key
+    statuses: [PENDING, PARTIAL_SHIPPED]
+  ) {
+    id
+    items {
+      id
+      key
+    }
+    total
+  }
+}
+
 query FullShipInventoryOrders(
   $offset: Int
   $limit: Int

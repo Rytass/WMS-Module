@@ -3,7 +3,10 @@ import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { ShipInventoryOrderOptionsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
-import { useLazyQueryShipInventoryOrders } from './useApi';
+import {
+  useLazyQueryShipInventoryOrderOptions,
+  useLazyQueryShipInventoryOrderPendingOptions,
+} from './useApi';
 
 interface ShipInventoryOrdersFieldProps {
   name: string;
@@ -13,6 +16,7 @@ interface ShipInventoryOrdersFieldProps {
   required?: boolean;
   disabled?: boolean;
   selectValueMode: boolean;
+  fetchOnlyPending?: boolean;
 }
 
 const ShipInventoryOrdersField: FC<ShipInventoryOrdersFieldProps> = ({
@@ -23,8 +27,12 @@ const ShipInventoryOrdersField: FC<ShipInventoryOrdersFieldProps> = ({
   required,
   disabled,
   selectValueMode,
+  fetchOnlyPending = false,
 }) => {
-  const { fetchShipInventoryOrders } = useLazyQueryShipInventoryOrders();
+  const { fetchShipInventoryOrderOptions } =
+    useLazyQueryShipInventoryOrderOptions();
+  const { fetchShipInventoryOrderPendingOptions } =
+    useLazyQueryShipInventoryOrderPendingOptions();
 
   const getNewOptions = useCallback(
     (data: ShipInventoryOrderOptionsQuery | undefined) =>
@@ -37,7 +45,9 @@ const ShipInventoryOrdersField: FC<ShipInventoryOrdersFieldProps> = ({
 
   const { currentOptions, onVisibilityChange, onSearch, onReachBottom } =
     useFetchMoreOptions<ShipInventoryOrderOptionsQuery>({
-      fetchData: fetchShipInventoryOrders,
+      fetchData: fetchOnlyPending
+        ? fetchShipInventoryOrderPendingOptions
+        : fetchShipInventoryOrderOptions,
       getNewOptions,
     });
 
