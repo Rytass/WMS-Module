@@ -39,7 +39,7 @@ export function useQueryMaterials(currentFilter?: FilterValues) {
       offset,
       limit,
       key:
-        currentFilter?.[FilterType.material] ||
+        currentFilter?.[FilterType.material]?.name ||
         currentFilter?.['material-search'] ||
         undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,

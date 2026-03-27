@@ -17,7 +17,7 @@ interface SaleOrderIdsFieldProps {
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
-  selectValueMode?: boolean;
+  selectValueMode: boolean;
 }
 
 const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
@@ -30,7 +30,7 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
   fuzzySearch = true,
   required,
   disabled,
-  selectValueMode = false,
+  selectValueMode,
 }) => {
   const { fetchSaleOrderIds } = useLazyQuerySaleOrderIds();
 

@@ -12,7 +12,7 @@ function MaterialsManagement() {
     <PageWrapper title="料號管理">
       <FilterWrapper<FilterValues>
         defaultValues={{
-          material: '',
+          material: null,
           materialDescription: '',
         }}
         baseFilters={{

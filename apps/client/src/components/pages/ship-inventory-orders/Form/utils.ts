@@ -1,5 +1,6 @@
 import { ShipInventoryOrderFragment } from '../../../../graphql/generated/.graphql';
 import { BASE_UNIT } from '../../../../utils/share';
+import { getMaterialUnitOptions } from '../../../inventoryActions/utils';
 import { FormValues } from './typing';
 
 export function fragmentToDefaultValues(
@@ -29,16 +30,7 @@ export function fragmentToDefaultValues(
       itemId: r.id,
       serialId: r.serialId,
       shippedQuantity: r.shippedQuantity,
-      unitOptions: [
-        {
-          id: BASE_UNIT,
-          name: r.material.baseUnit.key,
-        },
-        ...r.material.materialUnits.map((u) => ({
-          id: u.id,
-          name: u.unit,
-        })),
-      ],
+      unitOptions: getMaterialUnitOptions(r.material),
       isExisted: true,
       removedAt: r.removedAt || '',
     })),

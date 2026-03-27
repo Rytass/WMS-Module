@@ -12,7 +12,7 @@ interface LocationsFieldProps {
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
-  selectValueMode?: boolean;
+  selectValueMode: boolean;
 }
 
 const LocationsField: FC<LocationsFieldProps> = ({
@@ -22,7 +22,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
   fuzzySearch = true,
   required,
   disabled,
-  selectValueMode = false,
+  selectValueMode,
 }) => {
   const { fetchLocations } = useLazyQueryLocations();
 

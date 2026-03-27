@@ -110,17 +110,17 @@ function InventoryGroupTable({
         filteredAggregatedStock: item.aggregatedStock.filter(
           (stock) =>
             stock.batch.key.includes(
-              currentFilter?.[FilterType.batch] ||
+              currentFilter?.[FilterType.batch]?.name ||
                 currentFilter?.['batch-search'] ||
                 '',
             ) &&
             stock.location.key.includes(
-              currentFilter?.[FilterType.location] ||
+              currentFilter?.[FilterType.location]?.name ||
                 currentFilter?.['location-search'] ||
                 '',
             ) &&
             stock.loader.serialId.includes(
-              currentFilter?.[FilterType.loader] ||
+              currentFilter?.[FilterType.loader]?.name ||
                 currentFilter?.['loader-search'] ||
                 '',
             ), // 之後應該要加上供應商、客戶、銷售訂單編號、銷售訂單項次
@@ -427,8 +427,7 @@ function InventoryGroupTable({
             }}
           />
         ),
-        rowExpandable: (record) =>
-          (record.filteredAggregatedStock?.length ?? 0) >= 2,
+        rowExpandable: (record) => (record.aggregatedStock?.length ?? 0) >= 2,
         onExpandedRowsChange: (keys) => {
           setExpandedRowKeys(keys);
         },

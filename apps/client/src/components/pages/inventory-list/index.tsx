@@ -12,8 +12,11 @@ function InventoryList() {
     <PageWrapper title="庫存清單">
       <FilterWrapper<FilterValues>
         defaultValues={{
-          material: '',
+          material: null,
           materialDescription: '',
+          batch: null,
+          location: null,
+          loader: null,
         }}
         baseFilters={{
           filters: [
@@ -28,8 +31,12 @@ function InventoryList() {
         onSubmit={(values) => {
           setCurrentFilter(values);
         }}
+        syncValues={currentFilter}
       />
-      <InventoryTable currentFilter={currentFilter} />
+      <InventoryTable
+        currentFilter={currentFilter}
+        setCurrentFilter={setCurrentFilter}
+      />
     </PageWrapper>
   );
 }

@@ -23,7 +23,7 @@ function LoadersManagementListTable() {
     {
       key: 'actions',
       title: '操作',
-      width: 160,
+      width: 170,
       render: (source) => <Actions source={source} />,
     },
     {

@@ -1,12 +1,25 @@
 import { useLazyQuery } from '@apollo/client/react';
-import { ShipInventoryOrderOptionsDocument } from '../../../graphql/generated/.graphql';
+import {
+  ShipInventoryOrderOptionsDocument,
+  ShipInventoryOrderPendingOptionsDocument,
+} from '../../../graphql/generated/.graphql';
 
-export function useLazyQueryShipInventoryOrders() {
-  const [fetchShipInventoryOrders] = useLazyQuery(
+export function useLazyQueryShipInventoryOrderOptions() {
+  const [fetchShipInventoryOrderOptions] = useLazyQuery(
     ShipInventoryOrderOptionsDocument,
   );
 
   return {
-    fetchShipInventoryOrders,
+    fetchShipInventoryOrderOptions,
+  };
+}
+
+export function useLazyQueryShipInventoryOrderPendingOptions() {
+  const [fetchShipInventoryOrderPendingOptions] = useLazyQuery(
+    ShipInventoryOrderPendingOptionsDocument,
+  );
+
+  return {
+    fetchShipInventoryOrderPendingOptions,
   };
 }
