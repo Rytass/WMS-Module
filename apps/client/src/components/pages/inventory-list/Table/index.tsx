@@ -21,12 +21,14 @@ interface InventoryTableProps {
   currentFilter?: FilterValues;
   setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
   onlyListMode?: boolean;
+  haveInventoryActionsSystem?: boolean;
 }
 
 function InventoryTable({
   currentFilter,
   setCurrentFilter,
   onlyListMode = false,
+  haveInventoryActionsSystem = true,
 }: InventoryTableProps) {
   const { openDialog } = useDialog();
   const { replace, pathname } = useRouter();
@@ -89,9 +91,10 @@ function InventoryTable({
                   const doChange = () => {
                     setMode(e.target.value as Mode);
                     setTargetStocks([]);
-                    replace({ pathname: pathname, query: {} }, undefined, {
-                      shallow: true,
-                    });
+                    // page 使用 query string 系統時才要打開，目前關掉了
+                    // replace({ pathname: pathname, query: {} }, undefined, {
+                    //   shallow: true,
+                    // });
                   };
 
                   if (targetStocks.length > 0) {
@@ -122,17 +125,21 @@ function InventoryTable({
                 </Radio>
               </RadioGroup>
             )}
-            <InventoryActionSelector
-              targetStocks={targetStocks}
-              setTargetStocks={setTargetStocks}
-              setNeedClearSelectedRows={setNeedClearSelectedRows}
-            />
+            {haveInventoryActionsSystem && (
+              <InventoryActionSelector
+                targetStocks={targetStocks}
+                setTargetStocks={setTargetStocks}
+                setNeedClearSelectedRows={setNeedClearSelectedRows}
+              />
+            )}
           </div>
         }
       >
         {tableComponent}
       </TableWrapper>
-      {targetAction && targetInventoryIds.length > 0 ? (
+      {haveInventoryActionsSystem &&
+      targetAction &&
+      targetInventoryIds.length > 0 ? (
         <Button
           icon={targetAction.icon}
           className={classes.actionButton}
@@ -143,14 +150,15 @@ function InventoryTable({
           }}
         />
       ) : null}
-
-      <InventoryActionDrawers
-        onClose={() => {
-          setOpen(false);
-        }}
-        open={open}
-        setCurrentFilter={setCurrentFilter}
-      />
+      {haveInventoryActionsSystem && (
+        <InventoryActionDrawers
+          onClose={() => {
+            setOpen(false);
+          }}
+          open={open}
+          setCurrentFilter={setCurrentFilter}
+        />
+      )}
     </>
   );
 }

@@ -3,7 +3,7 @@ import { parseAsInteger, useQueryState } from 'nuqs';
 import { isNumber, isEqual } from 'lodash';
 import { usePreviousValue } from './usePreviousValue';
 
-export function useTablePageState(useQs = true) {
+export function useTablePageState(usePageQs = false) {
   const [limit, setLimit] = useState<number>(10);
   const [pageState, setPageState] = useState<number>(1);
   const [pageStateQs, setPageStateQs] = useQueryState(
@@ -12,19 +12,19 @@ export function useTablePageState(useQs = true) {
   );
 
   const page = useMemo(
-    () => (useQs ? pageStateQs : pageState),
-    [pageState, pageStateQs, useQs],
+    () => (usePageQs ? pageStateQs : pageState),
+    [pageState, pageStateQs, usePageQs],
   );
 
   const setPage = useCallback(
     (p: number) => {
-      if (useQs) {
+      if (usePageQs) {
         setPageStateQs(p);
       } else {
         setPageState(p);
       }
     },
-    [setPageStateQs, useQs],
+    [setPageStateQs, usePageQs],
   );
 
   return {
