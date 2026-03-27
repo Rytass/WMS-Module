@@ -28,6 +28,24 @@ function InventoryMovementReceiveForm({
               id: item.material.id,
               name: item.material.key,
             },
+            batch: item.batch
+              ? {
+                  id: item.batch.id,
+                  name: item.batch.key,
+                }
+              : null,
+            location: item.location
+              ? {
+                  id: item.location.id,
+                  name: item.location.key,
+                }
+              : null,
+            loader: item.loader
+              ? {
+                  id: item.loader.id,
+                  name: item.loader.serialId,
+                }
+              : null,
             materialDescription: item.material.description,
             targetReceivedQuantity: item.targetReceivedQuantity,
             receivedQuantity: item.receivedQuantity,
