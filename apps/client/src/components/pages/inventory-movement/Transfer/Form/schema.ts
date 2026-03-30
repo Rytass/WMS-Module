@@ -21,6 +21,40 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
           .required('必填'),
         targetTransferredQuantity: Yup.number().required('必填'),
         transferredQuantity: Yup.number().required('必填'),
+        unitId: Yup.string().nullable(),
+        unitOptions: Yup.array()
+          .of(
+            Yup.object({
+              id: Yup.string().required('必填'),
+              name: Yup.string().required('必填'),
+            }),
+          )
+          .required('必填'),
+        material: Yup.object({
+          id: Yup.string().required('必填'),
+          name: Yup.string().required('必填'),
+        }).required('必填'),
+        batch: Yup.object({
+          id: Yup.string().required('必填'),
+          name: Yup.string().required('必填'),
+        }).nullable(),
+        location: Yup.object({
+          id: Yup.string().required('必填'),
+          name: Yup.string().required('必填'),
+        }).nullable(),
+        loader: Yup.object({
+          id: Yup.string().required('必填'),
+          name: Yup.string().required('必填'),
+        }).nullable(),
+        materialDescription: Yup.string(),
+        saleId: Yup.object({
+          id: Yup.string().required('必填'),
+          name: Yup.string().required('必填'),
+        }).nullable(),
+        saleSerialId: Yup.object({
+          id: Yup.string().required('必填'),
+          name: Yup.string().required('必填'),
+        }).nullable(),
       }),
     )
     .required('必填'),
