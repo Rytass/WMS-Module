@@ -1,16 +1,7 @@
 import { useFieldArray } from 'react-hook-form';
-import {
-  Table,
-  TableColumn,
-  TableDataSourceWithId,
-  Button,
-} from '@mezzanine-ui/react';
+import { Table, TableColumn, TableDataSourceWithId } from '@mezzanine-ui/react';
 import { getUnitName } from '../../../../../inventoryActions/utils';
 import NumberInputField from '../../../../../fields/NumberInputField';
-import BatchesField from '../../../../../fields/BatchesField';
-import LocationsField from '../../../../../fields/LocationsField';
-import LoadersField from '../../../../../fields/LoadersField';
-import SingleSelectByIdField from '../../../../../fields/SingleSelectByIdField';
 import { FormValues, FieldArrayItem } from '../typing';
 
 const FieldArrayTable: FC = () => {
