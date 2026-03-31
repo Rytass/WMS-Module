@@ -21,7 +21,7 @@ import {
   CreateReceiveInventoryOrderItemInput,
   UpdateReceiveInventoryOrderInput,
 } from '../typings/create-receive-inventory-order.input';
-import { BatchEntity, OrderEntity } from '@rytass/wms-base-nestjs-module';
+import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   FindReceiveInventoryOrderInput,
   ReceiveInventoryOrderStatus,
@@ -139,19 +139,25 @@ export class ReceiveInventoryOrderService<
             key: item.materialKey,
           });
           if (!material) return acc;
-          const batch = await this.batchService.getBatch({
-            manager,
-            materialId: material.id,
-            key: item.batchKey,
-          });
+          const batch = item.batchKey
+            ? await this.batchService.getBatch({
+                manager,
+                materialId: material.id,
+                key: item.batchKey,
+              })
+            : null;
 
-          const location = await locationRepository.findOneBy({
-            key: item.locationKey,
-          });
+          const location = item.locationKey
+            ? await locationRepository.findOneBy({
+                key: item.locationKey,
+              })
+            : null;
 
-          const loader = await loaderRepository.findOneBy({
-            serialId: item.loaderKey,
-          });
+          const loader = item.loaderKey
+            ? await loaderRepository.findOneBy({
+                serialId: item.loaderKey,
+              })
+            : null;
 
           return [
             ...acc,
@@ -159,7 +165,7 @@ export class ReceiveInventoryOrderService<
               ...item,
               orderId,
               materialId: material.id,
-              batchId: batch.id,
+              batchId: batch?.id || null,
               locationId: location?.id || null,
               loaderId: loader?.id || null,
             },
@@ -374,6 +380,19 @@ export class ReceiveInventoryOrderService<
         options.map(async (option) => {
           const item = itemMap.get(option.itemId);
           if (!item) return;
+          if (!item.batchId && option.batchKey) {
+            // if batchKey is provided but item doesn't have batchId, attempt to find or create batch and update item with batchId
+            item.batchId = await this.batchService
+              .getBatch({
+                manager,
+                key: option.batchKey,
+                materialId: item.materialId,
+              })
+              .then(async (b) => {
+                await itemRepository.update({ id: item.id }, { batchId: b.id });
+                return b.id;
+              });
+          }
 
           const conversionFactor =
             await this.materialService.getConversionFactor(
@@ -407,7 +426,7 @@ export class ReceiveInventoryOrderService<
             ),
             stockRepository.save(
               stockRepository.create({
-                batchId: option.batchId || item.batchId || undefined,
+                batchId: item.batchId || undefined,
                 locationId: item.locationId || undefined,
                 loaderId: item.loaderId || undefined,
                 materialId: item.materialId,

@@ -9,9 +9,6 @@ import {
   TableInheritance,
 } from 'typeorm';
 import { ShipInventoryOrderEntityClass } from './ship-inventory-order.entity';
-import { MaterialEntityClass } from '../../metadata/material.entity';
-import { MaterialUnitEntityClass } from '../../metadata/material-unit.entity';
-import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import { ShipInventoryOrderChangeEntityClass } from './ship-inventory-order-change.entity';
 
 export const ShipInventoryOrderItemEntity = Symbol(
@@ -68,18 +65,6 @@ export class ShipInventoryOrderItemEntityClass {
   )
   @JoinColumn({ name: 'orderId', referencedColumnName: 'id' })
   order!: ShipInventoryOrderEntityClass;
-
-  @ManyToOne('materials')
-  @JoinColumn({ name: 'materialId', referencedColumnName: 'id' })
-  material!: MaterialEntityClass;
-
-  @ManyToOne('material_units')
-  @JoinColumn({ name: 'unitId', referencedColumnName: 'id' })
-  unit!: MaterialUnitEntityClass;
-
-  @ManyToOne('batches', { createForeignKeyConstraints: false })
-  @JoinColumn({ name: 'batchId', referencedColumnName: 'id' })
-  batch!: BatchEntity;
 
   @OneToMany(() => ShipInventoryOrderChangeEntityClass, (change) => change.item)
   changes!: ShipInventoryOrderChangeEntityClass[];

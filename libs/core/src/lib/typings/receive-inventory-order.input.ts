@@ -1,5 +1,5 @@
 export type ReceiveInventoryOrderInput = {
   itemId: string;
-  batchId?: string;
+  batchKey?: string;
   quantity: number;
 };
