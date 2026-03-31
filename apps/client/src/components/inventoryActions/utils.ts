@@ -152,8 +152,7 @@ export function inventoryActionsEnableStatus(
           StockStatus.FREE,
           StockStatus.PENDING_INSPECTION,
           StockStatus.INSPECTION_FAILED,
-          StockStatus.ALLOCATED,
-        ].includes(stock.status);
+        ].includes(stock.status) || !!stock.saleId;
 
     case InventoryActions.HoldInventory:
       return (stock: AggregatedStockFragment) =>
@@ -168,18 +167,16 @@ export function inventoryActionsEnableStatus(
         [StockStatus.FREE].includes(stock.status);
 
     case InventoryActions.DeallocateInventory:
-      return (stock: AggregatedStockFragment) =>
-        [StockStatus.ALLOCATED].includes(stock.status);
+      return (stock: AggregatedStockFragment) => !!stock.saleId;
 
     case InventoryActions.ShipInventory:
       return (stock: AggregatedStockFragment) =>
         [
           StockStatus.FREE,
           StockStatus.INSPECTION_FAILED,
-          StockStatus.ALLOCATED,
           StockStatus.VENDOR_INVENTORY,
           StockStatus.CUSTOMER_INVENTORY,
-        ].includes(stock.status);
+        ].includes(stock.status) || !!stock.saleId;
 
     case InventoryActions.SplitBatch:
       return (stock: AggregatedStockFragment) =>
@@ -209,7 +206,7 @@ export function inventoryActionsEnableStatus(
 
     case InventoryActions.DeliverToCustomer:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.FREE, StockStatus.ALLOCATED].includes(stock.status);
+        [StockStatus.FREE].includes(stock.status) || !!stock.saleId;
 
     case InventoryActions.ReturnFromCustomer:
       return (stock: AggregatedStockFragment) =>
