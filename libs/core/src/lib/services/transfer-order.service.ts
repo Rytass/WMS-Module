@@ -74,17 +74,17 @@ export class TransferOrderService<
         // Ensure required fields are present
         if (!data.batchId || !data.materialId) return;
 
-        // Split batch first with inTransfer flag to track transfer state
-        const splittedBatch = await this.batchService.splitBatch({
-          id: data.batchId,
-          inTransfer: true,
-          manager,
-        });
-
         // Save item with ORIGINAL batch id to maintain source state
         const item = await repos.transferOrderItem.save(
           repos.transferOrderItem.create(data),
         );
+        // Split batch first with inTransfer flag to track transfer state
+        const splittedBatch = await this.batchService.splitBatch({
+          id: data.batchId,
+          transferId: item.orderId,
+          manager,
+        });
+
         const base = await repos.order.save({});
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
@@ -167,7 +167,7 @@ export class TransferOrderService<
           // Generate new splitted batch for cancellation reversal with inTransfer flag
           const reversalBatch = await this.batchService.splitBatch({
             id: item.batchId,
-            inTransfer: true,
+            transferId: item.orderId,
             manager: transactionManager,
           });
 
@@ -264,7 +264,7 @@ export class TransferOrderService<
       const newItems: Partial<TransferOrderItemEntityClass>[] = [];
       const existingItems: Partial<TransferOrderItemEntityClass>[] = [];
 
-      options.items.forEach((item) => {
+      items.forEach((item) => {
         if (item.removedAt) return;
         if (!item.id) {
           newItems.push({ ...item, orderId: order.id });

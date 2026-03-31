@@ -4,7 +4,7 @@ export type SplitBatchInput = {
   customerId?: string | null;
   vendorId?: string | null;
   inspectionId?: string | null;
-  inTransfer?: boolean;
+  transferId?: string | null;
   held?: boolean;
   inShipment?: boolean;
 };
