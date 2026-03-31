@@ -3,6 +3,7 @@ import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
+import { useScrapInventory } from '../../inventoryActions/useApi';
 
 interface ScrapInventoryProps {
   inventoryList: AggregatedStockFragment[];
@@ -18,6 +19,7 @@ const ScrapInventory: FC<ScrapInventoryProps> = ({
   open,
 }) => {
   const methods = useForm();
+  const { onSubmit } = useScrapInventory(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -27,9 +29,7 @@ const ScrapInventory: FC<ScrapInventoryProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={async () => {
-        //
-      }}
+      onSubmit={onSubmit}
       bottomPrimaryActionVariant="destructive-primary"
       {...formFooterProps}
     >
