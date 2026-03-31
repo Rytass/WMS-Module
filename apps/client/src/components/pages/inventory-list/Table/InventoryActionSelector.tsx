@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { isNumber, uniq, intersection } from 'lodash';
+import { isNumber, uniq } from 'lodash';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { Dropdown, Button, Message } from '@mezzanine-ui/react';
 import {
