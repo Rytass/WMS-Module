@@ -106,14 +106,14 @@ type Stocks {
 type AggregatedStockDto {
   quantity: Int!
   status: StockStatus!
-  inTransfer: Boolean
+  transferId: ID
   held: Boolean
   inShipment: Boolean
   saleId: ID
   saleSerialId: ID
   customerId: ID
   vendorId: ID
-  inspectionId: ID
+  isInspection: Boolean
   id: ID!
   material: MaterialDto!
   batch: BatchDto!

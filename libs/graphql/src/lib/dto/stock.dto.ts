@@ -33,8 +33,8 @@ export class AggregatedStockDto {
   locationId!: string;
   loaderId!: string;
 
-  @Field(() => Boolean, { nullable: true })
-  inTransfer?: boolean;
+  @Field(() => ID, { nullable: true })
+  transferId?: string | null;
 
   @Field(() => Boolean, { nullable: true })
   held?: boolean;
@@ -54,8 +54,8 @@ export class AggregatedStockDto {
   @Field(() => ID, { nullable: true })
   vendorId?: string | null;
 
-  @Field(() => ID, { nullable: true })
-  inspectionId?: string | null;
+  @Field(() => Boolean, { nullable: true })
+  isInspection?: boolean;
 }
 
 registerEnumType(StockStatus, {

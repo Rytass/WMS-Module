@@ -29,8 +29,8 @@ export class BatchEntityClass extends BaseBatchEntity {
   inspectionId: string | null;
 
   // added when transfer inventory, used to link to transfer order
-  @Column({ type: 'bool', default: false })
-  inTransfer: boolean;
+  @Column({ type: 'varchar', nullable: true })
+  transferId: string | null;
 
   // added when hold inventory, used to link to hold inventory order
   @Column({ type: 'bool', default: false })
