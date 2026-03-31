@@ -8,13 +8,7 @@ import {
   StockEntity,
   StockEntityClass,
 } from '../models';
-import {
-  DataSource,
-  DeepPartial,
-  EntityManager,
-  EntityTarget,
-  In,
-} from 'typeorm';
+import { DataSource, DeepPartial, EntityManager, EntityTarget } from 'typeorm';
 import { HelperService } from './helper.service';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
@@ -171,7 +165,7 @@ export class HoldInventoryOrderService<
       const newItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
       const existingItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
 
-      options.items.forEach((item) => {
+      items.forEach((item) => {
         if (item.removedAt) return;
         if (!item.id) newItems.push({ ...item, orderId: id });
         else if (existingItemIds.has(item.id))
@@ -257,9 +251,10 @@ export class HoldInventoryOrderService<
   }
 
   async release(
-    options: ReleaseInventoryOrderItemInput[],
+    options: ReleaseInventoryOrderItemInput | ReleaseInventoryOrderItemInput[],
     manager = this.dataSource.manager,
   ): Promise<T> {
+    if (!Array.isArray(options)) options = [options];
     const repos = this.getRepositories(manager);
 
     const key = await this.helperService.getSeq(this.seqPrefix, manager);

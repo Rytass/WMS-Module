@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
-import { StockService, StockStatus } from '@wms-module/core';
+import { StockService } from '@wms-module/core';
 import {
   AggregatedStocks,
   ChangeLogs,

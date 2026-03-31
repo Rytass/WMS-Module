@@ -40,9 +40,6 @@ export class ScrapeOrderItemEntityClass {
   @Index()
   loaderId!: string | null;
 
-  @Column({ type: 'varchar' })
-  vendorId!: string;
-
   @Column({ type: 'numeric' })
   targetScrapedQuantity!: number;
 

@@ -54,6 +54,16 @@ export class AllocateInventoryOrderMutation {
     @Args('items', { type: () => [DeallocateOrderArgs] })
     args: DeallocateOrderArgs[],
   ) {
-    return this.allocateInventoryOrderService.deallocate(args);
+    return this.allocateInventoryOrderService
+      .deallocate(
+        args.map(({ aggregatedKey, ...item }) => {
+          const keys = this.stockService.destructAggregateKey(aggregatedKey);
+          return {
+            ...item,
+            ...keys,
+          };
+        }),
+      )
+      .then(() => true);
   }
 }

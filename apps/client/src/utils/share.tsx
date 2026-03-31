@@ -1,6 +1,7 @@
 import { TableColumn, Icon } from '@mezzanine-ui/react';
 import { LockIcon } from '@mezzanine-ui/icons';
 import {
+  StockStatus,
   AggregatedStockFragment,
   ShipInventoryOrderStatus,
   ReceiveInventoryOrderStatus,
@@ -100,16 +101,16 @@ export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
     width: 100,
     render: (source) => stockStatusName(source.status),
   },
-  // {
-  //   key: 'inspection',
-  //   title: '檢驗',
-  //   width: 48,
-  //   align: 'center',
-  //   render: (source) =>
-  //     source.inspectionId ? (
-  //       <Icon icon={WaitIcon} color="brand" size={16} />
-  //     ) : null,
-  // },
+  {
+    key: 'isInspection',
+    title: '檢驗',
+    width: 48,
+    align: 'center',
+    render: (source) =>
+      source.isInspection ? (
+        <Icon icon={WaitIcon} color="brand" size={16} />
+      ) : null,
+  },
   {
     key: 'held',
     title: '凍結',
@@ -124,7 +125,7 @@ export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
     width: 48,
     align: 'center',
     render: (source) =>
-      source.inTransfer ? (
+      source.status === StockStatus.IN_TRANSFER ? (
         <Icon icon={TransferIcon} color="brand" size={16} />
       ) : null,
   },

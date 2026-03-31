@@ -135,7 +135,7 @@ export enum InventoryActions {
 
 export type InventoryActionItem = Omit<DropdownOption, 'id'> & {
   id: InventoryActions;
-  status: StockStatus[];
+  condition: (stock: AggregatedStockFragment) => boolean;
   title: string;
   submitText: string;
   needSameMaterial?: boolean;
@@ -144,74 +144,83 @@ export type InventoryActionItem = Omit<DropdownOption, 'id'> & {
 
 export function inventoryActionsEnableStatus(
   action: InventoryActions,
-): StockStatus[] {
+): (stock: AggregatedStockFragment) => boolean {
   switch (action) {
     case InventoryActions.CreateTransferInventory:
-      return [
-        StockStatus.FREE,
-        StockStatus.PENDING_INSPECTION,
-        StockStatus.INSPECTION_FAILED,
-        StockStatus.ALLOCATED,
-      ];
+      return (stock: AggregatedStockFragment) =>
+        [
+          StockStatus.FREE,
+          StockStatus.PENDING_INSPECTION,
+          StockStatus.INSPECTION_FAILED,
+        ].includes(stock.status) || !!stock.saleId;
 
     case InventoryActions.HoldInventory:
-      return [StockStatus.FREE];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.FREE].includes(stock.status);
 
     case InventoryActions.ReleaseInventoryHold:
-      return [StockStatus.HELD];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.HELD].includes(stock.status);
 
     case InventoryActions.AllocateInventory:
-      return [StockStatus.FREE];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.FREE].includes(stock.status);
 
     case InventoryActions.DeallocateInventory:
-      return [StockStatus.ALLOCATED];
+      return (stock: AggregatedStockFragment) => !!stock.saleId;
 
     case InventoryActions.ShipInventory:
-      return [
-        StockStatus.FREE,
-        StockStatus.INSPECTION_FAILED,
-        StockStatus.ALLOCATED,
-        StockStatus.VENDOR_INVENTORY,
-        StockStatus.CUSTOMER_INVENTORY,
-      ];
+      return (stock: AggregatedStockFragment) =>
+        [
+          StockStatus.FREE,
+          StockStatus.INSPECTION_FAILED,
+          StockStatus.VENDOR_INVENTORY,
+          StockStatus.CUSTOMER_INVENTORY,
+        ].includes(stock.status) || !!stock.saleId;
 
     case InventoryActions.SplitBatch:
-      return [StockStatus.FREE];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.FREE].includes(stock.status);
 
     case InventoryActions.MergeBatch:
-      return [StockStatus.FREE];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.FREE].includes(stock.status);
 
     case InventoryActions.ReclassifyInventory:
-      return [StockStatus.FREE, StockStatus.INSPECTION_FAILED];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.FREE, StockStatus.INSPECTION_FAILED].includes(
+          stock.status,
+        );
 
     case InventoryActions.TransferToVendor:
-      return [StockStatus.FREE];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.FREE].includes(stock.status);
 
     case InventoryActions.ReturnFromVendor:
-      return [StockStatus.VENDOR_INVENTORY];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.VENDOR_INVENTORY].includes(stock.status);
 
     case InventoryActions.QualityInspection:
-      return [StockStatus.PENDING_INSPECTION];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.PENDING_INSPECTION].includes(stock.status);
 
     case InventoryActions.DeliverToCustomer:
-      return [StockStatus.FREE, StockStatus.ALLOCATED];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.FREE].includes(stock.status) || !!stock.saleId;
 
     case InventoryActions.ReturnFromCustomer:
-      return [StockStatus.CUSTOMER_INVENTORY];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.CUSTOMER_INVENTORY].includes(stock.status);
 
     case InventoryActions.ScrapInventory:
-      return [StockStatus.FREE, StockStatus.INSPECTION_FAILED];
+      return (stock: AggregatedStockFragment) =>
+        [StockStatus.FREE, StockStatus.INSPECTION_FAILED].includes(
+          stock.status,
+        );
 
     default:
-      return [];
+      return () => false;
   }
-}
-
-export function isEnableActionStatus(
-  inventoryStatus: StockStatus,
-  conditionStatus?: StockStatus[],
-): boolean {
-  return (conditionStatus ?? []).includes(inventoryStatus);
 }
 
 export function inventoryActionsSpec(
@@ -219,7 +228,7 @@ export function inventoryActionsSpec(
 ): InventoryActionItem | null {
   const baseProps = {
     id: action,
-    status: inventoryActionsEnableStatus(action),
+    condition: inventoryActionsEnableStatus(action),
   };
 
   switch (action) {
@@ -366,27 +375,27 @@ export function inventoryActionsSpec(
 }
 
 export const inventoryActionOptions: InventoryActionItem[] = [
-  InventoryActions.CreateTransferInventory,
+  // InventoryActions.CreateTransferInventory,
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   InventoryActions.AllocateInventory,
   InventoryActions.DeallocateInventory,
-  InventoryActions.ShipInventory,
+  // InventoryActions.ShipInventory,
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
-  InventoryActions.ReclassifyInventory,
-  InventoryActions.TransferToVendor,
-  InventoryActions.ReturnFromVendor,
-  InventoryActions.QualityInspection,
-  InventoryActions.DeliverToCustomer,
-  InventoryActions.ReturnFromCustomer,
+  // InventoryActions.ReclassifyInventory,
+  // InventoryActions.TransferToVendor,
+  // InventoryActions.ReturnFromVendor,
+  // InventoryActions.QualityInspection,
+  // InventoryActions.DeliverToCustomer,
+  // InventoryActions.ReturnFromCustomer,
   InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,
   name: inventoryActionsSpec(action)?.name ?? '',
   icon: inventoryActionsSpec(action)?.icon,
   validate: inventoryActionsSpec(action)?.validate,
-  status: inventoryActionsSpec(action)?.status ?? [],
+  condition: inventoryActionsSpec(action)?.condition ?? (() => false),
   title: inventoryActionsSpec(action)?.title ?? '',
   submitText: inventoryActionsSpec(action)?.submitText ?? '',
   maxDataLength: inventoryActionsSpec(action)?.maxDataLength,
@@ -419,7 +428,7 @@ export function formatAvailableInventoryList({
   inventorySignature: InventorySignature;
 }) {
   return inventoryList
-    .filter((item) => isEnableActionStatus(item.status, targetAction?.status))
+    .filter((item) => targetAction?.condition(item))
     .map((item) => inventorySignature[item.id])
     .filter((item) => item.quantity > 0);
 }

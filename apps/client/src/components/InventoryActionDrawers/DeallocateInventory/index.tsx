@@ -3,6 +3,7 @@ import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
+import { useDeallocateInventory } from '../../inventoryActions/useApi';
 
 interface DeallocateInventoryProps {
   inventoryList: AggregatedStockFragment[];
@@ -18,6 +19,7 @@ const DeallocateInventory: FC<DeallocateInventoryProps> = ({
   open,
 }) => {
   const methods = useForm();
+  const { onSubmit } = useDeallocateInventory(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -27,9 +29,7 @@ const DeallocateInventory: FC<DeallocateInventoryProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={async () => {
-        //
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <InventoryGrid

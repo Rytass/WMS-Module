@@ -21,7 +21,6 @@ import {
   useInventoryActions,
   useInventorySignature,
 } from '../../useInventoryActions';
-import { isEnableActionStatus } from '../../utils';
 import { BASE_UNIT } from '../../../../utils/share';
 import classes from './index.module.scss';
 
@@ -63,10 +62,10 @@ const InventoryCard: FC<InventoryCardProps> = ({
 
   const isDisabledCard = useMemo(
     () =>
-      !isEnableActionStatus(inventory.status, targetAction?.status) ||
+      !targetAction?.condition(inventory) ||
       (targetAction?.needSameMaterial && !isAllSameMaterial) ||
       disabledCard,
-    [inventory.status, targetAction, isAllSameMaterial, disabledCard],
+    [inventory, targetAction, isAllSameMaterial, disabledCard],
   );
 
   const currentErrorSignature = useMemo(

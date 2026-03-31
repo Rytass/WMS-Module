@@ -10,6 +10,8 @@ import {
   CreateTransferOrderDocument,
   CreateHoldInventoryOrderDocument,
   ReleaseDocument,
+  CreateAllocateInventoryOrderDocument,
+  DeallocateDocument,
   SplitBatchDocument,
   MergeBatchDocument,
   // ReclassifyInventoryOrderDocument,
@@ -17,6 +19,7 @@ import {
 } from '../../graphql/generated/.graphql';
 import { formatAvailableInventoryList, getSaleInformation } from './utils';
 import { CreateTransferInventoryFieldValues } from './fields/CreateTransferInventoryField/typing';
+import { AllocateInventoryFieldValues } from './fields/AllocateInventoryField/typing';
 import { ShipInventoryFieldValues } from './fields/ShipInventoryField/typing';
 import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
 import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
@@ -189,6 +192,100 @@ export function useReleaseHoldInventory(
     inventoryList,
     inventorySignature,
     releaseHoldInventory,
+    resetAll,
+    targetAction,
+  ]);
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useAllocateInventory(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [allocateInventory] = useMutation(
+    CreateAllocateInventoryOrderDocument,
+    {
+      refetchQueries: refetchQueriesAfterInventoryActions,
+    },
+  );
+
+  const onSubmit = useCallback(
+    async (values: AllocateInventoryFieldValues) => {
+      try {
+        const { data } = await allocateInventory({
+          variables: {
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregatedKey: s.id,
+              unitId: s.unitId,
+              targetAllocatedQuantity: s.quantity,
+              saleId: values.saleId?.id ?? '',
+              saleSerialId: values.saleSerialId?.id ?? '',
+            })),
+          },
+        });
+
+        if (data?.createAllocateInventoryOrder.id) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [
+      allocateInventory,
+      inventoryList,
+      inventorySignature,
+      resetAll,
+      targetAction,
+    ],
+  );
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useDeallocateInventory(
+  inventoryList: AggregatedStockFragment[],
+) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [deallocateInventory] = useMutation(DeallocateDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(async () => {
+    try {
+      const { data } = await deallocateInventory({
+        variables: {
+          items: formatAvailableInventoryList({
+            inventoryList,
+            targetAction,
+            inventorySignature,
+          }).map((s) => ({
+            aggregatedKey: s.id,
+            unitId: s.unitId,
+            quantity: s.quantity,
+          })),
+        },
+      });
+
+      if (data?.deallocate) {
+        Message.success(`${targetAction?.submitText}成功`);
+        resetAll();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }, [
+    deallocateInventory,
+    inventoryList,
+    inventorySignature,
     resetAll,
     targetAction,
   ]);
