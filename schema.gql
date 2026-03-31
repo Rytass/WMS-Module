@@ -738,8 +738,9 @@ input UpdateAllocateInventoryOrderItemArgs {
 }
 
 input DeallocateOrderArgs {
-  itemId: ID!
+  aggregatedKey: ID!
   quantity: Int!
+  unitId: ID
 }
 
 input CreateTransferCustomerOrderItemArgs {
