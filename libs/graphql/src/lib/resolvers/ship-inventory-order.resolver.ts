@@ -15,8 +15,6 @@ import {
   ShipInventoryOrderEntityClass,
   ShipInventoryOrderItemEntityClass,
   ShipInventoryOrderReferenceEntityClass,
-  StockService,
-  StockStatus,
 } from '@wms-module/core';
 import { type LoaderType } from '../helpers';
 import { BatchDto } from '../dto/batch.dto';

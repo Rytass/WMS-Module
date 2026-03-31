@@ -10,10 +10,7 @@ import {
 } from 'typeorm';
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { ScrapeOrderEntityClass } from './scrape-order.entity';
-import {
-  ScrapeOrderChangeEntity,
-  ScrapeOrderChangeEntityClass,
-} from './scrape-order-change.entity';
+import { ScrapeOrderChangeEntityClass } from './scrape-order-change.entity';
 
 export const ScrapeOrderItemEntity = Symbol('ScrapeOrderItemEntity');
 

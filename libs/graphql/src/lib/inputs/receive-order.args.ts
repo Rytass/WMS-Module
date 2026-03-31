@@ -6,7 +6,7 @@ export class ReceiveOrderArgs {
   itemId!: string;
 
   @Field(() => String, { nullable: true })
-  batchId?: string;
+  batchKey?: string;
 
   @Field(() => Int)
   quantity!: number;

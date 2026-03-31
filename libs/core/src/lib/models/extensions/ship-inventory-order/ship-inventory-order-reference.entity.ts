@@ -1,14 +1,4 @@
-import {
-  Column,
-  Entity,
-  Index,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  Unique,
-} from 'typeorm';
-import { MaterialEntityClass, MaterialUnitEntityClass } from '../../metadata';
-import { BatchEntity } from '@rytass/wms-base-nestjs-module';
+import { Column, Entity, Index, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 export const ShipInventoryOrderReferenceEntity = Symbol(
   'ShipInventoryOrderReferenceEntity',
@@ -49,16 +39,4 @@ export class ShipInventoryOrderReferenceEntityClass {
 
   @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
-
-  @ManyToOne('materials')
-  @JoinColumn({ name: 'materialId', referencedColumnName: 'id' })
-  material!: MaterialEntityClass;
-
-  @ManyToOne('material_units')
-  @JoinColumn({ name: 'unitId', referencedColumnName: 'id' })
-  unit!: MaterialUnitEntityClass;
-
-  @ManyToOne('batches', { createForeignKeyConstraints: false, nullable: true })
-  @JoinColumn({ name: 'batchId', referencedColumnName: 'id' })
-  batch!: BatchEntity | null;
 }

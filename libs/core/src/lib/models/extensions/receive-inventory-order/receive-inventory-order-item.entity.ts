@@ -8,9 +8,6 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ReceiveInventoryOrderEntityClass } from './receive-inventory-order.entity';
-import { MaterialEntityClass } from '../../metadata/material.entity';
-import { MaterialUnitEntityClass } from '../../metadata/material-unit.entity';
-import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import { ReceiveInventoryOrderChangeEntityClass } from './receive-inventory-order-change.entity';
 
 export const ReceiveInventoryOrderItemEntity = Symbol(
@@ -65,18 +62,6 @@ export class ReceiveInventoryOrderItemEntityClass {
   )
   @JoinColumn({ name: 'orderId', referencedColumnName: 'id' })
   order!: ReceiveInventoryOrderEntityClass;
-
-  @ManyToOne('materials')
-  @JoinColumn({ name: 'materialId', referencedColumnName: 'id' })
-  material!: MaterialEntityClass;
-
-  @ManyToOne('material_units')
-  @JoinColumn({ name: 'unitId', referencedColumnName: 'id' })
-  unit!: MaterialUnitEntityClass;
-
-  @ManyToOne('batches', { createForeignKeyConstraints: false })
-  @JoinColumn({ name: 'batchId', referencedColumnName: 'id' })
-  batch!: BatchEntity;
 
   @OneToMany(
     () => ReceiveInventoryOrderChangeEntityClass,
