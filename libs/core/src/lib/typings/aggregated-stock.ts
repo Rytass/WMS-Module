@@ -5,14 +5,14 @@ export type AggregatedStock = Pick<
   StockEntityClass,
   'materialId' | 'batchId' | 'locationId' | 'loaderId' | 'status' | 'quantity'
 > & {
-  inTransfer?: boolean;
+  transferId?: string | null;
   held?: boolean;
   inShipment?: boolean;
   saleId?: string | null;
   saleSerialId?: string | null;
   customerId?: string | null;
   vendorId?: string | null;
-  inspectionId?: string | null;
+  isInspection?: boolean;
 };
 
 export type ChangeLog = Pick<

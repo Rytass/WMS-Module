@@ -15,7 +15,6 @@ import { resolve } from 'path';
     }),
     TypeOrmModule.forRootAsync({
       useFactory: async (vault: VaultService) => {
-        console.log(await vault.get<string>('NODE_ENV'));
         return {
           type: 'postgres',
           host: await vault.get<string>('DB_HOST'),

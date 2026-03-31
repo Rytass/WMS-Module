@@ -71,13 +71,13 @@ export class StockService<
                 `CASE
                   WHEN b."inShipment" = true THEN '${StockStatus.IN_SHIPMENT}'
                   WHEN b."held" = true THEN '${StockStatus.HELD}'
-                  WHEN b."inTransfer" = true THEN '${StockStatus.IN_TRANSFER}'
+                  WHEN b."transferId" IS NOT NULL THEN '${StockStatus.IN_TRANSFER}'
                   ELSE '${StockStatus.FREE}'
                 END`,
                 'status',
               )
               .addSelect('s.id', 'stockId')
-              .addSelect('b."inTransfer"', 'inTransfer')
+              .addSelect('b."transferId"', 'transferId')
               .addSelect('b."held"', 'held')
               .addSelect('b."inShipment"', 'inShipment')
               .from('stocks', 's')
@@ -86,7 +86,7 @@ export class StockService<
           `stock_status."stockId" = ${alias}.id`,
         )
         .addSelect('stock_status.status', 'status')
-        .addSelect('stock_status.inTransfer', 'inTransfer')
+        .addSelect('stock_status.transferId', 'transferId')
         .addSelect('stock_status.held', 'held')
         .addSelect('stock_status.inShipment', 'inShipment')
         .addSelect(`${alias}.*`);
@@ -192,28 +192,28 @@ export class StockService<
       queryBuilder.addSelect('stock."locationId"', 'locationId');
       queryBuilder.addSelect('stock."loaderId"', 'loaderId');
       queryBuilder.addSelect('stock_status.status', 'status');
-      queryBuilder.addSelect('stock_status."inTransfer"', 'inTransfer');
+      queryBuilder.addSelect('stock_status."transferId"', 'transferId');
       queryBuilder.addSelect('stock_status."held"', 'held');
       queryBuilder.addSelect('stock_status."inShipment"', 'inShipment');
       queryBuilder.addSelect('b."saleId"', 'saleId');
       queryBuilder.addSelect('b."saleSerialId"', 'saleSerialId');
       queryBuilder.addSelect('b."customerId"', 'customerId');
       queryBuilder.addSelect('b."vendorId"', 'vendorId');
-      queryBuilder.addSelect('b."inspectionId"', 'inspectionId');
+      queryBuilder.addSelect('b."inspectionId" IS NOT NULL', 'isInspection');
       queryBuilder.addSelect('SUM(stock.quantity)', 'quantity');
       queryBuilder.groupBy('stock."materialId"');
       queryBuilder.addGroupBy('stock."batchId"');
       queryBuilder.addGroupBy('stock."locationId"');
       queryBuilder.addGroupBy('stock."loaderId"');
       queryBuilder.addGroupBy('stock_status.status');
-      queryBuilder.addGroupBy('stock_status."inTransfer"');
+      queryBuilder.addGroupBy('stock_status."transferId"');
       queryBuilder.addGroupBy('stock_status."held"');
       queryBuilder.addGroupBy('stock_status."inShipment"');
       queryBuilder.addGroupBy('b."saleId"');
       queryBuilder.addGroupBy('b."saleSerialId"');
       queryBuilder.addGroupBy('b."customerId"');
       queryBuilder.addGroupBy('b."vendorId"');
-      queryBuilder.addGroupBy('b."inspectionId"');
+      queryBuilder.addGroupBy('b."inspectionId" IS NOT NULL');
       queryBuilder.having('SUM(stock.quantity) <> 0');
 
       if (options.aggregatedKeys?.length)
@@ -293,14 +293,14 @@ export class StockService<
       paginatedQueryBuilder.addSelect(`agg."${key}"`, key),
     );
     // Add batch-related fields
-    paginatedQueryBuilder.addSelect('agg."inTransfer"', 'inTransfer');
+    paginatedQueryBuilder.addSelect('agg."transferId"', 'transferId');
     paginatedQueryBuilder.addSelect('agg."held"', 'held');
     paginatedQueryBuilder.addSelect('agg."inShipment"', 'inShipment');
     paginatedQueryBuilder.addSelect('agg."saleId"', 'saleId');
     paginatedQueryBuilder.addSelect('agg."saleSerialId"', 'saleSerialId');
     paginatedQueryBuilder.addSelect('agg."customerId"', 'customerId');
     paginatedQueryBuilder.addSelect('agg."vendorId"', 'vendorId');
-    paginatedQueryBuilder.addSelect('agg."inspectionId"', 'inspectionId');
+    paginatedQueryBuilder.addSelect('agg."isInspection"', 'isInspection');
 
     // Apply pagination to the outer query
     if (options.offset !== undefined && options.offset >= 0) {
