@@ -14,6 +14,8 @@ import {
   EntityManager,
   EntityTarget,
   In,
+  IsNull,
+  Not,
 } from 'typeorm';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
@@ -212,7 +214,6 @@ export class AllocateInventoryOrderService<
     manager = this.dataSource.manager,
   ): Promise<T> {
     if (!Array.isArray(options)) options = [options];
-    if (!Array.isArray(options)) options = [options];
     const repos = this.getRepositories(manager);
 
     const key = await this.helperService.getSeq(this.seqPrefix, manager);
@@ -226,6 +227,12 @@ export class AllocateInventoryOrderService<
           // Ensure required fields are present
           if (!data.batchId || !data.materialId) return;
 
+          const originalBatch =
+            await this.batchService.batchRepository.findOneByOrFail({
+              id: data.batchId,
+              saleId: Not(IsNull()),
+              saleSerialId: Not(IsNull()),
+            });
           const splittedBatch = await this.batchService.splitBatch({
             id: data.batchId,
             saleId: null, // mark splitted batch with null saleId to indicate deallocation
@@ -237,10 +244,13 @@ export class AllocateInventoryOrderService<
           const item = await repos.allocateInventoryOrderItem.save(
             repos.allocateInventoryOrderItem.create({
               ...data,
+              saleId: originalBatch.saleId as string,
+              saleSerialId: originalBatch.saleSerialId as string,
               targetAllocatedQuantity: -1 * data.quantity,
               orderId: order.id,
             }),
           );
+
           const base = await repos.order.save({});
           const conversionFactor =
             await this.materialService.getConversionFactor(
@@ -256,7 +266,7 @@ export class AllocateInventoryOrderService<
                 -1 * item.targetAllocatedQuantity * conversionFactor,
             }),
           );
-
+          console.log(item.batchId, splittedBatch.id);
           // Stock movements track the hold through splitted batch
           await repos.stock.save(
             repos.stock.create([
@@ -273,7 +283,7 @@ export class AllocateInventoryOrderService<
               {
                 orderId: base.id,
                 materialId: item.materialId,
-                batchId: splittedBatch.id, // splitted batch marked released
+                batchId: splittedBatch.id, // splitted batch marked deallocated with null saleId
                 locationId: item.locationId || undefined,
                 loaderId: item.loaderId || undefined,
                 quantity: change.quantityChanged,
