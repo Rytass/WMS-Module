@@ -15,6 +15,7 @@ import { resolve } from 'path';
     }),
     TypeOrmModule.forRootAsync({
       useFactory: async (vault: VaultService) => {
+        console.log(await vault.get<string>('NODE_ENV'));
         return {
           type: 'postgres',
           host: await vault.get<string>('DB_HOST'),
@@ -24,10 +25,7 @@ import { resolve } from 'path';
           database: await vault.get<string>('DB_NAME'),
           schema: await vault.get<string>('DB_SCHEMA'),
           autoLoadEntities: true,
-          synchronize:
-            (await vault.get<string>('NODE_ENV')) === 'development'
-              ? false
-              : process.env.DB_SYNC === 'YES',
+          synchronize: (await vault.get<string>('NODE_ENV')) !== 'development',
           logging: 'all',
           uuidExtension: 'uuid-ossp',
         };
