@@ -26,7 +26,7 @@ import { resolve } from 'path';
           autoLoadEntities: true,
           synchronize:
             (await vault.get<string>('NODE_ENV')) === 'development'
-              ? false
+              ? true
               : process.env.DB_SYNC === 'YES',
           logging: 'all',
           uuidExtension: 'uuid-ossp',
