@@ -3,7 +3,6 @@ import {
   ScrapeOrderEntity,
   ScrapeOrderEntityClass,
   ScrapeOrderItemEntityClass,
-  ScrapeOrderChangeEntity,
   ScrapeOrderChangeEntityClass,
   StockEntity,
   StockEntityClass,
