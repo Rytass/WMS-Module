@@ -16,7 +16,6 @@ import {
   ReceiveInventoryOrderItemEntityClass,
 } from '@wms-module/core';
 import { BatchDto } from '../dto/batch.dto';
-import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import { LocationDto } from '../dto/location.dto';
 
 @Resolver(() => ReceiveInventoryOrderDto)
