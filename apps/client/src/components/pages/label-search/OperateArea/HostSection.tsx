@@ -5,10 +5,7 @@ import { useDialog } from '../../../dialog/useDialog';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import InventoryGrid from '../../../inventoryActions/InventoryGrid';
-import {
-  haveAdditionalFields,
-  isEnableActionStatus,
-} from '../../../inventoryActions/utils';
+import { haveAdditionalFields } from '../../../inventoryActions/utils';
 import AdditionalBlock from './AdditionalBlock';
 import classes from './index.module.scss';
 
@@ -41,11 +38,8 @@ const HostSection: FC<HostSectionProps> = ({
     [targetAction],
   );
   const notEnableInventory = useMemo(
-    () =>
-      inventoryList.filter(
-        (item) => !isEnableActionStatus(item.status, targetAction?.status),
-      ),
-    [inventoryList, targetAction?.status],
+    () => inventoryList.filter((item) => !targetAction?.condition(item)),
+    [inventoryList, targetAction],
   );
 
   return (

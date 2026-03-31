@@ -34,11 +34,8 @@ function InventoryActionSelector({
   const [open, toggleOpen] = useState<boolean>(false);
 
   const availableOptions = useMemo(() => {
-    const targetStatus = uniq(targetStocks.map((s) => s.status));
-
     return inventoryActionOptions.filter((iao) => {
-      const baseCondition =
-        intersection(iao.status, targetStatus).length === targetStatus.length;
+      const baseCondition = targetStocks.every((s) => iao.condition(s));
 
       if (isNumber(iao.maxDataLength)) {
         return baseCondition && targetStocks.length <= iao.maxDataLength;
