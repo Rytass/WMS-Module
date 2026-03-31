@@ -1,0 +1,11 @@
+mutation CreateAllocateInventoryOrder(
+  $items: [CreateAllocateInventoryOrderItemArgs!]!
+) {
+  createAllocateInventoryOrder(items: $items) {
+    ...SimplerAllocateInventoryOrder
+  }
+}
+
+mutation Deallocate($items: [DeallocateOrderArgs!]!) {
+  deallocate(items: $items)
+}

@@ -35,9 +35,7 @@ function InventoryMovementShipTable() {
       title: '料號',
       width: 140,
       render: (source) =>
-        uniq(
-          (source.references ?? []).map((reference) => reference.material.key),
-        ).join(','),
+        uniq((source.items ?? []).map((item) => item.material.key)).join(','),
     },
     {
       key: 'materialDescription',
@@ -45,9 +43,7 @@ function InventoryMovementShipTable() {
       width: 140,
       render: (source) =>
         uniq(
-          (source.references ?? []).map(
-            (reference) => reference.material.description,
-          ),
+          (source.items ?? []).map((item) => item.material.description),
         ).join(','),
     },
     {
@@ -55,11 +51,9 @@ function InventoryMovementShipTable() {
       title: '批號',
       width: 140,
       render: (source) =>
-        uniq(
-          (source.references ?? []).map(
-            (reference) => reference.batch?.key || '',
-          ),
-        ).join(','),
+        uniq((source.items ?? []).map((item) => item.batch?.key || '')).join(
+          ',',
+        ),
     },
     {
       key: 'location',

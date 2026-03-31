@@ -8,6 +8,7 @@ import AllocateInventoryField from '../../inventoryActions/fields/AllocateInvent
 import { defaultValues } from '../../inventoryActions/fields/AllocateInventoryField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useAllocateInventory } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface AllocateInventoryProps {
@@ -27,7 +28,7 @@ const AllocateInventory: FC<AllocateInventoryProps> = ({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
-
+  const { onSubmit } = useAllocateInventory(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -37,9 +38,7 @@ const AllocateInventory: FC<AllocateInventoryProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={() => {
-        //
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <div className={classes.wrapper}>

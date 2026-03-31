@@ -38,8 +38,7 @@ export const useAddInventories = () => {
         targetInventoryIds.includes(s.id),
       );
       const invalidStock = targetStocks.find(
-        (stock) =>
-          currentAction && !currentAction.status.includes(stock.status),
+        (stock) => currentAction && !currentAction.condition(stock),
       );
       const targetStocksMaterialKeys = uniq(
         targetStocks.map((stock) => stock.material.key),

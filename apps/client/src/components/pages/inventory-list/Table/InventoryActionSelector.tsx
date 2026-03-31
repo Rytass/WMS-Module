@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { isNumber, uniq, intersection } from 'lodash';
+import { isNumber, uniq } from 'lodash';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { Dropdown, Button, Message } from '@mezzanine-ui/react';
 import {
@@ -34,11 +34,8 @@ function InventoryActionSelector({
   const [open, toggleOpen] = useState<boolean>(false);
 
   const availableOptions = useMemo(() => {
-    const targetStatus = uniq(targetStocks.map((s) => s.status));
-
     return inventoryActionOptions.filter((iao) => {
-      const baseCondition =
-        intersection(iao.status, targetStatus).length === targetStatus.length;
+      const baseCondition = targetStocks.every((s) => iao.condition(s));
 
       if (isNumber(iao.maxDataLength)) {
         return baseCondition && targetStocks.length <= iao.maxDataLength;

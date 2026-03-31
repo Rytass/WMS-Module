@@ -23,6 +23,8 @@ function InventoryMovementReceiveForm({
           .filter((item) => !item.removedAt)
           .map((item) => ({
             quantity: 0,
+            targetReceivedQuantity: item.targetReceivedQuantity,
+            receivedQuantity: item.receivedQuantity,
             serialId: item.serialId,
             unitId: item.unitId,
             unitOptions: getMaterialUnitOptions(item.material),
@@ -49,8 +51,6 @@ function InventoryMovementReceiveForm({
                 }
               : null,
             materialDescription: item.material.description,
-            targetReceivedQuantity: item.targetReceivedQuantity,
-            receivedQuantity: item.receivedQuantity,
             inspectionResult: item.requireInspection
               ? YesOrNo.YES
               : YesOrNo.NULL,

@@ -3,7 +3,6 @@ import { isEmpty, isNumber, uniq } from 'lodash';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { useDialog } from '../../dialog/useDialog';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
-import { isEnableActionStatus } from '../../inventoryActions/utils';
 import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
 
 export function useClearAll() {
@@ -53,9 +52,8 @@ export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
     supportingActionOnClick: onClearAll,
     disableSubmitButton: () =>
       haveError ||
-      inventoryList.filter((item) =>
-        isEnableActionStatus(item.status, targetAction?.status),
-      ).length === 0 ||
+      inventoryList.filter((item) => targetAction?.condition(item)).length ===
+        0 ||
       (isNumber(targetAction?.maxDataLength) &&
         inventoryList.length > targetAction.maxDataLength) ||
       (!!targetAction?.needSameMaterial &&

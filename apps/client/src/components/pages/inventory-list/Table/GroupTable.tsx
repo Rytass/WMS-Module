@@ -19,7 +19,10 @@ import {
 import { CaretDownIcon, LockIcon } from '@mezzanine-ui/icons';
 import { WaitIcon, TransferIcon } from '../../../../icons';
 import Table from '../../../TableWrapper/Table';
-import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import {
+  StockStatus,
+  AggregatedStockFragment,
+} from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { aggregatedStockColumns } from '../../../../utils/share';
 import { stockStatusName } from '../../../inventoryActions/utils';
@@ -183,16 +186,16 @@ function InventoryGroupTable({
           source.aggregatedStock?.map((s) => stockStatusName(s.status)),
         ).join(','),
     },
-    // {
-    //   key: 'inspection',
-    //   title: '檢驗',
-    //   width: 48,
-    //   align: 'center',
-    //   render: (source) =>
-    //     source.aggregatedStock?.some((s) => s.inspectionId) ? (
-    //       <Icon icon={WaitIcon} color="neutral" size={16} />
-    //     ) : null,
-    // },
+    {
+      key: 'isInspection',
+      title: '檢驗',
+      width: 48,
+      align: 'center',
+      render: (source) =>
+        source.aggregatedStock?.some((s) => s.isInspection) ? (
+          <Icon icon={WaitIcon} color="neutral" size={16} />
+        ) : null,
+    },
     {
       key: 'held',
       title: '凍結',
@@ -209,7 +212,9 @@ function InventoryGroupTable({
       width: 48,
       align: 'center',
       render: (source) =>
-        source.aggregatedStock?.some((s) => s.inTransfer) ? (
+        source.aggregatedStock?.some(
+          (s) => s.status === StockStatus.IN_TRANSFER,
+        ) ? (
           <Icon icon={TransferIcon} color="neutral" size={16} />
         ) : null,
     },

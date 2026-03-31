@@ -1,6 +1,6 @@
-import { Dispatch, SetStateAction, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useMemo, useState, useEffect } from 'react';
 import { Button, Radio, RadioGroup } from '@mezzanine-ui/react';
-import { useRouter } from 'next/router';
+// import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
 import InventoryGroupTable from './GroupTable';
 import InventoryListTable from './ListTable';
@@ -21,15 +21,19 @@ interface InventoryTableProps {
   currentFilter?: FilterValues;
   setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
   onlyListMode?: boolean;
+  setTargetStocks?: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
+  haveInventoryActionsSystem?: boolean;
 }
 
 function InventoryTable({
   currentFilter,
   setCurrentFilter,
   onlyListMode = false,
+  setTargetStocks: setTargetStocksProps,
+  haveInventoryActionsSystem = true,
 }: InventoryTableProps) {
   const { openDialog } = useDialog();
-  const { replace, pathname } = useRouter();
+  // const { replace, pathname } = useRouter();
   const { targetAction, targetInventoryIds } = useInventoryActions();
 
   const [mode, setMode] = useState<Mode>(onlyListMode ? Mode.list : Mode.group);
@@ -40,6 +44,12 @@ function InventoryTable({
   const [targetStocks, setTargetStocks] = useState<AggregatedStockFragment[]>(
     [],
   );
+
+  useEffect(() => {
+    if (setTargetStocksProps) {
+      setTargetStocksProps(targetStocks);
+    }
+  }, [setTargetStocksProps, targetStocks]);
 
   const tableComponent = useMemo(() => {
     switch (mode) {
@@ -89,9 +99,10 @@ function InventoryTable({
                   const doChange = () => {
                     setMode(e.target.value as Mode);
                     setTargetStocks([]);
-                    replace({ pathname: pathname, query: {} }, undefined, {
-                      shallow: true,
-                    });
+                    // page 使用 query string 系統時才要打開，目前關掉了
+                    // replace({ pathname: pathname, query: {} }, undefined, {
+                    //   shallow: true,
+                    // });
                   };
 
                   if (targetStocks.length > 0) {
@@ -122,17 +133,21 @@ function InventoryTable({
                 </Radio>
               </RadioGroup>
             )}
-            <InventoryActionSelector
-              targetStocks={targetStocks}
-              setTargetStocks={setTargetStocks}
-              setNeedClearSelectedRows={setNeedClearSelectedRows}
-            />
+            {haveInventoryActionsSystem && (
+              <InventoryActionSelector
+                targetStocks={targetStocks}
+                setTargetStocks={setTargetStocks}
+                setNeedClearSelectedRows={setNeedClearSelectedRows}
+              />
+            )}
           </div>
         }
       >
         {tableComponent}
       </TableWrapper>
-      {targetAction && targetInventoryIds.length > 0 ? (
+      {haveInventoryActionsSystem &&
+      targetAction &&
+      targetInventoryIds.length > 0 ? (
         <Button
           icon={targetAction.icon}
           className={classes.actionButton}
@@ -143,14 +158,15 @@ function InventoryTable({
           }}
         />
       ) : null}
-
-      <InventoryActionDrawers
-        onClose={() => {
-          setOpen(false);
-        }}
-        open={open}
-        setCurrentFilter={setCurrentFilter}
-      />
+      {haveInventoryActionsSystem && (
+        <InventoryActionDrawers
+          onClose={() => {
+            setOpen(false);
+          }}
+          open={open}
+          setCurrentFilter={setCurrentFilter}
+        />
+      )}
     </>
   );
 }
