@@ -3,6 +3,7 @@ import { AggregatedStockFragment } from '../../../../../graphql/generated/.graph
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
+import { useDeallocateInventory } from '../../../../inventoryActions/useApi';
 
 interface DeallocateInventoryProps {
   inventoryList: AggregatedStockFragment[];
@@ -14,10 +15,11 @@ function DeallocateInventory({
   queryInventoryListLoading,
 }: DeallocateInventoryProps) {
   const methods = useForm();
+  const { onSubmit } = useDeallocateInventory(inventoryList);
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} {...formFooterProps}>
+    <FormWrapper methods={methods} onSubmit={onSubmit} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
