@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormModalWrapper } from '../../../fields/FormModalWrapper';
 import InputField from '../../../fields/InputField';
+import DateField from '../../../fields/DateField';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import classes from './index.module.scss';
@@ -20,6 +21,7 @@ function CreateInventoryCountForm({
     resolver: yupResolver(formSchema),
     defaultValues: {
       name: '',
+      date: '',
     },
   });
 
@@ -46,6 +48,13 @@ function CreateInventoryCountForm({
           label="名稱"
           placeholder="輸入名稱"
           size="main"
+          required
+        />
+        <DateField
+          name="date"
+          label="盤點日期"
+          size="main"
+          placeholder="盤點日期"
           required
         />
       </div>
