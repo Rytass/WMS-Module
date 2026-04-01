@@ -26,6 +26,8 @@ import { ShipInventoryFieldValues } from './fields/ShipInventoryField/typing';
 import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
 import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
 import { ReclassifyInventoryFieldValues } from './fields/ReclassifyInventoryField/typing';
+import { TransferToVendorFieldValues } from './fields/TransferToVendorField/typing';
+import { DeliverToCustomerFieldValues } from './fields/DeliverToCustomerField/typing';
 import { useInventoryActions } from './useInventoryActions';
 
 const refetchQueriesAfterInventoryActions = [
@@ -460,6 +462,92 @@ export function useReclassifyInventory(
       reclassifyInventory,
       resetAll,
       targetAction,
+    ],
+  );
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useTransferVendor(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [transferVendor] = useMutation(CreateTransferVendorOrderDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(
+    async (values: TransferToVendorFieldValues) => {
+      try {
+        const { data } = await transferVendor({
+          variables: {
+            vendorId: values.vendor,
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregatedKey: s.id,
+              unitId: s.unitId,
+              targetTransferredQuantity: s.quantity,
+            })),
+          },
+        });
+
+        if (data?.createTransferVendorOrder.id) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [inventoryList, inventorySignature, resetAll, targetAction, transferVendor],
+  );
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useTransferCustomer(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [transferCustomer] = useMutation(CreateTransferCustomerOrderDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(
+    async (values: DeliverToCustomerFieldValues) => {
+      try {
+        const { data } = await transferCustomer({
+          variables: {
+            customerId: values.customer,
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregatedKey: s.id,
+              unitId: s.unitId,
+              targetTransferredQuantity: s.quantity,
+            })),
+          },
+        });
+
+        if (data?.createTransferCustomerOrder.id) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [
+      inventoryList,
+      inventorySignature,
+      resetAll,
+      targetAction,
+      transferCustomer,
     ],
   );
 

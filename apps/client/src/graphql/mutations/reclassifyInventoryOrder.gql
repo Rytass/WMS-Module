@@ -6,8 +6,5 @@ mutation ReclassifyInventoryOrder(
     id
     key
     createdAt
-    items {
-      ...ReclassifyInventoryOrderItem
-    }
   }
 }
