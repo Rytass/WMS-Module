@@ -61,6 +61,12 @@ mutation CreateTransferCustomerOrder(
   }
 }
 
+mutation ReturnTransferCustomerOrder(
+  $items: [ReturnTransferCustomerOrderArgs!]!
+) {
+  returnTransferCustomerOrder(items: $items)
+}
+
 mutation CreateTransferVendorOrder(
   $vendorId: String!
   $items: [CreateTransferVendorOrderItemArgs!]!
@@ -77,4 +83,8 @@ mutation CreateTransferVendorOrder(
     key
     createdAt
   }
+}
+
+mutation ReturnTransferVendorOrder($items: [ReturnTransferVendorOrderArgs!]!) {
+  returnTransferVendorOrder(items: $items)
 }
