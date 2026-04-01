@@ -56,7 +56,6 @@ mutation CreateTransferCustomerOrder(
   ) {
     id
     key
-    description
     createdAt
   }
 }

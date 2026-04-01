@@ -195,11 +195,13 @@ export function inventoryActionsEnableStatus(
 
     case InventoryActions.TransferToVendor:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.FREE].includes(stock.status);
+        stock.status === StockStatus.FREE &&
+        !stock.vendorId &&
+        !stock.customerId;
 
     case InventoryActions.ReturnFromVendor:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.VENDOR_INVENTORY].includes(stock.status) ||
+        stock.status === StockStatus.VENDOR_INVENTORY ||
         (stock.status === StockStatus.FREE && !!stock.vendorId);
 
     case InventoryActions.QualityInspection:
@@ -208,11 +210,13 @@ export function inventoryActionsEnableStatus(
 
     case InventoryActions.DeliverToCustomer:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.FREE].includes(stock.status) || !!stock.saleId;
+        stock.status === StockStatus.FREE &&
+        !stock.vendorId &&
+        !stock.customerId;
 
     case InventoryActions.ReturnFromCustomer:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.CUSTOMER_INVENTORY].includes(stock.status) ||
+        stock.status === StockStatus.CUSTOMER_INVENTORY ||
         (stock.status === StockStatus.FREE && !!stock.customerId);
 
     case InventoryActions.ScrapInventory:
@@ -390,7 +394,7 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.TransferToVendor,
   // InventoryActions.ReturnFromVendor,
   // InventoryActions.QualityInspection,
-  // InventoryActions.DeliverToCustomer,
+  InventoryActions.DeliverToCustomer,
   // InventoryActions.ReturnFromCustomer,
   InventoryActions.ScrapInventory,
 ].map((action) => ({

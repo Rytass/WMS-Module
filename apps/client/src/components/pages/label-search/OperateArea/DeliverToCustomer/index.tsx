@@ -7,6 +7,7 @@ import HostSection from '../HostSection';
 import { defaultValues } from '../../../../inventoryActions/fields/DeliverToCustomerField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useTransferCustomer } from '../../../../inventoryActions/useApi';
 
 interface DeliverToCustomerProps {
   inventoryList: AggregatedStockFragment[];
@@ -21,11 +22,11 @@ function DeliverToCustomer({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
-
+  const { onSubmit } = useTransferCustomer(inventoryList);
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} {...formFooterProps}>
+    <FormWrapper methods={methods} onSubmit={onSubmit} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}
