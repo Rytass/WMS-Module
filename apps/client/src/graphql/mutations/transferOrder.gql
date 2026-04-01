@@ -41,3 +41,40 @@ mutation UpdateTransferOrder(
     ...TransferOrder
   }
 }
+
+mutation CreateTransferCustomerOrder(
+  $customerId: String!
+  $items: [CreateTransferCustomerOrderItemArgs!]!
+  $description: String
+  $createdBy: String
+) {
+  createTransferCustomerOrder(
+    customerId: $customerId
+    items: $items
+    description: $description
+    createdBy: $createdBy
+  ) {
+    id
+    key
+    description
+    createdAt
+  }
+}
+
+mutation CreateTransferVendorOrder(
+  $vendorId: String!
+  $items: [CreateTransferVendorOrderItemArgs!]!
+  $description: String
+  $createdBy: String
+) {
+  createTransferVendorOrder(
+    vendorId: $vendorId
+    items: $items
+    description: $description
+    createdBy: $createdBy
+  ) {
+    id
+    key
+    createdAt
+  }
+}
