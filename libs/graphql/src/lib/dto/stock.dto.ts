@@ -55,7 +55,7 @@ export class AggregatedStockDto {
   vendorId?: string | null;
 
   @Field(() => Boolean, { nullable: true })
-  isInspection?: boolean;
+  inspectionResult?: boolean;
 }
 
 registerEnumType(StockStatus, {

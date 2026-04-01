@@ -25,8 +25,8 @@ export class BatchEntityClass extends BaseBatchEntity {
   vendorId: string | null;
 
   // added when quality inspection, used to link to quality inspection order
-  @Column({ type: 'varchar', nullable: true })
-  inspectionId: string | null;
+  @Column({ type: 'bool', nullable: true })
+  inspectionResult: boolean | null;
 
   // added when transfer inventory, used to link to transfer order
   @Column({ type: 'varchar', nullable: true })

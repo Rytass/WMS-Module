@@ -439,6 +439,17 @@ export class ReceiveInventoryOrderService<
               })
               .then(({ id }) => id);
 
+          const requireInspection =
+            option.requireInspection ?? item.requireInspection;
+          if (requireInspection == false)
+            batchId = await this.batchService
+              .splitBatch({
+                manager,
+                id: batchId as string,
+                inspectionResult: true,
+              })
+              .then(({ id }) => id);
+
           let locationId = item.locationId;
           if (option.locationKey && !locationId)
             locationId = await locationRepository

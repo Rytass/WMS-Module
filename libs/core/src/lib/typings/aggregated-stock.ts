@@ -12,7 +12,7 @@ export type AggregatedStock = Pick<
   saleSerialId?: string | null;
   customerId?: string | null;
   vendorId?: string | null;
-  isInspection?: boolean;
+  inspectionResult?: boolean;
 };
 
 export type ChangeLog = Pick<
