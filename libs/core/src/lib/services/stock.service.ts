@@ -243,16 +243,32 @@ export class StockService<
     return queryBuilder.getManyAndCount();
   }
 
-  findManyGroupedByMaterialId(
+  async findManyGroupedByMaterialId(
     options: FindStockInput<T>,
   ): Promise<[K[], number]> {
-    const queryBuilder = this.pipeSelectOptionsToQueryBuilder(
-      options,
-      this.dataSource
-        .getRepository<K>(this.materialEntity)
-        .createQueryBuilder('material')
-        .innerJoinAndSelect('material.stocks', 'stock'),
+    // Build aggregated subquery to get distinct materialIds where SUM(quantity) != 0
+    const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
+      { ...options, offset: undefined, limit: undefined },
+      this.selectQueryBuilder('stock'),
+      true,
     );
+
+    const materialIdSubquery = this.dataSource
+      .createQueryBuilder()
+      .select('DISTINCT agg."materialId"', 'materialId')
+      .from(`(${aggregateSubquery.getQuery()})`, 'agg')
+      .setParameters(aggregateSubquery.getParameters());
+
+    const queryBuilder = this.dataSource
+      .getRepository<K>(this.materialEntity)
+      .createQueryBuilder('material')
+      .where(`material.id IN (${materialIdSubquery.getQuery()})`)
+      .setParameters(materialIdSubquery.getParameters());
+
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
 
     return queryBuilder.getManyAndCount();
   }

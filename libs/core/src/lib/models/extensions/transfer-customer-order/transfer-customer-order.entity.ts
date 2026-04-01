@@ -23,9 +23,6 @@ export class TransferCustomerOrderEntityClass {
   @Index()
   key!: string;
 
-  @Column({ type: 'text' })
-  description!: string;
-
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 

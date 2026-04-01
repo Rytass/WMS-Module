@@ -10,9 +10,6 @@ export class TransferCustomerOrderDto {
   @Field(() => String)
   key!: string;
 
-  @Field(() => String, { nullable: true })
-  description!: string | null;
-
   @Field(() => Date)
   createdAt!: Date;
 

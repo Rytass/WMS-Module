@@ -318,7 +318,6 @@ type TransferCustomerOrderItemDto {
 type TransferCustomerOrderDto {
   id: ID!
   key: String!
-  description: String
   createdAt: DateTime!
   items: [TransferCustomerOrderItemDto!]!
 }
