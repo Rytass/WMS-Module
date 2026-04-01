@@ -8,6 +8,7 @@ import CreateTransferInventoryField from '../../inventoryActions/fields/CreateTr
 import { defaultValues } from '../../inventoryActions/fields/CreateTransferInventoryField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useCreateTransferInventory } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface CreateTransferInventoryProps {
@@ -27,7 +28,7 @@ const CreateTransferInventory: FC<CreateTransferInventoryProps> = ({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
-
+  const { onSubmit } = useCreateTransferInventory(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -37,9 +38,7 @@ const CreateTransferInventory: FC<CreateTransferInventoryProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={() => {
-        //
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <div className={classes.wrapper}>

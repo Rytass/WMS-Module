@@ -384,7 +384,7 @@ export function inventoryActionsSpec(
 }
 
 export const inventoryActionOptions: InventoryActionItem[] = [
-  // InventoryActions.CreateTransferInventory,
+  InventoryActions.CreateTransferInventory,
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   InventoryActions.AllocateInventory,
