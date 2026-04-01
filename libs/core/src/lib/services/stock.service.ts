@@ -253,17 +253,20 @@ export class StockService<
       true,
     );
 
-    const materialIdSubquery = this.dataSource
+    const rawMaterialIds = await this.dataSource
       .createQueryBuilder()
       .select('DISTINCT agg."materialId"', 'materialId')
       .from(`(${aggregateSubquery.getQuery()})`, 'agg')
-      .setParameters(aggregateSubquery.getParameters());
+      .setParameters(aggregateSubquery.getParameters())
+      .getRawMany<{ materialId: string }>();
+
+    const ids = rawMaterialIds.map((r) => r.materialId);
+    if (ids.length === 0) return [[] as K[], 0];
 
     const queryBuilder = this.dataSource
       .getRepository<K>(this.materialEntity)
       .createQueryBuilder('material')
-      .where(`material.id IN (${materialIdSubquery.getQuery()})`)
-      .setParameters(materialIdSubquery.getParameters());
+      .where('material.id IN (:...materialIds)', { materialIds: ids });
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
