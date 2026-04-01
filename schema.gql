@@ -615,6 +615,8 @@ input UpdateReceiveInventoryOrderItemArgs {
 input ReceiveOrderArgs {
   itemId: String!
   batchKey: String
+  locationKey: String
+  loaderKey: String
   quantity: Int!
 }
 

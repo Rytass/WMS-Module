@@ -8,6 +8,12 @@ export class ReceiveOrderArgs {
   @Field(() => String, { nullable: true })
   batchKey?: string;
 
+  @Field(() => String, { nullable: true })
+  locationKey?: string;
+
+  @Field(() => String, { nullable: true })
+  loaderKey?: string;
+
   @Field(() => Int)
   quantity!: number;
 }
