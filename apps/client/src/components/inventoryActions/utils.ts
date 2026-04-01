@@ -384,7 +384,7 @@ export function inventoryActionsSpec(
 }
 
 export const inventoryActionOptions: InventoryActionItem[] = [
-  InventoryActions.CreateTransferInventory,
+  InventoryActions.CreateTransferInventory, //要測試
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   InventoryActions.AllocateInventory,
@@ -393,11 +393,11 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   InventoryActions.ReclassifyInventory,
-  InventoryActions.TransferToVendor,
-  InventoryActions.ReturnFromVendor,
+  InventoryActions.TransferToVendor, //要測試
+  InventoryActions.ReturnFromVendor, //要測試
   // InventoryActions.QualityInspection,
-  InventoryActions.DeliverToCustomer,
-  InventoryActions.ReturnFromCustomer,
+  InventoryActions.DeliverToCustomer, //要測試
+  InventoryActions.ReturnFromCustomer, //要測試
   InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,

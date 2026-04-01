@@ -12,6 +12,7 @@ import {
   ReleaseDocument,
   CreateAllocateInventoryOrderDocument,
   DeallocateDocument,
+  UpdateShipInventoryOrderDocument,
   SplitBatchDocument,
   MergeBatchDocument,
   ReclassifyInventoryOrderDocument,
@@ -304,6 +305,14 @@ export function useDeallocateInventory(
 }
 
 export function useShipInventory(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, resetAll } = useInventoryActions();
+  const [updateShipInventoryOrder] = useMutation(
+    UpdateShipInventoryOrderDocument,
+    {
+      refetchQueries: refetchQueriesAfterInventoryActions,
+    },
+  );
+
   const onSubmit = useCallback(
     async (values: ShipInventoryFieldValues) => {
       try {
@@ -330,13 +339,34 @@ export function useShipInventory(inventoryList: AggregatedStockFragment[]) {
         });
 
         if (validation) {
-          console.log('targetItems', targetItems);
+          const { data } = await updateShipInventoryOrder({
+            variables: {
+              updateShipInventoryOrderId: values.shipInventoryOrder?.id ?? '',
+              description: values.description || '',
+              items: targetItems.map((item) => ({
+                aggregatedKey: item.inventoryId,
+                unitId: item.unitId,
+                targetShippedQuantity: item.quantity,
+                serialId: item.serialId,
+              })),
+            },
+          });
+
+          if (data?.updateShipInventoryOrder.id) {
+            Message.success(`${targetAction?.submitText}成功`);
+            resetAll();
+          }
         }
       } catch (error) {
         console.error(error);
       }
     },
-    [inventoryList],
+    [
+      inventoryList,
+      resetAll,
+      targetAction?.submitText,
+      updateShipInventoryOrder,
+    ],
   );
 
   return {
