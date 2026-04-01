@@ -266,7 +266,6 @@ export class AllocateInventoryOrderService<
                 -1 * item.targetAllocatedQuantity * conversionFactor,
             }),
           );
-          console.log(item.batchId, splittedBatch.id);
           // Stock movements track the hold through splitted batch
           await repos.stock.save(
             repos.stock.create([

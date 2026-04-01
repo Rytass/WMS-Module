@@ -793,6 +793,7 @@ input MergeBatchItemInput {
 
 input ReclassifyInventoryOrderItemInput {
   quantity: Float!
+  unitId: ID
   aggregatedKey: ID!
 }
 
