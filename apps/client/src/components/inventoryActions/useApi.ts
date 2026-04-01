@@ -317,9 +317,9 @@ export function useShipInventory(inventoryList: AggregatedStockFragment[]) {
     async (values: ShipInventoryFieldValues) => {
       try {
         const targetItems = flatten(Object.values(values.items));
-        const grouped = groupBy(targetItems, 'inventoryId');
+        const groupedItems = groupBy(targetItems, 'inventoryId');
         const validation = inventoryList.every((inventory) => {
-          const groupedSignature = grouped[inventory.id];
+          const groupedSignature = groupedItems[inventory.id];
           const targetQuantity = groupedSignature.reduce((prev, curr) => {
             const conversionFactor = curr.unitId
               ? (inventory.material.materialUnits.find(
