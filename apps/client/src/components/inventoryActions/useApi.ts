@@ -15,6 +15,8 @@ import {
   SplitBatchDocument,
   MergeBatchDocument,
   ReclassifyInventoryOrderDocument,
+  CreateTransferVendorOrderDocument,
+  CreateTransferCustomerOrderDocument,
   ScrapeMaterialsDocument,
 } from '../../graphql/generated/.graphql';
 import { formatAvailableInventoryList, getSaleInformation } from './utils';
