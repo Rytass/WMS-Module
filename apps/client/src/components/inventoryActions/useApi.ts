@@ -14,7 +14,7 @@ import {
   DeallocateDocument,
   SplitBatchDocument,
   MergeBatchDocument,
-  // ReclassifyInventoryOrderDocument,
+  ReclassifyInventoryOrderDocument,
   ScrapeMaterialsDocument,
 } from '../../graphql/generated/.graphql';
 import { formatAvailableInventoryList, getSaleInformation } from './utils';
@@ -23,7 +23,7 @@ import { AllocateInventoryFieldValues } from './fields/AllocateInventoryField/ty
 import { ShipInventoryFieldValues } from './fields/ShipInventoryField/typing';
 import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
 import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
-// import { ReclassifyInventoryFieldValues } from './fields/ReclassifyInventoryField/typing';
+import { ReclassifyInventoryFieldValues } from './fields/ReclassifyInventoryField/typing';
 import { useInventoryActions } from './useInventoryActions';
 
 const refetchQueriesAfterInventoryActions = [
@@ -418,53 +418,53 @@ export function useMergeBatch(inventoryList: AggregatedStockFragment[]) {
   };
 }
 
-// export function useReclassifyInventory(
-//   inventoryList: AggregatedStockFragment[],
-// ) {
-//   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
-//   const [reclassifyInventory] = useMutation(ReclassifyInventoryOrderDocument, {
-//     refetchQueries: refetchQueriesAfterInventoryActions,
-//   });
+export function useReclassifyInventory(
+  inventoryList: AggregatedStockFragment[],
+) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [reclassifyInventory] = useMutation(ReclassifyInventoryOrderDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
 
-//   const onSubmit = useCallback(
-//     async (values: ReclassifyInventoryFieldValues) => {
-//       try {
-//         const { data } = await reclassifyInventory({
-//           variables: {
-//             materialKey: values.material?.name ?? '',
-//             items: formatAvailableInventoryList({
-//               inventoryList,
-//               targetAction,
-//               inventorySignature,
-//             }).map((s) => ({
-//               aggregatedKey: s.id,
-//               unitId: s.unitId,
-//               quantity: s.quantity,
-//             })),
-//           },
-//         });
+  const onSubmit = useCallback(
+    async (values: ReclassifyInventoryFieldValues) => {
+      try {
+        const { data } = await reclassifyInventory({
+          variables: {
+            materialKey: values.material?.name ?? '',
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregatedKey: s.id,
+              unitId: s.unitId,
+              quantity: s.quantity,
+            })),
+          },
+        });
 
-//         if (data?.reclassifyInventoryOrder.id) {
-//           Message.success(`${targetAction?.submitText}成功`);
-//           resetAll();
-//         }
-//       } catch (error) {
-//         console.error(error);
-//       }
-//     },
-//     [
-//       inventoryList,
-//       inventorySignature,
-//       reclassifyInventory,
-//       resetAll,
-//       targetAction,
-//     ],
-//   );
+        if (data?.reclassifyInventoryOrder.id) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [
+      inventoryList,
+      inventorySignature,
+      reclassifyInventory,
+      resetAll,
+      targetAction,
+    ],
+  );
 
-//   return {
-//     onSubmit,
-//   };
-// }
+  return {
+    onSubmit,
+  };
+}
 
 export function useScrapInventory(inventoryList: AggregatedStockFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
