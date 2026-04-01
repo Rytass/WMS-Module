@@ -63,7 +63,6 @@ fragment TransferCustomerOrderItem on TransferCustomerOrderItemDto {
 fragment TransferCustomerOrder on TransferCustomerOrderDto {
   id
   key
-  description
   createdAt
   items {
     ...TransferCustomerOrderItem
