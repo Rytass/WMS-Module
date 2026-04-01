@@ -16,7 +16,9 @@ import {
   MergeBatchDocument,
   ReclassifyInventoryOrderDocument,
   CreateTransferVendorOrderDocument,
+  ReturnTransferVendorOrderDocument,
   CreateTransferCustomerOrderDocument,
+  ReturnTransferCustomerOrderDocument,
   ScrapeMaterialsDocument,
 } from '../../graphql/generated/.graphql';
 import { formatAvailableInventoryList, getSaleInformation } from './utils';
@@ -27,7 +29,9 @@ import { SplitBatchFieldValues } from './fields/SplitBatchField/typing';
 import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
 import { ReclassifyInventoryFieldValues } from './fields/ReclassifyInventoryField/typing';
 import { TransferToVendorFieldValues } from './fields/TransferToVendorField/typing';
+import { ReturnFromVendorFieldValues } from './fields/ReturnFromVendorField/typing';
 import { DeliverToCustomerFieldValues } from './fields/DeliverToCustomerField/typing';
+import { ReturnFromCustomerFieldValues } from './fields/ReturnFromCustomerField/typing';
 import { useInventoryActions } from './useInventoryActions';
 
 const refetchQueriesAfterInventoryActions = [
@@ -510,6 +514,47 @@ export function useTransferVendor(inventoryList: AggregatedStockFragment[]) {
   };
 }
 
+export function useReturnVendor(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [returnVendor] = useMutation(ReturnTransferVendorOrderDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(
+    async (values: ReturnFromVendorFieldValues) => {
+      try {
+        const { data } = await returnVendor({
+          variables: {
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregatedKey: s.id,
+              unitId: s.unitId,
+              quantity: s.quantity,
+              locationKey: values.location?.name ?? '',
+              loaderKey: values.loader?.name ?? null,
+            })),
+          },
+        });
+
+        if (data?.returnTransferVendorOrder) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [inventoryList, inventorySignature, resetAll, returnVendor, targetAction],
+  );
+
+  return {
+    onSubmit,
+  };
+}
+
 export function useTransferCustomer(inventoryList: AggregatedStockFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [transferCustomer] = useMutation(CreateTransferCustomerOrderDocument, {
@@ -549,6 +594,47 @@ export function useTransferCustomer(inventoryList: AggregatedStockFragment[]) {
       targetAction,
       transferCustomer,
     ],
+  );
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useReturnCustomer(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [returnCustomer] = useMutation(ReturnTransferCustomerOrderDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(
+    async (values: ReturnFromCustomerFieldValues) => {
+      try {
+        const { data } = await returnCustomer({
+          variables: {
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregatedKey: s.id,
+              unitId: s.unitId,
+              quantity: s.quantity,
+              locationKey: values.location?.name ?? '',
+              loaderKey: values.loader?.name ?? null,
+            })),
+          },
+        });
+
+        if (data?.returnTransferCustomerOrder) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [inventoryList, inventorySignature, resetAll, returnCustomer, targetAction],
   );
 
   return {
