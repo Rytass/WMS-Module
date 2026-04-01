@@ -23,9 +23,6 @@ export class QualityInspectionOrderEntityClass {
   @Index()
   key!: string;
 
-  @Column({ type: 'text' })
-  description!: string;
-
   @Column({ type: 'varchar' })
   inspector!: string;
 
