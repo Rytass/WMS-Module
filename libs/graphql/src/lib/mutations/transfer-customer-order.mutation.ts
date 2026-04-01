@@ -53,7 +53,17 @@ export class TransferCustomerOrderMutation {
   async returnTransferCustomerOrder(
     @Args('items', { type: () => [ReturnTransferCustomerOrderArgs] })
     args: ReturnTransferCustomerOrderArgs[],
-  ) {
-    return this.transferCustomerOrderService.returnTransferCustomerOrder(args);
+  ): Promise<boolean> {
+    return this.transferCustomerOrderService
+      .returnTransferCustomerOrder(
+        args.map(({ aggregatedKey, ...item }) => {
+          const keys = this.stockService.destructAggregateKey(aggregatedKey);
+          return {
+            ...item,
+            ...keys,
+          };
+        }),
+      )
+      .then(() => true);
   }
 }

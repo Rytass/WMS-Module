@@ -758,8 +758,11 @@ input UpdateTransferCustomerOrderItemArgs {
 }
 
 input ReturnTransferCustomerOrderArgs {
-  itemId: ID!
+  aggregatedKey: ID!
   quantity: Int!
+  unitId: ID
+  locationKey: ID!
+  loaderKey: ID
 }
 
 input CreateTransferVendorOrderItemArgs {
@@ -777,8 +780,11 @@ input UpdateTransferVendorOrderItemArgs {
 }
 
 input ReturnTransferVendorOrderArgs {
-  itemId: ID!
+  aggregatedKey: ID!
   quantity: Int!
+  unitId: ID
+  locationKey: ID!
+  loaderKey: ID
 }
 
 input SplitBatchItemInput {
