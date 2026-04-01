@@ -8,6 +8,7 @@ import ReturnFromVendorField from '../../inventoryActions/fields/ReturnFromVendo
 import { defaultValues } from '../../inventoryActions/fields/ReturnFromVendorField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useReturnVendor } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface ReturnFromVendorProps {
@@ -27,7 +28,7 @@ const ReturnFromVendor: FC<ReturnFromVendorProps> = ({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
-
+  const { onSubmit } = useReturnVendor(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -37,9 +38,7 @@ const ReturnFromVendor: FC<ReturnFromVendorProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={async (values) => {
-        console.log('values', values);
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <div className={classes.wrapper}>
