@@ -534,7 +534,7 @@ export function useReturnVendor(inventoryList: AggregatedStockFragment[]) {
               unitId: s.unitId,
               quantity: s.quantity,
               locationKey: values.location?.name ?? '',
-              loaderKey: values.loader?.name ?? null,
+              loaderKey: values.loader?.name,
             })),
           },
         });
@@ -621,7 +621,7 @@ export function useReturnCustomer(inventoryList: AggregatedStockFragment[]) {
               unitId: s.unitId,
               quantity: s.quantity,
               locationKey: values.location?.name ?? '',
-              loaderKey: values.loader?.name ?? null,
+              loaderKey: values.loader?.name,
             })),
           },
         });
