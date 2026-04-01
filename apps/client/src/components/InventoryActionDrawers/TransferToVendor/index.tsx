@@ -8,6 +8,7 @@ import TransferToVendorField from '../../inventoryActions/fields/TransferToVendo
 import { defaultValues } from '../../inventoryActions/fields/TransferToVendorField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useTransferVendor } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface TransferToVendorProps {
@@ -27,7 +28,7 @@ const TransferToVendor: FC<TransferToVendorProps> = ({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
-
+  const { onSubmit } = useTransferVendor(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -37,9 +38,7 @@ const TransferToVendor: FC<TransferToVendorProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={() => {
-        //
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <div className={classes.wrapper}>

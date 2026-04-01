@@ -167,7 +167,8 @@ export function inventoryActionsEnableStatus(
         [StockStatus.FREE].includes(stock.status);
 
     case InventoryActions.DeallocateInventory:
-      return (stock: AggregatedStockFragment) => !!stock.saleId;
+      return (stock: AggregatedStockFragment) =>
+        stock.status === StockStatus.FREE && !!stock.saleId;
 
     case InventoryActions.ShipInventory:
       return (stock: AggregatedStockFragment) =>
@@ -198,7 +199,8 @@ export function inventoryActionsEnableStatus(
 
     case InventoryActions.ReturnFromVendor:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.VENDOR_INVENTORY].includes(stock.status);
+        [StockStatus.VENDOR_INVENTORY].includes(stock.status) ||
+        (stock.status === StockStatus.FREE && !!stock.vendorId);
 
     case InventoryActions.QualityInspection:
       return (stock: AggregatedStockFragment) =>
@@ -210,7 +212,8 @@ export function inventoryActionsEnableStatus(
 
     case InventoryActions.ReturnFromCustomer:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.CUSTOMER_INVENTORY].includes(stock.status);
+        [StockStatus.CUSTOMER_INVENTORY].includes(stock.status) ||
+        (stock.status === StockStatus.FREE && !!stock.customerId);
 
     case InventoryActions.ScrapInventory:
       return (stock: AggregatedStockFragment) =>
@@ -384,7 +387,7 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   InventoryActions.ReclassifyInventory,
-  // InventoryActions.TransferToVendor,
+  InventoryActions.TransferToVendor,
   // InventoryActions.ReturnFromVendor,
   // InventoryActions.QualityInspection,
   // InventoryActions.DeliverToCustomer,
