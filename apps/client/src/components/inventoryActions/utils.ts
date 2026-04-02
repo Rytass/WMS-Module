@@ -165,13 +165,12 @@ export function inventoryActionsEnableStatus(
     case InventoryActions.ReleaseInventoryHold:
       return (stock: AggregatedStockFragment) => isLocked(stock);
 
-    case InventoryActions.AllocateInventory: // 銷售訂單標籤
-      return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE;
+    case InventoryActions.AllocateInventory:
+      return (stock: AggregatedStockFragment) => !isPositionChanging(stock);
 
-    case InventoryActions.DeallocateInventory: // 解除銷售訂單標籤
+    case InventoryActions.DeallocateInventory:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE && !!stock.saleId;
+        !isPositionChanging(stock) && !!stock.saleId;
 
     case InventoryActions.ShipInventory:
       return (stock: AggregatedStockFragment) =>
@@ -197,9 +196,8 @@ export function inventoryActionsEnableStatus(
       return (stock: AggregatedStockFragment) =>
         isPositionChanging(stock) && !!stock.vendorId;
 
-    case InventoryActions.QualityInspection: // 檢驗標籤
-      return (stock: AggregatedStockFragment) =>
-        [StockStatus.PENDING_INSPECTION].includes(stock.status);
+    case InventoryActions.QualityInspection:
+      return (stock: AggregatedStockFragment) => !isPositionChanging(stock);
 
     case InventoryActions.DeliverToCustomer:
       return (stock: AggregatedStockFragment) =>
