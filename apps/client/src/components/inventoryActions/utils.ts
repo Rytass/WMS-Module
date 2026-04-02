@@ -83,28 +83,28 @@ export function getSaleInformation({
 
 export function stockStatusName(status?: StockStatus): string {
   switch (status) {
-    case StockStatus.PENDING_INSPECTION:
+    case StockStatus.PENDING_INSPECTION: // 標籤
       return '待檢驗';
 
-    case StockStatus.INSPECTION_FAILED:
+    case StockStatus.INSPECTION_FAILED: // 標籤
       return '檢驗失敗';
 
-    case StockStatus.HELD:
+    case StockStatus.HELD: // 凍結
       return '凍結中';
 
-    case StockStatus.IN_TRANSFER:
+    case StockStatus.IN_TRANSFER: // 位置改變
       return '調撥中';
 
-    case StockStatus.IN_SHIPMENT:
+    case StockStatus.IN_SHIPMENT: // 位置改變
       return '出庫中';
 
-    case StockStatus.ALLOCATED:
+    case StockStatus.ALLOCATED: // 標籤
       return '銷售訂單';
 
-    case StockStatus.VENDOR_INVENTORY:
+    case StockStatus.VENDOR_INVENTORY: // 位置改變
       return '供應商庫存';
 
-    case StockStatus.CUSTOMER_INVENTORY:
+    case StockStatus.CUSTOMER_INVENTORY: // 位置改變
       return '客戶倉';
 
     case StockStatus.FREE:
@@ -145,87 +145,71 @@ export type InventoryActionItem = Omit<DropdownOption, 'id'> & {
 export function inventoryActionsEnableStatus(
   action: InventoryActions,
 ): (stock: AggregatedStockFragment) => boolean {
+  const isPositionChanging = (stock: AggregatedStockFragment) =>
+    [StockStatus.IN_TRANSFER, StockStatus.IN_SHIPMENT].includes(stock.status) ||
+    !!stock.vendorId ||
+    !!stock.customerId;
+
+  const isLocked = (stock: AggregatedStockFragment) =>
+    stock.status === StockStatus.HELD;
+
   switch (action) {
-    case InventoryActions.CreateTransferInventory: // 位置改變
+    case InventoryActions.CreateTransferInventory:
       return (stock: AggregatedStockFragment) =>
-        [
-          StockStatus.FREE,
-          StockStatus.ALLOCATED,
-          StockStatus.PENDING_INSPECTION,
-          StockStatus.INSPECTION_FAILED,
-        ].includes(stock.status);
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.HoldInventory: // 凍結
+    case InventoryActions.HoldInventory:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE;
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.ReleaseInventoryHold: // 解凍
-      return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.HELD;
+    case InventoryActions.ReleaseInventoryHold:
+      return (stock: AggregatedStockFragment) => isLocked(stock);
 
-    case InventoryActions.AllocateInventory: // 銷售訂單標籤
-      return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE;
+    case InventoryActions.AllocateInventory:
+      return (stock: AggregatedStockFragment) => !isPositionChanging(stock);
 
-    case InventoryActions.DeallocateInventory: // 解除銷售訂單標籤
+    case InventoryActions.DeallocateInventory:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE && !!stock.saleId;
+        !isPositionChanging(stock) && !!stock.saleId;
 
-    case InventoryActions.ShipInventory: // 位置改變
+    case InventoryActions.ShipInventory:
       return (stock: AggregatedStockFragment) =>
-        [
-          StockStatus.FREE,
-          StockStatus.ALLOCATED,
-          StockStatus.INSPECTION_FAILED,
-          StockStatus.VENDOR_INVENTORY,
-          StockStatus.CUSTOMER_INVENTORY,
-        ].includes(stock.status);
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.SplitBatch: // 行為
+    case InventoryActions.SplitBatch:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE;
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.MergeBatch: // 行為
+    case InventoryActions.MergeBatch:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE;
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.ReclassifyInventory: // 行為
+    case InventoryActions.ReclassifyInventory:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.FREE, StockStatus.INSPECTION_FAILED].includes(
-          stock.status,
-        );
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.TransferToVendor: // 位置改變
+    case InventoryActions.TransferToVendor:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE &&
-        !stock.vendorId &&
-        !stock.customerId;
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.ReturnFromVendor: // 位置改變
+    case InventoryActions.ReturnFromVendor:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.VENDOR_INVENTORY ||
-        (stock.status === StockStatus.FREE && !!stock.vendorId);
+        isPositionChanging(stock) && !!stock.vendorId;
 
-    case InventoryActions.QualityInspection: // 檢驗標籤
-      return (stock: AggregatedStockFragment) =>
-        [StockStatus.PENDING_INSPECTION].includes(stock.status);
+    case InventoryActions.QualityInspection:
+      return (stock: AggregatedStockFragment) => !isPositionChanging(stock);
 
-    case InventoryActions.DeliverToCustomer: // 位置改變
+    case InventoryActions.DeliverToCustomer:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE &&
-        !stock.vendorId &&
-        !stock.customerId;
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.ReturnFromCustomer: // 位置改變
+    case InventoryActions.ReturnFromCustomer:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.CUSTOMER_INVENTORY ||
-        (stock.status === StockStatus.FREE && !!stock.customerId);
+        isPositionChanging(stock) && !!stock.customerId;
 
-    case InventoryActions.ScrapInventory: // 行為
+    case InventoryActions.ScrapInventory:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.FREE, StockStatus.INSPECTION_FAILED].includes(
-          stock.status,
-        );
+        !isPositionChanging(stock) && !isLocked(stock);
 
     default:
       return () => false;
@@ -384,20 +368,20 @@ export function inventoryActionsSpec(
 }
 
 export const inventoryActionOptions: InventoryActionItem[] = [
-  InventoryActions.CreateTransferInventory, //要測試
+  InventoryActions.CreateTransferInventory,
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   InventoryActions.AllocateInventory,
   InventoryActions.DeallocateInventory,
-  InventoryActions.ShipInventory, //要測試
+  // InventoryActions.ShipInventory,
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   InventoryActions.ReclassifyInventory,
   InventoryActions.TransferToVendor,
-  InventoryActions.ReturnFromVendor, //要測試
-  InventoryActions.QualityInspection, // 還沒接
+  InventoryActions.ReturnFromVendor,
+  // InventoryActions.QualityInspection,
   InventoryActions.DeliverToCustomer,
-  InventoryActions.ReturnFromCustomer, //要測試
+  InventoryActions.ReturnFromCustomer,
   InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,
