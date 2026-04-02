@@ -52,6 +52,7 @@ function InventoryMovementReceiveForm({
                 }
               : null,
             materialDescription: item.material.description,
+            requireInspection: item.requireInspection,
             inspectionResult: item.requireInspection
               ? YesOrNo.YES
               : YesOrNo.NULL,

@@ -40,8 +40,8 @@ query Loaders(
   }
 }
 
-query LoaderOptions($offset: Int, $limit: Int, $key: String) {
-  loaders(offset: $offset, limit: $limit, key: $key) {
+query LoaderOptions($offset: Int, $limit: Int, $key: String, $locationId: ID) {
+  loaders(offset: $offset, limit: $limit, key: $key, locationId: $locationId) {
     id
     items {
       id
