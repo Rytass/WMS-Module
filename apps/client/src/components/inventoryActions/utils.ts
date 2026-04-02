@@ -193,10 +193,9 @@ export function inventoryActionsEnableStatus(
       return (stock: AggregatedStockFragment) =>
         !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.ReturnFromVendor: // 位置改變
+    case InventoryActions.ReturnFromVendor:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.VENDOR_INVENTORY ||
-        (stock.status === StockStatus.FREE && !!stock.vendorId);
+        isPositionChanging(stock) && !!stock.vendorId;
 
     case InventoryActions.QualityInspection: // 檢驗標籤
       return (stock: AggregatedStockFragment) =>
@@ -206,10 +205,9 @@ export function inventoryActionsEnableStatus(
       return (stock: AggregatedStockFragment) =>
         !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.ReturnFromCustomer: // 位置改變
+    case InventoryActions.ReturnFromCustomer:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.CUSTOMER_INVENTORY ||
-        (stock.status === StockStatus.FREE && !!stock.customerId);
+        isPositionChanging(stock) && !!stock.customerId;
 
     case InventoryActions.ScrapInventory:
       return (stock: AggregatedStockFragment) =>
