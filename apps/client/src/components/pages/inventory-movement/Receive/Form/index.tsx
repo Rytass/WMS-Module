@@ -22,6 +22,7 @@ function InventoryMovementReceiveForm({
         items: receiveInventoryOrder.items
           .filter((item) => !item.removedAt)
           .map((item) => ({
+            itemId: item.id,
             quantity: 0,
             targetReceivedQuantity: item.targetReceivedQuantity,
             receivedQuantity: item.receivedQuantity,

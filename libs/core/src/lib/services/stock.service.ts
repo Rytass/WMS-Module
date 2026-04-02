@@ -199,7 +199,7 @@ export class StockService<
       queryBuilder.addSelect('b."saleSerialId"', 'saleSerialId');
       queryBuilder.addSelect('b."customerId"', 'customerId');
       queryBuilder.addSelect('b."vendorId"', 'vendorId');
-      queryBuilder.addSelect('b."inspectionId" IS NOT NULL', 'isInspection');
+      queryBuilder.addSelect('b."inspectionResult"', 'inspectionResult');
       queryBuilder.addSelect('SUM(stock.quantity)', 'quantity');
       queryBuilder.groupBy('stock."materialId"');
       queryBuilder.addGroupBy('stock."batchId"');
@@ -213,7 +213,7 @@ export class StockService<
       queryBuilder.addGroupBy('b."saleSerialId"');
       queryBuilder.addGroupBy('b."customerId"');
       queryBuilder.addGroupBy('b."vendorId"');
-      queryBuilder.addGroupBy('b."inspectionId" IS NOT NULL');
+      queryBuilder.addGroupBy('b."inspectionResult"');
       queryBuilder.having('SUM(stock.quantity) <> 0');
 
       if (options.aggregatedKeys?.length)
@@ -243,16 +243,35 @@ export class StockService<
     return queryBuilder.getManyAndCount();
   }
 
-  findManyGroupedByMaterialId(
+  async findManyGroupedByMaterialId(
     options: FindStockInput<T>,
   ): Promise<[K[], number]> {
-    const queryBuilder = this.pipeSelectOptionsToQueryBuilder(
-      options,
-      this.dataSource
-        .getRepository<K>(this.materialEntity)
-        .createQueryBuilder('material')
-        .innerJoinAndSelect('material.stocks', 'stock'),
+    // Build aggregated subquery to get distinct materialIds where SUM(quantity) != 0
+    const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
+      { ...options, offset: undefined, limit: undefined },
+      this.selectQueryBuilder('stock'),
+      true,
     );
+
+    const rawMaterialIds = await this.dataSource
+      .createQueryBuilder()
+      .select('DISTINCT agg."materialId"', 'materialId')
+      .from(`(${aggregateSubquery.getQuery()})`, 'agg')
+      .setParameters(aggregateSubquery.getParameters())
+      .getRawMany<{ materialId: string }>();
+
+    const ids = rawMaterialIds.map((r) => r.materialId);
+    if (ids.length === 0) return [[] as K[], 0];
+
+    const queryBuilder = this.dataSource
+      .getRepository<K>(this.materialEntity)
+      .createQueryBuilder('material')
+      .where('material.id IN (:...materialIds)', { materialIds: ids });
+
+    if (options.offset !== undefined && options.offset >= 0)
+      queryBuilder.skip(options.offset);
+    if (options.limit !== undefined && options.limit > 0)
+      queryBuilder.take(options.limit);
 
     return queryBuilder.getManyAndCount();
   }
@@ -300,7 +319,10 @@ export class StockService<
     paginatedQueryBuilder.addSelect('agg."saleSerialId"', 'saleSerialId');
     paginatedQueryBuilder.addSelect('agg."customerId"', 'customerId');
     paginatedQueryBuilder.addSelect('agg."vendorId"', 'vendorId');
-    paginatedQueryBuilder.addSelect('agg."isInspection"', 'isInspection');
+    paginatedQueryBuilder.addSelect(
+      'agg."inspectionResult"',
+      'inspectionResult',
+    );
 
     // Apply pagination to the outer query
     if (options.offset !== undefined && options.offset >= 0) {

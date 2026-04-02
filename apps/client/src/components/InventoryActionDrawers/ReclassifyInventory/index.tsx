@@ -8,6 +8,7 @@ import ReclassifyInventoryField from '../../inventoryActions/fields/ReclassifyIn
 import { defaultValues } from '../../inventoryActions/fields/ReclassifyInventoryField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useReclassifyInventory } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface ReclassifyInventoryProps {
@@ -27,7 +28,7 @@ const ReclassifyInventory: FC<ReclassifyInventoryProps> = ({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
-
+  const { onSubmit } = useReclassifyInventory(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -37,9 +38,7 @@ const ReclassifyInventory: FC<ReclassifyInventoryProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={() => {
-        //
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <div className={classes.wrapper}>

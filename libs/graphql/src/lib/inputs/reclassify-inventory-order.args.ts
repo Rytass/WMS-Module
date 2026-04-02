@@ -5,6 +5,9 @@ export class ReclassifyInventoryOrderItemInput {
   @Field(() => Number)
   quantity!: number;
 
+  @Field(() => ID, { nullable: true })
+  unitId?: string;
+
   @Field(() => ID)
   aggregatedKey!: string;
 }

@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Mutation } from '@nestjs/graphql';
-import {
-  StockService,
-  TransferVendorOrderService,
-} from '@wms-module/core';
+import { StockService, TransferVendorOrderService } from '@wms-module/core';
 import { TransferVendorOrderDto } from '../dto/transfer-vendor-order.dto';
 import {
   CreateTransferVendorOrderArgs,
@@ -56,7 +53,17 @@ export class TransferVendorOrderMutation {
   async returnTransferVendorOrder(
     @Args('items', { type: () => [ReturnTransferVendorOrderArgs] })
     args: ReturnTransferVendorOrderArgs[],
-  ) {
-    return this.transferVendorOrderService.returnTransferVendorOrder(args);
+  ): Promise<boolean> {
+    return this.transferVendorOrderService
+      .returnTransferVendorOrder(
+        args.map(({ aggregatedKey, ...item }) => {
+          const keys = this.stockService.destructAggregateKey(aggregatedKey);
+          return {
+            ...item,
+            ...keys,
+          };
+        }),
+      )
+      .then(() => true);
   }
 }

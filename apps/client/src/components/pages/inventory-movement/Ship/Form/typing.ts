@@ -1,6 +1,7 @@
 import { SelectValue } from '@mezzanine-ui/react';
 
 export type FieldArrayItem = {
+  itemId: string;
   quantity: number;
   targetShippedQuantity: number;
   shippedQuantity: number;

@@ -4,4 +4,5 @@ export type ReceiveInventoryOrderInput = {
   locationKey?: string;
   loaderKey?: string;
   quantity: number;
+  requireInspection?: boolean;
 };

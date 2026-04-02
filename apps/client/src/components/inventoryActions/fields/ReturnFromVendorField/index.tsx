@@ -17,7 +17,6 @@ function ReturnFromVendorField() {
         label="目標載具"
         fuzzySearch={false}
         selectValueMode
-        required
       />
     </div>
   );

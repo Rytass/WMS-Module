@@ -10,5 +10,5 @@ export const returnFromVendorFieldSchema: Yup.ObjectSchema<ReturnFromVendorField
     loader: Yup.object({
       id: Yup.string().required('必填'),
       name: Yup.string().required('必填'),
-    }).required('必填'),
+    }).nullable(),
   });

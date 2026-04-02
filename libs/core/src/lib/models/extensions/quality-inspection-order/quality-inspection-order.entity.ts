@@ -24,10 +24,7 @@ export class QualityInspectionOrderEntityClass {
   key!: string;
 
   @Column({ type: 'text' })
-  description!: string;
-
-  @Column({ type: 'varchar' })
-  inspector!: string;
+  note!: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

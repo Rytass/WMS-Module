@@ -6,12 +6,14 @@ import {
   Typography,
   Description,
   DescriptionContent,
+  Message,
 } from '@mezzanine-ui/react';
 import { FormModalWrapper } from '../../../../../fields/FormModalWrapper';
 import SectionWrapper from '../../../../../SectionWrapper';
 import FieldArrayTable from './FieldArrayTable';
 import { formSchema } from '../schema';
 import { FormValues } from '../typing';
+import { useReceive } from '../../../useApi';
 import classes from './index.module.scss';
 
 interface InventoryMovementReceiveFormBodyProps {
@@ -33,14 +35,39 @@ function InventoryMovementReceiveFormBody({
   closeModal,
   open,
 }: InventoryMovementReceiveFormBodyProps) {
+  const { receive, loading } = useReceive();
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
 
-  const onSubmit = useCallback(async (values: FormValues) => {
-    console.log('values', values);
-  }, []);
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await receive({
+          variables: {
+            items: values.items
+              .filter((item) => item.quantity > 0)
+              .map((item) => ({
+                itemId: item.itemId,
+                batchKey: item.batch?.name,
+                locationKey: item.location?.name,
+                loaderKey: item.loader?.name,
+                quantity: item.quantity,
+              })),
+          },
+        });
+
+        if (data?.receive) {
+          Message.success('入庫成功');
+          closeModal();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [closeModal, receive],
+  );
 
   return (
     <FormModalWrapper<FormValues>
@@ -48,6 +75,10 @@ function InventoryMovementReceiveFormBody({
       title="入庫"
       titleAlign="left"
       confirmText="入庫"
+      confirmButtonProps={{
+        disabled: loading,
+        loading,
+      }}
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}

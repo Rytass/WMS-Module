@@ -21,6 +21,7 @@ function InventoryMovementShipForm({
         items: shipInventoryOrder.items
           .filter((item) => !item.removedAt)
           .map((item) => ({
+            itemId: item.id,
             quantity: 0,
             targetShippedQuantity: item.targetShippedQuantity,
             shippedQuantity: item.shippedQuantity,
