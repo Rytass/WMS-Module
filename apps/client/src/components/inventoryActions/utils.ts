@@ -368,18 +368,18 @@ export function inventoryActionsSpec(
 }
 
 export const inventoryActionOptions: InventoryActionItem[] = [
-  InventoryActions.CreateTransferInventory, //要測試
+  InventoryActions.CreateTransferInventory,
   InventoryActions.HoldInventory,
   InventoryActions.ReleaseInventoryHold,
   InventoryActions.AllocateInventory,
   InventoryActions.DeallocateInventory,
-  InventoryActions.ShipInventory, //要測試
+  // InventoryActions.ShipInventory,
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   InventoryActions.ReclassifyInventory,
   InventoryActions.TransferToVendor,
   InventoryActions.ReturnFromVendor,
-  InventoryActions.QualityInspection, // 還沒接
+  // InventoryActions.QualityInspection,
   InventoryActions.DeliverToCustomer,
   InventoryActions.ReturnFromCustomer,
   InventoryActions.ScrapInventory,

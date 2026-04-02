@@ -7,6 +7,9 @@ import {
 export function useLazyQueryShipInventoryOrderOptions() {
   const [fetchShipInventoryOrderOptions] = useLazyQuery(
     ShipInventoryOrderOptionsDocument,
+    {
+      fetchPolicy: 'cache-and-network',
+    },
   );
 
   return {
@@ -17,6 +20,9 @@ export function useLazyQueryShipInventoryOrderOptions() {
 export function useLazyQueryShipInventoryOrderPendingOptions() {
   const [fetchShipInventoryOrderPendingOptions] = useLazyQuery(
     ShipInventoryOrderPendingOptionsDocument,
+    {
+      fetchPolicy: 'cache-and-network',
+    },
   );
 
   return {
