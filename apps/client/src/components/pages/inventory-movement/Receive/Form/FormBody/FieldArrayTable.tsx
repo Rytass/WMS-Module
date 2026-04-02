@@ -140,14 +140,14 @@ const FieldArrayTable: FC = () => {
               },
               {
                 id: YesOrNo.NULL,
-                name: '不檢驗',
+                name: !source.requireInspection ? '不需檢驗' : '待判定',
               },
             ]}
             size="sub"
             disabled={
               source.receivedQuantity > 0 ||
               !!source.removedAt ||
-              source.inspectionResult === YesOrNo.NULL
+              !source.requireInspection
             }
           />
         );

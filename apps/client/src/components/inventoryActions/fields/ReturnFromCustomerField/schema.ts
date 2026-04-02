@@ -10,5 +10,5 @@ export const returnFromCustomerFieldSchema: Yup.ObjectSchema<ReturnFromCustomerF
     loader: Yup.object({
       id: Yup.string().required('必填'),
       name: Yup.string().required('必填'),
-    }).nullable(),
+    }).required('必填'),
   });
