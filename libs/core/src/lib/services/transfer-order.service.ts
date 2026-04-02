@@ -25,6 +25,7 @@ import { FindTransferOrderInput } from '../typings/find-transfer-order.input';
 import { TransferOrderInput } from '../typings/transfer-order.input';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
+import { StockService } from './stock.service';
 
 @Injectable()
 export class TransferOrderService<
@@ -38,6 +39,7 @@ export class TransferOrderService<
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
+    private readonly stockService: StockService,
     @Inject(TransferOrderEntity) readonly transferOrderEntity: EntityTarget<T>,
     @Inject(TransferOrderItemEntity)
     readonly transferOrderItemEntity: EntityTarget<K>,
@@ -108,7 +110,7 @@ export class TransferOrderService<
               materialId: item.materialId,
               batchId: item.batchId, // original batch
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: -1 * item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in transfer state
@@ -117,7 +119,7 @@ export class TransferOrderService<
               materialId: item.materialId,
               batchId: splittedBatch.id, // splitted batch marked inTransfer
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
           ]),
@@ -191,7 +193,7 @@ export class TransferOrderService<
                   materialId: item.materialId,
                   batchId: item.batchId, // original batch
                   locationId: item.locationId || undefined,
-                  loaderId: item.loaderId || undefined,
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
                   quantity: option.quantity * conversionFactor,
                 } as DeepPartial<StockEntityClass>,
                 // remove from new reversal splitted batch (marked inTransfer)
@@ -200,7 +202,7 @@ export class TransferOrderService<
                   materialId: item.materialId,
                   batchId: reversalBatch.id, // new splitted batch for cancel reversal
                   locationId: item.locationId || undefined,
-                  loaderId: item.loaderId || undefined,
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
                   quantity: -1 * option.quantity * conversionFactor,
                 } as DeepPartial<StockEntityClass>,
               ]),
@@ -439,7 +441,9 @@ export class TransferOrderService<
                   materialId: item.materialId,
                   batchId: item.batchId,
                   locationId: item.targetLocationId || undefined,
-                  loaderId: item.targetLoaderId || undefined,
+                  loaderId: this.stockService.resolveLoaderId(
+                    item.targetLoaderId,
+                  ),
                   quantity: option.quantity * conversionFactor,
                 } as DeepPartial<StockEntityClass>,
                 // deduct from completed splitted batch
@@ -448,7 +452,7 @@ export class TransferOrderService<
                   materialId: item.materialId,
                   batchId: completedBatch.id,
                   locationId: item.locationId || undefined,
-                  loaderId: item.loaderId || undefined,
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
                   quantity: -1 * option.quantity * conversionFactor,
                 } as DeepPartial<StockEntityClass>,
               ]),

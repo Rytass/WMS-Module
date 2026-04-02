@@ -27,6 +27,7 @@ import {
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
+import { StockService } from './stock.service';
 
 export type TransferCustomerOrderItemInput = {
   materialId: string;
@@ -51,6 +52,7 @@ export class TransferCustomerOrderService<
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
+    private readonly stockService: StockService,
     @Inject(TransferCustomerOrderEntity)
     readonly transferCustomerOrderEntity: EntityTarget<T>,
     @Inject(TransferCustomerOrderItemEntity)
@@ -123,7 +125,7 @@ export class TransferCustomerOrderService<
               materialId: item.materialId,
               batchId: item.batchId, // original batch
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: -1 * item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in customer transfer state
@@ -132,7 +134,7 @@ export class TransferCustomerOrderService<
               materialId: item.materialId,
               batchId: splittedBatch.id, // splitted batch marked with customerId
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
           ]),
@@ -295,7 +297,7 @@ export class TransferCustomerOrderService<
                 materialId: item.materialId,
                 batchId: item.batchId, // original batch
                 locationId: item.locationId || undefined,
-                loaderId: item.loaderId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
               // add to splitted batch in released state
@@ -304,7 +306,7 @@ export class TransferCustomerOrderService<
                 materialId: item.materialId,
                 batchId: splittedBatch.id, // splitted batch marked with null customerId
                 locationId: targetLocationId,
-                loaderId: targetLoaderId,
+                loaderId: this.stockService.resolveLoaderId(targetLoaderId),
                 quantity: change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
             ]),

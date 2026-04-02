@@ -14,6 +14,7 @@ import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
+import { StockService } from './stock.service';
 
 @Injectable()
 export class MergeBatchOrderService<
@@ -26,6 +27,7 @@ export class MergeBatchOrderService<
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly helperService: HelperService,
+    private readonly stockService: StockService,
     @Inject(MergeBatchOrderEntity)
     readonly mergeBatchOrderEntity: EntityTarget<T>,
     @Inject(MergeBatchOrderItemEntity)
@@ -101,7 +103,7 @@ export class MergeBatchOrderService<
                 materialId: targetBatch.materialId,
                 batchId: item.batchId,
                 locationId: item.locationId || undefined,
-                loaderId: item.loaderId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,
               // Add to target batch
@@ -110,7 +112,7 @@ export class MergeBatchOrderService<
                 materialId: targetBatch.materialId,
                 batchId: targetBatch.id,
                 locationId: item.locationId || undefined,
-                loaderId: item.loaderId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,
             ]),

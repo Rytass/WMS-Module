@@ -19,6 +19,7 @@ import { FindHoldInventoryOrderInput } from '../typings/find-hold-inventory-orde
 import { ReleaseInventoryOrderItemInput } from '../typings/release-inventory-order.input';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
+import { StockService } from './stock.service';
 
 @Injectable()
 export class HoldInventoryOrderService<
@@ -33,6 +34,7 @@ export class HoldInventoryOrderService<
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
+    private readonly stockService: StockService,
     @Inject(HoldInventoryOrderEntity)
     readonly holdInventoryOrderEntity: EntityTarget<T>,
     @Inject(HoldInventoryOrderItemEntity)
@@ -101,7 +103,7 @@ export class HoldInventoryOrderService<
               materialId: item.materialId,
               batchId: item.batchId, // original batch
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: -1 * item.targetHeldQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in held state
@@ -110,7 +112,7 @@ export class HoldInventoryOrderService<
               materialId: item.materialId,
               batchId: splittedBatch.id, // splitted batch marked held
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.targetHeldQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
           ]),
@@ -306,7 +308,7 @@ export class HoldInventoryOrderService<
                 materialId: item.materialId,
                 batchId: item.batchId, // original batch
                 locationId: item.locationId || undefined,
-                loaderId: item.loaderId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
               // add to splitted batch in released state
@@ -315,7 +317,7 @@ export class HoldInventoryOrderService<
                 materialId: item.materialId,
                 batchId: splittedBatch.id, // splitted batch marked released
                 locationId: item.locationId || undefined,
-                loaderId: item.loaderId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
             ]),

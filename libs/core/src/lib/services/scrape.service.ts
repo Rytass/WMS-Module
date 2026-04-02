@@ -12,6 +12,7 @@ import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { ScrapeInput } from '../typings/scrape.input';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
+import { StockService } from './stock.service';
 
 @Injectable()
 export class ScrapeService<
@@ -23,6 +24,7 @@ export class ScrapeService<
     private readonly dataSource: DataSource,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
+    private readonly stockService: StockService,
     @Inject(ScrapeOrderEntity)
     readonly scrapeOrderEntity: EntityTarget<T>,
     @Inject(StockEntity) readonly stockEntity: EntityTarget<StockEntityClass>,
@@ -95,7 +97,7 @@ export class ScrapeService<
             materialId: item.materialId,
             batchId: item.batchId,
             locationId: item.locationId || undefined,
-            loaderId: item.loaderId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: -1 * item.targetScrapedQuantity * conversionFactor,
           } as DeepPartial<StockEntityClass>),
         );
