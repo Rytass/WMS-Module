@@ -95,6 +95,14 @@ export class HoldInventoryOrderService<
         );
 
         // Stock movements track the hold through splitted batch
+        await this.stockService.validateStockAvailability({
+          materialId: item.materialId,
+          batchId: item.batchId,
+          locationId: item.locationId || undefined,
+          loaderId: this.stockService.resolveLoaderId(item.loaderId),
+          quantity: item.targetHeldQuantity * conversionFactor,
+        }, manager);
+
         await repos.stock.save(
           repos.stock.create([
             // deduct from original batch available stock
@@ -300,6 +308,14 @@ export class HoldInventoryOrderService<
           );
 
           // Stock movements track the hold through splitted batch
+          await this.stockService.validateStockAvailability({
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: change.quantityChanged,
+          }, manager);
+
           await repos.stock.save(
             repos.stock.create([
               // deduct from original batch available stock

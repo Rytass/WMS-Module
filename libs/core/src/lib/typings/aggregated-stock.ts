@@ -15,6 +15,14 @@ export type AggregatedStock = Pick<
   inspectionResult?: boolean;
 };
 
+export interface ValidateStockDeductionParams {
+  materialId: string;
+  batchId: string;
+  locationId?: string;
+  loaderId: string;
+  quantity: number;
+}
+
 export type ChangeLog = Pick<
   StockEntityClass,
   'id' | 'materialId' | 'batchId' | 'locationId' | 'loaderId' | 'quantity'

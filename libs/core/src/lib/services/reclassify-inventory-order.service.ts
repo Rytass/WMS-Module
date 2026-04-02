@@ -110,6 +110,14 @@ export class ReclassifyInventoryOrderService<
           );
 
           // Update stock: deduct from original material and add to new material
+          await this.stockService.validateStockAvailability({
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: item.quantity * conversionFactor,
+          }, manager);
+
           await stockRepository.save(
             stockRepository.create([
               // Deduct from original material batch

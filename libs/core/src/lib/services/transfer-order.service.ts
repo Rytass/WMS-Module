@@ -102,6 +102,14 @@ export class TransferOrderService<
         );
 
         // Stock movements track the transfer through splitted batch
+        await this.stockService.validateStockAvailability({
+          materialId: item.materialId,
+          batchId: item.batchId,
+          locationId: item.locationId || undefined,
+          loaderId: this.stockService.resolveLoaderId(item.loaderId),
+          quantity: item.targetTransferredQuantity * conversionFactor,
+        }, manager);
+
         await repos.stock.save(
           repos.stock.create([
             // deduct from original batch source
@@ -174,6 +182,14 @@ export class TransferOrderService<
           });
 
           const reverseOrder = await repos.order.save(repos.order.create());
+
+          await this.stockService.validateStockAvailability({
+            materialId: item.materialId,
+            batchId: reversalBatch.id,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: option.quantity * conversionFactor,
+          }, transactionManager);
 
           // Reverse the stock changes via new splitted batch
           await Promise.all([
@@ -424,6 +440,15 @@ export class TransferOrderService<
 
           // Record the transfer change
           const base = await manager.getRepository(OrderEntity).save({});
+
+          await this.stockService.validateStockAvailability({
+            materialId: item.materialId,
+            batchId: completedBatch.id,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: option.quantity * conversionFactor,
+          }, manager);
+
           await Promise.all([
             changeRepository.save(
               changeRepository.create({

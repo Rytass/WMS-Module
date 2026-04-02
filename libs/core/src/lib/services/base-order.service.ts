@@ -88,6 +88,14 @@ export abstract class BaseOrderService {
 
     // Create negative stock entry linked to source order
     // This allows the status calculation to determine what status is being deducted from
+    await this.stockService.validateStockAvailability({
+      materialId,
+      batchId,
+      locationId: locationId || undefined,
+      loaderId: this.stockService.resolveLoaderId(loaderId),
+      quantity: quantity * conversionFactor,
+    }, repos.stock.manager);
+
     await repos.stock.save(
       repos.stock.create({
         orderId: order.id,

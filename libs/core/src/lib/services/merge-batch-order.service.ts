@@ -95,6 +95,14 @@ export class MergeBatchOrderService<
           );
 
           // Update stock: deduct from source batch and add to target batch
+          await this.stockService.validateStockAvailability({
+            materialId: targetBatch.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: item.quantity * conversionFactor,
+          }, manager);
+
           await stockRepository.save(
             stockRepository.create([
               // Deduct from source batch

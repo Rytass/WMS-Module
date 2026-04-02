@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { StockEntity, StockEntityClass } from '../models/metadata/stock.entity';
 import {
   DataSource,
+  EntityManager,
   ObjectLiteral,
   Repository,
   SelectQueryBuilder,
@@ -13,7 +14,7 @@ import {
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
 import { StockStatus, ChangeType } from '../constants/stock-status';
-import { AggregatedStock, ChangeLog } from '../typings/aggregated-stock';
+import { AggregatedStock, ChangeLog, ValidateStockDeductionParams } from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
   LoadersEntityClass,
@@ -352,6 +353,37 @@ export class StockService<
     );
 
     return queryBuilder.getRawOne<AggregatedStock>();
+  }
+
+  async validateStockAvailability(
+    params: ValidateStockDeductionParams,
+    manager: EntityManager = this.dataSource.manager,
+  ): Promise<void> {
+    const { materialId, batchId, locationId, loaderId, quantity } = params;
+
+    const aggregateQuery = this.pipeSelectOptionsToQueryBuilder(
+      { materialId, batchId, locationId, loaderId } as FindStockInput<T>,
+      this.selectQueryBuilder(
+        'stock',
+        manager.getRepository<T>(this.stockEntity).createQueryBuilder('stock'),
+      ),
+      true,
+    );
+
+    const result = await manager
+      .createQueryBuilder()
+      .select('COALESCE(SUM(agg.quantity), 0)', 'total')
+      .from(`(${aggregateQuery.getQuery()})`, 'agg')
+      .setParameters(aggregateQuery.getParameters())
+      .getRawOne<{ total: string }>();
+
+    const available = parseFloat(result?.total ?? '0');
+
+    if (available < quantity) {
+      throw new Error(
+        `Insufficient stock: available ${available}, requested ${quantity} (materialId=${materialId}, batchId=${batchId}, loaderId=${loaderId})`,
+      );
+    }
   }
 
   async findAggregatedStocks(

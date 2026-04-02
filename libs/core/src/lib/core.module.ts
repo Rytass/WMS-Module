@@ -23,6 +23,7 @@ import {
   MergeBatchOrderService,
   ReclassifyInventoryOrderService,
   ScrapeService,
+  QualityInspectionOrderService,
 } from './services';
 import { BatchService } from './services/batch.service';
 import { WMS_CORE_MODULE_OPTIONS } from './typings/core-module-options';
@@ -51,6 +52,7 @@ const exportDependencies = [
   MergeBatchOrderService,
   ReclassifyInventoryOrderService,
   ScrapeService,
+  QualityInspectionOrderService,
 ];
 
 @Module({
