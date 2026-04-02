@@ -393,10 +393,10 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   InventoryActions.ReclassifyInventory,
-  InventoryActions.TransferToVendor, //要測試
+  InventoryActions.TransferToVendor,
   InventoryActions.ReturnFromVendor, //要測試
-  // InventoryActions.QualityInspection,
-  InventoryActions.DeliverToCustomer, //要測試
+  InventoryActions.QualityInspection, // 還沒接
+  InventoryActions.DeliverToCustomer,
   InventoryActions.ReturnFromCustomer, //要測試
   InventoryActions.ScrapInventory,
 ].map((action) => ({

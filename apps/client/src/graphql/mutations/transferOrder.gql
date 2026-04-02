@@ -87,3 +87,7 @@ mutation CreateTransferVendorOrder(
 mutation ReturnTransferVendorOrder($items: [ReturnTransferVendorOrderArgs!]!) {
   returnTransferVendorOrder(items: $items)
 }
+
+mutation Transfer($items: [TransferOrderArgs!]!) {
+  transfer(items: $items)
+}
