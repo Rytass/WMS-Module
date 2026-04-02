@@ -171,7 +171,6 @@ export const SingleAutoCompleteByIdField: FC<
         className={className}
         size={size}
         placeholder={placeholder}
-        fullWidth
         mode="single"
         onSearch={onSearch}
         onChange={onChange}
