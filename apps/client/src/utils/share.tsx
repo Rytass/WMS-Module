@@ -1,5 +1,6 @@
+import { isNull } from 'lodash';
 import { TableColumn, Icon } from '@mezzanine-ui/react';
-import { LockIcon } from '@mezzanine-ui/icons';
+import { LockIcon, DangerousOutlineIcon } from '@mezzanine-ui/icons';
 import {
   StockStatus,
   AggregatedStockFragment,
@@ -102,13 +103,15 @@ export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
     render: (source) => stockStatusName(source.status),
   },
   {
-    key: 'isInspection',
+    key: 'inspectionResult',
     title: '檢驗',
     width: 48,
     align: 'center',
     render: (source) =>
-      source.isInspection ? (
+      isNull(source.inspectionResult) ? (
         <Icon icon={WaitIcon} color="brand" size={16} />
+      ) : !source.inspectionResult ? (
+        <Icon icon={DangerousOutlineIcon} color="error" size={16} />
       ) : null,
   },
   {
