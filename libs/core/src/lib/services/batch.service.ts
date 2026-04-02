@@ -43,8 +43,8 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       saleSerialId: IsNull(),
       customerId: IsNull(),
       vendorId: IsNull(),
-      inspectionId: IsNull(),
       transferId: IsNull(),
+      inspectionResult: IsNull(),
       held: false,
       inShipment: false,
     };
@@ -98,7 +98,7 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       saleSerialId: mergedBatch.saleSerialId ?? null,
       customerId: mergedBatch.customerId ?? null,
       vendorId: mergedBatch.vendorId ?? null,
-      inspectionId: mergedBatch.inspectionId ?? null,
+      inspectionResult: mergedBatch.inspectionResult ?? null,
       transferId: mergedBatch.transferId ?? null,
       held: mergedBatch.held ?? false,
       inShipment: mergedBatch.inShipment ?? false,

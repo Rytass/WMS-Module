@@ -113,7 +113,7 @@ type AggregatedStockDto {
   saleSerialId: ID
   customerId: ID
   vendorId: ID
-  isInspection: Boolean
+  inspectionResult: Boolean
   id: ID!
   material: MaterialDto!
   batch: BatchDto!
@@ -615,6 +615,8 @@ input UpdateReceiveInventoryOrderItemArgs {
 input ReceiveOrderArgs {
   itemId: String!
   batchKey: String
+  locationKey: String
+  loaderKey: String
   quantity: Int!
 }
 

@@ -199,7 +199,7 @@ export class StockService<
       queryBuilder.addSelect('b."saleSerialId"', 'saleSerialId');
       queryBuilder.addSelect('b."customerId"', 'customerId');
       queryBuilder.addSelect('b."vendorId"', 'vendorId');
-      queryBuilder.addSelect('b."inspectionId" IS NOT NULL', 'isInspection');
+      queryBuilder.addSelect('b."inspectionResult"', 'inspectionResult');
       queryBuilder.addSelect('SUM(stock.quantity)', 'quantity');
       queryBuilder.groupBy('stock."materialId"');
       queryBuilder.addGroupBy('stock."batchId"');
@@ -213,7 +213,7 @@ export class StockService<
       queryBuilder.addGroupBy('b."saleSerialId"');
       queryBuilder.addGroupBy('b."customerId"');
       queryBuilder.addGroupBy('b."vendorId"');
-      queryBuilder.addGroupBy('b."inspectionId" IS NOT NULL');
+      queryBuilder.addGroupBy('b."inspectionResult"');
       queryBuilder.having('SUM(stock.quantity) <> 0');
 
       if (options.aggregatedKeys?.length)
@@ -319,7 +319,10 @@ export class StockService<
     paginatedQueryBuilder.addSelect('agg."saleSerialId"', 'saleSerialId');
     paginatedQueryBuilder.addSelect('agg."customerId"', 'customerId');
     paginatedQueryBuilder.addSelect('agg."vendorId"', 'vendorId');
-    paginatedQueryBuilder.addSelect('agg."isInspection"', 'isInspection');
+    paginatedQueryBuilder.addSelect(
+      'agg."inspectionResult"',
+      'inspectionResult',
+    );
 
     // Apply pagination to the outer query
     if (options.offset !== undefined && options.offset >= 0) {
