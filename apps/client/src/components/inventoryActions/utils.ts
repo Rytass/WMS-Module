@@ -154,22 +154,16 @@ export function inventoryActionsEnableStatus(
     stock.status === StockStatus.HELD;
 
   switch (action) {
-    case InventoryActions.CreateTransferInventory: // 位置改變
+    case InventoryActions.CreateTransferInventory:
       return (stock: AggregatedStockFragment) =>
-        [
-          StockStatus.FREE,
-          StockStatus.ALLOCATED,
-          StockStatus.PENDING_INSPECTION,
-          StockStatus.INSPECTION_FAILED,
-        ].includes(stock.status);
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.HoldInventory: // 凍結
+    case InventoryActions.HoldInventory:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE;
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.ReleaseInventoryHold: // 解凍
-      return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.HELD;
+    case InventoryActions.ReleaseInventoryHold:
+      return (stock: AggregatedStockFragment) => isLocked(stock);
 
     case InventoryActions.AllocateInventory: // 銷售訂單標籤
       return (stock: AggregatedStockFragment) =>
@@ -179,35 +173,25 @@ export function inventoryActionsEnableStatus(
       return (stock: AggregatedStockFragment) =>
         stock.status === StockStatus.FREE && !!stock.saleId;
 
-    case InventoryActions.ShipInventory: // 位置改變
+    case InventoryActions.ShipInventory:
       return (stock: AggregatedStockFragment) =>
-        [
-          StockStatus.FREE,
-          StockStatus.ALLOCATED,
-          StockStatus.INSPECTION_FAILED,
-          StockStatus.VENDOR_INVENTORY,
-          StockStatus.CUSTOMER_INVENTORY,
-        ].includes(stock.status);
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.SplitBatch: // 行為
+    case InventoryActions.SplitBatch:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE;
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.MergeBatch: // 行為
+    case InventoryActions.MergeBatch:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE;
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.ReclassifyInventory: // 行為
+    case InventoryActions.ReclassifyInventory:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.FREE, StockStatus.INSPECTION_FAILED].includes(
-          stock.status,
-        );
+        !isPositionChanging(stock) && !isLocked(stock);
 
-    case InventoryActions.TransferToVendor: // 位置改變
+    case InventoryActions.TransferToVendor:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE &&
-        !stock.vendorId &&
-        !stock.customerId;
+        !isPositionChanging(stock) && !isLocked(stock);
 
     case InventoryActions.ReturnFromVendor: // 位置改變
       return (stock: AggregatedStockFragment) =>
@@ -218,22 +202,18 @@ export function inventoryActionsEnableStatus(
       return (stock: AggregatedStockFragment) =>
         [StockStatus.PENDING_INSPECTION].includes(stock.status);
 
-    case InventoryActions.DeliverToCustomer: // 位置改變
+    case InventoryActions.DeliverToCustomer:
       return (stock: AggregatedStockFragment) =>
-        stock.status === StockStatus.FREE &&
-        !stock.vendorId &&
-        !stock.customerId;
+        !isPositionChanging(stock) && !isLocked(stock);
 
     case InventoryActions.ReturnFromCustomer: // 位置改變
       return (stock: AggregatedStockFragment) =>
         stock.status === StockStatus.CUSTOMER_INVENTORY ||
         (stock.status === StockStatus.FREE && !!stock.customerId);
 
-    case InventoryActions.ScrapInventory: // 行為
+    case InventoryActions.ScrapInventory:
       return (stock: AggregatedStockFragment) =>
-        [StockStatus.FREE, StockStatus.INSPECTION_FAILED].includes(
-          stock.status,
-        );
+        !isPositionChanging(stock) && !isLocked(stock);
 
     default:
       return () => false;
