@@ -2,6 +2,7 @@ import { SelectValue } from '@mezzanine-ui/react';
 import { YesOrNo } from '../../../../../utils/share';
 
 export type FieldArrayItem = {
+  itemId: string;
   quantity: number;
   targetReceivedQuantity: number;
   receivedQuantity: number;

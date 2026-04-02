@@ -27,3 +27,7 @@ mutation UpdateReceiveInventoryOrder(
     ...ReceiveInventoryOrder
   }
 }
+
+mutation Receive($items: [ReceiveOrderArgs!]!) {
+  receive(items: $items)
+}

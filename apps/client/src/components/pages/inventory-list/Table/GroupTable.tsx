@@ -6,7 +6,7 @@ import {
   useMemo,
   useEffect,
 } from 'react';
-import { flatten, compact, uniq } from 'lodash';
+import { flatten, compact, uniq, isNull } from 'lodash';
 import {
   Typography,
   TableColumn,
@@ -16,7 +16,11 @@ import {
   Icon,
   cx,
 } from '@mezzanine-ui/react';
-import { CaretDownIcon, LockIcon } from '@mezzanine-ui/icons';
+import {
+  CaretDownIcon,
+  LockIcon,
+  DangerousOutlineIcon,
+} from '@mezzanine-ui/icons';
 import { WaitIcon, TransferIcon } from '../../../../icons';
 import Table from '../../../TableWrapper/Table';
 import {
@@ -187,13 +191,15 @@ function InventoryGroupTable({
         ).join(','),
     },
     {
-      key: 'isInspection',
+      key: 'inspectionResult',
       title: '檢驗',
       width: 48,
       align: 'center',
       render: (source) =>
-        source.aggregatedStock?.some((s) => s.isInspection) ? (
+        source.aggregatedStock?.some((s) => isNull(s.inspectionResult)) ? (
           <Icon icon={WaitIcon} color="neutral" size={16} />
+        ) : source.aggregatedStock?.some((s) => !s.inspectionResult) ? (
+          <Icon icon={DangerousOutlineIcon} color="neutral" size={16} />
         ) : null,
     },
     {

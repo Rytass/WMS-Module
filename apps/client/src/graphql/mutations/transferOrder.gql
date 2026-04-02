@@ -41,3 +41,53 @@ mutation UpdateTransferOrder(
     ...TransferOrder
   }
 }
+
+mutation CreateTransferCustomerOrder(
+  $customerId: String!
+  $items: [CreateTransferCustomerOrderItemArgs!]!
+  $description: String
+  $createdBy: String
+) {
+  createTransferCustomerOrder(
+    customerId: $customerId
+    items: $items
+    description: $description
+    createdBy: $createdBy
+  ) {
+    id
+    key
+    createdAt
+  }
+}
+
+mutation ReturnTransferCustomerOrder(
+  $items: [ReturnTransferCustomerOrderArgs!]!
+) {
+  returnTransferCustomerOrder(items: $items)
+}
+
+mutation CreateTransferVendorOrder(
+  $vendorId: String!
+  $items: [CreateTransferVendorOrderItemArgs!]!
+  $description: String
+  $createdBy: String
+) {
+  createTransferVendorOrder(
+    vendorId: $vendorId
+    items: $items
+    description: $description
+    createdBy: $createdBy
+  ) {
+    id
+    key
+    createdAt
+  }
+}
+
+mutation ReturnTransferVendorOrder($items: [ReturnTransferVendorOrderArgs!]!) {
+  returnTransferVendorOrder(items: $items)
+}
+
+mutation Transfer($items: [TransferOrderArgs!]!) {
+  transfer(items: $items)
+}

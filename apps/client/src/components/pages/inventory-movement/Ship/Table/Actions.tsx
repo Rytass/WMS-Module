@@ -16,8 +16,11 @@ const Actions: FC<ActionsProps> = ({ source }) => {
     useLazyQueryShipInventoryOrder();
 
   const shipInventoryOrder = useMemo(
-    () => data?.shipInventoryOrder ?? null,
-    [data?.shipInventoryOrder],
+    () =>
+      shipModalOpened && !loading && data?.shipInventoryOrder
+        ? data.shipInventoryOrder
+        : null,
+    [data?.shipInventoryOrder, loading, shipModalOpened],
   );
 
   useEffect(() => {
@@ -77,7 +80,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         closeModal={() => {
           setShipModalOpened(false);
         }}
-        open={shipModalOpened && !!shipInventoryOrder}
+        open={!!shipInventoryOrder}
       />
     </>
   );

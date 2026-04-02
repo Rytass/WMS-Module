@@ -8,6 +8,7 @@ import ReturnFromCustomerField from '../../inventoryActions/fields/ReturnFromCus
 import { defaultValues } from '../../inventoryActions/fields/ReturnFromCustomerField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useReturnCustomer } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface ReturnFromCustomerProps {
@@ -27,7 +28,7 @@ const ReturnFromCustomer: FC<ReturnFromCustomerProps> = ({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
-
+  const { onSubmit } = useReturnCustomer(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -37,9 +38,7 @@ const ReturnFromCustomer: FC<ReturnFromCustomerProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={async (values) => {
-        console.log('values', values);
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <div className={classes.wrapper}>

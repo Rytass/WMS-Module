@@ -36,6 +36,7 @@ import {
 import { ReceiveInventoryOrderInput } from '../typings/receive-inventory-order.input';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
+import { HelperService } from './helper.service';
 
 /**
  * Service for managing receive inventory orders and their items
@@ -54,6 +55,7 @@ export class ReceiveInventoryOrderService<
     private readonly dataSource: DataSource,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
+    private readonly helperService: HelperService,
     @Inject(ReceiveInventoryOrderEntity)
     readonly receiveInventoryOrderEntity: EntityTarget<T>,
     @Inject(ReceiveInventoryOrderItemEntity)
@@ -367,6 +369,10 @@ export class ReceiveInventoryOrderService<
           this.receiveInventoryOrderItemEntity,
         );
       const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+      const locationRepository =
+        manager.getRepository<LocationEntityClass>(LocationEntityClass);
+      const loaderRepository =
+        manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
       const stockRepository =
         manager.getRepository<StockEntityClass>(StockEntityClass);
 
@@ -415,6 +421,46 @@ export class ReceiveInventoryOrderService<
           }
 
           const newOrder = await orderRepository.save(orderRepository.create());
+          let batchId = item.batchId;
+          if (option.batchKey && !batchId)
+            batchId = await this.batchService
+              .getBatch({
+                manager,
+                key: option.batchKey,
+                materialId: item.materialId,
+              })
+              .then(({ id }) => id);
+          else
+            batchId = await this.batchService
+              .getBatch({
+                manager,
+                key: await this.helperService.getSeq('BATCH'),
+                materialId: item.materialId,
+              })
+              .then(({ id }) => id);
+
+          const requireInspection =
+            option.requireInspection ?? item.requireInspection;
+          if (requireInspection == false)
+            batchId = await this.batchService
+              .splitBatch({
+                manager,
+                id: batchId as string,
+                inspectionResult: true,
+              })
+              .then(({ id }) => id);
+
+          let locationId = item.locationId;
+          if (option.locationKey && !locationId)
+            locationId = await locationRepository
+              .findOneByOrFail({ key: option.locationKey })
+              .then(({ id }) => id);
+
+          let loaderId = item.loaderId;
+          if (option.loaderKey && !loaderId)
+            loaderId = await loaderRepository
+              .findOneByOrFail({ serialId: option.loaderKey })
+              .then(({ id }) => id);
 
           await Promise.all([
             changeRepository.save(
@@ -426,9 +472,9 @@ export class ReceiveInventoryOrderService<
             ),
             stockRepository.save(
               stockRepository.create({
-                batchId: item.batchId || undefined,
-                locationId: item.locationId || undefined,
-                loaderId: item.loaderId || undefined,
+                batchId: batchId || undefined,
+                locationId: locationId || undefined,
+                loaderId: loaderId || undefined,
                 materialId: item.materialId,
                 quantity: option.quantity * conversionFactor,
                 orderId: newOrder.id,

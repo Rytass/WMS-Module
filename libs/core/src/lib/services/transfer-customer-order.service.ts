@@ -7,6 +7,8 @@ import {
   TransferCustomerOrderChangeEntityClass,
   StockEntity,
   StockEntityClass,
+  LocationEntityClass,
+  LoadersEntityClass,
 } from '../models';
 import {
   DataSource,
@@ -14,6 +16,8 @@ import {
   EntityManager,
   EntityTarget,
   In,
+  IsNull,
+  Not,
 } from 'typeorm';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
@@ -25,8 +29,13 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 
 export type TransferCustomerOrderItemInput = {
-  itemId: string;
+  materialId: string;
+  batchId: string;
+  locationId?: string;
+  loaderId?: string;
   quantity: number;
+  locationKey: string;
+  loaderKey?: string;
 };
 
 @Injectable()
@@ -64,6 +73,8 @@ export class TransferCustomerOrderService<
       ),
       order: manager.getRepository<OrderEntity>(OrderEntity),
       stock: manager.getRepository<StockEntityClass>(this.stockEntity),
+      location: manager.getRepository(LocationEntityClass),
+      loader: manager.getRepository(LoadersEntityClass),
     };
   }
 
@@ -187,7 +198,7 @@ export class TransferCustomerOrderService<
       const newItems: Partial<TransferCustomerOrderItemEntityClass>[] = [];
       const existingItems: Partial<TransferCustomerOrderItemEntityClass>[] = [];
 
-      options.items.forEach((item) => {
+      items.forEach((item) => {
         if (item.removedAt) return;
         if (!item.id) newItems.push({ ...item, orderId: id });
         else if (existingItemIds.has(item.id))
@@ -209,86 +220,98 @@ export class TransferCustomerOrderService<
     return updated as T;
   }
 
-  returnTransferCustomerOrder(
+  async returnTransferCustomerOrder(
     options: TransferCustomerOrderItemInput | TransferCustomerOrderItemInput[],
-  ): Promise<boolean> {
+    manager = this.dataSource.manager,
+  ): Promise<T> {
     if (!Array.isArray(options)) options = [options];
-    return this.dataSource.transaction(async (manager) => {
-      const repos = this.getRepositories(manager);
-      const items = await repos.transferCustomerOrderItem.find({
-        where: { id: In(options.map((o) => o.itemId)) },
-        relations: ['changes'],
-      });
+    const repos = this.getRepositories(manager);
 
-      const itemMap = new Map(items.map((item) => [item.id, item]));
+    const key = await this.helperService.getSeq(this.seqPrefix, manager);
+    const order = await repos.transferCustomerOrder.save(
+      repos.transferCustomerOrder.create({ key }),
+    );
 
+    if (options.length > 0) {
       await Promise.all(
-        options.map(async (option) => {
-          const item = itemMap.get(option.itemId);
-          if (!item) return;
+        options.map(async (data) => {
+          // Ensure required fields are present
+          if (!data.batchId || !data.materialId) return;
 
+          const originalBatch =
+            await this.batchService.batchRepository.findOneByOrFail({
+              id: data.batchId,
+              customerId: Not(IsNull()),
+            });
+          const splittedBatch = await this.batchService.splitBatch({
+            id: data.batchId,
+            customerId: null, // split out a batch with null customerId to indicate it's returned and available
+            manager,
+          });
+
+          // Save item with ORIGINAL batch id to maintain source state
+          const item = await repos.transferCustomerOrderItem.save(
+            repos.transferCustomerOrderItem.create({
+              ...data,
+              customerId: originalBatch.customerId as string,
+              targetTransferredQuantity: -1 * data.quantity,
+              orderId: order.id,
+            }),
+          );
+
+          const base = await repos.order.save({});
           const conversionFactor =
             await this.materialService.getConversionFactor(
               item.materialId,
               item.unitId || undefined,
             );
 
-          const totalTransferred = item.changes.reduce((sum, change) => {
-            if (change.quantityChanged > 0)
-              sum += Number(change.quantityChanged);
-            return sum;
-          }, 0);
+          const change = await repos.transferCustomerOrderChange.save(
+            repos.transferCustomerOrderChange.create({
+              itemId: item.id,
+              id: base.id,
+              quantityChanged:
+                -1 * item.targetTransferredQuantity * conversionFactor,
+            }),
+          );
+          let targetLocationId: string | undefined;
+          if (data.locationKey)
+            targetLocationId = await repos.location
+              .findOneByOrFail({ key: data.locationKey })
+              .then(({ id }) => id);
 
-          const remainingQuantity =
-            totalTransferred - option.quantity * conversionFactor;
+          let targetLoaderId: string | undefined;
+          if (data.loaderKey)
+            targetLoaderId = await repos.loader
+              .findOneByOrFail({ serialId: data.loaderKey })
+              .then(({ id }) => id);
 
-          if (remainingQuantity < 0)
-            throw new Error(
-              `Return quantity exceeds transferred quantity for item ${item.id}`,
-            );
-
-          // Create splitted batch for return completion by setting customerId to null
-          const returnedBatch = await this.batchService.splitBatch({
-            id: item.batchId,
-            customerId: null, // returned batch has no customerId to indicate it's available
-            manager,
-          });
-
-          const base = await repos.order.save({});
-          await Promise.all([
-            repos.transferCustomerOrderChange.save(
-              repos.transferCustomerOrderChange.create({
-                itemId: item.id,
-                id: base.id,
-                quantityChanged: -1 * option.quantity * conversionFactor,
-              }),
-            ),
-            repos.stock.save(
-              repos.stock.create([
-                // add to original batch (restore available)
-                {
-                  orderId: base.id,
-                  materialId: item.materialId,
-                  batchId: item.batchId,
-                  locationId: item.locationId || undefined,
-                  loaderId: item.loaderId || undefined,
-                  quantity: option.quantity * conversionFactor,
-                } as DeepPartial<StockEntityClass>,
-                // deduct from returned splitted batch
-                {
-                  orderId: base.id,
-                  materialId: item.materialId,
-                  batchId: returnedBatch.id,
-                  locationId: item.locationId || undefined,
-                  loaderId: item.loaderId || undefined,
-                  quantity: -1 * option.quantity * conversionFactor,
-                } as DeepPartial<StockEntityClass>,
-              ]),
-            ),
-          ]);
+          // Stock movements track the hold through splitted batch
+          await repos.stock.save(
+            repos.stock.create([
+              // deduct from original batch available stock
+              {
+                orderId: base.id,
+                materialId: item.materialId,
+                batchId: item.batchId, // original batch
+                locationId: item.locationId || undefined,
+                loaderId: item.loaderId || undefined,
+                quantity: -1 * change.quantityChanged,
+              } as DeepPartial<StockEntityClass>,
+              // add to splitted batch in released state
+              {
+                orderId: base.id,
+                materialId: item.materialId,
+                batchId: splittedBatch.id, // splitted batch marked with null customerId
+                locationId: targetLocationId,
+                loaderId: targetLoaderId,
+                quantity: change.quantityChanged,
+              } as DeepPartial<StockEntityClass>,
+            ]),
+          );
         }),
       );
-      return true;
-    });
+    }
+    return order as T;
   }
 }

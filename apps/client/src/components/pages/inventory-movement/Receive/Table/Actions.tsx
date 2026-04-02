@@ -14,8 +14,11 @@ const Actions: FC<ActionsProps> = ({ source }) => {
     useLazyQueryReceiveInventoryOrder();
 
   const receiveInventoryOrder = useMemo(
-    () => data?.receiveInventoryOrder ?? null,
-    [data?.receiveInventoryOrder],
+    () =>
+      receiveModalOpened && !loading && data?.receiveInventoryOrder
+        ? data.receiveInventoryOrder
+        : null,
+    [data?.receiveInventoryOrder, loading, receiveModalOpened],
   );
 
   useEffect(() => {
@@ -47,7 +50,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         closeModal={() => {
           setReceiveModalOpened(false);
         }}
-        open={receiveModalOpened && !!receiveInventoryOrder}
+        open={!!receiveInventoryOrder}
       />
     </>
   );

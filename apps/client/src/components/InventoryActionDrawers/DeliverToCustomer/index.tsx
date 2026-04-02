@@ -8,6 +8,7 @@ import DeliverToCustomerField from '../../inventoryActions/fields/DeliverToCusto
 import { defaultValues } from '../../inventoryActions/fields/DeliverToCustomerField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useTransferCustomer } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface DeliverToCustomerProps {
@@ -27,7 +28,7 @@ const DeliverToCustomer: FC<DeliverToCustomerProps> = ({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
-
+  const { onSubmit } = useTransferCustomer(inventoryList);
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -37,9 +38,7 @@ const DeliverToCustomer: FC<DeliverToCustomerProps> = ({
   return (
     <FormDrawerWrapper
       methods={methods}
-      onSubmit={() => {
-        //
-      }}
+      onSubmit={onSubmit}
       {...formFooterProps}
     >
       <div className={classes.wrapper}>

@@ -7,6 +7,7 @@ import HostSection from '../HostSection';
 import { defaultValues } from '../../../../inventoryActions/fields/ReturnFromVendorField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useReturnVendor } from '../../../../inventoryActions/useApi';
 
 interface ReturnFromVendorProps {
   inventoryList: AggregatedStockFragment[];
@@ -21,11 +22,11 @@ function ReturnFromVendor({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
-
+  const { onSubmit } = useReturnVendor(inventoryList);
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
-    <FormWrapper methods={methods} {...formFooterProps}>
+    <FormWrapper methods={methods} onSubmit={onSubmit} {...formFooterProps}>
       <HostSection
         inventoryList={inventoryList}
         queryInventoryListLoading={queryInventoryListLoading}

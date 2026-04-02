@@ -1,4 +1,4 @@
-import { useQuery, useLazyQuery } from '@apollo/client/react';
+import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
 import {
   useTablePageState,
   useTablePageTotal,
@@ -11,6 +11,7 @@ import {
   ReceiveInventoryOrderDocument,
   ShipInventoryOrderStatus,
   ReceiveInventoryOrderStatus,
+  ReceiveDocument,
 } from '../../../graphql/generated/.graphql';
 
 export function useQueryTransferOrders() {
@@ -134,6 +135,15 @@ export function useLazyQueryReceiveInventoryOrder() {
   return {
     fetchReceiveInventoryOrder,
     data,
+    loading,
+  };
+}
+
+export function useReceive() {
+  const [receive, { loading }] = useMutation(ReceiveDocument);
+
+  return {
+    receive,
     loading,
   };
 }

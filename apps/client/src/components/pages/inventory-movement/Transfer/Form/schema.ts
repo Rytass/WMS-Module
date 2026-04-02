@@ -5,6 +5,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
   items: Yup.array()
     .of(
       Yup.object({
+        itemId: Yup.string().required('必填'),
         quantity: Yup.number()
           .integer('必須為整數')
           .min(0, '不可小於 0')
@@ -12,7 +13,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
             const { targetTransferredQuantity, transferredQuantity } =
               this.parent;
 
-            if (value == null) return true;
+            if (!value) return true;
 
             const max = targetTransferredQuantity - transferredQuantity;
 

@@ -26,3 +26,45 @@ fragment SimpleTransferOrder on TransferOrderDto {
   removedAt
   createdAt
 }
+
+fragment TransferVendorOrderItem on TransferVendorOrderItemDto {
+  id
+  materialId
+  batchId
+  locationId
+  loaderId
+  vendorId
+  orderId
+  unitId
+  targetTransferredQuantity
+}
+
+fragment TransferVendorOrder on TransferVendorOrderDto {
+  id
+  key
+  createdAt
+  items {
+    ...TransferVendorOrderItem
+  }
+}
+
+fragment TransferCustomerOrderItem on TransferCustomerOrderItemDto {
+  id
+  materialId
+  batchId
+  locationId
+  loaderId
+  customerId
+  orderId
+  unitId
+  targetTransferredQuantity
+}
+
+fragment TransferCustomerOrder on TransferCustomerOrderDto {
+  id
+  key
+  createdAt
+  items {
+    ...TransferCustomerOrderItem
+  }
+}
