@@ -49,6 +49,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
           name: Yup.string().required('必填'),
         }).nullable(),
         materialDescription: Yup.string(),
+        requireInspection: Yup.boolean().required('必填'),
         inspectionResult: Yup.string<YesOrNo>().required('必填'),
         removedAt: Yup.string(),
       }),

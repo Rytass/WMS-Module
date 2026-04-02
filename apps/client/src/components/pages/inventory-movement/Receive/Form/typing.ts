@@ -14,6 +14,7 @@ export type FieldArrayItem = {
   location?: SelectValue | null;
   loader?: SelectValue | null;
   materialDescription?: string;
+  requireInspection: boolean;
   inspectionResult: YesOrNo;
   removedAt?: string;
 };
