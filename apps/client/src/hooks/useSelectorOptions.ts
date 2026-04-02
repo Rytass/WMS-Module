@@ -71,18 +71,26 @@ export function useFetchAllOptions<T>({
 export function useFetchMoreOptions<T>({
   fetchData,
   getNewOptions,
+  otherArgs,
   searchByDescription = false,
 }: {
   fetchData: useLazyQuery.ExecFunction<
     T,
-    Exact<{
+    {
       offset?: InputMaybe<Scalars['Int']['input']>;
       limit?: InputMaybe<Scalars['Int']['input']>;
       key?: InputMaybe<Scalars['String']['input']>;
       description?: InputMaybe<Scalars['String']['input']>;
-    }>
+    } & {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [key: string]: any;
+    }
   >;
   getNewOptions: (data: T | undefined) => SelectValue[];
+  otherArgs?: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  };
   searchByDescription?: boolean;
 }) {
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -104,6 +112,7 @@ export function useFetchMoreOptions<T>({
             : {
                 key: searchTerm,
               }),
+          ...(otherArgs ? otherArgs : {}),
         },
       });
 
@@ -117,7 +126,14 @@ export function useFetchMoreOptions<T>({
     } catch (error) {
       console.error('error', error);
     }
-  }, [fetchData, getNewOptions, page, searchByDescription, searchTerm]);
+  }, [
+    fetchData,
+    getNewOptions,
+    page,
+    searchByDescription,
+    otherArgs,
+    searchTerm,
+  ]);
 
   useEffect(() => {
     if (page) {
