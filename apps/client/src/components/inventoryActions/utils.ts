@@ -83,28 +83,28 @@ export function getSaleInformation({
 
 export function stockStatusName(status?: StockStatus): string {
   switch (status) {
-    case StockStatus.PENDING_INSPECTION:
+    case StockStatus.PENDING_INSPECTION: // 標籤
       return '待檢驗';
 
-    case StockStatus.INSPECTION_FAILED:
+    case StockStatus.INSPECTION_FAILED: // 標籤
       return '檢驗失敗';
 
-    case StockStatus.HELD:
+    case StockStatus.HELD: // 凍結
       return '凍結中';
 
-    case StockStatus.IN_TRANSFER:
+    case StockStatus.IN_TRANSFER: // 位置改變
       return '調撥中';
 
-    case StockStatus.IN_SHIPMENT:
+    case StockStatus.IN_SHIPMENT: // 位置改變
       return '出庫中';
 
-    case StockStatus.ALLOCATED:
+    case StockStatus.ALLOCATED: // 標籤
       return '銷售訂單';
 
-    case StockStatus.VENDOR_INVENTORY:
+    case StockStatus.VENDOR_INVENTORY: // 位置改變
       return '供應商庫存';
 
-    case StockStatus.CUSTOMER_INVENTORY:
+    case StockStatus.CUSTOMER_INVENTORY: // 位置改變
       return '客戶倉';
 
     case StockStatus.FREE:
@@ -145,6 +145,14 @@ export type InventoryActionItem = Omit<DropdownOption, 'id'> & {
 export function inventoryActionsEnableStatus(
   action: InventoryActions,
 ): (stock: AggregatedStockFragment) => boolean {
+  const isPositionChanging = (stock: AggregatedStockFragment) =>
+    [StockStatus.IN_TRANSFER, StockStatus.IN_SHIPMENT].includes(stock.status) ||
+    !!stock.vendorId ||
+    !!stock.customerId;
+
+  const isLocked = (stock: AggregatedStockFragment) =>
+    stock.status === StockStatus.HELD;
+
   switch (action) {
     case InventoryActions.CreateTransferInventory: // 位置改變
       return (stock: AggregatedStockFragment) =>
@@ -394,10 +402,10 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.MergeBatch,
   InventoryActions.ReclassifyInventory,
   InventoryActions.TransferToVendor,
-  InventoryActions.ReturnFromVendor, //要測試
+  InventoryActions.ReturnFromVendor,
   InventoryActions.QualityInspection, // 還沒接
   InventoryActions.DeliverToCustomer,
-  InventoryActions.ReturnFromCustomer, //要測試
+  InventoryActions.ReturnFromCustomer,
   InventoryActions.ScrapInventory,
 ].map((action) => ({
   id: action,
