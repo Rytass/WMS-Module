@@ -54,5 +54,43 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         removedAt: Yup.string(),
       }),
     )
+    .test('group-quantity', function (items) {
+      if (!items) return true;
+
+      const groupMap: Record<
+        string,
+        { total: number; limit: number; indexes: number[] }
+      > = {};
+
+      items.forEach((item, index) => {
+        const key = item.itemId;
+
+        if (!groupMap[key]) {
+          groupMap[key] = {
+            total: 0,
+            limit: item.targetReceivedQuantity - item.receivedQuantity,
+            indexes: [],
+          };
+        }
+
+        groupMap[key].total += item.quantity || 0;
+        groupMap[key].indexes.push(index);
+      });
+
+      for (const key in groupMap) {
+        const { total, limit, indexes } = groupMap[key];
+
+        if (total > 0 && total > limit) {
+          const lastIndex = indexes[indexes.length - 1];
+
+          return this.createError({
+            path: `items.${lastIndex}.quantity`,
+            message: '不可超過剩餘入庫數量',
+          });
+        }
+      }
+
+      return true;
+    })
     .required('必填'),
 });
