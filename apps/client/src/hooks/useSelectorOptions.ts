@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   Dispatch,
   SetStateAction,
@@ -5,6 +6,7 @@ import {
   useCallback,
   useEffect,
 } from 'react';
+import { isEqual } from 'lodash';
 import { SelectValue } from '@mezzanine-ui/react';
 import { useLazyQuery } from '@apollo/client/react';
 import { usePreviousValue } from './usePreviousValue';
@@ -82,22 +84,24 @@ export function useFetchMoreOptions<T>({
       key?: InputMaybe<Scalars['String']['input']>;
       description?: InputMaybe<Scalars['String']['input']>;
     } & {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       [key: string]: any;
     }
   >;
   getNewOptions: (data: T | undefined) => SelectValue[];
   otherArgs?: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
   };
   searchByDescription?: boolean;
 }) {
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [currentOtherArgs, setCurrentOtherArgs] = useState<{
+    [key: string]: any;
+  }>({});
   const [page, setPage] = useState<number>(0);
   const [currentOptions, setOptions] = useState<SelectValue[]>([]);
   const [isEnd, setIsEnd] = useState<boolean>(false);
   const preSearchTerm = usePreviousValue(searchTerm);
+  const preOtherArgs = usePreviousValue(otherArgs);
 
   const fetch = useCallback(async () => {
     try {
@@ -112,7 +116,7 @@ export function useFetchMoreOptions<T>({
             : {
                 key: searchTerm,
               }),
-          ...(otherArgs ? otherArgs : {}),
+          ...currentOtherArgs,
         },
       });
 
@@ -131,7 +135,7 @@ export function useFetchMoreOptions<T>({
     getNewOptions,
     page,
     searchByDescription,
-    otherArgs,
+    currentOtherArgs,
     searchTerm,
   ]);
 
@@ -140,6 +144,15 @@ export function useFetchMoreOptions<T>({
       fetch();
     }
   }, [fetch, page]);
+
+  useEffect(() => {
+    if (!isEqual(otherArgs, preOtherArgs)) {
+      setCurrentOtherArgs(otherArgs ?? {});
+      setPage(1);
+      setIsEnd(false);
+      setOptions([]);
+    }
+  }, [fetch, otherArgs, preOtherArgs]);
 
   const onVisibilityChange = useCallback(
     (open: boolean) => {
