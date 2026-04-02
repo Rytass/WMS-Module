@@ -16,6 +16,8 @@ function InventoryMovementReceiveForm({
 }: InventoryMovementReceiveFormProps) {
   if (!receiveInventoryOrder) return null;
 
+  console.log('receiveInventoryOrder', receiveInventoryOrder);
+
   return (
     <InventoryMovementReceiveFormBody
       defaultValues={{

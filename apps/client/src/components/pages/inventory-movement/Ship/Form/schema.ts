@@ -12,7 +12,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
           .test('max-quantity', '不可超過剩餘出庫數量', function (value) {
             const { targetShippedQuantity, shippedQuantity } = this.parent;
 
-            if (value == null) return true;
+            if (!value) return true;
 
             const max = targetShippedQuantity - shippedQuantity;
 

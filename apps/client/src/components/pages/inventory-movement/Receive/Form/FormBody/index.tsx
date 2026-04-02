@@ -46,13 +46,15 @@ function InventoryMovementReceiveFormBody({
       try {
         const { data } = await receive({
           variables: {
-            items: values.items.map((item) => ({
-              itemId: item.itemId,
-              batchKey: item.batch?.name,
-              locationKey: item.location?.name,
-              loaderKey: item.loader?.name,
-              quantity: item.quantity,
-            })),
+            items: values.items
+              .filter((item) => item.quantity > 0)
+              .map((item) => ({
+                itemId: item.itemId,
+                batchKey: item.batch?.name,
+                locationKey: item.location?.name,
+                loaderKey: item.loader?.name,
+                quantity: item.quantity,
+              })),
           },
         });
 

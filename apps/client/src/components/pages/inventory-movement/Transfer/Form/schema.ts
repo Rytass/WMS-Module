@@ -13,7 +13,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
             const { targetTransferredQuantity, transferredQuantity } =
               this.parent;
 
-            if (value == null) return true;
+            if (!value) return true;
 
             const max = targetTransferredQuantity - transferredQuantity;
 
