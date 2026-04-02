@@ -1,4 +1,5 @@
-import { useFieldArray } from 'react-hook-form';
+import { useCallback } from 'react';
+import { useFieldArray, useFormContext } from 'react-hook-form';
 import {
   Table,
   TableColumn,
@@ -15,9 +16,22 @@ import { YesOrNo } from '../../../../../../utils/share';
 import { FormValues, FieldArrayItem } from '../typing';
 
 const FieldArrayTable: FC = () => {
-  const { fields } = useFieldArray<FormValues, 'items'>({
+  const { fields, insert } = useFieldArray<FormValues, 'items'>({
     name: 'items',
   });
+
+  const { getValues } = useFormContext<FormValues>();
+
+  const onDuplicate = useCallback(
+    (index: number) => () => {
+      const currentValues = getValues(`items.${index}`);
+
+      insert(index + 1, {
+        ...currentValues,
+      });
+    },
+    [getValues, insert],
+  );
 
   const columns: TableColumn<FieldArrayItem & TableDataSourceWithId>[] = [
     {
@@ -25,8 +39,8 @@ const FieldArrayTable: FC = () => {
       title: '操作',
       minWidth: 66,
       align: 'center',
-      render: () => (
-        <Button type="button" size="minor">
+      render: (_, index) => (
+        <Button type="button" size="minor" onClick={onDuplicate(index)}>
           拆分
         </Button>
       ),
