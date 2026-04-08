@@ -341,6 +341,43 @@ type TransferVendorOrderDto {
   items: [TransferVendorOrderItemDto!]!
 }
 
+type ScrapeOrderItemDto {
+  id: ID!
+  materialId: ID!
+  batchId: ID!
+  locationId: ID
+  loaderId: ID
+  orderId: ID!
+  unitId: ID
+  targetScrapedQuantity: Int!
+}
+
+type ScrapeOrderDto {
+  id: ID!
+  key: String!
+  createdAt: DateTime!
+  items: [ScrapeOrderItemDto!]!
+}
+
+type QualityInspectionOrderItemDto {
+  id: ID!
+  materialId: ID!
+  batchId: ID!
+  locationId: ID
+  loaderId: ID
+  orderId: ID!
+  unitId: ID
+  targetInspectedQuantity: Int!
+}
+
+type QualityInspectionOrderDto {
+  id: ID!
+  key: String!
+  note: String!
+  createdAt: DateTime!
+  items: [QualityInspectionOrderItemDto!]!
+}
+
 type LoaderUnitDto {
   id: ID!
 }
@@ -475,24 +512,6 @@ type ReclassifyInventoryOrderDto {
   items: [ReclassifyInventoryOrderItemDto!]!
 }
 
-type ScrapeOrderItemDto {
-  id: ID!
-  materialId: ID!
-  batchId: ID!
-  locationId: ID
-  loaderId: ID
-  orderId: ID!
-  unitId: ID
-  targetScrapedQuantity: Int!
-}
-
-type ScrapeOrderDto {
-  id: ID!
-  key: String!
-  createdAt: DateTime!
-  items: [ScrapeOrderItemDto!]!
-}
-
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
@@ -565,6 +584,7 @@ type Mutation {
   mergeBatch(batchKey: String!, materialId: ID!, items: [MergeBatchItemInput!]!): MergeBatchOrderDto!
   reclassifyInventoryOrder(materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
   scrapeMaterials(items: [ScrapeOrderItemInput!]!): ScrapeOrderDto!
+  inspectMaterials(key: String!, note: String, items: [CreateQualityInspectionOrderItemArgs!]!): QualityInspectionOrderDto!
 }
 
 input CreateLoadersArgs {
@@ -808,4 +828,11 @@ input ScrapeOrderItemInput {
   aggregateKey: String!
   unitId: ID
   quantity: Int!
+}
+
+input CreateQualityInspectionOrderItemArgs {
+  aggregateKey: String!
+  unitId: ID
+  quantity: Int!
+  inspectionResult: Boolean!
 }
