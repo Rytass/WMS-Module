@@ -107,13 +107,16 @@ export class AllocateInventoryOrderService<
         );
 
         // Stock movements track the allocation through splitted batch
-        await this.stockService.validateStockAvailability({
-          materialId: item.materialId,
-          batchId: item.batchId,
-          locationId: item.locationId || undefined,
-          loaderId: this.stockService.resolveLoaderId(item.loaderId),
-          quantity: item.targetAllocatedQuantity * conversionFactor,
-        }, manager);
+        await this.stockService.validateStockAvailability(
+          {
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: item.targetAllocatedQuantity * conversionFactor,
+          },
+          manager,
+        );
 
         await repos.stock.save(
           repos.stock.create([
@@ -277,13 +280,16 @@ export class AllocateInventoryOrderService<
             }),
           );
           // Stock movements track the hold through splitted batch
-          await this.stockService.validateStockAvailability({
-            materialId: item.materialId,
-            batchId: item.batchId,
-            locationId: item.locationId || undefined,
-            loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: change.quantityChanged,
-          }, manager);
+          await this.stockService.validateStockAvailability(
+            {
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: item.locationId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
+              quantity: change.quantityChanged,
+            },
+            manager,
+          );
 
           await repos.stock.save(
             repos.stock.create([

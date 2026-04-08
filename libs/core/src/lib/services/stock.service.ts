@@ -14,7 +14,11 @@ import {
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
 import { StockStatus, ChangeType } from '../constants/stock-status';
-import { AggregatedStock, ChangeLog, ValidateStockDeductionParams } from '../typings/aggregated-stock';
+import {
+  AggregatedStock,
+  ChangeLog,
+  ValidateStockDeductionParams,
+} from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
   LoadersEntityClass,

@@ -223,13 +223,16 @@ export class ShipInventoryOrderService<
         );
 
         // Stock movements track the shipment through splitted batch
-        await this.stockService.validateStockAvailability({
-          materialId: item.materialId,
-          batchId: item.batchId,
-          locationId: item.locationId || undefined,
-          loaderId: this.stockService.resolveLoaderId(item.loaderId),
-          quantity: item.targetShippedQuantity * conversionFactor,
-        }, manager);
+        await this.stockService.validateStockAvailability(
+          {
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: item.targetShippedQuantity * conversionFactor,
+          },
+          manager,
+        );
 
         await stockRepository.save(
           stockRepository.create([
@@ -568,13 +571,16 @@ export class ShipInventoryOrderService<
 
           const newOrder = await orderRepository.save(orderRepository.create());
 
-          await this.stockService.validateStockAvailability({
-            materialId: item.materialId,
-            batchId: item.batchId,
-            locationId: item.locationId || undefined,
-            loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: option.quantity * conversionFactor,
-          }, manager);
+          await this.stockService.validateStockAvailability(
+            {
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: item.locationId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
+              quantity: option.quantity * conversionFactor,
+            },
+            manager,
+          );
 
           await Promise.all([
             changeRepository.save(
