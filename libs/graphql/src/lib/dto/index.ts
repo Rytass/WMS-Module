@@ -21,3 +21,7 @@ export * from './transfer-customer-order.dto';
 export * from './transfer-customer-order-item.dto';
 export * from './transfer-vendor-order.dto';
 export * from './transfer-vendor-order-item.dto';
+export * from './scrape-order.dto';
+export * from './scrape-order-item.dto';
+export * from './quality-inspection-order.dto';
+export * from './quality-inspection-order-item.dto';

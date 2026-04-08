@@ -35,6 +35,9 @@ import { resolve } from 'path';
     WmsModuleGraphqlModule.forRootAsync(
       {
         useFactory: async () => ({}),
+        defaultLoaderSerialId: 'DEFAULT',
+        defaultLoaderTypeKey: 'DEFAULT',
+        defaultLocationKey: 'DEFAULT',
       },
       {
         driver: ApolloDriver,

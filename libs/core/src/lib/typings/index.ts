@@ -1,3 +1,4 @@
+export * from './core-module-options';
 export * from './create-loader-type.input';
 export * from './create-loader.input';
 export * from './create-material-unit.input';

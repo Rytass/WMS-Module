@@ -1,7 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { StockEntity, StockEntityClass } from '../models/metadata/stock.entity';
 import {
   DataSource,
+  EntityManager,
   ObjectLiteral,
   Repository,
   SelectQueryBuilder,
@@ -13,15 +14,23 @@ import {
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
 import { StockStatus, ChangeType } from '../constants/stock-status';
-import { AggregatedStock, ChangeLog } from '../typings/aggregated-stock';
+import { AggregatedStock, ChangeLog, ValidateStockDeductionParams } from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
-import { LoadersEntityClass, LocationEntityClass } from '../models';
+import {
+  LoadersEntityClass,
+  LoaderTypeEntityClass,
+  LocationEntityClass,
+} from '../models';
+import { WMS_CORE_MODULE_OPTIONS } from '../typings/core-module-options';
+import type { WmsModuleCoreModuleOptions } from '../typings/core-module-options';
 
 @Injectable()
 export class StockService<
   T extends StockEntityClass = StockEntityClass,
   K extends MaterialEntityClass = MaterialEntityClass,
-> {
+> implements OnModuleInit
+{
+  defaultLoaderId!: string;
   readonly stockRepository: Repository<T>;
   readonly selectQueryBuilder: (
     alias: string,
@@ -52,6 +61,8 @@ export class StockService<
     private readonly dataSource: DataSource,
     @Inject(StockEntity) private readonly stockEntity: EntityTarget<T>,
     @Inject(MaterialEntity) private readonly materialEntity: EntityTarget<K>,
+    @Inject(WMS_CORE_MODULE_OPTIONS)
+    private readonly coreOptions: WmsModuleCoreModuleOptions,
   ) {
     this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
     // select builder for status and quantity calculation, calculated field will override fields in stock entity.
@@ -90,6 +101,58 @@ export class StockService<
         .addSelect('stock_status.held', 'held')
         .addSelect('stock_status.inShipment', 'inShipment')
         .addSelect(`${alias}.*`);
+  }
+
+  async onModuleInit() {
+    const loaderTypeRepo = this.dataSource.getRepository(LoaderTypeEntityClass);
+    const locationRepo = this.dataSource.getRepository(LocationEntityClass);
+    const loaderRepo = this.dataSource.getRepository(LoadersEntityClass);
+
+    // Ensure default loader type exists
+    let loaderType = await loaderTypeRepo.findOneBy({
+      key: this.coreOptions.defaultLoaderTypeKey,
+    });
+    if (!loaderType) {
+      loaderType = await loaderTypeRepo.save(
+        loaderTypeRepo.create({
+          key: this.coreOptions.defaultLoaderTypeKey,
+          description: this.coreOptions.defaultLoaderTypeKey,
+        }),
+      );
+    }
+
+    // Ensure default location exists
+    let location = await locationRepo.findOneBy({
+      key: this.coreOptions.defaultLocationKey,
+    });
+    if (!location) {
+      location = await locationRepo.save(
+        locationRepo.create({
+          key: this.coreOptions.defaultLocationKey,
+          description: this.coreOptions.defaultLocationKey,
+        }),
+      );
+    }
+
+    // Ensure default loader exists
+    let loader = await loaderRepo.findOneBy({
+      serialId: this.coreOptions.defaultLoaderSerialId,
+    });
+    if (!loader) {
+      loader = await loaderRepo.save(
+        loaderRepo.create({
+          serialId: this.coreOptions.defaultLoaderSerialId,
+          typeId: loaderType.id,
+          locationId: location.id,
+        }),
+      );
+    }
+
+    this.defaultLoaderId = loader.id;
+  }
+
+  resolveLoaderId(loaderId: string | null | undefined): string {
+    return loaderId || this.defaultLoaderId;
   }
 
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(
@@ -290,6 +353,37 @@ export class StockService<
     );
 
     return queryBuilder.getRawOne<AggregatedStock>();
+  }
+
+  async validateStockAvailability(
+    params: ValidateStockDeductionParams,
+    manager: EntityManager = this.dataSource.manager,
+  ): Promise<void> {
+    const { materialId, batchId, locationId, loaderId, quantity } = params;
+
+    const aggregateQuery = this.pipeSelectOptionsToQueryBuilder(
+      { materialId, batchId, locationId, loaderId } as FindStockInput<T>,
+      this.selectQueryBuilder(
+        'stock',
+        manager.getRepository<T>(this.stockEntity).createQueryBuilder('stock'),
+      ),
+      true,
+    );
+
+    const result = await manager
+      .createQueryBuilder()
+      .select('COALESCE(SUM(agg.quantity), 0)', 'total')
+      .from(`(${aggregateQuery.getQuery()})`, 'agg')
+      .setParameters(aggregateQuery.getParameters())
+      .getRawOne<{ total: string }>();
+
+    const available = parseFloat(result?.total ?? '0');
+
+    if (available < quantity) {
+      throw new Error(
+        `Insufficient stock: available ${available}, requested ${quantity} (materialId=${materialId}, batchId=${batchId}, loaderId=${loaderId})`,
+      );
+    }
   }
 
   async findAggregatedStocks(

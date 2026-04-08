@@ -27,6 +27,7 @@ import { DeallocateInventoryOrderItemInput } from '../typings/deallocate-invento
 import { MaterialService } from './material.service';
 import { FindAllocateInventoryOrderInput } from '../typings/find-allocate-inventory-order.input';
 import { BatchService } from './batch.service';
+import { StockService } from './stock.service';
 
 @Injectable()
 export class AllocateInventoryOrderService<
@@ -42,6 +43,7 @@ export class AllocateInventoryOrderService<
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
+    private readonly stockService: StockService,
     @Inject(AllocateInventoryOrderEntity)
     readonly allocateInventoryOrderEntity: EntityTarget<T>,
     @Inject(AllocateInventoryOrderItemEntity)
@@ -105,6 +107,14 @@ export class AllocateInventoryOrderService<
         );
 
         // Stock movements track the allocation through splitted batch
+        await this.stockService.validateStockAvailability({
+          materialId: item.materialId,
+          batchId: item.batchId,
+          locationId: item.locationId || undefined,
+          loaderId: this.stockService.resolveLoaderId(item.loaderId),
+          quantity: item.targetAllocatedQuantity * conversionFactor,
+        }, manager);
+
         await repos.stock.save(
           repos.stock.create([
             // deduct from original batch available stock
@@ -113,7 +123,7 @@ export class AllocateInventoryOrderService<
               materialId: item.materialId,
               batchId: item.batchId, // original batch
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: -1 * item.targetAllocatedQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in allocated state
@@ -122,7 +132,7 @@ export class AllocateInventoryOrderService<
               materialId: item.materialId,
               batchId: splittedBatch.id, // splitted batch marked with saleId
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.targetAllocatedQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
           ]),
@@ -267,6 +277,14 @@ export class AllocateInventoryOrderService<
             }),
           );
           // Stock movements track the hold through splitted batch
+          await this.stockService.validateStockAvailability({
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: change.quantityChanged,
+          }, manager);
+
           await repos.stock.save(
             repos.stock.create([
               // deduct from original batch available stock
@@ -275,7 +293,7 @@ export class AllocateInventoryOrderService<
                 materialId: item.materialId,
                 batchId: item.batchId, // original batch
                 locationId: item.locationId || undefined,
-                loaderId: item.loaderId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
               // add to splitted batch in released state
@@ -284,7 +302,7 @@ export class AllocateInventoryOrderService<
                 materialId: item.materialId,
                 batchId: splittedBatch.id, // splitted batch marked deallocated with null saleId
                 locationId: item.locationId || undefined,
-                loaderId: item.loaderId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
             ]),
