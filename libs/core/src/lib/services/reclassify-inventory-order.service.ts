@@ -15,6 +15,7 @@ import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
+import { StockService } from './stock.service';
 
 @Injectable()
 export class ReclassifyInventoryOrderService<
@@ -29,6 +30,7 @@ export class ReclassifyInventoryOrderService<
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly helperService: HelperService,
+    private readonly stockService: StockService,
     @Inject(ReclassifyInventoryOrderEntity)
     readonly reclassifyInventoryOrderEntity: EntityTarget<T>,
     @Inject(ReclassifyInventoryOrderItemEntity)
@@ -108,6 +110,14 @@ export class ReclassifyInventoryOrderService<
           );
 
           // Update stock: deduct from original material and add to new material
+          await this.stockService.validateStockAvailability({
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: item.quantity * conversionFactor,
+          }, manager);
+
           await stockRepository.save(
             stockRepository.create([
               // Deduct from original material batch
@@ -116,7 +126,7 @@ export class ReclassifyInventoryOrderService<
                 materialId: item.materialId,
                 batchId: item.batchId,
                 locationId: item.locationId,
-                loaderId: item.loaderId,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,
               // Add to new material batch
@@ -125,7 +135,7 @@ export class ReclassifyInventoryOrderService<
                 materialId: material.id,
                 batchId: targetBatch.id,
                 locationId: item.locationId,
-                loaderId: item.loaderId,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,
             ]),
