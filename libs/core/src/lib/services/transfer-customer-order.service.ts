@@ -117,13 +117,16 @@ export class TransferCustomerOrderService<
         );
 
         // Stock movements track the transfer through splitted batch
-        await this.stockService.validateStockAvailability({
-          materialId: item.materialId,
-          batchId: item.batchId,
-          locationId: item.locationId || undefined,
-          loaderId: this.stockService.resolveLoaderId(item.loaderId),
-          quantity: item.targetTransferredQuantity * conversionFactor,
-        }, manager);
+        await this.stockService.validateStockAvailability(
+          {
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: item.targetTransferredQuantity * conversionFactor,
+          },
+          manager,
+        );
 
         await repos.stock.save(
           repos.stock.create([
@@ -297,13 +300,16 @@ export class TransferCustomerOrderService<
               .then(({ id }) => id);
 
           // Stock movements track the hold through splitted batch
-          await this.stockService.validateStockAvailability({
-            materialId: item.materialId,
-            batchId: item.batchId,
-            locationId: item.locationId || undefined,
-            loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: change.quantityChanged,
-          }, manager);
+          await this.stockService.validateStockAvailability(
+            {
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: item.locationId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
+              quantity: change.quantityChanged,
+            },
+            manager,
+          );
 
           await repos.stock.save(
             repos.stock.create([
