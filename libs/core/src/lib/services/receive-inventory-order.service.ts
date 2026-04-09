@@ -441,14 +441,17 @@ export class ReceiveInventoryOrderService<
               })
               .then(({ id }) => id);
 
-          const requireInspection =
-            option.requireInspection ?? item.requireInspection;
-          if (requireInspection == false)
+          const inspectionResult =
+            item.requireInspection === false
+              ? true
+              : (option.inspectionResult ?? null);
+
+          if (inspectionResult != null)
             batchId = await this.batchService
               .splitBatch({
                 manager,
                 id: batchId as string,
-                inspectionResult: true,
+                inspectionResult,
               })
               .then(({ id }) => id);
 

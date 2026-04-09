@@ -16,4 +16,7 @@ export class ReceiveOrderArgs {
 
   @Field(() => Int)
   quantity!: number;
+
+  @Field(() => Boolean, { nullable: true })
+  inspecttionResult?: boolean;
 }
