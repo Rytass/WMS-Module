@@ -8,6 +8,7 @@ import HostSection from '../HostSection';
 import { defaultValues } from '../../../../inventoryActions/fields/QualityInspectionField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useQualityInspection } from '../../../../inventoryActions/useApi';
 
 interface QualityInspectionProps {
   inventoryList: AggregatedStockFragment[];
@@ -22,6 +23,7 @@ function QualityInspection({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
+  const { onSubmit } = useQualityInspection(inventoryList);
   const formFooterProps = useShareFooterProps(inventoryList);
 
   return (
@@ -34,7 +36,10 @@ function QualityInspection({
       secondaryButtonVariant="destructive-primary"
       disableCancelButton={formFooterProps.disableSubmitButton}
       onSecondaryButtonSubmit={async (values) => {
-        console.log('不通過！', values);
+        await onSubmit(values, false);
+      }}
+      onSubmit={async (values) => {
+        await onSubmit(values, true);
       }}
     >
       <HostSection

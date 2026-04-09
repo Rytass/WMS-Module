@@ -115,7 +115,7 @@ const FieldArrayTable: FC = () => {
             placeholder="輸入批號"
             fuzzySearch={false}
             selectValueMode
-            disabled={source.receivedQuantity > 0 || !!source.removedAt}
+            disabled={!!source.removedAt}
           />
         );
       },
@@ -144,11 +144,7 @@ const FieldArrayTable: FC = () => {
               },
             ]}
             size="sub"
-            disabled={
-              source.receivedQuantity > 0 ||
-              !!source.removedAt ||
-              !source.requireInspection
-            }
+            disabled={!!source.removedAt || !source.requireInspection}
           />
         );
       },
@@ -165,7 +161,7 @@ const FieldArrayTable: FC = () => {
             placeholder="輸入目標位置"
             fuzzySearch={false}
             selectValueMode
-            disabled={source.receivedQuantity > 0 || !!source.removedAt}
+            disabled={!!source.removedAt}
           />
         );
       },
@@ -182,7 +178,7 @@ const FieldArrayTable: FC = () => {
             placeholder="輸入目標載具"
             fuzzySearch={false}
             selectValueMode
-            disabled={source.receivedQuantity > 0 || !!source.removedAt}
+            disabled={!!source.removedAt}
           />
         );
       },

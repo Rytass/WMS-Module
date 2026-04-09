@@ -18,6 +18,7 @@ import {
   ReclassifyInventoryOrderDocument,
   CreateTransferVendorOrderDocument,
   ReturnTransferVendorOrderDocument,
+  InspectMaterialsDocument,
   CreateTransferCustomerOrderDocument,
   ReturnTransferCustomerOrderDocument,
   ScrapeMaterialsDocument,
@@ -31,6 +32,7 @@ import { MergeBatchFieldValues } from './fields/MergeBatchField/typing';
 import { ReclassifyInventoryFieldValues } from './fields/ReclassifyInventoryField/typing';
 import { TransferToVendorFieldValues } from './fields/TransferToVendorField/typing';
 import { ReturnFromVendorFieldValues } from './fields/ReturnFromVendorField/typing';
+import { QualityInspectionFieldValues } from './fields/QualityInspectionField/typing';
 import { DeliverToCustomerFieldValues } from './fields/DeliverToCustomerField/typing';
 import { ReturnFromCustomerFieldValues } from './fields/ReturnFromCustomerField/typing';
 import { useInventoryActions } from './useInventoryActions';
@@ -578,6 +580,48 @@ export function useReturnVendor(inventoryList: AggregatedStockFragment[]) {
       }
     },
     [inventoryList, inventorySignature, resetAll, returnVendor, targetAction],
+  );
+
+  return {
+    onSubmit,
+  };
+}
+
+export function useQualityInspection(inventoryList: AggregatedStockFragment[]) {
+  const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const [qualityInspect] = useMutation(InspectMaterialsDocument, {
+    refetchQueries: refetchQueriesAfterInventoryActions,
+  });
+
+  const onSubmit = useCallback(
+    async (values: QualityInspectionFieldValues, result: boolean) => {
+      try {
+        const { data } = await qualityInspect({
+          variables: {
+            key: values.key,
+            note: values.description,
+            items: formatAvailableInventoryList({
+              inventoryList,
+              targetAction,
+              inventorySignature,
+            }).map((s) => ({
+              aggregateKey: s.id,
+              unitId: s.unitId,
+              quantity: s.quantity,
+              inspectionResult: result,
+            })),
+          },
+        });
+
+        if (data?.inspectMaterials.id) {
+          Message.success(`${targetAction?.submitText}成功`);
+          resetAll();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [inventoryList, inventorySignature, qualityInspect, resetAll, targetAction],
   );
 
   return {
