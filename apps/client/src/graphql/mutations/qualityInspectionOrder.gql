@@ -1,0 +1,11 @@
+mutation InspectMaterials(
+  $key: String!
+  $items: [CreateQualityInspectionOrderItemArgs!]!
+  $note: String
+) {
+  inspectMaterials(key: $key, items: $items, note: $note) {
+    id
+    key
+    note
+  }
+}

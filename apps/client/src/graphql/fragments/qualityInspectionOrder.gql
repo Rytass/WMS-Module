@@ -1,0 +1,20 @@
+fragment QualityInspectionOrderItem on QualityInspectionOrderItemDto {
+  id
+  materialId
+  batchId
+  locationId
+  loaderId
+  orderId
+  unitId
+  targetInspectedQuantity
+}
+
+fragment QualityInspectionOrder on QualityInspectionOrderDto {
+  id
+  key
+  note
+  createdAt
+  items {
+    ...QualityInspectionOrderItem
+  }
+}

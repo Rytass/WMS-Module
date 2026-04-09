@@ -91,13 +91,16 @@ export class ScrapeService<
         );
 
         // Deduct stock from original batch (only deduction, no transfer)
-        await this.stockService.validateStockAvailability({
-          materialId: item.materialId,
-          batchId: item.batchId,
-          locationId: item.locationId || undefined,
-          loaderId: this.stockService.resolveLoaderId(item.loaderId),
-          quantity: item.targetScrapedQuantity * conversionFactor,
-        }, manager);
+        await this.stockService.validateStockAvailability(
+          {
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: item.targetScrapedQuantity * conversionFactor,
+          },
+          manager,
+        );
 
         await repos.stock.save(
           repos.stock.create({

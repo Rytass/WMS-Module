@@ -100,13 +100,16 @@ export class SplitBatchOrderService<
           );
 
           // Update stock: deduct from original batch and add to target batch
-          await this.stockService.validateStockAvailability({
-            materialId: originalBatch.materialId,
-            batchId: options.batchId,
-            locationId: item.locationId,
-            loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.quantity * conversionFactor,
-          }, manager);
+          await this.stockService.validateStockAvailability(
+            {
+              materialId: originalBatch.materialId,
+              batchId: options.batchId,
+              locationId: item.locationId,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
+              quantity: item.quantity * conversionFactor,
+            },
+            manager,
+          );
 
           await stockRepository.save(
             stockRepository.create([
