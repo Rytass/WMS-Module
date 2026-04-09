@@ -9,6 +9,7 @@ import QualityInspectionField from '../../inventoryActions/fields/QualityInspect
 import { defaultValues } from '../../inventoryActions/fields/QualityInspectionField/defaultValues';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
+import { useQualityInspection } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface QualityInspectionProps {
@@ -29,6 +30,8 @@ const QualityInspection: FC<QualityInspectionProps> = ({
     defaultValues,
   });
 
+  const { onSubmit } = useQualityInspection(inventoryList);
+
   const formFooterProps = useShareFooterProps({
     inventoryList,
     onClose,
@@ -46,10 +49,10 @@ const QualityInspection: FC<QualityInspectionProps> = ({
         formFooterProps.bottomPrimaryActionDisabled
       }
       bottomOnSecondaryActionClick={async (values) => {
-        console.log('不通過！', values);
+        await onSubmit(values, false);
       }}
-      onSubmit={async () => {
-        //
+      onSubmit={async (values) => {
+        await onSubmit(values, true);
       }}
     >
       <div className={classes.wrapper}>

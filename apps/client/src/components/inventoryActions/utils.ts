@@ -379,7 +379,7 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.ReclassifyInventory,
   InventoryActions.TransferToVendor,
   InventoryActions.ReturnFromVendor,
-  // InventoryActions.QualityInspection,
+  InventoryActions.QualityInspection,
   InventoryActions.DeliverToCustomer,
   InventoryActions.ReturnFromCustomer,
   InventoryActions.ScrapInventory,
