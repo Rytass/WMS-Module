@@ -638,6 +638,7 @@ input ReceiveOrderArgs {
   locationKey: String
   loaderKey: String
   quantity: Int!
+  inspecttionResult: Boolean
 }
 
 input CreateShipInventoryOrderReferenceArgs {
