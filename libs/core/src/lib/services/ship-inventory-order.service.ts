@@ -44,6 +44,7 @@ import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
+import { StockService } from './stock.service';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -63,6 +64,7 @@ export class ShipInventoryOrderService<
     private readonly dataSource: DataSource,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
+    private readonly stockService: StockService,
     @Inject(ShipInventoryOrderEntity)
     readonly shipInventoryOrderEntity: EntityTarget<T>,
     @Inject(ShipInventoryOrderItemEntity)
@@ -221,6 +223,17 @@ export class ShipInventoryOrderService<
         );
 
         // Stock movements track the shipment through splitted batch
+        await this.stockService.validateStockAvailability(
+          {
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: item.targetShippedQuantity * conversionFactor,
+          },
+          manager,
+        );
+
         await stockRepository.save(
           stockRepository.create([
             // deduct from original batch available stock
@@ -229,7 +242,7 @@ export class ShipInventoryOrderService<
               materialId: item.materialId,
               batchId: item.batchId, // original batch
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: -1 * item.targetShippedQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in shipment state
@@ -238,7 +251,7 @@ export class ShipInventoryOrderService<
               materialId: item.materialId,
               batchId: splittedBatch.id, // splitted batch marked inShipment
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.targetShippedQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
           ]),
@@ -558,6 +571,17 @@ export class ShipInventoryOrderService<
 
           const newOrder = await orderRepository.save(orderRepository.create());
 
+          await this.stockService.validateStockAvailability(
+            {
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: item.locationId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
+              quantity: option.quantity * conversionFactor,
+            },
+            manager,
+          );
+
           await Promise.all([
             changeRepository.save(
               changeRepository.create({
@@ -572,6 +596,8 @@ export class ShipInventoryOrderService<
                 {
                   batchId: item.batchId,
                   materialId: item.materialId,
+                  locationId: item.locationId || undefined,
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
                   quantity: option.quantity * conversionFactor,
                   orderId: newOrder.id,
                 } as DeepPartial<StockEntityClass>,
@@ -579,6 +605,8 @@ export class ShipInventoryOrderService<
                 {
                   batchId: shippedBatch.id,
                   materialId: item.materialId,
+                  locationId: item.locationId || undefined,
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
                   quantity: -1 * option.quantity * conversionFactor,
                   orderId: newOrder.id,
                 } as DeepPartial<StockEntityClass>,

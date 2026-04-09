@@ -24,7 +24,7 @@ import { resolve } from 'path';
           database: await vault.get<string>('DB_NAME'),
           schema: await vault.get<string>('DB_SCHEMA'),
           autoLoadEntities: true,
-          synchronize: (await vault.get<string>('NODE_ENV')) == 'development',
+          synchronize: (await vault.get<string>('NODE_ENV')) !== 'development',
           logging: 'all',
           uuidExtension: 'uuid-ossp',
         };
@@ -35,6 +35,9 @@ import { resolve } from 'path';
     WmsModuleGraphqlModule.forRootAsync(
       {
         useFactory: async () => ({}),
+        defaultLoaderSerialId: 'DEFAULT',
+        defaultLoaderTypeKey: 'DEFAULT',
+        defaultLocationKey: 'DEFAULT',
       },
       {
         driver: ApolloDriver,

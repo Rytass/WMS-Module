@@ -2,6 +2,7 @@ import { Repository } from 'typeorm';
 import { StockEntityClass } from '../models';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { MaterialService } from './material.service';
+import { StockService } from './stock.service';
 
 export interface StockEntryParams {
   materialId: string;
@@ -24,6 +25,7 @@ export interface Repositories {
  */
 export abstract class BaseOrderService {
   protected abstract materialService: MaterialService;
+  protected abstract stockService: StockService;
 
   /**
    * Creates a new order and saves a positive quantity stock entry
@@ -54,7 +56,7 @@ export abstract class BaseOrderService {
         materialId,
         batchId,
         locationId: locationId || undefined,
-        loaderId: loaderId || undefined,
+        loaderId: this.stockService.resolveLoaderId(loaderId),
         quantity: quantity * conversionFactor,
       }),
     );
@@ -86,13 +88,24 @@ export abstract class BaseOrderService {
 
     // Create negative stock entry linked to source order
     // This allows the status calculation to determine what status is being deducted from
+    await this.stockService.validateStockAvailability(
+      {
+        materialId,
+        batchId,
+        locationId: locationId || undefined,
+        loaderId: this.stockService.resolveLoaderId(loaderId),
+        quantity: quantity * conversionFactor,
+      },
+      repos.stock.manager,
+    );
+
     await repos.stock.save(
       repos.stock.create({
         orderId: order.id,
         materialId,
         batchId,
         locationId: locationId || undefined,
-        loaderId: loaderId || undefined,
+        loaderId: this.stockService.resolveLoaderId(loaderId),
         quantity: -1 * quantity * conversionFactor,
       }),
     );

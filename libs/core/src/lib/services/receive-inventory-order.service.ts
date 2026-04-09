@@ -37,6 +37,7 @@ import { ReceiveInventoryOrderInput } from '../typings/receive-inventory-order.i
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
+import { StockService } from './stock.service';
 
 /**
  * Service for managing receive inventory orders and their items
@@ -56,6 +57,7 @@ export class ReceiveInventoryOrderService<
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly helperService: HelperService,
+    private readonly stockService: StockService,
     @Inject(ReceiveInventoryOrderEntity)
     readonly receiveInventoryOrderEntity: EntityTarget<T>,
     @Inject(ReceiveInventoryOrderItemEntity)
@@ -474,7 +476,7 @@ export class ReceiveInventoryOrderService<
               stockRepository.create({
                 batchId: batchId || undefined,
                 locationId: locationId || undefined,
-                loaderId: loaderId || undefined,
+                loaderId: this.stockService.resolveLoaderId(loaderId),
                 materialId: item.materialId,
                 quantity: option.quantity * conversionFactor,
                 orderId: newOrder.id,

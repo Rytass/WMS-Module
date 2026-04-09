@@ -27,6 +27,7 @@ import {
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
+import { StockService } from './stock.service';
 
 export type TransferVendorOrderItemInput = {
   materialId: string;
@@ -51,6 +52,7 @@ export class TransferVendorOrderService<
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
+    private readonly stockService: StockService,
     @Inject(TransferVendorOrderEntity)
     readonly transferVendorOrderEntity: EntityTarget<T>,
     @Inject(TransferVendorOrderItemEntity)
@@ -115,6 +117,17 @@ export class TransferVendorOrderService<
         );
 
         // Stock movements track the transfer through splitted batch
+        await this.stockService.validateStockAvailability(
+          {
+            materialId: item.materialId,
+            batchId: item.batchId,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: item.targetTransferredQuantity * conversionFactor,
+          },
+          manager,
+        );
+
         await repos.stock.save(
           repos.stock.create([
             // deduct from original batch available stock
@@ -123,7 +136,7 @@ export class TransferVendorOrderService<
               materialId: item.materialId,
               batchId: item.batchId, // original batch
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: -1 * item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in vendor transfer state
@@ -132,7 +145,7 @@ export class TransferVendorOrderService<
               materialId: item.materialId,
               batchId: splittedBatch.id, // splitted batch marked with vendorId
               locationId: item.locationId || undefined,
-              loaderId: item.loaderId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
           ]),
@@ -287,6 +300,17 @@ export class TransferVendorOrderService<
               .then(({ id }) => id);
 
           // Stock movements track the hold through splitted batch
+          await this.stockService.validateStockAvailability(
+            {
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: item.locationId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
+              quantity: change.quantityChanged,
+            },
+            manager,
+          );
+
           await repos.stock.save(
             repos.stock.create([
               // deduct from original batch available stock
@@ -295,7 +319,7 @@ export class TransferVendorOrderService<
                 materialId: item.materialId,
                 batchId: item.batchId, // original batch
                 locationId: item.locationId || undefined,
-                loaderId: item.loaderId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
               // add to splitted batch in released state
@@ -304,7 +328,7 @@ export class TransferVendorOrderService<
                 materialId: item.materialId,
                 batchId: splittedBatch.id, // splitted batch marked with null vendorId
                 locationId: targetLocationId,
-                loaderId: targetLoaderId,
+                loaderId: this.stockService.resolveLoaderId(targetLoaderId),
                 quantity: change.quantityChanged,
               } as DeepPartial<StockEntityClass>,
             ]),

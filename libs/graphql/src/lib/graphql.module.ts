@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { GqlModuleAsyncOptions, GraphQLModule } from '@nestjs/graphql';
-import { WMSBaseModuleAsyncOptions } from '@rytass/wms-base-nestjs-module';
 import { WmsModuleCoreModule } from '@wms-module/core';
+import type { WmsModuleCoreModuleAsyncOptions } from '@wms-module/core';
 import { HelperModule, LoaderService } from './helpers';
 import { LoaderMutation } from './mutations/loader.mutation';
 import { LoaderQuery } from './queries/loader.query';
@@ -53,6 +53,7 @@ import { TransferVendorOrderResolver } from './resolvers/transfer-vendor-order.r
 import { SplitBatchResolver } from './resolvers/split-batch.resolver';
 import { MergeBatchOrderResolver } from './resolvers/merge-batch.resolver';
 import { ScrapeMutation } from './mutations/scrape-order.mutation';
+import { QualityInspectionOrderMutation } from './mutations/quality-inspection-order.mutation';
 
 const exportDependencies = [
   UnitQuery,
@@ -113,13 +114,14 @@ const exportDependencies = [
   ReclassifyInventoryOrderMutation,
 
   ScrapeMutation,
+  QualityInspectionOrderMutation,
 ];
 @Module({
   providers: exportDependencies,
 })
 export class WmsModuleGraphqlModule {
   static forRootAsync(
-    options: WMSBaseModuleAsyncOptions,
+    options: WmsModuleCoreModuleAsyncOptions,
     gqlOptions: GqlModuleAsyncOptions,
   ) {
     const coreModule = WmsModuleCoreModule.forRootAsync(options);
