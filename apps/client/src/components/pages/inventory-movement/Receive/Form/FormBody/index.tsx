@@ -14,6 +14,7 @@ import FieldArrayTable from './FieldArrayTable';
 import { formSchema } from '../schema';
 import { FormValues } from '../typing';
 import { useReceive } from '../../../useApi';
+import { YesOrNo } from '../../../../../../utils/share';
 import classes from './index.module.scss';
 
 interface InventoryMovementReceiveFormBodyProps {
@@ -54,6 +55,11 @@ function InventoryMovementReceiveFormBody({
                 locationKey: item.location?.name,
                 loaderKey: item.loader?.name,
                 quantity: item.quantity,
+                inspecttionResult: item.requireInspection
+                  ? item.inspectionResult === YesOrNo.NULL
+                    ? undefined
+                    : item.inspectionResult === YesOrNo.YES
+                  : undefined,
               })),
           },
         });
