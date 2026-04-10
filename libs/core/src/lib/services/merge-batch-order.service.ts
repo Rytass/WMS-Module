@@ -8,7 +8,7 @@ import {
   StockEntityClass,
   BatchEntityClass,
 } from '../models';
-import { DataSource, DeepPartial, EntityTarget } from 'typeorm';
+import { DataSource, DeepPartial, EntityTarget, In } from 'typeorm';
 import { MergeBatchInput } from '../typings/merge-batch.input';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { MaterialService } from './material.service';
@@ -48,6 +48,38 @@ export class MergeBatchOrderService<
       );
       const orderRepository = manager.getRepository(OrderEntity);
       const stockRepository = manager.getRepository(StockEntityClass);
+      const batchRepository = manager.getRepository(BatchEntityClass);
+
+      // Verify all source batches have identical metadata (except key and groupId)
+      const sourceBatches = await batchRepository.find({
+        where: { id: In(options.items.map((item) => item.batchId)) },
+      });
+
+      if (sourceBatches.length !== options.items.length) {
+        throw new Error('Some source batches were not found');
+      }
+
+      const metadataKeys = [
+        'saleId',
+        'saleSerialId',
+        'customerId',
+        'vendorId',
+        'inspectionResult',
+        'transferId',
+        'held',
+        'inShipment',
+      ] as const;
+
+      const referenceBatch = sourceBatches[0];
+      for (const batch of sourceBatches) {
+        for (const field of metadataKeys) {
+          if (batch[field] !== referenceBatch[field]) {
+            throw new Error(
+              `Batch metadata mismatch on field "${field}": batch ${batch.id} has ${batch[field]}, expected ${referenceBatch[field]}`,
+            );
+          }
+        }
+      }
 
       // Get target batch information (batch to merge into)
       const targetBatch = await this.batchService.getBatch({
@@ -55,6 +87,21 @@ export class MergeBatchOrderService<
         materialId: options.materialId,
         key: options.batchKey,
       });
+
+      // Split target batch to inherit the source batches' state
+      const mergedBatch = await this.batchService.splitBatch({
+        id: targetBatch.id,
+        manager,
+        saleId: referenceBatch.saleId,
+        saleSerialId: referenceBatch.saleSerialId,
+        customerId: referenceBatch.customerId,
+        vendorId: referenceBatch.vendorId,
+        inspectionResult: referenceBatch.inspectionResult,
+        transferId: referenceBatch.transferId,
+        held: referenceBatch.held,
+        inShipment: referenceBatch.inShipment,
+      });
+
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
       const order = await mergeBatchOrderRepository.save(
         mergeBatchOrderRepository.create({
@@ -121,7 +168,7 @@ export class MergeBatchOrderService<
               {
                 orderId: baseOrder.id,
                 materialId: targetBatch.materialId,
-                batchId: targetBatch.id,
+                batchId: mergedBatch.id,
                 locationId: item.locationId || undefined,
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: item.quantity * conversionFactor,

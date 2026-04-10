@@ -84,23 +84,8 @@ export class ShipInventoryOrderService<
               .select(
                 `CASE
                   WHEN o."removedAt" IS NOT NULL THEN '${ShipInventoryOrderStatus.REMOVED}'
-                  WHEN COALESCE((
-                    SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
-                    FROM ship_inventory_order_changes c
-                    JOIN ship_inventory_order_items i ON c."itemId" = i.id
-                    WHERE i."orderId" = o.id
-                  ), 0) = COALESCE(target_sum."targetSum", 0) AND COALESCE(target_sum."targetSum", 0) > 0 THEN '${ShipInventoryOrderStatus.SHIPPED}'
-                  WHEN COALESCE((
-                    SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
-                    FROM ship_inventory_order_changes c
-                    JOIN ship_inventory_order_items i ON c."itemId" = i.id
-                    WHERE i."orderId" = o.id
-                  ), 0) > 0 AND COALESCE((
-                    SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
-                    FROM ship_inventory_order_changes c
-                    JOIN ship_inventory_order_items i ON c."itemId" = i.id
-                    WHERE i."orderId" = o.id
-                  ), 0) < COALESCE(target_sum."targetSum", 0) THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
+                  WHEN COALESCE(change_sums."shippedSum", 0) >= COALESCE(change_sums."targetSum", 0) AND COALESCE(change_sums."targetSum", 0) > 0 THEN '${ShipInventoryOrderStatus.SHIPPED}'
+                  WHEN COALESCE(change_sums."shippedSum", 0) > 0 AND COALESCE(change_sums."shippedSum", 0) < COALESCE(change_sums."targetSum", 0) THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
                   ELSE '${ShipInventoryOrderStatus.PENDING}'
                 END`,
                 'status',
@@ -112,13 +97,22 @@ export class ShipInventoryOrderService<
                   sumQuery
                     .select('i."orderId"', 'orderId')
                     .addSelect(
-                      'SUM(CAST(i."targetShippedQuantity" AS NUMERIC))',
+                      `SUM(CASE WHEN CAST(c."quantityChanged" AS NUMERIC) > 0 THEN CAST(c."quantityChanged" AS NUMERIC) ELSE 0 END)`,
                       'targetSum',
                     )
-                    .from('ship_inventory_order_items', 'i')
+                    .addSelect(
+                      `SUM(CASE WHEN CAST(c."quantityChanged" AS NUMERIC) < 0 THEN ABS(CAST(c."quantityChanged" AS NUMERIC)) ELSE 0 END)`,
+                      'shippedSum',
+                    )
+                    .from('ship_inventory_order_changes', 'c')
+                    .innerJoin(
+                      'ship_inventory_order_items',
+                      'i',
+                      'c."itemId" = i.id',
+                    )
                     .groupBy('i."orderId"'),
-                'target_sum',
-                'target_sum."orderId" = o.id',
+                'change_sums',
+                'change_sums."orderId" = o.id',
               ),
           'order_status',
           `${alias}.id = order_status."orderId"`,
@@ -549,13 +543,13 @@ export class ShipInventoryOrderService<
               item.unitId || undefined,
             );
 
-          const totalChanged = item.changes.reduce(
-            (sum, change) => sum + Number(change.quantityChanged),
-            0,
-          );
+          const totalShipped = item.changes.reduce((sum, change) => {
+            const qty = Number(change.quantityChanged);
+            return qty < 0 ? sum + Math.abs(qty) : sum;
+          }, 0);
 
           const remainingQuantity =
-            conversionFactor * item.targetShippedQuantity - totalChanged;
+            conversionFactor * item.targetShippedQuantity - totalShipped;
 
           if (remainingQuantity - option.quantity * conversionFactor < 0) {
             throw new Error(
@@ -586,7 +580,7 @@ export class ShipInventoryOrderService<
             changeRepository.save(
               changeRepository.create({
                 itemId: option.itemId,
-                quantityChanged: option.quantity * conversionFactor,
+                quantityChanged: -1 * option.quantity * conversionFactor,
                 id: newOrder.id,
               }),
             ),

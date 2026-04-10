@@ -499,6 +499,11 @@ export class StockService<
         'allocate_change',
         'stock."orderId" = allocate_change.id',
       )
+      .leftJoin(
+        'reclassify_inventory_order_changes',
+        'reclassify_change',
+        'stock."orderId" = reclassify_change.id',
+      )
       .andWhere(
         `(
           (receive_change.id IS NOT NULL AND receive_change."quantityChanged" * stock.quantity > 0)
@@ -509,6 +514,7 @@ export class StockService<
           OR (split_change.id IS NOT NULL AND split_change."quantityChanged" * stock.quantity > 0)
           OR (merge_change.id IS NOT NULL AND merge_change."quantityChanged" * stock.quantity > 0)
           OR (allocate_change.id IS NOT NULL AND allocate_change."quantityChanged" * stock.quantity > 0)
+          OR (reclassify_change.id IS NOT NULL AND reclassify_change."quantityChanged" * stock.quantity > 0)
         )`,
       );
 
@@ -546,7 +552,9 @@ export class StockService<
       .addSelect(
         `CASE
           WHEN receive_change.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
-          WHEN ship_change.id IS NOT NULL THEN '${ChangeType.SHIPPED}'
+          WHEN ship_change.id IS NOT NULL THEN
+            CASE WHEN ship_change."quantityChanged" > 0 THEN '${ChangeType.IN_SHIPMENT}'
+                 ELSE '${ChangeType.SHIPPED}' END
           WHEN transfer_change.id IS NOT NULL THEN
             CASE WHEN transfer_change."quantityChanged" > 0 THEN '${ChangeType.IN_TRANSFER}'
                  ELSE '${ChangeType.TRANSFERRED}' END
@@ -561,6 +569,7 @@ export class StockService<
           WHEN allocate_change.id IS NOT NULL THEN
             CASE WHEN allocate_change."quantityChanged" > 0 THEN '${ChangeType.ALLOCATED}'
                  ELSE '${ChangeType.DEALLOCATED}' END
+          WHEN reclassify_change.id IS NOT NULL THEN '${ChangeType.RECLASSIFIED}'
           ELSE NULL
         END`,
         'changeType',
