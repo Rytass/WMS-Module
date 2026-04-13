@@ -139,6 +139,7 @@ type ChangeLogDto {
 """The type of change that occurred to the stock"""
 enum ChangeType {
   RECEIVED
+  IN_SHIPMENT
   SHIPPED
   IN_TRANSFER
   TRANSFERRED
@@ -150,6 +151,7 @@ enum ChangeType {
   MERGED
   ALLOCATED
   DEALLOCATED
+  RECLASSIFIED
 }
 
 type ChangeLogs {
@@ -638,7 +640,7 @@ input ReceiveOrderArgs {
   locationKey: String
   loaderKey: String
   quantity: Int!
-  inspecttionResult: Boolean
+  inspectionResult: Boolean
 }
 
 input CreateShipInventoryOrderReferenceArgs {
