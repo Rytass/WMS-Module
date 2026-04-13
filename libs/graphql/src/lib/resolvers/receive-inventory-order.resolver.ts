@@ -96,11 +96,8 @@ export class ReceiveInventoryOrderItemResolver {
       __entity: ReceiveInventoryOrderChangeEntityClass,
       __from: { itemId: id },
     });
-
     return changes.reduce((acc, { quantityChanged }) => {
-      acc += quantityChanged;
-
-      return acc;
+      return acc + Number(quantityChanged);
     }, 0);
   }
 }

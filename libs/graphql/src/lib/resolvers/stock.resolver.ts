@@ -10,7 +10,6 @@ import {
 import { type LoaderType } from '../helpers';
 import { LocationDto } from '../dto/location.dto';
 import { BatchDto } from '../dto/batch.dto';
-import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 
 @Resolver(() => StockDto)
 export class StockResolver {

@@ -112,9 +112,8 @@ export class ShipInventoryOrderItemResolver {
     });
 
     return changes.reduce((acc, { quantityChanged }) => {
-      acc += quantityChanged;
-
-      return acc;
+      const qty = Number(quantityChanged);
+      return qty < 0 ? acc + Math.abs(qty) : acc;
     }, 0);
   }
 }
@@ -134,9 +133,8 @@ export class ShipInventoryOrderReferenceResolver {
     const changes = items.flatMap((item) => item.changes);
 
     return changes.reduce((acc, { quantityChanged }) => {
-      acc += quantityChanged;
-
-      return acc;
+      const qty = Number(quantityChanged);
+      return qty < 0 ? acc + Math.abs(qty) : acc;
     }, 0);
   }
 
