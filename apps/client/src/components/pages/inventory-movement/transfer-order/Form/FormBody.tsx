@@ -7,10 +7,12 @@ import {
   SelectValue,
 } from '@mezzanine-ui/react';
 import { PlusIcon } from '@mezzanine-ui/icons';
+import { useModal } from '../../../../modal/useModal';
 import { NextPath } from '../../../../../utils/nextpath';
 import PageWrapper from '../../../../PageWrapper';
 import SectionWrapper from '../../../../SectionWrapper';
 import { useFormCancel } from '../../../../../hooks/useFormCancel';
+import TableModal from '../TableModal';
 import classes from './index.module.scss';
 
 interface TransferOrderFormBodyProps {
@@ -22,7 +24,23 @@ function TransferOrderFormBody({
   title,
   breadcrumbTitle,
 }: TransferOrderFormBodyProps) {
+  const { openModal, closeModal } = useModal();
   const onFormCancel = useFormCancel({});
+
+  const onOpenModal = useCallback(() => {
+    openModal({
+      size: 'wide',
+      title: '新增調撥庫存',
+      titleAlign: 'left',
+      cancelText: '取消',
+      onCancel: closeModal,
+      confirmText: '新增',
+      onConfirm: () => {
+        console.log('新增');
+      },
+      children: <TableModal />,
+    });
+  }, [closeModal, openModal]);
 
   return (
     <PageWrapper
@@ -67,7 +85,13 @@ function TransferOrderFormBody({
       <SectionWrapper
         title="調撥項目"
         action={
-          <Button type="button" size="sub" icon={PlusIcon} iconType="leading">
+          <Button
+            type="button"
+            size="sub"
+            icon={PlusIcon}
+            iconType="leading"
+            onClick={onOpenModal}
+          >
             新增調撥庫存
           </Button>
         }
