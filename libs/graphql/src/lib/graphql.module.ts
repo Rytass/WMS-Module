@@ -24,7 +24,10 @@ import { UnitQuery } from './queries/unit.query';
 import { AggregatedStockResolver } from './resolvers/aggregated-stock.resolver';
 import { TransferOrderMutation } from './mutations/transfer-order.mutation';
 import { TransferOrderQuery } from './queries/transfer-order.query';
-import { TransferOrderResolver } from './resolvers/transfer-order.resolver';
+import {
+  TransferOrderItemResolver,
+  TransferOrderResolver,
+} from './resolvers/transfer-order.resolver';
 import { HoldInventoryOrderMutation } from './mutations/hold-inventory-order.mutation';
 import { HoldInventoryOrderQuery } from './queries/hold-inventory-order.query';
 import { HoldInventoryOrderResolver } from './resolvers/hold-inventory-order.resolver';
@@ -92,8 +95,11 @@ const exportDependencies = [
   WarehouseMapMutation,
   LocationMutation,
   LocationQuery,
+
   LocationResolver,
   TransferOrderMutation,
+  TransferOrderResolver,
+  TransferOrderItemResolver,
 
   AllocateInventoryOrderQuery,
   AllocateInventoryOrderResolver,

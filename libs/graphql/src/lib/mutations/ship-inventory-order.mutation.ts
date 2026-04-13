@@ -6,6 +6,7 @@ import {
   CreateShipInventoryOrderArgs,
   UpdateShipInventoryOrderArgs,
 } from '../inputs/create-ship-inventory-order.args';
+import { ShipOrderArgs } from '../inputs/ship-order.args';
 
 @Injectable()
 export class ShipInventoryOrderMutation {
@@ -49,5 +50,15 @@ export class ShipInventoryOrderMutation {
       .selectQueryBuilder('orders')
       .where('orders.id = :id', { id })
       .getRawOne() as Promise<ShipInventoryOrderDto>;
+  }
+
+  @Mutation(() => Boolean)
+  async ship(
+    @Args('items', { type: () => [ShipOrderArgs] })
+    items: ShipOrderArgs[],
+  ) {
+    await this.shipInventoryOrderService.ship(items);
+
+    return true;
   }
 }

@@ -7,6 +7,7 @@ import classes from './index.module.scss';
 interface TableWrapperBaseProps {
   title: string;
   children?: ReactElement<TableProps>;
+  tableSectionClassName?: string;
   otherActions?: ReactNode;
 }
 
@@ -26,12 +27,13 @@ type TableWrapperProps = TableWrapperBaseProps &
 function TableWrapper({
   title,
   children,
+  tableSectionClassName,
   otherActions,
   createText,
   onCreate,
 }: TableWrapperProps) {
   return (
-    <SectionWrapper>
+    <SectionWrapper className={tableSectionClassName}>
       <div className={classes.titleWrapper}>
         <Typography variant="h3" color="text-neutral-solid">
           {title}
