@@ -35,12 +35,12 @@ const Actions: FC<ActionsProps> = ({ source }) => {
 
   const onCancel = useCallback(async () => {
     const isConfirm = await openDialog({
-      modalStatusType: 'delete',
-      title: '取消出庫',
+      modalStatusType: 'error',
+      title: '退回項目',
       supportingText:
-        '取消出庫後，將撤銷此筆出庫紀錄，庫存數量將回復至出庫前狀態。確定要取消出庫嗎？',
+        '退回後庫存將保留於來源位置，並且取消本次調撥，確認要退回嗎？',
       cancelText: '取消',
-      confirmText: '取消出庫',
+      confirmText: '退回',
       confirmButtonProps: {
         variant: 'destructive-primary',
       },
