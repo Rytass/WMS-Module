@@ -84,25 +84,34 @@ export class ShipInventoryOrderService<
               .select(
                 `CASE
                   WHEN o."removedAt" IS NOT NULL THEN '${ShipInventoryOrderStatus.REMOVED}'
-                  WHEN COALESCE(change_sums."shippedSum", 0) >= COALESCE(change_sums."targetSum", 0) AND COALESCE(change_sums."targetSum", 0) > 0 THEN '${ShipInventoryOrderStatus.SHIPPED}'
-                  WHEN COALESCE(change_sums."shippedSum", 0) > 0 AND COALESCE(change_sums."shippedSum", 0) < COALESCE(change_sums."targetSum", 0) THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
+                  WHEN COALESCE(change_sums.shippedsum, 0) >= COALESCE(target_sum.targetsum, 0) AND COALESCE(target_sum.targetsum, 0) > 0 THEN '${ShipInventoryOrderStatus.SHIPPED}'
+                  WHEN COALESCE(change_sums.shippedsum, 0) > 0 AND COALESCE(change_sums.shippedsum, 0) < COALESCE(target_sum.targetsum, 0) THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
                   ELSE '${ShipInventoryOrderStatus.PENDING}'
                 END`,
                 'status',
               )
-              .addSelect('o.id', 'orderId')
+              .addSelect('o.id', 'orderid')
               .from('ship_inventory_orders', 'o')
               .leftJoin(
                 (sumQuery) =>
                   sumQuery
-                    .select('i."orderId"', 'orderId')
+                    .select('i."orderId"', 'orderid')
                     .addSelect(
-                      `SUM(CASE WHEN CAST(c."quantityChanged" AS NUMERIC) > 0 THEN CAST(c."quantityChanged" AS NUMERIC) ELSE 0 END)`,
-                      'targetSum',
+                      `SUM(CAST(i."targetShippedQuantity" AS NUMERIC))`,
+                      'targetsum',
                     )
+                    .from('ship_inventory_order_items', 'i')
+                    .groupBy('i."orderId"'),
+                'target_sum',
+                'target_sum.orderid = o.id',
+              )
+              .leftJoin(
+                (sumQuery) =>
+                  sumQuery
+                    .select('i."orderId"', 'orderid')
                     .addSelect(
                       `SUM(CASE WHEN CAST(c."quantityChanged" AS NUMERIC) < 0 THEN ABS(CAST(c."quantityChanged" AS NUMERIC)) ELSE 0 END)`,
-                      'shippedSum',
+                      'shippedsum',
                     )
                     .from('ship_inventory_order_changes', 'c')
                     .innerJoin(
@@ -112,10 +121,10 @@ export class ShipInventoryOrderService<
                     )
                     .groupBy('i."orderId"'),
                 'change_sums',
-                'change_sums."orderId" = o.id',
+                'change_sums.orderid = o.id',
               ),
           'order_status',
-          `${alias}.id = order_status."orderId"`,
+          `${alias}.id = order_status.orderid`,
         )
         .select('orders.id', 'id')
         .addSelect('orders.key', 'key')

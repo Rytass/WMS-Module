@@ -78,7 +78,7 @@ export class ReceiveInventoryOrderService<
                     FROM receive_inventory_order_changes c
                     JOIN receive_inventory_order_items i ON c."itemId" = i.id
                     WHERE i."orderId" = o.id
-                  ), 0) = COALESCE(target_sum."targetSum", 0) AND COALESCE(target_sum."targetSum", 0) > 0 THEN '${ReceiveInventoryOrderStatus.RECEIVED}'
+                  ), 0) = COALESCE(target_sum.targetsum, 0) AND COALESCE(target_sum.targetsum, 0) > 0 THEN '${ReceiveInventoryOrderStatus.RECEIVED}'
                   WHEN COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
                     FROM receive_inventory_order_changes c
@@ -89,28 +89,28 @@ export class ReceiveInventoryOrderService<
                     FROM receive_inventory_order_changes c
                     JOIN receive_inventory_order_items i ON c."itemId" = i.id
                     WHERE i."orderId" = o.id
-                  ), 0) < COALESCE(target_sum."targetSum", 0) THEN '${ReceiveInventoryOrderStatus.PARTIAL_RECEIVED}'
+                  ), 0) < COALESCE(target_sum.targetsum, 0) THEN '${ReceiveInventoryOrderStatus.PARTIAL_RECEIVED}'
                   ELSE '${ReceiveInventoryOrderStatus.PENDING}'
                 END`,
                 'status',
               )
-              .addSelect('o.id', 'orderId')
+              .addSelect('o.id', 'orderid')
               .from('receive_inventory_orders', 'o')
               .leftJoin(
                 (sumQuery) =>
                   sumQuery
-                    .select('i."orderId"', 'orderId')
+                    .select('i."orderId"', 'orderid')
                     .addSelect(
                       'SUM(CAST(i."targetReceivedQuantity" AS NUMERIC))',
-                      'targetSum',
+                      'targetsum',
                     )
                     .from('receive_inventory_order_items', 'i')
                     .groupBy('i."orderId"'),
                 'target_sum',
-                'target_sum."orderId" = o.id',
+                'target_sum.orderid = o.id',
               ),
           'order_status',
-          `${alias}.id = order_status."orderId"`,
+          `${alias}.id = order_status.orderid`,
         )
         .select('orders.id', 'id')
         .addSelect('orders.key', 'key')

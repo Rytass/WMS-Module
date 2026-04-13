@@ -105,13 +105,13 @@ export class StockService<
           `stock_status."stockId" = ${alias}.id`,
         )
         .addSelect('stock_status.status', 'status')
-        .addSelect('stock_status.transferId', 'transferId')
+        .addSelect('stock_status."transferId"', 'transferId')
         .addSelect('stock_status.held', 'held')
-        .addSelect('stock_status.inShipment', 'inShipment')
-        .addSelect('stock_status.inspectionResult', 'inspectionResult')
-        .addSelect('stock_status.saleId', 'saleId')
-        .addSelect('stock_status.vendorId', 'vendorId')
-        .addSelect('stock_status.customerId', 'customerId')
+        .addSelect('stock_status."inShipment"', 'inShipment')
+        .addSelect('stock_status."inspectionResult"', 'inspectionResult')
+        .addSelect('stock_status."saleId"', 'saleId')
+        .addSelect('stock_status."vendorId"', 'vendorId')
+        .addSelect('stock_status."customerId"', 'customerId')
         .addSelect(`${alias}.*`);
   }
 
@@ -625,7 +625,9 @@ export class StockService<
         'changeType',
       );
 
-    const items = await resultQueryBuilder.getRawMany<ChangeLog>();
+    const items = await resultQueryBuilder
+      .addOrderBy('stock."createdAt"', 'DESC')
+      .getRawMany<ChangeLog>();
 
     return [items, count];
   }
