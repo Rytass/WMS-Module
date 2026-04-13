@@ -1,7 +1,10 @@
 import { useCallback, useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { Button, ButtonGroup } from '@mezzanine-ui/react';
 import { TransferOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useLazyQueryShipInventoryOrder } from '../../useApi';
+import { NextPath } from '../../../../../utils/nextpath';
+import { nextDynamicPath } from '../../../../../utils/path';
 // import InventoryMovementShipForm from '../Form';
 import { useDialog } from '../../../../dialog/useDialog';
 
@@ -10,6 +13,7 @@ interface ActionsProps {
 }
 
 const Actions: FC<ActionsProps> = ({ source }) => {
+  const { push } = useRouter();
   const { openDialog } = useDialog();
   const [shipModalOpened, setShipModalOpened] = useState<boolean>(false);
   const { fetchShipInventoryOrder, data, loading } =
@@ -66,7 +70,18 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         >
           對點
         </Button>
-        <Button type="button" size="sub" variant="base-secondary">
+        <Button
+          type="button"
+          size="sub"
+          variant="base-secondary"
+          onClick={() => {
+            push(
+              nextDynamicPath(NextPath.INVENTORYMOVEMENT_TRANSFERORDER_ID, {
+                '[id]': source.id,
+              }),
+            );
+          }}
+        >
           編輯
         </Button>
         <Button
