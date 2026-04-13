@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import { uniq } from 'lodash';
+// import { uniq } from 'lodash';
 import dayjs from 'dayjs';
 import { TableColumn } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
-// import Actions from './Actions';
+import Actions from './Actions';
 import { TransferOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryTransferOrders } from '../../useApi';
 
@@ -18,6 +18,12 @@ function InventoryMovementTransferTable() {
   );
 
   const columns: TableColumn<TransferOrderFragment>[] = [
+    {
+      key: 'actions',
+      title: '操作',
+      width: 220,
+      render: (source) => <Actions source={source} />,
+    },
     {
       key: 'key',
       title: '調撥單號',
