@@ -1,13 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import dayjs from 'dayjs';
-import {
-  Button,
-  Description,
-  DescriptionContent,
-  SelectValue,
-} from '@mezzanine-ui/react';
+import { Button, Description, DescriptionContent } from '@mezzanine-ui/react';
 import { PlusIcon } from '@mezzanine-ui/icons';
-import { useModal } from '../../../../modal/useModal';
 import { NextPath } from '../../../../../utils/nextpath';
 import PageWrapper from '../../../../PageWrapper';
 import SectionWrapper from '../../../../SectionWrapper';
@@ -24,81 +18,76 @@ function TransferOrderFormBody({
   title,
   breadcrumbTitle,
 }: TransferOrderFormBodyProps) {
-  const { openModal, closeModal } = useModal();
+  const [modalOpened, setModalOpened] = useState<boolean>(false);
   const onFormCancel = useFormCancel({});
 
-  const onOpenModal = useCallback(() => {
-    openModal({
-      size: 'wide',
-      title: '新增調撥庫存',
-      titleAlign: 'left',
-      cancelText: '取消',
-      onCancel: closeModal,
-      confirmText: '新增',
-      onConfirm: () => {
-        console.log('新增');
-      },
-      children: <TableModal />,
-    });
-  }, [closeModal, openModal]);
-
   return (
-    <PageWrapper
-      breadcrumb={[
-        {
-          label: '庫存異動',
-          href: NextPath.INVENTORYMOVEMENT,
-        },
-        {
-          label: breadcrumbTitle,
-        },
-      ]}
-      title={title}
-      haveBack
-      onBack={onFormCancel}
-    >
-      <SectionWrapper title="單號資訊">
-        <div className={classes.headSectionWrapper}>
-          <Description
-            widthType="stretch"
-            orientation="vertical"
-            title="建立者"
-          >
-            <DescriptionContent>建立者</DescriptionContent>
-          </Description>
-          <Description
-            widthType="stretch"
-            orientation="vertical"
-            title="接收者"
-          >
-            <DescriptionContent>接收者</DescriptionContent>
-          </Description>
-          <Description
-            widthType="stretch"
-            orientation="vertical"
-            title="建立日期"
-          >
-            <DescriptionContent>建立日期</DescriptionContent>
-          </Description>
-        </div>
-      </SectionWrapper>
-      <SectionWrapper
-        title="調撥項目"
-        action={
-          <Button
-            type="button"
-            size="sub"
-            icon={PlusIcon}
-            iconType="leading"
-            onClick={onOpenModal}
-          >
-            新增調撥庫存
-          </Button>
-        }
+    <>
+      <PageWrapper
+        breadcrumb={[
+          {
+            label: '庫存異動',
+            href: NextPath.INVENTORYMOVEMENT,
+          },
+          {
+            label: breadcrumbTitle,
+          },
+        ]}
+        title={title}
+        haveBack
+        onBack={onFormCancel}
       >
-        section
-      </SectionWrapper>
-    </PageWrapper>
+        <SectionWrapper title="單號資訊">
+          <div className={classes.headSectionWrapper}>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="建立者"
+            >
+              <DescriptionContent>建立者</DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="接收者"
+            >
+              <DescriptionContent>接收者</DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="建立日期"
+            >
+              <DescriptionContent>建立日期</DescriptionContent>
+            </Description>
+          </div>
+        </SectionWrapper>
+        <SectionWrapper
+          title="調撥項目"
+          action={
+            <Button
+              type="button"
+              size="sub"
+              icon={PlusIcon}
+              iconType="leading"
+              onClick={() => {
+                setModalOpened(true);
+              }}
+            >
+              新增調撥庫存
+            </Button>
+          }
+        >
+          section
+        </SectionWrapper>
+      </PageWrapper>
+      <TableModal
+        open={modalOpened}
+        closeModal={() => {
+          setModalOpened(false);
+        }}
+      />
+    </>
   );
 }
 
