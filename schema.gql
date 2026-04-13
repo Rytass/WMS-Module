@@ -288,6 +288,10 @@ type TransferOrderItemDto {
   removedAt: DateTime
   material: MaterialDto!
   batch: BatchDto
+  location: LocationDto
+  loader: LoaderDto
+  saleId: ID
+  saleSerialId: ID
 }
 
 type TransferOrderDto {
@@ -299,8 +303,8 @@ type TransferOrderDto {
   removedAt: DateTime
   createdAt: DateTime!
   items: [TransferOrderItemDto!]!
-  location: LocationDto
-  loader: LoaderDto
+  targetLocation: LocationDto
+  targetLoader: LoaderDto
 }
 
 type TransferOrders {

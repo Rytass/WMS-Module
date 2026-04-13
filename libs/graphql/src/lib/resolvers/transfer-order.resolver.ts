@@ -1,10 +1,11 @@
-import { Context, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import { Context, ID, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { TransferOrderDto } from '../dto/transfer-order.dto';
 import { TransferOrderItemDto } from '../dto/transfer-order-item.dto';
 import { type LoaderType } from '../helpers';
 import {
   BatchEntityClass,
   BatchGroupEntityClass,
+  LoadersEntityClass,
   LocationEntityClass,
   MaterialEntityClass,
   TransferOrderItemEntityClass,
@@ -27,32 +28,39 @@ export class TransferOrderResolver {
   }
 
   @ResolveField(() => LocationDto, { nullable: true })
-  async location(
+  async targetLocation(
     @Parent() { id }: TransferOrderDto,
     @Context() { loaders }: LoaderType<TransferOrderItemEntityClass>,
-  ): Promise<LocationDto> {
+    @Context() locationLoader: LoaderType<LocationEntityClass>,
+  ): Promise<LocationDto | null> {
     const [item] = await loaders.batchMany.load({
       __entity: TransferOrderItemEntityClass,
       __from: { orderId: id },
-      __conditions: (qb) => qb.leftJoinAndSelect('entity.location', 'location'),
     });
 
-    return item?.location || null;
+    if (!item?.targetLocationId) return null;
+    return locationLoader.loaders.batchSingle.load({
+      __entity: LocationEntityClass,
+      __from: { id: item.targetLocationId },
+    });
   }
 
   @ResolveField(() => LoaderDto, { nullable: true })
-  async loader(
+  async targetLoader(
     @Parent() { id }: TransferOrderDto,
     @Context() { loaders }: LoaderType<TransferOrderItemEntityClass>,
+    @Context() loaderLoader: LoaderType<LoadersEntityClass>,
   ): Promise<LoaderDto | null> {
     const [item] = await loaders.batchMany.load({
       __entity: TransferOrderItemEntityClass,
       __from: { orderId: id },
-
-      __conditions: (qb) => qb.leftJoinAndSelect('entity.loader', 'loader'),
     });
 
-    return item?.loader || null;
+    if (!item?.targetLoaderId) return null;
+    return loaderLoader.loaders.batchSingle.load({
+      __entity: LoadersEntityClass,
+      __from: { id: item.targetLoaderId },
+    });
   }
 }
 
@@ -84,5 +92,57 @@ export class TransferOrderItemResolver {
       __entity: BatchGroupEntityClass,
       __from: { id: groupId },
     });
+  }
+
+  @ResolveField(() => LocationDto, { nullable: true })
+  async location(
+    @Parent() { locationId }: TransferOrderItemEntityClass,
+    @Context() { loaders }: LoaderType<LocationEntityClass>,
+  ): Promise<LocationDto | null> {
+    if (!locationId) return null;
+    return loaders.batchSingle.load({
+      __entity: LocationEntityClass,
+      __from: { id: locationId },
+    });
+  }
+
+  @ResolveField(() => LoaderDto, { nullable: true })
+  async loader(
+    @Parent() { loaderId }: TransferOrderItemEntityClass,
+    @Context() { loaders }: LoaderType<LoadersEntityClass>,
+  ): Promise<LoaderDto | null> {
+    if (!loaderId) return null;
+    return loaders.batchSingle.load({
+      __entity: LoadersEntityClass,
+      __from: { id: loaderId },
+    });
+  }
+
+  @ResolveField(() => ID, { nullable: true })
+  async saleId(
+    @Parent() { batchId }: TransferOrderItemEntityClass,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
+  ): Promise<string | null> {
+    if (!batchId) return null;
+    return loaders.batchSingle
+      .load({
+        __entity: BatchEntityClass,
+        __from: { id: batchId },
+      })
+      .then((batch) => batch.saleId);
+  }
+
+  @ResolveField(() => ID, { nullable: true })
+  async saleSerialId(
+    @Parent() { batchId }: TransferOrderItemEntityClass,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
+  ): Promise<string | null> {
+    if (!batchId) return null;
+    return loaders.batchSingle
+      .load({
+        __entity: BatchEntityClass,
+        __from: { id: batchId },
+      })
+      .then((batch) => batch.saleSerialId);
   }
 }
