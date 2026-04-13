@@ -542,6 +542,7 @@ type Query {
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
   shipInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ShipInventoryOrderStatus, statuses: [ShipInventoryOrderStatus!], dateRange: DateRangeArgs, description: String, key: String): ShipInventoryOrders!
   transferOrders(offset: Int, limit: Int, key: String, receiver: String, dateRange: DateRangeArgs, description: String, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): TransferOrders!
+  transferOrder(id: ID!): TransferOrderDto!
   holdInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): HoldInventoryOrders!
   location(id: ID!): LocationDto!
   locations(offset: Int, limit: Int, description: String, key: String): Locations!

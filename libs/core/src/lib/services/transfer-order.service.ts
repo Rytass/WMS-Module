@@ -14,6 +14,7 @@ import {
   EntityManager,
   EntityTarget,
   In,
+  Repository,
 } from 'typeorm';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { HelperService } from './helper.service';
@@ -33,7 +34,7 @@ export class TransferOrderService<
   K extends TransferOrderItemEntityClass = TransferOrderItemEntityClass,
 > {
   private readonly seqPrefix = 'TO';
-
+  readonly transferOrderRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
     private readonly helperService: HelperService,
@@ -45,7 +46,11 @@ export class TransferOrderService<
     readonly transferOrderItemEntity: EntityTarget<K>,
     @Inject(StockEntity)
     readonly stockEntity: EntityTarget<StockEntityClass>,
-  ) {}
+  ) {
+    this.transferOrderRepository = this.dataSource.getRepository(
+      this.transferOrderEntity,
+    );
+  }
 
   private getRepositories(manager: EntityManager) {
     return {
