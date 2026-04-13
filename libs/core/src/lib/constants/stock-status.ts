@@ -14,7 +14,10 @@ export enum ChangeType {
   // receive-inventory-order-change.entity.ts
   RECEIVED = 'RECEIVED',
 
-  // ship-inventory-order-change.entity.ts
+  // ship-inventory-order-change.entity.ts, change > 0
+  IN_SHIPMENT = 'IN_SHIPMENT',
+
+  // ship-inventory-order-change.entity.ts, change < 0
   SHIPPED = 'SHIPPED',
 
   // transfer-order-change.entity.ts, change > 0
@@ -46,4 +49,7 @@ export enum ChangeType {
 
   // allocate-inventory-change.entity.ts, change < 0
   DEALLOCATED = 'DEALLOCATED',
+
+  // reclassify-inventory-order-change.entity.ts
+  RECLASSIFIED = 'RECLASSIFIED',
 }

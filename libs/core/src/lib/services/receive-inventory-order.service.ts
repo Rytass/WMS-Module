@@ -424,7 +424,7 @@ export class ReceiveInventoryOrderService<
 
           const newOrder = await orderRepository.save(orderRepository.create());
           let batchId = item.batchId;
-          if (option.batchKey && !batchId)
+          if (option.batchKey)
             batchId = await this.batchService
               .getBatch({
                 manager,
@@ -432,7 +432,7 @@ export class ReceiveInventoryOrderService<
                 materialId: item.materialId,
               })
               .then(({ id }) => id);
-          else
+          if (!batchId)
             batchId = await this.batchService
               .getBatch({
                 manager,
