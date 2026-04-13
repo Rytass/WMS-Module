@@ -29,3 +29,9 @@ query TransferOrders(
     total
   }
 }
+
+query TransferOrder($transferOrderId: ID!) {
+  transferOrder(id: $transferOrderId) {
+    ...TransferOrder
+  }
+}

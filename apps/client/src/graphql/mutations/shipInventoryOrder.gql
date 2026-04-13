@@ -29,3 +29,7 @@ mutation UpdateShipInventoryOrder(
     ...ShipInventoryOrder
   }
 }
+
+mutation Ship($items: [ShipOrderArgs!]!) {
+  ship(items: $items)
+}
