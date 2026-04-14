@@ -6,6 +6,8 @@ export type ItemFieldValues = {
 
   // for field array
   itemId?: string;
+  isExisted: boolean;
+  removedAt?: string;
 };
 
 export type FormValues = {

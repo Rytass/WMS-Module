@@ -21,6 +21,8 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         description: Yup.string(),
 
         itemId: Yup.string(),
+        isExisted: Yup.boolean().required('必填'),
+        removedAt: Yup.string(),
       }),
     )
     .required('必填'),

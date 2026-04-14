@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import dayjs from 'dayjs';
 import { Button, Description, DescriptionContent } from '@mezzanine-ui/react';
 import { PlusIcon } from '@mezzanine-ui/icons';
+import { useFieldArray } from 'react-hook-form';
 import { NextPath } from '../../../../../utils/nextpath';
 import PageWrapper from '../../../../PageWrapper';
 import SectionWrapper from '../../../../SectionWrapper';
@@ -10,6 +11,8 @@ import LocationsField from '../../../../fields/LocationsField';
 import LoadersField from '../../../../fields/LoadersField';
 import InputField from '../../../../fields/InputField';
 import TableModal from '../TableModal';
+import FieldArrayTable from './FieldArrayTable';
+import { FormValues } from './typing';
 import classes from './index.module.scss';
 
 interface TransferOrderFormBodyProps {
@@ -29,6 +32,12 @@ function TransferOrderFormBody({
 }: TransferOrderFormBodyProps) {
   const [modalOpened, setModalOpened] = useState<boolean>(false);
   const onFormCancel = useFormCancel({});
+
+  const { fields, append, update, remove } = useFieldArray<FormValues, 'items'>(
+    {
+      name: 'items',
+    },
+  );
 
   return (
     <>
@@ -106,7 +115,7 @@ function TransferOrderFormBody({
             </Button>
           }
         >
-          section
+          <FieldArrayTable fields={fields} remove={remove} />
         </SectionWrapper>
       </PageWrapper>
       <TableModal
