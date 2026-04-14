@@ -31,20 +31,6 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
         }).nullable(),
-        quantity: Yup.number()
-          .integer('必須為整數')
-          .min(0, '不可小於 0')
-          .test('max-quantity', '不可超過剩餘調撥數量', function (value) {
-            const { targetTransferredQuantity, transferredQuantity } =
-              this.parent;
-
-            if (!value) return true;
-
-            const max = targetTransferredQuantity - transferredQuantity;
-
-            return value <= max;
-          })
-          .required('必填'),
         unit: Yup.string().required('必填'),
         saleId: Yup.object({
           id: Yup.string().required('必填'),

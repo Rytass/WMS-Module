@@ -6,7 +6,6 @@ export type ItemFieldValues = {
   batch?: SelectValue | null;
   location?: SelectValue | null;
   loader?: SelectValue | null;
-  quantity: number;
   unit: string;
   saleId?: SelectValue | null;
   saleSerialId?: SelectValue | null;
