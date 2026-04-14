@@ -5,7 +5,7 @@ import {
 } from '../../../hooks/useTablePagination';
 import {
   TransferOrdersDocument,
-  TransferDocument,
+  TransferOrderDocument,
   FullShipInventoryOrdersDocument,
   ShipInventoryOrderDocument,
   FullReceiveInventoryOrdersDocument,
@@ -46,7 +46,7 @@ export function useQueryTransferOrders() {
 
 export function useLazyQueryTransferOrder() {
   const [fetchTransferOrder, { data, loading }] = useLazyQuery(
-    TransferDocument,
+    TransferOrderDocument,
     {
       fetchPolicy: 'cache-and-network',
     },

@@ -37,13 +37,13 @@ function InventoryMovementTransferTable() {
       render: (source) => source.receiver,
     },
     {
-      key: 'location',
+      key: 'targetLocation',
       title: '目標位置',
       width: 140,
       render: (source) => source.targetLocation?.key,
     },
     {
-      key: 'loader',
+      key: 'targetLoader',
       title: '目標位置',
       width: 140,
       render: (source) => source.targetLoader?.serialId,
