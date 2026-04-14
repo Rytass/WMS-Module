@@ -11,6 +11,7 @@ import {
   Button,
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
+import { BASE_UNIT } from '../../../../../utils/share';
 import NumberInputField from '../../../../fields/NumberInputField';
 import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import { FormValues, ItemFieldValues } from './typing';
@@ -100,6 +101,13 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
             placeholder="使用單位"
             options={source.unitOptions}
             size="sub"
+            onChange={(option) => {
+              update(index, {
+                ...source,
+                unit: option?.id || BASE_UNIT,
+                newQuantity: 0,
+              });
+            }}
             disabled={source.transferredQuantity > 0 || !!source.removedAt}
           />
         );

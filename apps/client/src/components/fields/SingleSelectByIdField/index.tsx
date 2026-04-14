@@ -23,6 +23,7 @@ export const SingleSelectByIdField: FC<SingleSelectByIdFieldProps> = ({
   size = 'sub',
   menuMaxHeight = 300,
   options,
+  onChange: onChangeProps,
   useNameToValue = false,
   ...rest
 }) => {
@@ -52,6 +53,8 @@ export const SingleSelectByIdField: FC<SingleSelectByIdFieldProps> = ({
         clearErrors(name);
       }
 
+      onChangeProps?.(newValue);
+
       if (newValue) {
         setValue(name, useNameToValue ? newValue.name : newValue.id, {
           shouldDirty: true,
@@ -62,7 +65,7 @@ export const SingleSelectByIdField: FC<SingleSelectByIdFieldProps> = ({
         });
       }
     },
-    [clearErrors, errors, name, setValue, useNameToValue],
+    [clearErrors, errors, name, setValue, onChangeProps, useNameToValue],
   );
 
   const onClear = useCallback(() => {
