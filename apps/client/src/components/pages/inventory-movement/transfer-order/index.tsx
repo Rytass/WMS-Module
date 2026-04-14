@@ -74,9 +74,15 @@ function EditTransferOrder() {
             : null,
 
           itemId: item.id,
-          newQuantity: 0,
-          maxOriginQuantity: 0, // 待補
-          targetTransferredQuantity: item.targetTransferredQuantity,
+          newQuantity: item.targetTransferredQuantity,
+          maxOriginQuantity: (() => {
+            const unitOptions = getMaterialUnitOptions(item.material);
+            const unit = item.unitId || BASE_UNIT;
+            const conversionFactor =
+              unitOptions.find((o) => o.id === unit)?.conversionFactor ?? 1;
+
+            return item.targetTransferredQuantity * conversionFactor;
+          })(),
           transferredQuantity: item.transferredQuantity,
           unitOptions: getMaterialUnitOptions(item.material),
           isExisted: true,

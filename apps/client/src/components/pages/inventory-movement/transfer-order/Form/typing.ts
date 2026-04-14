@@ -14,7 +14,6 @@ export type ItemFieldValues = {
   itemId?: string;
   newQuantity: number;
   maxOriginQuantity: number;
-  targetTransferredQuantity: number;
   transferredQuantity: number;
   unitOptions: { id: string; name: string; conversionFactor: number }[];
   isExisted: boolean;

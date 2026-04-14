@@ -61,7 +61,6 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
           })
           .required('必填'),
         maxOriginQuantity: Yup.number().required('必填'),
-        targetTransferredQuantity: Yup.number().required('必填'),
         transferredQuantity: Yup.number().required('必填'),
         unitOptions: Yup.array()
           .of(
