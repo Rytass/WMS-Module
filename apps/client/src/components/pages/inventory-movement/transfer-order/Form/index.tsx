@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormWrapper } from '../../../../fields/FormWrapper';
@@ -27,15 +28,25 @@ function TransferOrderForm({
     defaultValues,
   });
 
+  const onSubmit = useCallback(async (values: FormValues) => {
+    console.log('儲存', values);
+  }, []);
+
   return (
     <FormWrapper
       methods={methods}
       havePageFooter
       submitText="儲存"
-      // onSubmit={onSubmit}
+      onSubmit={onSubmit}
       pureFormProvider
     >
-      <TransferOrderFormBody title={title} breadcrumbTitle={breadcrumbTitle} />
+      <TransferOrderFormBody
+        title={title}
+        breadcrumbTitle={breadcrumbTitle}
+        createdBy={createdBy}
+        receiver={receiver}
+        createdAt={createdAt}
+      />
     </FormWrapper>
   );
 }

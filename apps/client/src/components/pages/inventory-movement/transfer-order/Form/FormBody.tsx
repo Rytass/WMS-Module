@@ -6,17 +6,26 @@ import { NextPath } from '../../../../../utils/nextpath';
 import PageWrapper from '../../../../PageWrapper';
 import SectionWrapper from '../../../../SectionWrapper';
 import { useFormCancel } from '../../../../../hooks/useFormCancel';
+import LocationsField from '../../../../fields/LocationsField';
+import LoadersField from '../../../../fields/LoadersField';
+import InputField from '../../../../fields/InputField';
 import TableModal from '../TableModal';
 import classes from './index.module.scss';
 
 interface TransferOrderFormBodyProps {
   title: string;
   breadcrumbTitle: string;
+  createdBy?: string | null;
+  receiver?: string | null;
+  createdAt: string;
 }
 
 function TransferOrderFormBody({
   title,
   breadcrumbTitle,
+  createdBy,
+  receiver,
+  createdAt,
 }: TransferOrderFormBodyProps) {
   const [modalOpened, setModalOpened] = useState<boolean>(false);
   const onFormCancel = useFormCancel({});
@@ -44,22 +53,41 @@ function TransferOrderFormBody({
               orientation="vertical"
               title="建立者"
             >
-              <DescriptionContent>建立者</DescriptionContent>
+              <DescriptionContent>{createdBy || '-'}</DescriptionContent>
             </Description>
             <Description
               widthType="stretch"
               orientation="vertical"
               title="接收者"
             >
-              <DescriptionContent>接收者</DescriptionContent>
+              <DescriptionContent>{receiver || '-'}</DescriptionContent>
             </Description>
             <Description
               widthType="stretch"
               orientation="vertical"
               title="建立日期"
             >
-              <DescriptionContent>建立日期</DescriptionContent>
+              <DescriptionContent>
+                {dayjs(createdAt).format('YYYY-MM-DD HH:mm')}
+              </DescriptionContent>
             </Description>
+            <LocationsField
+              name="targetLocation"
+              label="目標位置"
+              fuzzySearch={false}
+              selectValueMode
+            />
+            <LoadersField
+              name="targetLoader"
+              label="目標載具"
+              fuzzySearch={false}
+              selectValueMode
+            />
+            <InputField
+              name="description"
+              label="備註"
+              placeholder="輸入備註"
+            />
           </div>
         </SectionWrapper>
         <SectionWrapper
