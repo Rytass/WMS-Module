@@ -32,6 +32,72 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       );
   }
 
+  /**
+   * Validates batch state transition based on hierarchy:
+   * inShipment = held = transferId = vendorId = customerId > saleId+saleSerialId > inspectionResult
+   *
+   * - Top tier (terminal): inShipment, held, transferId, vendorId, customerId → no state change allowed
+   * - Middle tier: saleId+saleSerialId → can only go UP to top tier
+   * - Bottom tier: inspectionResult → can go UP to middle or top tier, but cannot change inspectionResult
+   */
+  private validateStateTransition(
+    batch: BatchEntityClass,
+    options: SplitBatchInput,
+  ): void {
+    // Determine current state tier
+    const isTopTier =
+      batch.inShipment === true ||
+      batch.held === true ||
+      batch.transferId != null ||
+      batch.vendorId != null ||
+      batch.customerId != null;
+
+    const isMiddleTier = batch.saleId != null || batch.saleSerialId != null;
+
+    const hasInspection = batch.inspectionResult != null;
+
+    // What is being changed (explicitly set, not undefined)
+    const changingMiddleTier =
+      options.saleId !== undefined || options.saleSerialId !== undefined;
+
+    const changingInspection = options.inspectionResult !== undefined;
+
+    // Rule 1: Top tier is terminal - no state transition allowed
+    if (isTopTier) {
+      const state = batch.inShipment
+        ? 'in shipment (can only ship)'
+        : batch.held
+          ? 'held (can only release)'
+          : batch.transferId
+            ? 'in transfer (can only complete transfer)'
+            : batch.vendorId
+              ? 'vendor inventory (can only return)'
+              : 'customer inventory (can only return)';
+      throw new Error(`Batch is ${state}, no state transition allowed`);
+    }
+
+    // Rule 2: Middle tier cannot change to same or lower tier
+    if (isMiddleTier) {
+      if (changingMiddleTier) {
+        throw new Error(
+          'Cannot modify allocation (saleId/saleSerialId) for already allocated batch',
+        );
+      }
+      if (changingInspection) {
+        throw new Error('Cannot modify inspection result for allocated batch');
+      }
+      // Can transition to top tier - no validation needed
+    }
+
+    // Rule 3: Has inspection result cannot change it (unless already at higher tier)
+    if (hasInspection && !isMiddleTier && !isTopTier) {
+      if (changingInspection) {
+        throw new Error('Inspection result already set, cannot modify');
+      }
+      // Can transition to middle or top tier - no validation needed
+    }
+  }
+
   async getBatch({
     manager = this.dataSource.manager,
     ...options
@@ -83,6 +149,9 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       where: { id: options.id },
       relations: ['batchGroup'],
     });
+
+    // Validate state transition before proceeding
+    this.validateStateTransition(batch, options);
 
     // Create merged batch object with new metrics
     const mergedBatch = {
