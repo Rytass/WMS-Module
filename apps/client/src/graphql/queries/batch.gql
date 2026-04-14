@@ -1,5 +1,5 @@
-query Batches($offset: Int, $limit: Int, $key: String) {
-  batches(offset: $offset, limit: $limit, key: $key) {
+query Batches($offset: Int, $limit: Int, $key: String, $materialId: ID) {
+  batches(offset: $offset, limit: $limit, key: $key, materialId: $materialId) {
     id
     items {
       ...Batch
