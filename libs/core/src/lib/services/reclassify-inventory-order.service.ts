@@ -69,6 +69,11 @@ export class ReclassifyInventoryOrderService<
       // Process each item reclassification
       await Promise.all(
         options.items.map(async (item) => {
+          if (item.materialId === material.id) {
+            throw new Error(
+              `Item with batchId ${item.batchId} is already classified under the target material`,
+            );
+          }
           // Get conversion factor for unit conversion
           const conversionFactor =
             await this.materialService.getConversionFactor(
@@ -88,7 +93,6 @@ export class ReclassifyInventoryOrderService<
               manager,
             })
             .then(({ id }) =>
-              // create a new batch under new material, and inherit the rest of the batch info except materialId and key
               this.batchService.splitBatch({
                 saleId: batch.saleId ?? null,
                 saleSerialId: batch.saleSerialId ?? null,

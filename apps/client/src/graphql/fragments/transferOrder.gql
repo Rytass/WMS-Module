@@ -1,6 +1,7 @@
 fragment TransferOrderItem on TransferOrderItemDto {
   id
   targetTransferredQuantity
+  unitId
   material {
     ...SimpleMaterial
   }
@@ -16,6 +17,7 @@ fragment TransferOrderItem on TransferOrderItemDto {
   saleId
   saleSerialId
   removedAt
+  transferredQuantity
 }
 
 fragment TransferOrder on TransferOrderDto {

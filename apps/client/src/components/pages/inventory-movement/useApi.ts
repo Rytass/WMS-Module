@@ -5,13 +5,16 @@ import {
 } from '../../../hooks/useTablePagination';
 import {
   TransferOrdersDocument,
+  TransferOrderDocument,
   FullShipInventoryOrdersDocument,
   ShipInventoryOrderDocument,
   FullReceiveInventoryOrdersDocument,
   ReceiveInventoryOrderDocument,
   ShipInventoryOrderStatus,
   ReceiveInventoryOrderStatus,
+  TransferDocument,
   ReceiveDocument,
+  ShipDocument,
 } from '../../../graphql/generated/.graphql';
 
 export function useQueryTransferOrders() {
@@ -40,6 +43,35 @@ export function useQueryTransferOrders() {
     setPage,
     limit,
     setLimit,
+  };
+}
+
+export function useLazyQueryTransferOrder() {
+  const [fetchTransferOrder, { data, loading }] = useLazyQuery(
+    TransferOrderDocument,
+    {
+      fetchPolicy: 'cache-and-network',
+    },
+  );
+
+  return {
+    fetchTransferOrder,
+    data,
+    loading,
+  };
+}
+
+export function useQueryTransferOrder(id: string) {
+  const { data, loading } = useQuery(TransferOrderDocument, {
+    variables: {
+      transferOrderId: id,
+    },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  return {
+    data,
+    loading,
   };
 }
 
@@ -139,11 +171,29 @@ export function useLazyQueryReceiveInventoryOrder() {
   };
 }
 
+export function useTransfer() {
+  const [transfer, { loading }] = useMutation(TransferDocument);
+
+  return {
+    transfer,
+    loading,
+  };
+}
+
 export function useReceive() {
   const [receive, { loading }] = useMutation(ReceiveDocument);
 
   return {
     receive,
+    loading,
+  };
+}
+
+export function useShip() {
+  const [ship, { loading }] = useMutation(ShipDocument);
+
+  return {
+    ship,
     loading,
   };
 }

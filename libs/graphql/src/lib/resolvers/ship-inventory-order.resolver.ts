@@ -1,4 +1,11 @@
-import { Context, Int, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import {
+  Context,
+  ID,
+  Int,
+  Parent,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import {
   LoaderDto,
   MaterialDto,
@@ -75,6 +82,44 @@ export class ShipInventoryOrderItemResolver {
       __entity: BatchGroupEntityClass,
       __from: { id: groupId },
     });
+  }
+
+  @ResolveField(() => ID, { nullable: true })
+  async saleId(
+    @Parent() { batchId }: ShipInventoryOrderItemEntityClass,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
+  ): Promise<string | null> {
+    if (!batchId) return null;
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
+      __from: { id: batchId },
+    });
+
+    return loaders.batchSingle
+      .load({
+        __entity: BatchGroupEntityClass,
+        __from: { id: groupId },
+      })
+      .then(({ saleId }) => saleId);
+  }
+
+  @ResolveField(() => ID, { nullable: true })
+  async saleSerialId(
+    @Parent() { batchId }: ShipInventoryOrderItemEntityClass,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
+  ): Promise<string | null> {
+    if (!batchId) return null;
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
+      __from: { id: batchId },
+    });
+
+    return loaders.batchSingle
+      .load({
+        __entity: BatchGroupEntityClass,
+        __from: { id: groupId },
+      })
+      .then(({ saleSerialId }) => saleSerialId);
   }
 
   @ResolveField(() => LocationDto, { nullable: true })

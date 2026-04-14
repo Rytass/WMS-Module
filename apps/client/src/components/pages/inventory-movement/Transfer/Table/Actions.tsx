@@ -2,10 +2,10 @@ import { useCallback, useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Button, ButtonGroup } from '@mezzanine-ui/react';
 import { TransferOrderFragment } from '../../../../../graphql/generated/.graphql';
-import { useLazyQueryShipInventoryOrder } from '../../useApi';
+import { useLazyQueryTransferOrder } from '../../useApi';
 import { NextPath } from '../../../../../utils/nextpath';
 import { nextDynamicPath } from '../../../../../utils/path';
-// import InventoryMovementShipForm from '../Form';
+import InventoryMovementTransferForm from '../Form';
 import { useDialog } from '../../../../dialog/useDialog';
 
 interface ActionsProps {
@@ -15,27 +15,27 @@ interface ActionsProps {
 const Actions: FC<ActionsProps> = ({ source }) => {
   const { push } = useRouter();
   const { openDialog } = useDialog();
-  const [shipModalOpened, setShipModalOpened] = useState<boolean>(false);
-  const { fetchShipInventoryOrder, data, loading } =
-    useLazyQueryShipInventoryOrder();
+  const [transferModalOpened, setTransferModalOpened] =
+    useState<boolean>(false);
+  const { fetchTransferOrder, data, loading } = useLazyQueryTransferOrder();
 
-  const shipInventoryOrder = useMemo(
+  const transferOrder = useMemo(
     () =>
-      shipModalOpened && !loading && data?.shipInventoryOrder
-        ? data.shipInventoryOrder
+      transferModalOpened && !loading && data?.transferOrder
+        ? data.transferOrder
         : null,
-    [data?.shipInventoryOrder, loading, shipModalOpened],
+    [data?.transferOrder, loading, transferModalOpened],
   );
 
   useEffect(() => {
-    if (shipModalOpened) {
-      fetchShipInventoryOrder({
+    if (transferModalOpened) {
+      fetchTransferOrder({
         variables: {
-          shipInventoryOrderId: source.id,
+          transferOrderId: source.id,
         },
       });
     }
-  }, [fetchShipInventoryOrder, shipModalOpened, source.id]);
+  }, [fetchTransferOrder, transferModalOpened, source.id]);
 
   const onCancel = useCallback(async () => {
     const isConfirm = await openDialog({
@@ -65,7 +65,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
           disabled={loading}
           loading={loading}
           onClick={() => {
-            setShipModalOpened(true);
+            setTransferModalOpened(true);
           }}
         >
           對點
@@ -93,13 +93,13 @@ const Actions: FC<ActionsProps> = ({ source }) => {
           退回
         </Button>
       </ButtonGroup>
-      {/* <InventoryMovementShipForm
-        shipInventoryOrder={shipInventoryOrder}
+      <InventoryMovementTransferForm
+        transferOrder={transferOrder}
         closeModal={() => {
-          setShipModalOpened(false);
+          setTransferModalOpened(false);
         }}
-        open={!!shipInventoryOrder}
-      /> */}
+        open={!!transferOrder}
+      />
     </>
   );
 };
