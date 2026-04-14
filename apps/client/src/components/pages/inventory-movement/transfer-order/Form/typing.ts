@@ -13,7 +13,8 @@ export type ItemFieldValues = {
   // for field array
   itemId?: string;
   newQuantity: number;
-  maxQuantity: number;
+  maxOriginQuantity: number;
+  targetTransferredQuantity: number;
   transferredQuantity: number;
   unitOptions: { id: string; name: string; conversionFactor: number }[];
   isExisted: boolean;

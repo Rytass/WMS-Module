@@ -74,6 +74,28 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       render: (source) => source.transferredQuantity,
     },
     {
+      key: 'targetTransferredQuantity',
+      title: '應收數量',
+      minWidth: 120,
+      align: 'end',
+      render: (source) => source.targetTransferredQuantity,
+    },
+    {
+      key: 'maxOriginQuantity',
+      title: '可用最大數量',
+      minWidth: 120,
+      align: 'end',
+      render: (source) => {
+        const conversionFactor =
+          source.unitOptions.find((o) => o.id === source.unit)
+            ?.conversionFactor ?? 1;
+
+        return (
+          Math.round((source.maxOriginQuantity / conversionFactor) * 100) / 100
+        );
+      },
+    },
+    {
       key: 'unit',
       title: '單位',
       minWidth: 100,

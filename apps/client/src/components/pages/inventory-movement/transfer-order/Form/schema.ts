@@ -42,8 +42,26 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         }).nullable(),
 
         itemId: Yup.string(),
-        newQuantity: Yup.number().required('必填'), // 待補驗證
-        maxQuantity: Yup.number().required('必填'),
+        newQuantity: Yup.number()
+          .min(Yup.ref('transferredQuantity'), '不得小於已收數量')
+          .test('max-quantity', '不可超過可用最大數量', function (value) {
+            const { maxOriginQuantity, unit, unitOptions } = this.parent;
+
+            if (!value) return true;
+
+            const conversionFactor: number = unitOptions.find(
+              (o: { id: string; name: string; conversionFactor: number }) =>
+                o.id === unit,
+            ).conversionFactor;
+
+            const max =
+              Math.round((maxOriginQuantity / conversionFactor) * 100) / 100;
+
+            return value <= max;
+          })
+          .required('必填'),
+        maxOriginQuantity: Yup.number().required('必填'),
+        targetTransferredQuantity: Yup.number().required('必填'),
         transferredQuantity: Yup.number().required('必填'),
         unitOptions: Yup.array()
           .of(
