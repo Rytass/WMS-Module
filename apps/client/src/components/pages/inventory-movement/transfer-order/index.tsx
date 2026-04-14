@@ -1,15 +1,13 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/router';
-import { Message } from '@mezzanine-ui/react';
 import Loading from '../../../Loading';
 import TransferOrderForm from './Form';
-import { FormValues } from './Form/typing';
 import { useQueryTransferOrder } from '../useApi';
 import { BASE_UNIT } from '../../../../utils/share';
 import { getMaterialUnitOptions } from '../../../inventoryActions/utils';
 
 function EditTransferOrder() {
-  const { query, back } = useRouter();
+  const { query } = useRouter();
   const id = useMemo(() => (query?.id as string) ?? '', [query.id]);
 
   const { data, loading } = useQueryTransferOrder(id);

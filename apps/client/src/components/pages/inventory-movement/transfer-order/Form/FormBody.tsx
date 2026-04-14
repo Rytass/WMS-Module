@@ -123,6 +123,7 @@ function TransferOrderFormBody({
         closeModal={() => {
           setModalOpened(false);
         }}
+        append={append}
       />
     </>
   );
