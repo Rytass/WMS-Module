@@ -12,7 +12,9 @@ import {
   ReceiveInventoryOrderDocument,
   ShipInventoryOrderStatus,
   ReceiveInventoryOrderStatus,
+  TransferDocument,
   ReceiveDocument,
+  ShipDocument,
 } from '../../../graphql/generated/.graphql';
 
 export function useQueryTransferOrders() {
@@ -155,11 +157,29 @@ export function useLazyQueryReceiveInventoryOrder() {
   };
 }
 
+export function useTransfer() {
+  const [transfer, { loading }] = useMutation(TransferDocument);
+
+  return {
+    transfer,
+    loading,
+  };
+}
+
 export function useReceive() {
   const [receive, { loading }] = useMutation(ReceiveDocument);
 
   return {
     receive,
+    loading,
+  };
+}
+
+export function useShip() {
+  const [ship, { loading }] = useMutation(ShipDocument);
+
+  return {
+    ship,
     loading,
   };
 }
