@@ -12,7 +12,6 @@ export type ItemFieldValues = {
 
   // for field array
   itemId?: string;
-  targetTransferredQuantity: number;
   transferredQuantity: number;
   unitOptions: SelectValue[];
   isExisted: boolean;

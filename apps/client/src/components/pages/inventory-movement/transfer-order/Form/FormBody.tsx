@@ -115,7 +115,7 @@ function TransferOrderFormBody({
             </Button>
           }
         >
-          <FieldArrayTable fields={fields} remove={remove} />
+          <FieldArrayTable fields={fields} update={update} remove={remove} />
         </SectionWrapper>
       </PageWrapper>
       <TableModal

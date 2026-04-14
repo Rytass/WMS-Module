@@ -42,7 +42,6 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         }).nullable(),
 
         itemId: Yup.string(),
-        targetTransferredQuantity: Yup.number().required('必填'),
         transferredQuantity: Yup.number().required('必填'),
         unitOptions: Yup.array()
           .of(
