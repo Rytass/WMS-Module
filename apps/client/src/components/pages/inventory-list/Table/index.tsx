@@ -20,6 +20,7 @@ enum Mode {
 interface InventoryTableProps {
   currentFilter?: FilterValues;
   setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
+  tableSectionClassName?: string;
   onlyListMode?: boolean;
   setTargetStocks?: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
   haveInventoryActionsSystem?: boolean;
@@ -28,6 +29,7 @@ interface InventoryTableProps {
 function InventoryTable({
   currentFilter,
   setCurrentFilter,
+  tableSectionClassName,
   onlyListMode = false,
   setTargetStocks: setTargetStocksProps,
   haveInventoryActionsSystem = true,
@@ -88,6 +90,7 @@ function InventoryTable({
     <>
       <TableWrapper
         title="庫存項目"
+        tableSectionClassName={tableSectionClassName}
         otherActions={
           <div className={classes.actionsWrapper}>
             {!onlyListMode && (

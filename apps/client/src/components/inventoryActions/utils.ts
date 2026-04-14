@@ -52,10 +52,12 @@ export function getMaterialUnitOptions(material: MaterialFragment) {
   return [
     {
       id: BASE_UNIT,
+      conversionFactor: 1,
       name: material.baseUnit.key,
     },
     ...material.materialUnits.map((u) => ({
       id: u.id,
+      conversionFactor: u.conversionFactor,
       name: u.unit,
     })),
   ];
@@ -373,7 +375,7 @@ export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.ReleaseInventoryHold,
   InventoryActions.AllocateInventory,
   InventoryActions.DeallocateInventory,
-  // InventoryActions.ShipInventory,
+  InventoryActions.ShipInventory,
   InventoryActions.SplitBatch,
   InventoryActions.MergeBatch,
   InventoryActions.ReclassifyInventory,

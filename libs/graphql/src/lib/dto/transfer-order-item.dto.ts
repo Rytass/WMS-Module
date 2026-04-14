@@ -16,6 +16,7 @@ export class TransferOrderItemDto {
 
   orderId!: string;
 
+  @Field(() => String, { nullable: true })
   unitId!: string | null;
 
   @Field(() => Int)

@@ -1,12 +1,14 @@
 fragment ShipInventoryOrderItem on ShipInventoryOrderItemDto {
   id
+  serialId
+  saleId
+  saleSerialId
   unitId
   targetShippedQuantity
   orderId
   materialId
   batchId
   removedAt
-  serialId
   material {
     ...SimpleMaterial
   }

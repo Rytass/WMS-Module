@@ -15,4 +15,10 @@
     border: 1px solid palette.semantic-variable(border, neutral-faint);
     background-color: #f9fafb;
   }
+
+  .titleWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 }

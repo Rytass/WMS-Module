@@ -1,4 +1,11 @@
-import { Context, Int, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import {
+  Context,
+  ID,
+  Int,
+  Parent,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import {
   LoaderDto,
   MaterialDto,
@@ -77,6 +84,44 @@ export class ShipInventoryOrderItemResolver {
     });
   }
 
+  @ResolveField(() => ID, { nullable: true })
+  async saleId(
+    @Parent() { batchId }: ShipInventoryOrderItemEntityClass,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
+  ): Promise<string | null> {
+    if (!batchId) return null;
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
+      __from: { id: batchId },
+    });
+
+    return loaders.batchSingle
+      .load({
+        __entity: BatchGroupEntityClass,
+        __from: { id: groupId },
+      })
+      .then(({ saleId }) => saleId);
+  }
+
+  @ResolveField(() => ID, { nullable: true })
+  async saleSerialId(
+    @Parent() { batchId }: ShipInventoryOrderItemEntityClass,
+    @Context() { loaders }: LoaderType<BatchEntityClass>,
+  ): Promise<string | null> {
+    if (!batchId) return null;
+    const { groupId } = await loaders.batchSingle.load({
+      __entity: BatchEntityClass,
+      __from: { id: batchId },
+    });
+
+    return loaders.batchSingle
+      .load({
+        __entity: BatchGroupEntityClass,
+        __from: { id: groupId },
+      })
+      .then(({ saleSerialId }) => saleSerialId);
+  }
+
   @ResolveField(() => LocationDto, { nullable: true })
   async location(
     @Parent() { locationId }: ShipInventoryOrderItemEntityClass,
@@ -112,9 +157,8 @@ export class ShipInventoryOrderItemResolver {
     });
 
     return changes.reduce((acc, { quantityChanged }) => {
-      acc += quantityChanged;
-
-      return acc;
+      const qty = Number(quantityChanged);
+      return qty < 0 ? acc + Math.abs(qty) : acc;
     }, 0);
   }
 }
@@ -134,9 +178,8 @@ export class ShipInventoryOrderReferenceResolver {
     const changes = items.flatMap((item) => item.changes);
 
     return changes.reduce((acc, { quantityChanged }) => {
-      acc += quantityChanged;
-
-      return acc;
+      const qty = Number(quantityChanged);
+      return qty < 0 ? acc + Math.abs(qty) : acc;
     }, 0);
   }
 

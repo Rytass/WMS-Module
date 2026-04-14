@@ -6,6 +6,7 @@ interface SectionWrapperProps {
   title?: string;
   className?: string;
   children: ReactNode;
+  action?: ReactNode;
   grayBackground?: boolean;
 }
 
@@ -13,6 +14,7 @@ function SectionWrapper({
   title,
   className,
   children,
+  action,
   grayBackground = false,
 }: SectionWrapperProps) {
   return (
@@ -21,10 +23,15 @@ function SectionWrapper({
         [classes.grayBackground]: grayBackground,
       })}
     >
-      {title && (
-        <Typography variant="h3" color="text-neutral-solid">
-          {title}
-        </Typography>
+      {(title || action) && (
+        <div className={classes.titleWrapper}>
+          {title && (
+            <Typography variant="h3" color="text-neutral-solid">
+              {title}
+            </Typography>
+          )}
+          {action}
+        </div>
       )}
       {children}
     </div>

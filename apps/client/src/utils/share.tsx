@@ -69,6 +69,18 @@ export function changeTypeName(type: ChangeType): string {
     case ChangeType.DEALLOCATED:
       return '解除訂單';
 
+    case ChangeType.RECLASSIFIED:
+      return '轉料號';
+
+    // case ChangeType.TRANSFERRED:
+    //   return '';
+
+    case ChangeType.IN_TRANSFER:
+      return '調撥';
+
+    case ChangeType.IN_SHIPMENT:
+      return '出庫';
+
     default:
       return type;
   }

@@ -55,7 +55,7 @@ function InventoryMovementReceiveFormBody({
                 locationKey: item.location?.name,
                 loaderKey: item.loader?.name,
                 quantity: item.quantity,
-                inspecttionResult: item.requireInspection
+                inspectionResult: item.requireInspection
                   ? item.inspectionResult === YesOrNo.NULL
                     ? undefined
                     : item.inspectionResult === YesOrNo.YES

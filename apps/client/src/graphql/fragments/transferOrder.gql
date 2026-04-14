@@ -1,7 +1,23 @@
 fragment TransferOrderItem on TransferOrderItemDto {
   id
   targetTransferredQuantity
+  unitId
+  material {
+    ...SimpleMaterial
+  }
+  batch {
+    ...Batch
+  }
+  location {
+    ...SimpleLocation
+  }
+  loader {
+    ...Loader
+  }
+  saleId
+  saleSerialId
   removedAt
+  transferredQuantity
 }
 
 fragment TransferOrder on TransferOrderDto {
@@ -12,6 +28,12 @@ fragment TransferOrder on TransferOrderDto {
   createdBy
   removedAt
   createdAt
+  targetLocation {
+    ...SimpleLocation
+  }
+  targetLoader {
+    ...Loader
+  }
   items {
     ...TransferOrderItem
   }

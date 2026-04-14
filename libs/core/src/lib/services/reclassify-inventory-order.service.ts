@@ -69,6 +69,11 @@ export class ReclassifyInventoryOrderService<
       // Process each item reclassification
       await Promise.all(
         options.items.map(async (item) => {
+          if (item.materialId === material.id) {
+            throw new Error(
+              `Item with batchId ${item.batchId} is already classified under the target material`,
+            );
+          }
           // Get conversion factor for unit conversion
           const conversionFactor =
             await this.materialService.getConversionFactor(
@@ -76,16 +81,31 @@ export class ReclassifyInventoryOrderService<
               item.unitId || undefined,
             );
 
-          const batch = await batchRepository.findOneOrFail({
+          const { key, ...batch } = await batchRepository.findOneOrFail({
             where: { id: item.batchId },
           });
 
           // Get or create a batch for the new material
-          const targetBatch = await this.batchService.getBatch({
-            materialId: material.id,
-            key: batch.key,
-            manager,
-          });
+          const targetBatch = await this.batchService
+            .getBatch({
+              materialId: material.id,
+              key,
+              manager,
+            })
+            .then(({ id }) =>
+              this.batchService.splitBatch({
+                saleId: batch.saleId ?? null,
+                saleSerialId: batch.saleSerialId ?? null,
+                customerId: batch.customerId ?? null,
+                vendorId: batch.vendorId ?? null,
+                inspectionResult: batch.inspectionResult ?? null,
+                transferId: batch.transferId ?? null,
+                held: batch.held ?? false,
+                inShipment: batch.inShipment ?? false,
+                manager,
+                id,
+              }),
+            );
 
           // Create base order record
           const baseOrder = await orderRepository.save({});

@@ -39,7 +39,7 @@ function InventoryMovementShipFormBody({
   });
 
   const onSubmit = useCallback(async (values: FormValues) => {
-    console.log('values', values);
+    console.log('出庫', values);
   }, []);
 
   return (

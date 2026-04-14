@@ -95,15 +95,23 @@ export class StockService<
               .addSelect('b."transferId"', 'transferId')
               .addSelect('b."held"', 'held')
               .addSelect('b."inShipment"', 'inShipment')
+              .addSelect('b."inspectionResult"', 'inspectionResult')
+              .addSelect('b."saleId"', 'saleId')
+              .addSelect('b."vendorId"', 'vendorId')
+              .addSelect('b."customerId"', 'customerId')
               .from('stocks', 's')
               .innerJoin('batches', 'b', 's."batchId" = b.id'),
           'stock_status',
           `stock_status."stockId" = ${alias}.id`,
         )
         .addSelect('stock_status.status', 'status')
-        .addSelect('stock_status.transferId', 'transferId')
+        .addSelect('stock_status."transferId"', 'transferId')
         .addSelect('stock_status.held', 'held')
-        .addSelect('stock_status.inShipment', 'inShipment')
+        .addSelect('stock_status."inShipment"', 'inShipment')
+        .addSelect('stock_status."inspectionResult"', 'inspectionResult')
+        .addSelect('stock_status."saleId"', 'saleId')
+        .addSelect('stock_status."vendorId"', 'vendorId')
+        .addSelect('stock_status."customerId"', 'customerId')
         .addSelect(`${alias}.*`);
   }
 
@@ -196,15 +204,57 @@ export class StockService<
       });
     }
 
-    if (options.status)
-      queryBuilder.andWhere('stock_status.status = :status', {
-        status: options.status,
-      });
+    if (options.status) {
+      switch (options.status) {
+        case StockStatus.PENDING_INSPECTION:
+          queryBuilder.andWhere('stock_status."inspectionResult" IS NULL');
+          break;
+        case StockStatus.INSPECTION_FAILED:
+          queryBuilder.andWhere('stock_status."inspectionResult" = false');
+          break;
+        case StockStatus.ALLOCATED:
+          queryBuilder.andWhere('stock_status."saleId" IS NOT NULL');
+          break;
+        case StockStatus.VENDOR_INVENTORY:
+          queryBuilder.andWhere('stock_status."vendorId" IS NOT NULL');
+          break;
+        case StockStatus.CUSTOMER_INVENTORY:
+          queryBuilder.andWhere('stock_status."customerId" IS NOT NULL');
+          break;
+        default:
+          queryBuilder.andWhere('stock_status.status = :status', {
+            status: options.status,
+          });
+          break;
+      }
+    }
 
-    if (options.negateStatus)
-      queryBuilder.andWhere('stock_status.status != :negateStatus', {
-        negateStatus: options.negateStatus,
-      });
+    if (options.negateStatus) {
+      switch (options.negateStatus) {
+        case StockStatus.PENDING_INSPECTION:
+          queryBuilder.andWhere('stock_status."inspectionResult" IS NOT NULL');
+          break;
+        case StockStatus.INSPECTION_FAILED:
+          queryBuilder.andWhere(
+            '(stock_status."inspectionResult" IS NULL OR stock_status."inspectionResult" != false)',
+          );
+          break;
+        case StockStatus.ALLOCATED:
+          queryBuilder.andWhere('stock_status."saleId" IS NULL');
+          break;
+        case StockStatus.VENDOR_INVENTORY:
+          queryBuilder.andWhere('stock_status."vendorId" IS NULL');
+          break;
+        case StockStatus.CUSTOMER_INVENTORY:
+          queryBuilder.andWhere('stock_status."customerId" IS NULL');
+          break;
+        default:
+          queryBuilder.andWhere('stock_status.status != :negateStatus', {
+            negateStatus: options.negateStatus,
+          });
+          break;
+      }
+    }
 
     if (options.materialKey)
       queryBuilder.innerJoin(
@@ -499,6 +549,11 @@ export class StockService<
         'allocate_change',
         'stock."orderId" = allocate_change.id',
       )
+      .leftJoin(
+        'reclassify_inventory_order_changes',
+        'reclassify_change',
+        'stock."orderId" = reclassify_change.id',
+      )
       .andWhere(
         `(
           (receive_change.id IS NOT NULL AND receive_change."quantityChanged" * stock.quantity > 0)
@@ -509,6 +564,7 @@ export class StockService<
           OR (split_change.id IS NOT NULL AND split_change."quantityChanged" * stock.quantity > 0)
           OR (merge_change.id IS NOT NULL AND merge_change."quantityChanged" * stock.quantity > 0)
           OR (allocate_change.id IS NOT NULL AND allocate_change."quantityChanged" * stock.quantity > 0)
+          OR (reclassify_change.id IS NOT NULL AND reclassify_change."quantityChanged" * stock.quantity > 0)
         )`,
       );
 
@@ -546,7 +602,9 @@ export class StockService<
       .addSelect(
         `CASE
           WHEN receive_change.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
-          WHEN ship_change.id IS NOT NULL THEN '${ChangeType.SHIPPED}'
+          WHEN ship_change.id IS NOT NULL THEN
+            CASE WHEN ship_change."quantityChanged" > 0 THEN '${ChangeType.IN_SHIPMENT}'
+                 ELSE '${ChangeType.SHIPPED}' END
           WHEN transfer_change.id IS NOT NULL THEN
             CASE WHEN transfer_change."quantityChanged" > 0 THEN '${ChangeType.IN_TRANSFER}'
                  ELSE '${ChangeType.TRANSFERRED}' END
@@ -561,12 +619,15 @@ export class StockService<
           WHEN allocate_change.id IS NOT NULL THEN
             CASE WHEN allocate_change."quantityChanged" > 0 THEN '${ChangeType.ALLOCATED}'
                  ELSE '${ChangeType.DEALLOCATED}' END
+          WHEN reclassify_change.id IS NOT NULL THEN '${ChangeType.RECLASSIFIED}'
           ELSE NULL
         END`,
         'changeType',
       );
 
-    const items = await resultQueryBuilder.getRawMany<ChangeLog>();
+    const items = await resultQueryBuilder
+      .addOrderBy('stock."createdAt"', 'DESC')
+      .getRawMany<ChangeLog>();
 
     return [items, count];
   }
