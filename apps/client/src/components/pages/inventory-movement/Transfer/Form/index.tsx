@@ -24,8 +24,8 @@ function InventoryMovementTransferForm({
             itemId: item.id,
             quantity: 0,
             targetTransferredQuantity: item.targetTransferredQuantity,
-            transferredQuantity: 0, // 待補
-            unitId: null, // 待補
+            transferredQuantity: item.transferredQuantity,
+            unitId: item.unitId,
             unitOptions: getMaterialUnitOptions(item.material),
             material: {
               id: item.material.id,

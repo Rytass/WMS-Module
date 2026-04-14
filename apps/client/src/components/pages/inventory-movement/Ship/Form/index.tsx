@@ -51,8 +51,18 @@ function InventoryMovementShipForm({
                 }
               : null,
             materialDescription: item.material.description,
-            saleId: null, // 待補
-            saleSerialId: null, // 待補
+            saleId: item.saleId
+              ? {
+                  id: item.saleId,
+                  name: item.saleId,
+                }
+              : null,
+            saleSerialId: item.saleSerialId
+              ? {
+                  id: item.saleSerialId,
+                  name: item.saleSerialId,
+                }
+              : null,
             removedAt: item.removedAt || '',
           })),
       }}
