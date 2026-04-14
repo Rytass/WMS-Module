@@ -11,6 +11,7 @@ import {
   Button,
 } from '@mezzanine-ui/react';
 import { TrashIcon } from '@mezzanine-ui/icons';
+import NumberInputField from '../../../../fields/NumberInputField';
 import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import { FormValues, ItemFieldValues } from './typing';
 
@@ -49,6 +50,19 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
             }
           }}
           disabled={source.transferredQuantity > 0 || !!source.removedAt}
+        />
+      ),
+    },
+    {
+      key: 'newQuantity',
+      title: '調撥數量',
+      minWidth: 120,
+      align: 'end',
+      render: (source, index) => (
+        <NumberInputField
+          name={`items.${index}.newQuantity`}
+          placeholder="調撥數量"
+          disabled={!!source.removedAt || undefined}
         />
       ),
     },

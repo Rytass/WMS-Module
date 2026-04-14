@@ -52,10 +52,12 @@ export function getMaterialUnitOptions(material: MaterialFragment) {
   return [
     {
       id: BASE_UNIT,
+      conversionFactor: 1,
       name: material.baseUnit.key,
     },
     ...material.materialUnits.map((u) => ({
       id: u.id,
+      conversionFactor: u.conversionFactor,
       name: u.unit,
     })),
   ];

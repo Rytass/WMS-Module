@@ -12,8 +12,10 @@ export type ItemFieldValues = {
 
   // for field array
   itemId?: string;
+  newQuantity: number;
+  maxQuantity: number;
   transferredQuantity: number;
-  unitOptions: SelectValue[];
+  unitOptions: { id: string; name: string; conversionFactor: number }[];
   isExisted: boolean;
   removedAt?: string;
 };

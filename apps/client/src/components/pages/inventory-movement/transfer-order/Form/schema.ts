@@ -42,12 +42,15 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         }).nullable(),
 
         itemId: Yup.string(),
+        newQuantity: Yup.number().required('必填'), // 待補驗證
+        maxQuantity: Yup.number().required('必填'),
         transferredQuantity: Yup.number().required('必填'),
         unitOptions: Yup.array()
           .of(
             Yup.object({
               id: Yup.string().required('必填'),
               name: Yup.string().required('必填'),
+              conversionFactor: Yup.number().required('必填'),
             }),
           )
           .required('必填'),

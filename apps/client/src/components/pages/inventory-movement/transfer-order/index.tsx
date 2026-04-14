@@ -74,7 +74,8 @@ function EditTransferOrder() {
             : null,
 
           itemId: item.id,
-          targetTransferredQuantity: item.targetTransferredQuantity,
+          newQuantity: 0,
+          maxQuantity: 0, // 待補
           transferredQuantity: item.transferredQuantity,
           unitOptions: getMaterialUnitOptions(item.material),
           isExisted: true,
