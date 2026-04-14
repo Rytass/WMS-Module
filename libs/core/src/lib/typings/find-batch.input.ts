@@ -5,4 +5,6 @@ export type FindBatchInput<U extends object> = PaginationInput & {
     key: keyof U;
     value: string;
   };
+
+  materialId?: string;
 };

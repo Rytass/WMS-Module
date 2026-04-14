@@ -132,6 +132,11 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
         value: `%${value}%`,
       });
     }
+    if (options.materialId)
+      queryBuilder.andWhere('batch."materialId" = :materialId', {
+        materialId: options.materialId,
+      });
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
