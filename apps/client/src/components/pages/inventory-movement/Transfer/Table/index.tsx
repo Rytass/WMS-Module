@@ -44,7 +44,7 @@ function InventoryMovementTransferTable() {
     },
     {
       key: 'targetLoader',
-      title: '目標位置',
+      title: '目標載具',
       width: 140,
       render: (source) => source.targetLoader?.serialId,
     },

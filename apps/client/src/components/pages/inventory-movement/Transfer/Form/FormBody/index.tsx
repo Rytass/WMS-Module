@@ -32,7 +32,10 @@ function InventoryMovementTransferFormBody({
   defaultValues,
   orderKey,
   createdBy,
+  receiver,
   createdAt,
+  targetLocation,
+  targetLoader,
   description,
   closeModal,
   open,
@@ -59,7 +62,63 @@ function InventoryMovementTransferFormBody({
     >
       <div className={classes.host}>
         <SectionWrapper title="單號資訊" grayBackground>
-          section
+          <div className={classes.headSectionWrapper}>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="調撥單號"
+            >
+              <DescriptionContent>{orderKey}</DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="建立者"
+            >
+              <DescriptionContent>{createdBy || '-'}</DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="接收者"
+            >
+              <DescriptionContent>{receiver || '-'}</DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="建立時間"
+            >
+              <DescriptionContent>
+                {dayjs(createdAt).format('YYYY-MM-DD HH:mm')}
+              </DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="目標位置"
+            >
+              <DescriptionContent>
+                {targetLocation ? targetLocation.name : '-'}
+              </DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="目標載具"
+            >
+              <DescriptionContent>
+                {targetLoader ? targetLoader.name : '-'}
+              </DescriptionContent>
+            </Description>
+            <Description
+              widthType="stretch"
+              orientation="vertical"
+              title="備註"
+            >
+              <DescriptionContent>{description || '-'}</DescriptionContent>
+            </Description>
+          </div>
         </SectionWrapper>
         <Typography variant="h3" color="text-neutral-solid">
           庫存項目
