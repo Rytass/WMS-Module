@@ -211,6 +211,8 @@ type ShipInventoryOrderItemDto {
   serialId: String!
   material: MaterialDto!
   batch: BatchDto
+  saleId: ID
+  saleSerialId: ID
   location: LocationDto
   loader: LoaderDto
   shippedQuantity: Int!
@@ -284,6 +286,7 @@ type AllocateInventoryOrderItemDto {
 
 type TransferOrderItemDto {
   id: ID!
+  unitId: String
   targetTransferredQuantity: Int!
   removedAt: DateTime
   material: MaterialDto!
@@ -292,6 +295,7 @@ type TransferOrderItemDto {
   loader: LoaderDto
   saleId: ID
   saleSerialId: ID
+  transferredQuantity: Int!
 }
 
 type TransferOrderDto {
@@ -531,7 +535,7 @@ type Query {
   loaderUnits(type: LoaderUnit!): [LoaderUnitDto!]!
   material(id: ID, key: String): MaterialDto!
   materials(offset: Int, limit: Int, key: String, description: String): Materials!
-  batches(offset: Int, limit: Int, key: String): Batches!
+  batches(offset: Int, limit: Int, key: String, materialId: ID): Batches!
   stock(id: ID!): StockDto!
   stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): Stocks!
   stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): Materials!
