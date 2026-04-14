@@ -9,6 +9,8 @@ export type ItemFieldValues = {
 };
 
 export type FormValues = {
+  targetLocation?: SelectValue | null;
+  targetLoader?: SelectValue | null;
   description?: string;
   items: ItemFieldValues[];
 };

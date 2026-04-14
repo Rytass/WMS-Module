@@ -9,12 +9,18 @@ interface TransferOrderFormProps {
   defaultValues: FormValues;
   title: string;
   breadcrumbTitle: string;
+  createdBy?: string | null;
+  receiver?: string | null;
+  createdAt: string;
 }
 
 function TransferOrderForm({
   defaultValues,
   title,
   breadcrumbTitle,
+  createdBy,
+  receiver,
+  createdAt,
 }: TransferOrderFormProps) {
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),

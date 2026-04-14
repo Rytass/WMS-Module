@@ -61,6 +61,20 @@ export function useLazyQueryTransferOrder() {
   };
 }
 
+export function useQueryTransferOrder(id: string) {
+  const { data, loading } = useQuery(TransferOrderDocument, {
+    variables: {
+      transferOrderId: id,
+    },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  return {
+    data,
+    loading,
+  };
+}
+
 export function useQueryShipInventoryOrders() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
