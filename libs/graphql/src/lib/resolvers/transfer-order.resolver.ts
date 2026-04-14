@@ -1,4 +1,11 @@
-import { Context, ID, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import {
+  Context,
+  ID,
+  Int,
+  Parent,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import { TransferOrderDto } from '../dto/transfer-order.dto';
 import { TransferOrderItemDto } from '../dto/transfer-order-item.dto';
 import { type LoaderType } from '../helpers';
@@ -8,6 +15,7 @@ import {
   LoadersEntityClass,
   LocationEntityClass,
   MaterialEntityClass,
+  TransferOrderChangeEntityClass,
   TransferOrderItemEntityClass,
 } from '@wms-module/core';
 import { LoaderDto, MaterialDto } from '../dto';
@@ -144,5 +152,21 @@ export class TransferOrderItemResolver {
         __from: { id: batchId },
       })
       .then((batch) => batch.saleSerialId);
+  }
+
+  @ResolveField(() => Int)
+  async transferredQuantity(
+    @Parent() { id }: TransferOrderItemEntityClass,
+    @Context() { loaders }: LoaderType<TransferOrderChangeEntityClass>,
+  ): Promise<number> {
+    const changes = await loaders.batchMany.load({
+      __entity: TransferOrderChangeEntityClass,
+      __from: { itemId: id },
+    });
+
+    return changes.reduce((acc, { quantityChanged }) => {
+      const qty = Number(quantityChanged);
+      return qty < 0 ? acc + Math.abs(qty) : acc;
+    }, 0);
   }
 }

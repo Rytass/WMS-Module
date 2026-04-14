@@ -286,6 +286,7 @@ type AllocateInventoryOrderItemDto {
 
 type TransferOrderItemDto {
   id: ID!
+  unitId: String
   targetTransferredQuantity: Int!
   removedAt: DateTime
   material: MaterialDto!
@@ -294,6 +295,7 @@ type TransferOrderItemDto {
   loader: LoaderDto
   saleId: ID
   saleSerialId: ID
+  transferredQuantity: Int!
 }
 
 type TransferOrderDto {
