@@ -12,6 +12,7 @@ export type ItemFieldValues = {
 
   // for field array
   itemId?: string;
+  stockId?: string;
   newQuantity: number;
   maxOriginQuantity: number;
   transferredQuantity: number;

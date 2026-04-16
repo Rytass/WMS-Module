@@ -16,7 +16,7 @@ function ShipInventoryOrders() {
           gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
         }}
         onSubmit={(values) => {
-          console.log('values', values);
+          console.log('出庫單 filters', values);
         }}
       />
       <ShipInventoryOrdersTable />
