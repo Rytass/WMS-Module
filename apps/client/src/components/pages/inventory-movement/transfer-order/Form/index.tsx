@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import TransferOrderFormBody from './FormBody';
+import { useUpdateTransferOrder } from '../../useApi';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 
@@ -23,6 +24,7 @@ function TransferOrderForm({
   receiver,
   createdAt,
 }: TransferOrderFormProps) {
+  const { updateTransferOrder } = useUpdateTransferOrder();
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
     defaultValues,
