@@ -47,7 +47,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
     });
 
     if (isConfirm) {
-      console.log('cancel');
+      console.log('取消出庫');
     }
   }, [openDialog]);
 
