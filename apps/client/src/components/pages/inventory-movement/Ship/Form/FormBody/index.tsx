@@ -6,12 +6,14 @@ import {
   Typography,
   Description,
   DescriptionContent,
+  Message,
 } from '@mezzanine-ui/react';
 import { FormModalWrapper } from '../../../../../fields/FormModalWrapper';
 import SectionWrapper from '../../../../../SectionWrapper';
 import FieldArrayTable from './FieldArrayTable';
 import { formSchema } from '../schema';
 import { FormValues } from '../typing';
+import { useShip } from '../../../useApi';
 import classes from './index.module.scss';
 
 interface InventoryMovementShipFormBodyProps {
@@ -33,14 +35,36 @@ function InventoryMovementShipFormBody({
   closeModal,
   open,
 }: InventoryMovementShipFormBodyProps) {
+  const { ship, loading } = useShip();
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
 
-  const onSubmit = useCallback(async (values: FormValues) => {
-    console.log('出庫', values);
-  }, []);
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await ship({
+          variables: {
+            items: values.items
+              .filter((item) => item.quantity > 0)
+              .map((item) => ({
+                itemId: item.itemId,
+                quantity: item.quantity,
+              })),
+          },
+        });
+
+        if (data?.ship) {
+          Message.success('出庫成功');
+          closeModal();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [closeModal, ship],
+  );
 
   return (
     <FormModalWrapper<FormValues>
@@ -48,6 +72,10 @@ function InventoryMovementShipFormBody({
       title="出庫"
       titleAlign="left"
       confirmText="出庫"
+      confirmButtonProps={{
+        disabled: loading,
+        loading,
+      }}
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}

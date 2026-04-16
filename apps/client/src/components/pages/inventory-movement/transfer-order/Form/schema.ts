@@ -42,6 +42,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         }).nullable(),
 
         itemId: Yup.string(),
+        stockId: Yup.string(),
         newQuantity: Yup.number()
           .min(Yup.ref('transferredQuantity'), '不得小於已收數量')
           .test('max-quantity', '不可超過可用最大數量', function (value) {

@@ -7,12 +7,14 @@ import {
   Description,
   DescriptionContent,
   SelectValue,
+  Message,
 } from '@mezzanine-ui/react';
 import { FormModalWrapper } from '../../../../../fields/FormModalWrapper';
 import SectionWrapper from '../../../../../SectionWrapper';
 import FieldArrayTable from './FieldArrayTable';
 import { formSchema } from '../schema';
 import { FormValues } from '../typing';
+import { useTransfer } from '../../../useApi';
 import classes from './index.module.scss';
 
 interface InventoryMovementTransferFormBodyProps {
@@ -40,14 +42,36 @@ function InventoryMovementTransferFormBody({
   closeModal,
   open,
 }: InventoryMovementTransferFormBodyProps) {
+  const { transfer, loading } = useTransfer();
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
 
-  const onSubmit = useCallback(async (values: FormValues) => {
-    console.log('對點', values);
-  }, []);
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await transfer({
+          variables: {
+            items: values.items
+              .filter((item) => item.quantity > 0)
+              .map((item) => ({
+                itemId: item.itemId,
+                quantity: item.quantity,
+              })),
+          },
+        });
+
+        if (data?.transfer) {
+          Message.success('對點成功');
+          closeModal();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [closeModal, transfer],
+  );
 
   return (
     <FormModalWrapper<FormValues>
@@ -55,6 +79,10 @@ function InventoryMovementTransferFormBody({
       title="調撥單檢視"
       titleAlign="left"
       confirmText="對點"
+      confirmButtonProps={{
+        disabled: loading,
+        loading,
+      }}
       onSubmit={onSubmit}
       closeModal={closeModal}
       open={open}

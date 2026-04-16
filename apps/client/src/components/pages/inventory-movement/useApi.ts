@@ -12,6 +12,7 @@ import {
   ReceiveInventoryOrderDocument,
   ShipInventoryOrderStatus,
   ReceiveInventoryOrderStatus,
+  UpdateTransferOrderDocument,
   TransferDocument,
   ReceiveDocument,
   ShipDocument,
@@ -167,6 +168,20 @@ export function useLazyQueryReceiveInventoryOrder() {
   return {
     fetchReceiveInventoryOrder,
     data,
+    loading,
+  };
+}
+
+export function useUpdateTransferOrder() {
+  const [updateTransferOrder, { loading }] = useMutation(
+    UpdateTransferOrderDocument,
+    {
+      refetchQueries: [TransferOrdersDocument],
+    },
+  );
+
+  return {
+    updateTransferOrder,
     loading,
   };
 }

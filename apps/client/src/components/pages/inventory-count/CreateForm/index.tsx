@@ -26,7 +26,7 @@ function CreateInventoryCountForm({
   });
 
   const onSubmit = useCallback(async (values: FormValues) => {
-    console.log('values', values);
+    console.log('建立盤點', values);
   }, []);
 
   return (

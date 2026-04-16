@@ -27,6 +27,7 @@ function EditTransferOrder() {
 
   return (
     <TransferOrderForm
+      orderId={id}
       defaultValues={{
         targetLocation: transferOrder.targetLocation
           ? {
