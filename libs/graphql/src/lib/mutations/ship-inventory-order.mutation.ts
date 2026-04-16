@@ -61,4 +61,12 @@ export class ShipInventoryOrderMutation {
 
     return true;
   }
+
+  @Mutation(() => Boolean)
+  async cancelShip(
+    @Args('items', { type: () => [ShipOrderArgs] })
+    items: ShipOrderArgs[],
+  ) {
+    return this.shipInventoryOrderService.cancelShip(items);
+  }
 }

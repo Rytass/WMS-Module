@@ -56,4 +56,12 @@ export class TransferOrderMutation {
   ) {
     return this.transferOrderService.transfer(args);
   }
+
+  @Mutation(() => Boolean)
+  async cancelTransfer(
+    @Args('items', { type: () => [TransferOrderArgs] })
+    args: TransferOrderArgs[],
+  ) {
+    return this.transferOrderService.cancelTransfer(args);
+  }
 }

@@ -579,9 +579,11 @@ type Mutation {
   createShipInventoryOrder(key: ID!, description: String!, createdBy: String, references: [CreateShipInventoryOrderReferenceArgs!]!): ShipInventoryOrderDto!
   updateShipInventoryOrder(description: String, createdBy: String, id: ID!, references: [UpdateShipInventoryOrderReferenceArgs!], items: [UpdateShipInventoryOrderItemArgs!], removedAt: DateTime): ShipInventoryOrderDto!
   ship(items: [ShipOrderArgs!]!): Boolean!
+  cancelShip(items: [ShipOrderArgs!]!): Boolean!
   createTransferOrder(description: String, locationId: ID!, loaderId: ID, receiver: String, createdBy: String, items: [CreateTransferOrderItemArgs!]!): TransferOrderDto!
   updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
   transfer(items: [TransferOrderArgs!]!): Boolean!
+  cancelTransfer(items: [TransferOrderArgs!]!): Boolean!
   createHoldInventoryOrder(createdBy: String, items: [CreateHoldInventoryOrderItemArgs!]!): HoldInventoryOrderDto!
   updateHoldInventoryOrder(createdBy: String, id: String!, removedAt: DateTime, items: [UpdateHoldInventoryOrderItemArgs!]): HoldInventoryOrderDto!
   release(items: [ReleaseOrderArgs!]!): Boolean!

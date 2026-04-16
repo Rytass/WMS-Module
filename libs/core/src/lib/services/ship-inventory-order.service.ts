@@ -622,4 +622,126 @@ export class ShipInventoryOrderService<
       return true;
     });
   }
+
+  /**
+   * Cancel prepared ship inventory order items
+   * Reverses the prepare step by moving stock from IN_SHIPMENT back to FREE
+   * Can only cancel prepared quantity that hasn't been shipped yet
+   */
+  cancelShip(
+    options: ShipInventoryOrderInput[] | ShipInventoryOrderInput,
+  ): Promise<boolean> {
+    if (!Array.isArray(options)) options = [options];
+
+    return this.dataSource.transaction(async (manager) => {
+      const changeRepository =
+        manager.getRepository<ShipInventoryOrderChangeEntityClass>(
+          ShipInventoryOrderChangeEntityClass,
+        );
+      const itemRepository =
+        manager.getRepository<ShipInventoryOrderItemEntityClass>(
+          this.shipInventoryOrderItemEntity,
+        );
+      const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+      const stockRepository =
+        manager.getRepository<StockEntityClass>(StockEntityClass);
+
+      const items = await itemRepository.find({
+        where: { id: In(options.map((o) => o.itemId)) },
+        relations: ['changes'],
+      });
+      const itemMap = new Map(items.map((item) => [item.id, item]));
+
+      await Promise.all(
+        options.map(async (option) => {
+          const item = itemMap.get(option.itemId);
+          if (!item) return;
+
+          const conversionFactor =
+            await this.materialService.getConversionFactor(
+              item.materialId,
+              item.unitId || undefined,
+            );
+
+          // Calculate prepared quantity (positive changes) and shipped quantity (negative changes)
+          const preparedQuantity = item.changes.reduce((sum, change) => {
+            const qty = Number(change.quantityChanged);
+            return qty > 0 ? sum + qty : sum;
+          }, 0);
+
+          const shippedQuantity = item.changes.reduce((sum, change) => {
+            const qty = Number(change.quantityChanged);
+            return qty < 0 ? sum + Math.abs(qty) : sum;
+          }, 0);
+
+          // Cancellable quantity is prepared but not yet shipped
+          const cancellableQuantity = preparedQuantity - shippedQuantity;
+
+          if (cancellableQuantity - option.quantity * conversionFactor < 0) {
+            throw new Error(
+              `Cancel quantity exceeds prepared quantity for item ${option.itemId}`,
+            );
+          }
+
+          // Get the inShipment batch (same batch metrics as original but with inShipment: true)
+          const inShipmentBatch = await this.batchService.splitBatch({
+            id: item.batchId,
+            inShipment: true,
+            manager,
+          });
+
+          const reverseOrder = await orderRepository.save(
+            orderRepository.create(),
+          );
+
+          // Validate stock availability on the inShipment batch
+          await this.stockService.validateStockAvailability(
+            {
+              materialId: item.materialId,
+              batchId: inShipmentBatch.id,
+              locationId: item.locationId || undefined,
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
+              quantity: option.quantity * conversionFactor,
+            },
+            manager,
+          );
+
+          // Reverse the stock changes
+          await Promise.all([
+            changeRepository.save(
+              changeRepository.create({
+                itemId: option.itemId,
+                id: reverseOrder.id,
+                quantityChanged: -1 * option.quantity * conversionFactor,
+              }),
+            ),
+            stockRepository.save(
+              stockRepository.create([
+                // Re-add to original batch (FREE stock)
+                {
+                  orderId: reverseOrder.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId,
+                  locationId: item.locationId || undefined,
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                  quantity: option.quantity * conversionFactor,
+                } as DeepPartial<StockEntityClass>,
+                // Deduct from inShipment batch
+                {
+                  orderId: reverseOrder.id,
+                  materialId: item.materialId,
+                  batchId: inShipmentBatch.id,
+                  locationId: item.locationId || undefined,
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                  quantity: -1 * option.quantity * conversionFactor,
+                } as DeepPartial<StockEntityClass>,
+              ]),
+            ),
+          ]);
+        }),
+      );
+
+      return true;
+    });
+  }
 }
