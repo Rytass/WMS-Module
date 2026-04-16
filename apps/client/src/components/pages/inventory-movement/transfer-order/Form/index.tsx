@@ -1,13 +1,17 @@
 import { useCallback } from 'react';
+import { useRouter } from 'next/router';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import { Message } from '@mezzanine-ui/react';
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import TransferOrderFormBody from './FormBody';
 import { useUpdateTransferOrder } from '../../useApi';
+import { BASE_UNIT } from '../../../../../utils/share';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 
 interface TransferOrderFormProps {
+  orderId: string;
   defaultValues: FormValues;
   title: string;
   breadcrumbTitle: string;
@@ -17,6 +21,7 @@ interface TransferOrderFormProps {
 }
 
 function TransferOrderForm({
+  orderId,
   defaultValues,
   title,
   breadcrumbTitle,
@@ -24,15 +29,44 @@ function TransferOrderForm({
   receiver,
   createdAt,
 }: TransferOrderFormProps) {
+  const { back } = useRouter();
   const { updateTransferOrder } = useUpdateTransferOrder();
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
     defaultValues,
   });
 
-  const onSubmit = useCallback(async (values: FormValues) => {
-    console.log('儲存', values);
-  }, []);
+  const onSubmit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await updateTransferOrder({
+          variables: {
+            updateTransferOrderId: orderId,
+            locationId: values.targetLocation?.id ?? '',
+            loaderId: values.targetLoader?.id,
+            description: values.description || '',
+            items: values.items.map((item) => {
+              return {
+                id: item.itemId,
+                aggregatedKey: item.stockId,
+                unitId: item.unit === BASE_UNIT ? null : item.unit,
+                targetTransferredQuantity: item.newQuantity,
+                removedAt: item.removedAt,
+              };
+            }),
+          },
+        });
+
+        if (data?.updateTransferOrder.id) {
+          Message.success('儲存成功');
+          back();
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [back, orderId, updateTransferOrder],
+  );
 
   return (
     <FormWrapper

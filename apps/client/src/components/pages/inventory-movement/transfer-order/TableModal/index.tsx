@@ -73,7 +73,7 @@ const TableModal: FC<TableModalProps> = ({ open, closeModal, append }) => {
               }
             : null,
 
-          itemId: s.id,
+          stockId: s.id,
           newQuantity: 0,
           maxOriginQuantity: s.quantity,
           transferredQuantity: 0,
@@ -83,6 +83,7 @@ const TableModal: FC<TableModalProps> = ({ open, closeModal, append }) => {
         })),
       );
 
+      Message.success('項目新增成功');
       closeModal();
     }
   }, [targetStocks, append, closeModal]);
