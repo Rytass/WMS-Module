@@ -7,6 +7,7 @@ import {
   UpdateTransferOrderArgs,
 } from '../inputs/create-transfer-order.args';
 import { TransferOrderArgs } from '../inputs/transfer-order.args';
+import { CancelTransferOrderArgs } from '../inputs/cancel-transfer-order.args';
 
 @Injectable()
 export class TransferOrderMutation {
@@ -59,8 +60,8 @@ export class TransferOrderMutation {
 
   @Mutation(() => Boolean)
   async cancelTransfer(
-    @Args('items', { type: () => [TransferOrderArgs] })
-    args: TransferOrderArgs[],
+    @Args('items', { type: () => [CancelTransferOrderArgs] })
+    args: CancelTransferOrderArgs[],
   ) {
     return this.transferOrderService.cancelTransfer(args);
   }
