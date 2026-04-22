@@ -1,3 +1,5 @@
+import '@xyflow/react/dist/style.css';
+import '@rytass/wms-map-react-components/index.css';
 import '../styles/mezzanine.scss';
 import '../styles/global.scss';
 import { AppProps } from 'next/app';
