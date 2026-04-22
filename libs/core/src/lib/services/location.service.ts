@@ -28,7 +28,10 @@ export class LocationService<
   }
 
   async updateLocation({ id, ...options }: UpdateLocationInput): Promise<T> {
-    const location = await this.locationReposistory.findOneByOrFail({ id });
+    const location = await this.locationReposistory
+      .createQueryBuilder('location')
+      .where('location.id = :id', { id })
+      .getOneOrFail();
 
     return this.locationReposistory.save(
       this.locationReposistory.create({
