@@ -1,5 +1,11 @@
+import LocationsManagementListTable from './Table';
+
 const LocationsManagementList: FC = () => {
-  return <div>LocationsManagementList</div>;
+  return (
+    <>
+      <LocationsManagementListTable />
+    </>
+  );
 };
 
 export default LocationsManagementList;

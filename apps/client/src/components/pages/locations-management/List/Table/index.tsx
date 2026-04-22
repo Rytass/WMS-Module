@@ -1,0 +1,59 @@
+import { useMemo } from 'react';
+import { useRouter } from 'next/router';
+import dayjs from 'dayjs';
+import { TableColumn, Badge } from '@mezzanine-ui/react';
+import TableWrapper from '../../../../TableWrapper';
+import Table from '../../../../TableWrapper/Table';
+// import Actions from './Actions';
+import { LocationFragment } from '../../../../../graphql/generated/.graphql';
+import { useQueryLocations } from '../../useApi';
+import { NextPath } from '../../../../../utils/nextpath';
+
+const LocationsManagementListTable: FC = () => {
+  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
+    useQueryLocations();
+
+  const dataSource = useMemo(
+    (): LocationFragment[] => data?.locations.items ?? [],
+    [data?.locations.items],
+  );
+
+  const columns: TableColumn<LocationFragment>[] = [
+    {
+      key: 'key',
+      title: '儲存位置 ID',
+      width: 194,
+      render: (source) => source.key,
+    },
+    {
+      key: 'description',
+      title: '位置說明',
+      render: (source) => source.description,
+    },
+  ];
+
+  return (
+    <TableWrapper
+      title="庫位項目"
+      createText="新增庫位"
+      onCreate={() => {
+        // create
+      }}
+    >
+      <Table<LocationFragment>
+        columns={columns}
+        dataSource={dataSource}
+        loading={loading}
+        pagination={{
+          current: page,
+          onChange: (page) => setPage(page),
+          total: pageTotal,
+          pageSize: limit,
+          onChangePageSize: (size) => setLimit(size),
+        }}
+      />
+    </TableWrapper>
+  );
+};
+
+export default LocationsManagementListTable;

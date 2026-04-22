@@ -1,5 +1,12 @@
+import SectionWrapper from '../../../SectionWrapper';
+import MapContent from '../../../map/MapContent';
+
 const LocationsManagementMap: FC = () => {
-  return <div>LocationsManagementMap</div>;
+  return (
+    <SectionWrapper>
+      <MapContent />
+    </SectionWrapper>
+  );
 };
 
 export default LocationsManagementMap;

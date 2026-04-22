@@ -50,7 +50,7 @@ function LoadersManagementListTable() {
       render: (source) => source.serialId,
     },
     {
-      key: '儲存位置',
+      key: 'locationKey',
       title: '儲存位置',
       width: 100,
       render: (source) => source.location?.key,
