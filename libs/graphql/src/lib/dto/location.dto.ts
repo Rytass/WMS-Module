@@ -11,6 +11,9 @@ export class LocationDto {
 
   @Field(() => String)
   description!: string;
+
+  @Field(() => Boolean, { nullable: true })
+  isActive?: boolean;
 }
 
 @ObjectType()

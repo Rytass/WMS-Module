@@ -33,6 +33,11 @@ export class LocationService<
         description: `%${options.description}%`,
       });
 
+    if (options.isActive !== undefined)
+      queryBuilder.andWhere('location."isActive" = :isActive', {
+        isActive: options.isActive,
+      });
+
     if (options.wildcard) {
       const { key, value } = options.wildcard;
       queryBuilder.andWhere(`location."${String(key)}" ILIKE :value`, {

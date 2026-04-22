@@ -7,4 +7,7 @@ export const WarehouseMapEntity = Symbol('WarehouseMapEntity');
 export class LocationEntityClass extends BaseLocationEntity {
   @Column({ type: 'text' })
   description!: string;
+
+  @Column({ type: 'bool', default: true })
+  isActive?: boolean;
 }
