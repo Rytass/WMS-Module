@@ -10,6 +10,7 @@ const API_URL = process.env.API_URL ?? 'http://localhost:7103';
  **/
 const nextConfig = {
   output: 'standalone',
+  bundlePagesRouterDependencies: true,
   // Use this to set Nx-specific options
   // See: https://nx.dev/recipes/next/next-config-setup
   nx: {},
