@@ -16,6 +16,8 @@ import {
   TransferDocument,
   ReceiveDocument,
   ShipDocument,
+  CancelTransferDocument,
+  CancelShipDocument,
 } from '../../../graphql/generated/.graphql';
 
 export function useQueryTransferOrders() {
@@ -209,6 +211,24 @@ export function useShip() {
 
   return {
     ship,
+    loading,
+  };
+}
+
+export function useCancelTransfer() {
+  const [cancelTransfer, { loading }] = useMutation(CancelTransferDocument);
+
+  return {
+    cancelTransfer,
+    loading,
+  };
+}
+
+export function useCancelShip() {
+  const [cancelShip, { loading }] = useMutation(CancelShipDocument);
+
+  return {
+    cancelShip,
     loading,
   };
 }
