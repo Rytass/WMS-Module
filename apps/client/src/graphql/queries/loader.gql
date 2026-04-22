@@ -40,8 +40,20 @@ query Loaders(
   }
 }
 
-query LoaderOptions($offset: Int, $limit: Int, $key: String, $locationId: ID) {
-  loaders(offset: $offset, limit: $limit, key: $key, locationId: $locationId) {
+query LoaderOptions(
+  $offset: Int
+  $limit: Int
+  $key: String
+  $locationId: ID
+  $isActive: Boolean
+) {
+  loaders(
+    offset: $offset
+    limit: $limit
+    key: $key
+    locationId: $locationId
+    isActive: $isActive
+  ) {
     id
     items {
       id
@@ -81,8 +93,18 @@ query LoaderTypes(
   }
 }
 
-query LoaderTypeOptions($offset: Int, $limit: Int, $description: String) {
-  loaderTypes(offset: $offset, limit: $limit, description: $description) {
+query LoaderTypeOptions(
+  $offset: Int
+  $limit: Int
+  $description: String
+  $isActive: Boolean
+) {
+  loaderTypes(
+    offset: $offset
+    limit: $limit
+    description: $description
+    isActive: $isActive
+  ) {
     id
     items {
       id

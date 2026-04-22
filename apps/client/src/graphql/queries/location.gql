@@ -4,12 +4,19 @@ query Location($locationId: ID!) {
   }
 }
 
-query Locations($offset: Int, $limit: Int, $description: String, $key: String) {
+query Locations(
+  $offset: Int
+  $limit: Int
+  $description: String
+  $key: String
+  $isActive: Boolean
+) {
   locations(
     offset: $offset
     limit: $limit
     description: $description
     key: $key
+    isActive: $isActive
   ) {
     id
     items {
@@ -19,8 +26,13 @@ query Locations($offset: Int, $limit: Int, $description: String, $key: String) {
   }
 }
 
-query LocationOptions($offset: Int, $limit: Int, $key: String) {
-  locations(offset: $offset, limit: $limit, key: $key) {
+query LocationOptions(
+  $offset: Int
+  $limit: Int
+  $key: String
+  $isActive: Boolean
+) {
+  locations(offset: $offset, limit: $limit, key: $key, isActive: $isActive) {
     id
     items {
       id

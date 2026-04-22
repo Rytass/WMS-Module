@@ -2,6 +2,7 @@ fragment Location on LocationDto {
   id
   key
   description
+  isActive
   mapData {
     ...MapData
   }
@@ -11,4 +12,5 @@ fragment SimpleLocation on LocationDto {
   id
   key
   description
+  isActive
 }
