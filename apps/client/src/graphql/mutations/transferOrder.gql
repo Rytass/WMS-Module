@@ -91,3 +91,7 @@ mutation ReturnTransferVendorOrder($items: [ReturnTransferVendorOrderArgs!]!) {
 mutation Transfer($items: [TransferOrderArgs!]!) {
   transfer(items: $items)
 }
+
+mutation CancelTransfer($items: [CancelTransferOrderArgs!]!) {
+  cancelTransfer(items: $items)
+}

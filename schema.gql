@@ -579,11 +579,11 @@ type Mutation {
   createShipInventoryOrder(key: ID!, description: String!, createdBy: String, references: [CreateShipInventoryOrderReferenceArgs!]!): ShipInventoryOrderDto!
   updateShipInventoryOrder(description: String, createdBy: String, id: ID!, references: [UpdateShipInventoryOrderReferenceArgs!], items: [UpdateShipInventoryOrderItemArgs!], removedAt: DateTime): ShipInventoryOrderDto!
   ship(items: [ShipOrderArgs!]!): Boolean!
-  cancelShip(items: [ShipOrderArgs!]!): Boolean!
+  cancelShip(items: [CancelShipOrderArgs!]!): Boolean!
   createTransferOrder(description: String, locationId: ID!, loaderId: ID, receiver: String, createdBy: String, items: [CreateTransferOrderItemArgs!]!): TransferOrderDto!
   updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
   transfer(items: [TransferOrderArgs!]!): Boolean!
-  cancelTransfer(items: [TransferOrderArgs!]!): Boolean!
+  cancelTransfer(items: [CancelTransferOrderArgs!]!): Boolean!
   createHoldInventoryOrder(createdBy: String, items: [CreateHoldInventoryOrderItemArgs!]!): HoldInventoryOrderDto!
   updateHoldInventoryOrder(createdBy: String, id: String!, removedAt: DateTime, items: [UpdateHoldInventoryOrderItemArgs!]): HoldInventoryOrderDto!
   release(items: [ReleaseOrderArgs!]!): Boolean!
@@ -697,6 +697,11 @@ input ShipOrderArgs {
   quantity: Int!
 }
 
+input CancelShipOrderArgs {
+  itemId: ID!
+  quantity: Int
+}
+
 input CreateTransferOrderItemArgs {
   aggregatedKey: ID!
   unitId: ID
@@ -717,6 +722,16 @@ input TransferOrderArgs {
 
   """The quantity to transfer"""
   quantity: Int!
+}
+
+input CancelTransferOrderArgs {
+  """The ID of transfer order item"""
+  itemId: ID!
+
+  """
+  The quantity to cancel. If not provided, cancels all remaining cancellable quantity.
+  """
+  quantity: Int
 }
 
 input CreateHoldInventoryOrderItemArgs {
