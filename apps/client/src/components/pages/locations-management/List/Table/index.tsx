@@ -1,13 +1,10 @@
 import { useMemo } from 'react';
-import { useRouter } from 'next/router';
-import dayjs from 'dayjs';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
 // import Actions from './Actions';
 import { LocationFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryLocations } from '../../useApi';
-import { NextPath } from '../../../../../utils/nextpath';
 
 const LocationsManagementListTable: FC = () => {
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
@@ -19,6 +16,17 @@ const LocationsManagementListTable: FC = () => {
   );
 
   const columns: TableColumn<LocationFragment>[] = [
+    {
+      key: 'isActive',
+      title: '狀態',
+      width: 100,
+      render: (source) =>
+        source.isActive ? (
+          <Badge variant="dot-success" text="啟用中" />
+        ) : (
+          <Badge variant="dot-inactive" text="已停用" />
+        ),
+    },
     {
       key: 'key',
       title: '儲存位置 ID',
