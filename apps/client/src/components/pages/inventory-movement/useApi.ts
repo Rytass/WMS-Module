@@ -216,7 +216,9 @@ export function useShip() {
 }
 
 export function useCancelTransfer() {
-  const [cancelTransfer, { loading }] = useMutation(CancelTransferDocument);
+  const [cancelTransfer, { loading }] = useMutation(CancelTransferDocument, {
+    refetchQueries: [TransferOrdersDocument],
+  });
 
   return {
     cancelTransfer,
@@ -225,7 +227,9 @@ export function useCancelTransfer() {
 }
 
 export function useCancelShip() {
-  const [cancelShip, { loading }] = useMutation(CancelShipDocument);
+  const [cancelShip, { loading }] = useMutation(CancelShipDocument, {
+    refetchQueries: [FullShipInventoryOrdersDocument],
+  });
 
   return {
     cancelShip,

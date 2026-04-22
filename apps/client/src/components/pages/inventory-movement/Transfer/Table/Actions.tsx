@@ -1,8 +1,8 @@
 import { useCallback, useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Button, ButtonGroup } from '@mezzanine-ui/react';
+import { Button, ButtonGroup, Message } from '@mezzanine-ui/react';
 import { TransferOrderFragment } from '../../../../../graphql/generated/.graphql';
-import { useLazyQueryTransferOrder } from '../../useApi';
+import { useLazyQueryTransferOrder, useCancelTransfer } from '../../useApi';
 import { NextPath } from '../../../../../utils/nextpath';
 import { nextDynamicPath } from '../../../../../utils/path';
 import InventoryMovementTransferForm from '../Form';
@@ -18,6 +18,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
   const [transferModalOpened, setTransferModalOpened] =
     useState<boolean>(false);
   const { fetchTransferOrder, data, loading } = useLazyQueryTransferOrder();
+  const { cancelTransfer, loading: cancelLoading } = useCancelTransfer();
 
   const transferOrder = useMemo(
     () =>
@@ -51,9 +52,23 @@ const Actions: FC<ActionsProps> = ({ source }) => {
     });
 
     if (isConfirm) {
-      console.log('退回調撥');
+      try {
+        const { data } = await cancelTransfer({
+          variables: {
+            items: source.items.map((item) => ({
+              itemId: item.id,
+            })),
+          },
+        });
+
+        if (data?.cancelTransfer) {
+          Message.success('退回項目成功');
+        }
+      } catch (error) {
+        console.error(error);
+      }
     }
-  }, [openDialog]);
+  }, [cancelTransfer, openDialog, source.items]);
 
   return (
     <>
@@ -89,6 +104,8 @@ const Actions: FC<ActionsProps> = ({ source }) => {
           size="sub"
           variant="destructive-secondary"
           onClick={onCancel}
+          loading={cancelLoading}
+          disabled={cancelLoading}
         >
           退回
         </Button>
