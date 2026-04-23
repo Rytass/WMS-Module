@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
-// import Actions from './Actions';
+import Actions from './Actions';
 import { LocationFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryLocations } from '../../useApi';
 
@@ -16,6 +16,12 @@ const LocationsManagementListTable: FC = () => {
   );
 
   const columns: TableColumn<LocationFragment>[] = [
+    {
+      key: 'actions',
+      title: '操作',
+      width: 152,
+      render: (source) => <Actions source={source} />,
+    },
     {
       key: 'isActive',
       title: '狀態',

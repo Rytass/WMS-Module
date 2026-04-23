@@ -1,9 +1,13 @@
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
-import { LocationsDocument } from '../../../graphql/generated/.graphql';
+import {
+  LocationsDocument,
+  CreateLocationDocument,
+  UpdateLocationDocument,
+} from '../../../graphql/generated/.graphql';
 
 export function useQueryLocations() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
@@ -31,5 +35,27 @@ export function useQueryLocations() {
     setPage,
     limit,
     setLimit,
+  };
+}
+
+export function useCreateLocation() {
+  const [createLocation, { loading }] = useMutation(CreateLocationDocument, {
+    refetchQueries: [LocationsDocument],
+  });
+
+  return {
+    createLocation,
+    loading,
+  };
+}
+
+export function useUpdateLocation() {
+  const [updateLocation, { loading }] = useMutation(UpdateLocationDocument, {
+    refetchQueries: [LocationsDocument],
+  });
+
+  return {
+    updateLocation,
+    loading,
   };
 }
