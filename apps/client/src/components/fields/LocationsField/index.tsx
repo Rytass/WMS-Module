@@ -1,9 +1,12 @@
 import { useCallback, useMemo } from 'react';
+import { Button } from '@mezzanine-ui/react';
+import { MaximizeIcon } from '@mezzanine-ui/icons';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { LocationOptionsQuery } from '../../../graphql/generated/.graphql';
 import { useFetchMoreOptions } from '../../../hooks/useSelectorOptions';
 import { useLazyQueryLocations } from './useApi';
+import classes from './index.module.scss';
 
 interface LocationsFieldProps {
   name: string;
@@ -13,6 +16,7 @@ interface LocationsFieldProps {
   required?: boolean;
   disabled?: boolean;
   selectValueMode: boolean;
+  useMpaButton?: boolean;
 }
 
 const LocationsField: FC<LocationsFieldProps> = ({
@@ -23,6 +27,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
   required,
   disabled,
   selectValueMode,
+  useMpaButton = false,
 }) => {
   const { fetchLocations } = useLazyQueryLocations();
 
@@ -68,11 +73,34 @@ const LocationsField: FC<LocationsFieldProps> = ({
     ],
   );
 
+  const mapButton = useMemo(
+    () =>
+      useMpaButton ? (
+        <Button
+          type="button"
+          size="sub"
+          icon={MaximizeIcon}
+          iconType="icon-only"
+        />
+      ) : null,
+    [useMpaButton],
+  );
+
   if (selectValueMode) {
-    return <SingleAutoCompleteField {...baseProps} />;
+    return (
+      <div className={classes.host}>
+        <SingleAutoCompleteField {...baseProps} />
+        {mapButton}
+      </div>
+    );
   }
 
-  return <SingleAutoCompleteByIdField {...baseProps} useNameToValue />;
+  return (
+    <div className={classes.host}>
+      <SingleAutoCompleteByIdField {...baseProps} useNameToValue />
+      {mapButton}
+    </div>
+  );
 };
 
 export default LocationsField;
