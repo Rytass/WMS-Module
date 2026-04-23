@@ -86,7 +86,12 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         title="編輯庫位"
         defaultValues={{
           description: source.description,
-          parentLocation: null,
+          parentLocation: source.parent
+            ? {
+                id: source.parent.id,
+                name: source.parent.key,
+              }
+            : null,
         }}
         submitText="儲存"
         onSubmit={onEdit}

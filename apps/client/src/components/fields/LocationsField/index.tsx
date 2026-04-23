@@ -50,6 +50,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
 
   const baseProps = useMemo(
     () => ({
+      fieldClassName: classes.filed,
       name,
       label,
       placeholder: placeholder || `輸入${label}`,

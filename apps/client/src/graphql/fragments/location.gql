@@ -3,6 +3,10 @@ fragment Location on LocationDto {
   key
   description
   isActive
+  parent {
+    id
+    key
+  }
   mapData {
     ...MapData
   }
