@@ -31,7 +31,7 @@ const InventoryActionsProvider: FC = ({ children }) => {
         ...prev,
         [curr.id]: {
           id: curr.id,
-          quantity: 0,
+          quantity: curr.maxQuantityByDefaultUnit,
           unitId: null,
         },
       }),

@@ -400,7 +400,9 @@ type LocationDto {
   id: ID!
   key: String!
   description: String!
+  isActive: Boolean
   mapData: MapDataDto
+  parent: LocationDto
 }
 
 type Locations {
@@ -549,7 +551,7 @@ type Query {
   transferOrder(id: ID!): TransferOrderDto!
   holdInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): HoldInventoryOrders!
   location(id: ID!): LocationDto!
-  locations(offset: Int, limit: Int, description: String, key: String): Locations!
+  locations(offset: Int, limit: Int, description: String, isActive: Boolean, key: String): Locations!
   allocateInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): AllocateInventoryOrders!
   saleOrderDistinctIds(offset: Int, limit: Int, key: String): [String!]!
   saleOrders(id: ID!): [String!]!
@@ -579,14 +581,17 @@ type Mutation {
   createShipInventoryOrder(key: ID!, description: String!, createdBy: String, references: [CreateShipInventoryOrderReferenceArgs!]!): ShipInventoryOrderDto!
   updateShipInventoryOrder(description: String, createdBy: String, id: ID!, references: [UpdateShipInventoryOrderReferenceArgs!], items: [UpdateShipInventoryOrderItemArgs!], removedAt: DateTime): ShipInventoryOrderDto!
   ship(items: [ShipOrderArgs!]!): Boolean!
+  cancelShip(items: [CancelShipOrderArgs!]!): Boolean!
   createTransferOrder(description: String, locationId: ID!, loaderId: ID, receiver: String, createdBy: String, items: [CreateTransferOrderItemArgs!]!): TransferOrderDto!
   updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
   transfer(items: [TransferOrderArgs!]!): Boolean!
+  cancelTransfer(items: [CancelTransferOrderArgs!]!): Boolean!
   createHoldInventoryOrder(createdBy: String, items: [CreateHoldInventoryOrderItemArgs!]!): HoldInventoryOrderDto!
   updateHoldInventoryOrder(createdBy: String, id: String!, removedAt: DateTime, items: [UpdateHoldInventoryOrderItemArgs!]): HoldInventoryOrderDto!
   release(items: [ReleaseOrderArgs!]!): Boolean!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
+  updateLocation(id: ID!, description: String, isActive: Boolean, parentId: ID): LocationDto!
   createAllocateInventoryOrder(items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
   updateAllocateInventoryOrder(id: String!, removedAt: DateTime, items: [UpdateAllocateInventoryOrderItemArgs!]): AllocateInventoryOrderDto!
   deallocate(items: [DeallocateOrderArgs!]!): Boolean!
@@ -695,6 +700,11 @@ input ShipOrderArgs {
   quantity: Int!
 }
 
+input CancelShipOrderArgs {
+  itemId: ID!
+  quantity: Int
+}
+
 input CreateTransferOrderItemArgs {
   aggregatedKey: ID!
   unitId: ID
@@ -715,6 +725,16 @@ input TransferOrderArgs {
 
   """The quantity to transfer"""
   quantity: Int!
+}
+
+input CancelTransferOrderArgs {
+  """The ID of transfer order item"""
+  itemId: ID!
+
+  """
+  The quantity to cancel. If not provided, cancels all remaining cancellable quantity.
+  """
+  quantity: Int
 }
 
 input CreateHoldInventoryOrderItemArgs {

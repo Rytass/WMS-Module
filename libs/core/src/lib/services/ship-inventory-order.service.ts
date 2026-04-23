@@ -41,6 +41,7 @@ import {
   SaleOrderEntityClass,
 } from '../models';
 import { ShipInventoryOrderInput } from '../typings/ship-inventory-order.input';
+import { CancelShipInventoryOrderInput } from '../typings/cancel-ship-inventory-order.input';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
@@ -431,13 +432,188 @@ export class ShipInventoryOrderService<
     return updated as T;
   }
 
+  /**
+   * Remove a ship inventory order
+   * Automatically cancels all remaining prepared (but not shipped) items to release stock
+   */
   async removeShipInventoryOrder(id: string): Promise<boolean> {
-    return this.dataSource
-      .getRepository<ShipInventoryOrderEntityClass>(
-        this.shipInventoryOrderEntity,
-      )
-      .update({ id }, { removedAt: new Date() })
-      .then(({ affected }) => !!affected && affected > 0);
+    return this.dataSource.transaction(async (manager) => {
+      const shipInventoryOrderRepository =
+        manager.getRepository<ShipInventoryOrderEntityClass>(
+          this.shipInventoryOrderEntity,
+        );
+      const itemRepository =
+        manager.getRepository<ShipInventoryOrderItemEntityClass>(
+          this.shipInventoryOrderItemEntity,
+        );
+
+      // Find order
+      const order = await shipInventoryOrderRepository.findOne({
+        where: { id },
+      });
+      if (!order || order.removedAt) return false;
+
+      // Find all items with changes to calculate cancellable quantities
+      const items = await itemRepository.find({
+        where: { orderId: id },
+        relations: ['changes'],
+      });
+
+      // Build cancel inputs for items with remaining prepared quantity
+      const cancelInputs: CancelShipInventoryOrderInput[] = [];
+      for (const item of items) {
+        const conversionFactor = await this.materialService.getConversionFactor(
+          item.materialId,
+          item.unitId || undefined,
+        );
+
+        const preparedQuantity = item.changes.reduce((sum, change) => {
+          const qty = Number(change.quantityChanged);
+          return qty > 0 ? sum + qty : sum;
+        }, 0);
+
+        const shippedQuantity = item.changes.reduce((sum, change) => {
+          const qty = Number(change.quantityChanged);
+          return qty < 0 ? sum + Math.abs(qty) : sum;
+        }, 0);
+
+        const cancellableQuantity = preparedQuantity - shippedQuantity;
+
+        if (cancellableQuantity > 0) {
+          // Use base quantity (without conversion) since cancelShip will apply conversion
+          cancelInputs.push({
+            itemId: item.id,
+            quantity: cancellableQuantity / conversionFactor,
+          });
+        }
+      }
+
+      // Cancel all remaining prepared items
+      if (cancelInputs.length > 0) {
+        await this.cancelShipInternal(cancelInputs, manager);
+      }
+
+      // Mark order as removed
+      await shipInventoryOrderRepository.update(
+        { id },
+        { removedAt: new Date() },
+      );
+      return true;
+    });
+  }
+
+  /**
+   * Internal cancel method that accepts a manager for transaction support
+   */
+  private async cancelShipInternal(
+    options: CancelShipInventoryOrderInput[],
+    manager: EntityManager,
+  ): Promise<void> {
+    const changeRepository =
+      manager.getRepository<ShipInventoryOrderChangeEntityClass>(
+        ShipInventoryOrderChangeEntityClass,
+      );
+    const itemRepository =
+      manager.getRepository<ShipInventoryOrderItemEntityClass>(
+        this.shipInventoryOrderItemEntity,
+      );
+    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const stockRepository =
+      manager.getRepository<StockEntityClass>(StockEntityClass);
+
+    const items = await itemRepository.find({
+      where: { id: In(options.map((o) => o.itemId)) },
+      relations: ['changes'],
+    });
+    const itemMap = new Map(items.map((item) => [item.id, item]));
+
+    await Promise.all(
+      options.map(async (option) => {
+        const item = itemMap.get(option.itemId);
+        if (!item) return;
+
+        const conversionFactor = await this.materialService.getConversionFactor(
+          item.materialId,
+          item.unitId || undefined,
+        );
+
+        const preparedQuantity = item.changes.reduce((sum, change) => {
+          const qty = Number(change.quantityChanged);
+          return qty > 0 ? sum + qty : sum;
+        }, 0);
+
+        const shippedQuantity = item.changes.reduce((sum, change) => {
+          const qty = Number(change.quantityChanged);
+          return qty < 0 ? sum + Math.abs(qty) : sum;
+        }, 0);
+
+        const cancellableQuantity = preparedQuantity - shippedQuantity;
+
+        const cancelQuantity =
+          option.quantity != null
+            ? option.quantity * conversionFactor
+            : cancellableQuantity;
+
+        if (cancellableQuantity - cancelQuantity < 0) {
+          throw new Error(
+            `Cancel quantity exceeds prepared quantity for item ${option.itemId}`,
+          );
+        }
+
+        if (cancelQuantity <= 0) return;
+
+        const inShipmentBatch = await this.batchService.splitBatch({
+          id: item.batchId,
+          inShipment: true,
+          manager,
+        });
+
+        const reverseOrder = await orderRepository.save(
+          orderRepository.create(),
+        );
+
+        await this.stockService.validateStockAvailability(
+          {
+            materialId: item.materialId,
+            batchId: inShipmentBatch.id,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: cancelQuantity,
+          },
+          manager,
+        );
+
+        await Promise.all([
+          changeRepository.save(
+            changeRepository.create({
+              itemId: option.itemId,
+              id: reverseOrder.id,
+              quantityChanged: -1 * cancelQuantity,
+            }),
+          ),
+          stockRepository.save(
+            stockRepository.create([
+              {
+                orderId: reverseOrder.id,
+                materialId: item.materialId,
+                batchId: item.batchId,
+                locationId: item.locationId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                quantity: cancelQuantity,
+              } as DeepPartial<StockEntityClass>,
+              {
+                orderId: reverseOrder.id,
+                materialId: item.materialId,
+                batchId: inShipmentBatch.id,
+                locationId: item.locationId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                quantity: -1 * cancelQuantity,
+              } as DeepPartial<StockEntityClass>,
+            ]),
+          ),
+        ]);
+      }),
+    );
   }
 
   async findMany(
@@ -619,6 +795,23 @@ export class ShipInventoryOrderService<
         }),
       );
 
+      return true;
+    });
+  }
+
+  /**
+   * Cancel prepared ship inventory order items
+   * Reverses the prepare step by moving stock from IN_SHIPMENT back to FREE
+   * Can only cancel prepared quantity that hasn't been shipped yet
+   * If quantity is not provided, cancels all remaining cancellable quantity
+   */
+  cancelShip(
+    options: CancelShipInventoryOrderInput[] | CancelShipInventoryOrderInput,
+  ): Promise<boolean> {
+    if (!Array.isArray(options)) options = [options];
+
+    return this.dataSource.transaction(async (manager) => {
+      await this.cancelShipInternal(options, manager);
       return true;
     });
   }

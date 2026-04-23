@@ -1,0 +1,15 @@
+@use '@mezzanine-ui/system/spacing';
+
+.host {
+  &.haveMapButton {
+    align-self: stretch;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    gap: spacing.semantic-variable(gap, slim);
+  }
+
+  .filed {
+    flex: 1;
+  }
+}

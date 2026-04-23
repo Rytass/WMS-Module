@@ -11,3 +11,18 @@ export class CreateLocationArgs {
   @Field(() => ID, { nullable: true })
   parentId?: string;
 }
+
+@ArgsType()
+export class UpdateLocationArgs {
+  @Field(() => ID)
+  id!: string;
+
+  @Field(() => String, { nullable: true })
+  description?: string | null;
+
+  @Field(() => Boolean, { nullable: true })
+  isActive?: boolean | null;
+
+  @Field(() => ID, { nullable: true })
+  parentId?: string | null;
+}

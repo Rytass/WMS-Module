@@ -1,7 +1,7 @@
 import { useCallback, useState, useMemo, useEffect } from 'react';
-import { Button, ButtonGroup } from '@mezzanine-ui/react';
+import { Button, ButtonGroup, Message } from '@mezzanine-ui/react';
 import { ShipInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
-import { useLazyQueryShipInventoryOrder } from '../../useApi';
+import { useLazyQueryShipInventoryOrder, useCancelShip } from '../../useApi';
 import InventoryMovementShipForm from '../Form';
 import { useDialog } from '../../../../dialog/useDialog';
 
@@ -14,6 +14,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
   const [shipModalOpened, setShipModalOpened] = useState<boolean>(false);
   const { fetchShipInventoryOrder, data, loading } =
     useLazyQueryShipInventoryOrder();
+  const { cancelShip, loading: cancelLoading } = useCancelShip();
 
   const shipInventoryOrder = useMemo(
     () =>
@@ -47,9 +48,23 @@ const Actions: FC<ActionsProps> = ({ source }) => {
     });
 
     if (isConfirm) {
-      console.log('取消出庫');
+      try {
+        const { data } = await cancelShip({
+          variables: {
+            items: source.items.map((item) => ({
+              itemId: item.id,
+            })),
+          },
+        });
+
+        if (data?.cancelShip) {
+          Message.success('取消出庫成功');
+        }
+      } catch (error) {
+        console.error(error);
+      }
     }
-  }, [openDialog]);
+  }, [cancelShip, openDialog, source.items]);
 
   return (
     <>
@@ -71,6 +86,8 @@ const Actions: FC<ActionsProps> = ({ source }) => {
           size="sub"
           variant="base-secondary"
           onClick={onCancel}
+          loading={cancelLoading}
+          disabled={cancelLoading}
         >
           取消
         </Button>

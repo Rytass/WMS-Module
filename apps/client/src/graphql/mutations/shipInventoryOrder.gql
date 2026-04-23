@@ -33,3 +33,7 @@ mutation UpdateShipInventoryOrder(
 mutation Ship($items: [ShipOrderArgs!]!) {
   ship(items: $items)
 }
+
+mutation CancelShip($items: [CancelShipOrderArgs!]!) {
+  cancelShip(items: $items)
+}

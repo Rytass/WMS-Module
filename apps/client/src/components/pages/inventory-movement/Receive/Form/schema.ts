@@ -43,7 +43,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         location: Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
-        }).nullable(),
+        }).required('必填'),
         loader: Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
