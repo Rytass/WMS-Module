@@ -13,6 +13,7 @@ interface LocationFormModalProps {
   onSubmit: (values: FormValues) => Promise<void>;
   defaultValues: FormValues;
   submitText: string;
+  loading: boolean;
   closeModal: VoidFunction;
   open: boolean;
   confirmMode: 'create' | 'edit';
@@ -23,6 +24,7 @@ function LocationFormModal({
   onSubmit,
   defaultValues,
   submitText,
+  loading,
   closeModal,
   open,
   confirmMode,
@@ -34,7 +36,7 @@ function LocationFormModal({
           confirmMode === 'create'
             ? Yup.string().required('必填')
             : Yup.string(),
-        description: Yup.string(),
+        description: Yup.string().required('必填'),
         parentLocation: Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
@@ -57,6 +59,10 @@ function LocationFormModal({
       closeModal={closeModal}
       open={open}
       confirmMode={confirmMode}
+      confirmButtonProps={{
+        disabled: loading,
+        loading,
+      }}
       size="narrow"
       submitWithConfirm
       cancelWithConfirm={methods.formState.isDirty}

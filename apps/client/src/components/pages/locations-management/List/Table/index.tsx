@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback } from 'react';
-import { TableColumn, Badge } from '@mezzanine-ui/react';
+import { TableColumn, Badge, Message } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
 import Table from '../../../../TableWrapper/Table';
 import Actions from './Actions';
 import { LocationFragment } from '../../../../../graphql/generated/.graphql';
-import { useQueryLocations } from '../../useApi';
+import { useQueryLocations, useCreateLocation } from '../../useApi';
 import LocationFormModal from '../../FormModal';
 import { FormValues } from '../../FormModal/typing';
 
@@ -12,6 +12,7 @@ const LocationsManagementListTable: FC = () => {
   const [modalOpened, setModalOpened] = useState<boolean>(false);
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryLocations();
+  const { createLocation, loading: createLoading } = useCreateLocation();
 
   const dataSource = useMemo(
     (): LocationFragment[] => data?.locations.items ?? [],
@@ -49,13 +50,27 @@ const LocationsManagementListTable: FC = () => {
     },
   ];
 
-  const onCreate = useCallback(async (values: FormValues) => {
-    try {
-      console.log('values', values);
-    } catch (error) {
-      console.error(error);
-    }
-  }, []);
+  const onCreate = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await createLocation({
+          variables: {
+            key: values.locationId ?? '',
+            description: values.description,
+            parentId: values.parentLocation?.id,
+          },
+        });
+
+        if (data?.createLocation.id) {
+          Message.success('新增成功');
+          setModalOpened(false);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [createLocation],
+  );
 
   return (
     <>
@@ -88,6 +103,7 @@ const LocationsManagementListTable: FC = () => {
         }}
         submitText="新增"
         onSubmit={onCreate}
+        loading={createLoading}
         closeModal={() => {
           setModalOpened(false);
         }}

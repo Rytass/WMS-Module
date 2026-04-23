@@ -95,6 +95,7 @@ const Actions: FC<ActionsProps> = ({ source }) => {
         }}
         submitText="儲存"
         onSubmit={onEdit}
+        loading={updateLoading}
         closeModal={() => {
           setEditModalOpened(false);
         }}
