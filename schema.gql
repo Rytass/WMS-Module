@@ -402,6 +402,7 @@ type LocationDto {
   description: String!
   isActive: Boolean
   mapData: MapDataDto
+  parent: LocationDto
 }
 
 type Locations {
