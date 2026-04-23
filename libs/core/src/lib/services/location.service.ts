@@ -23,17 +23,44 @@ export class LocationService<
     );
   }
 
-  async createLocation(options: CreateLocationInput): Promise<T> {
+  async createLocation({
+    parentId,
+    ...options
+  }: CreateLocationInput): Promise<T> {
+    const parent = parentId
+      ? await this.locationReposistory
+          .createQueryBuilder('l')
+          .where('l.id = :id', { id: parentId })
+          .getOneOrFail()
+      : undefined;
+
     return this.locationReposistory.save(
-      this.locationReposistory.create(options as DeepPartial<T>),
+      this.locationReposistory.create({
+        ...options,
+        ...(parent !== undefined && { parent }),
+      } as unknown as DeepPartial<T>),
     );
   }
 
-  async updateLocation({ id, ...options }: UpdateLocationInput): Promise<T> {
+  async updateLocation({
+    id,
+    parentId,
+    ...options
+  }: UpdateLocationInput): Promise<T> {
     const location = await this.locationReposistory
       .createQueryBuilder('location')
       .where('location.id = :id', { id })
       .getOneOrFail();
+
+    if (parentId) {
+      const parent = await this.locationReposistory
+        .createQueryBuilder('l')
+        .where('l.id = :id', { id: parentId })
+        .getOneOrFail();
+      Object.assign(location, { parent });
+    } else {
+      Object.assign(location, { parent: null });
+    }
 
     return this.locationReposistory.save(
       this.locationReposistory.create({
