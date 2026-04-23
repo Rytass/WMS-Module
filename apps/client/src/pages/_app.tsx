@@ -1,7 +1,7 @@
-import '@xyflow/react/dist/style.css';
-import '@rytass/wms-map-react-components/index.css';
 import '../styles/mezzanine.scss';
 import '../styles/global.scss';
+import '@rytass/wms-map-react-components/index.css';
+import '@xyflow/react/dist/style.css';
 import { AppProps } from 'next/app';
 import Head from 'next/head';
 import { ApolloProvider } from '@apollo/client/react';

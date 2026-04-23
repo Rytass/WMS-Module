@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { ViewMode } from '@rytass/wms-map-react-components';
 import PageWrapper from '../../PageWrapper';
+import MapContent from '../../map/MapContent';
+import SectionWrapper from '../../SectionWrapper';
 import FilterWrapper from '../../FilterWrapper';
 import { FilterType } from '../../FilterWrapper/typing';
 import InventoryTable from '../inventory-list/Table';
@@ -10,7 +13,9 @@ function Maps() {
 
   return (
     <PageWrapper title="地圖清單">
-      <div>map area</div>
+      <SectionWrapper>
+        <MapContent viewMode={ViewMode.VIEW} />
+      </SectionWrapper>
       <FilterWrapper<FilterValues>
         defaultValues={{
           material: null,
