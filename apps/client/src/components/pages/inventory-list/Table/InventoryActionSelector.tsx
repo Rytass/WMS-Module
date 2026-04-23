@@ -22,12 +22,14 @@ interface InventoryActionSelectorProps {
   targetStocks: AggregatedStockFragment[];
   setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
   setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;
+  openDrawer: VoidFunction;
 }
 
 function InventoryActionSelector({
   targetStocks,
   setTargetStocks,
   setNeedClearSelectedRows,
+  openDrawer,
 }: InventoryActionSelectorProps) {
   const { targetAction, setTargetAction } = useInventoryActions();
   const addInventories = useAddInventories();
@@ -62,10 +64,17 @@ function InventoryActionSelector({
           setTargetStocks([]);
           setNeedClearSelectedRows(true);
           Message.success(`項目已加入${currentAction?.title}`);
+          openDrawer();
         },
       });
     },
-    [addInventories, setNeedClearSelectedRows, setTargetStocks, targetStocks],
+    [
+      addInventories,
+      setNeedClearSelectedRows,
+      setTargetStocks,
+      targetStocks,
+      openDrawer,
+    ],
   );
 
   if (targetAction) {
