@@ -84,7 +84,10 @@ const Actions: FC<ActionsProps> = ({ source }) => {
       </ButtonGroup>
       <LocationFormModal
         title="編輯庫位"
-        defaultValues={{ description: source.description }}
+        defaultValues={{
+          description: source.description,
+          parentLocation: null,
+        }}
         submitText="儲存"
         onSubmit={onEdit}
         closeModal={() => {

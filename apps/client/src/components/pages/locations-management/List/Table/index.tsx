@@ -81,7 +81,11 @@ const LocationsManagementListTable: FC = () => {
       </TableWrapper>
       <LocationFormModal
         title="新增庫位"
-        defaultValues={{ description: '' }}
+        defaultValues={{
+          locationId: '',
+          description: '',
+          parentLocation: null,
+        }}
         submitText="新增"
         onSubmit={onCreate}
         closeModal={() => {
