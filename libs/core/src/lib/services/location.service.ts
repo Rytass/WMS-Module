@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { LocationService as BaseLocationService } from '@rytass/wms-base-nestjs-module';
-import { DataSource, EntityTarget, Repository } from 'typeorm';
+import { DataSource, DeepPartial, EntityTarget, Repository } from 'typeorm';
 import { LocationEntity, LocationEntityClass } from '../models';
 import {
   CreateLocationInput,
@@ -24,7 +24,9 @@ export class LocationService<
   }
 
   async createLocation(options: CreateLocationInput): Promise<T> {
-    return this.locationBaseService.create(options) as Promise<T>;
+    return this.locationReposistory.save(
+      this.locationReposistory.create(options as DeepPartial<T>),
+    );
   }
 
   async updateLocation({ id, ...options }: UpdateLocationInput): Promise<T> {
