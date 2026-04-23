@@ -141,6 +141,9 @@ function InventoryTable({
                 targetStocks={targetStocks}
                 setTargetStocks={setTargetStocks}
                 setNeedClearSelectedRows={setNeedClearSelectedRows}
+                openDrawer={() => {
+                  setOpen(true);
+                }}
               />
             )}
           </div>

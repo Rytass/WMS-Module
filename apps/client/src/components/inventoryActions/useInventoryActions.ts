@@ -73,6 +73,7 @@ export const useAddInventories = () => {
         pushTargetInventories(
           targetStocks.map((s) => ({
             id: s.id,
+            maxQuantityByDefaultUnit: s.quantity,
             material: {
               id: s.material.id,
               key: s.material.key,

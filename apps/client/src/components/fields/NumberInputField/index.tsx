@@ -66,7 +66,7 @@ export const NumberInputField: FC<NumberInputFieldProps> = ({
         variant="measure"
         inputType="number"
         suffix={suffix}
-        value={`${watchValue}`}
+        value={watchValue === 0 ? '' : `${watchValue}`}
         formatter={(value) => value}
         onChange={onChange}
         placeholder={placeholder}

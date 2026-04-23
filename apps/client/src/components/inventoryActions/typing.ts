@@ -1,5 +1,6 @@
 export interface InventoryItem {
   id: string;
+  maxQuantityByDefaultUnit: number;
   material: {
     id: string;
     key: string;

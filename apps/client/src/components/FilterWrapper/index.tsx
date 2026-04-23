@@ -53,7 +53,8 @@ const FilterWrapper = <T extends FieldValues>({
 
   const onReset = useCallback(() => {
     methods.reset();
-  }, [methods]);
+    onSubmit?.({} as T);
+  }, [methods, onSubmit]);
 
   return (
     <FormWrapper className={classes.host} methods={methods} onSubmit={onSubmit}>
