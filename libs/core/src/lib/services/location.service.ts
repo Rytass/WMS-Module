@@ -2,7 +2,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { LocationService as BaseLocationService } from '@rytass/wms-base-nestjs-module';
 import { DataSource, EntityTarget, Repository } from 'typeorm';
 import { LocationEntity, LocationEntityClass } from '../models';
-import { CreateLocationInput } from '../typings/create-location.input';
+import {
+  CreateLocationInput,
+  UpdateLocationInput,
+} from '../typings/create-location.input';
 import { FindLocationInput } from '../typings/find-location.input';
 
 @Injectable()
@@ -22,6 +25,20 @@ export class LocationService<
 
   async createLocation(options: CreateLocationInput): Promise<T> {
     return this.locationBaseService.create(options) as Promise<T>;
+  }
+
+  async updateLocation({ id, ...options }: UpdateLocationInput): Promise<T> {
+    const location = await this.locationReposistory
+      .createQueryBuilder('location')
+      .where('location.id = :id', { id })
+      .getOneOrFail();
+
+    return this.locationReposistory.save(
+      this.locationReposistory.create({
+        ...location,
+        ...options,
+      }),
+    );
   }
 
   async findMany(options: FindLocationInput<T>): Promise<[T[], number]> {
