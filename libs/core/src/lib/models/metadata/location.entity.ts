@@ -1,5 +1,5 @@
 import { LocationEntity as BaseLocationEntity } from '@rytass/wms-base-nestjs-module';
-import { ChildEntity, Column } from 'typeorm';
+import { ChildEntity, Column, RelationId } from 'typeorm';
 
 export const LocationEntity = Symbol('LocationEntity');
 export const WarehouseMapEntity = Symbol('WarehouseMapEntity');
@@ -10,4 +10,7 @@ export class LocationEntityClass extends BaseLocationEntity {
 
   @Column({ type: 'bool', default: true })
   isActive?: boolean;
+
+  @RelationId((location: LocationEntityClass) => location.parent)
+  parentId?: string | null;
 }

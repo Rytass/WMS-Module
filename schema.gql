@@ -402,6 +402,7 @@ type LocationDto {
   description: String!
   isActive: Boolean
   mapData: MapDataDto
+  parent: LocationDto
 }
 
 type Locations {
@@ -590,6 +591,7 @@ type Mutation {
   release(items: [ReleaseOrderArgs!]!): Boolean!
   updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
+  updateLocation(id: ID!, description: String, isActive: Boolean, parentId: ID): LocationDto!
   createAllocateInventoryOrder(items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
   updateAllocateInventoryOrder(id: String!, removedAt: DateTime, items: [UpdateAllocateInventoryOrderItemArgs!]): AllocateInventoryOrderDto!
   deallocate(items: [DeallocateOrderArgs!]!): Boolean!

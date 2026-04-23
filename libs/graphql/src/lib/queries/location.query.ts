@@ -10,7 +10,10 @@ export class LocationQuery {
 
   @Query(() => LocationDto)
   location(@Args('id', { type: () => ID }) id: string): Promise<LocationDto> {
-    return this.locationService.locationReposistory.findOneByOrFail({ id });
+    return this.locationService.locationReposistory
+      .createQueryBuilder('location')
+      .where('location.id = :id', { id })
+      .getOneOrFail() as Promise<LocationDto>;
   }
 
   @Query(() => Locations)
