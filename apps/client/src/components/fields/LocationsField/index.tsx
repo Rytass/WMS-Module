@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Button } from '@mezzanine-ui/react';
+import { Button, cx } from '@mezzanine-ui/react';
 import { MaximizeIcon } from '@mezzanine-ui/icons';
 import MapModal from '../../map/MapModal';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
@@ -102,7 +102,11 @@ const LocationsField: FC<LocationsFieldProps> = ({
 
   if (selectValueMode) {
     return (
-      <div className={classes.host}>
+      <div
+        className={cx(classes.host, {
+          [classes.haveMapButton]: useMpaButton,
+        })}
+      >
         <SingleAutoCompleteField {...baseProps} />
         {mapButton}
       </div>
@@ -110,7 +114,11 @@ const LocationsField: FC<LocationsFieldProps> = ({
   }
 
   return (
-    <div className={classes.host}>
+    <div
+      className={cx(classes.host, {
+        [classes.haveMapButton]: useMpaButton,
+      })}
+    >
       <SingleAutoCompleteByIdField {...baseProps} useNameToValue />
       {mapButton}
     </div>

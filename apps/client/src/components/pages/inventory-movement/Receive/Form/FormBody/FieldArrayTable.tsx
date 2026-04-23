@@ -151,7 +151,7 @@ const FieldArrayTable: FC = () => {
     },
     {
       key: 'location',
-      title: '目標位置',
+      title: '目標位置 *',
       minWidth: 160,
       render: (source, index) => {
         return (
@@ -161,6 +161,7 @@ const FieldArrayTable: FC = () => {
             placeholder="輸入目標位置"
             fuzzySearch={false}
             selectValueMode
+            required
             disabled={!!source.removedAt}
           />
         );
