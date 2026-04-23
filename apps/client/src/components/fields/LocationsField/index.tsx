@@ -1,6 +1,7 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button } from '@mezzanine-ui/react';
 import { MaximizeIcon } from '@mezzanine-ui/icons';
+import MapModal from '../../map/MapModal';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
 import { LocationOptionsQuery } from '../../../graphql/generated/.graphql';
@@ -29,6 +30,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
   selectValueMode,
   useMpaButton = false,
 }) => {
+  const [modalOpened, setModalOpened] = useState<boolean>(false);
   const { fetchLocations } = useLazyQueryLocations();
 
   const getNewOptions = useCallback(
@@ -76,14 +78,25 @@ const LocationsField: FC<LocationsFieldProps> = ({
   const mapButton = useMemo(
     () =>
       useMpaButton ? (
-        <Button
-          type="button"
-          size="sub"
-          icon={MaximizeIcon}
-          iconType="icon-only"
-        />
+        <>
+          <Button
+            type="button"
+            size="sub"
+            icon={MaximizeIcon}
+            iconType="icon-only"
+            onClick={() => {
+              setModalOpened(true);
+            }}
+          />
+          <MapModal
+            open={modalOpened}
+            onClose={() => {
+              setModalOpened(false);
+            }}
+          />
+        </>
       ) : null,
-    [useMpaButton],
+    [modalOpened, useMpaButton],
   );
 
   if (selectValueMode) {
