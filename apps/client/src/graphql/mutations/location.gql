@@ -3,3 +3,19 @@ mutation CreateLocation($key: String!, $description: String!, $parentId: ID) {
     ...Location
   }
 }
+
+mutation UpdateLocation(
+  $updateLocationId: ID!
+  $description: String
+  $isActive: Boolean
+  $parentId: ID
+) {
+  updateLocation(
+    id: $updateLocationId
+    description: $description
+    isActive: $isActive
+    parentId: $parentId
+  ) {
+    ...Location
+  }
+}
