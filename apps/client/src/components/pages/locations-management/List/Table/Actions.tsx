@@ -14,13 +14,27 @@ const Actions: FC<ActionsProps> = ({ source }) => {
 
   const { updateLocation, loading: updateLoading } = useUpdateLocation();
 
-  const onEdit = useCallback(async (values: FormValues) => {
-    try {
-      console.log('values', values);
-    } catch (error) {
-      console.error(error);
-    }
-  }, []);
+  const onEdit = useCallback(
+    async (values: FormValues) => {
+      try {
+        const { data } = await updateLocation({
+          variables: {
+            updateLocationId: source.id,
+            description: values.description,
+            parentId: values.parentLocation?.id,
+          },
+        });
+
+        if (data?.updateLocation.id) {
+          Message.success('儲存成功');
+          setEditModalOpened(false);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [source.id, updateLocation],
+  );
 
   return (
     <>
