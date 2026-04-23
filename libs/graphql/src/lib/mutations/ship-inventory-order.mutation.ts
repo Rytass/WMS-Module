@@ -7,6 +7,7 @@ import {
   UpdateShipInventoryOrderArgs,
 } from '../inputs/create-ship-inventory-order.args';
 import { ShipOrderArgs } from '../inputs/ship-order.args';
+import { CancelShipOrderArgs } from '../inputs/cancel-ship-order.args';
 
 @Injectable()
 export class ShipInventoryOrderMutation {
@@ -60,5 +61,13 @@ export class ShipInventoryOrderMutation {
     await this.shipInventoryOrderService.ship(items);
 
     return true;
+  }
+
+  @Mutation(() => Boolean)
+  async cancelShip(
+    @Args('items', { type: () => [CancelShipOrderArgs] })
+    items: CancelShipOrderArgs[],
+  ) {
+    return this.shipInventoryOrderService.cancelShip(items);
   }
 }

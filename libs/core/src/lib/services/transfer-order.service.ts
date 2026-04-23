@@ -24,6 +24,7 @@ import {
 } from '../typings/create-transfer-order.input';
 import { FindTransferOrderInput } from '../typings/find-transfer-order.input';
 import { TransferOrderInput } from '../typings/transfer-order.input';
+import { CancelTransferOrderInput } from '../typings/cancel-transfer-order.input';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
@@ -145,98 +146,169 @@ export class TransferOrderService<
   }
 
   async cancelTransfer(
-    options: TransferOrderInput[] | TransferOrderInput,
+    options: CancelTransferOrderInput[] | CancelTransferOrderInput,
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
     return this.dataSource.transaction(async (transactionManager) => {
-      const repos = this.getRepositories(transactionManager);
+      await this.cancelTransferInternal(options, transactionManager);
+      return true;
+    });
+  }
+
+  /**
+   * Internal cancel method that accepts a manager for transaction support
+   */
+  private async cancelTransferInternal(
+    options: CancelTransferOrderInput[],
+    manager: EntityManager,
+  ): Promise<void> {
+    const repos = this.getRepositories(manager);
+    const items = await repos.transferOrderItem.find({
+      where: { id: In(options.map((o) => o.itemId)) },
+      relations: ['changes'],
+    });
+
+    const itemMap = new Map(items.map((item) => [item.id, item]));
+
+    await Promise.all(
+      options.map(async (option) => {
+        const item = itemMap.get(option.itemId);
+        if (!item) return;
+
+        const conversionFactor = await this.materialService.getConversionFactor(
+          item.materialId,
+          item.unitId || undefined,
+        );
+
+        const totalChanged = item.changes.reduce(
+          (sum, change) => sum + Number(change.quantityChanged),
+          0,
+        );
+
+        const remainingQuantity =
+          conversionFactor * item.targetTransferredQuantity - totalChanged;
+
+        // If quantity not provided, cancel all remaining cancellable quantity
+        const cancelQuantity =
+          option.quantity != null
+            ? option.quantity * conversionFactor
+            : remainingQuantity;
+
+        if (remainingQuantity - cancelQuantity < 0) {
+          throw new Error(
+            `Cancel quantity exceeds pending transfer for item ${option.itemId}`,
+          );
+        }
+
+        if (cancelQuantity <= 0) return;
+
+        // Generate new splitted batch for cancellation reversal with inTransfer flag
+        const reversalBatch = await this.batchService.splitBatch({
+          id: item.batchId,
+          transferId: item.orderId,
+          manager,
+        });
+
+        const reverseOrder = await repos.order.save(repos.order.create());
+
+        await this.stockService.validateStockAvailability(
+          {
+            materialId: item.materialId,
+            batchId: reversalBatch.id,
+            locationId: item.locationId || undefined,
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: cancelQuantity,
+          },
+          manager,
+        );
+
+        // Reverse the stock changes via new splitted batch
+        await Promise.all([
+          repos.transferOrderChange.save(
+            repos.transferOrderChange.create({
+              itemId: option.itemId,
+              id: reverseOrder.id,
+              quantityChanged: -1 * cancelQuantity,
+            }),
+          ),
+          // Stock ledger will reconcile +/- quantities by batch metrics grouping
+          repos.stock.save(
+            repos.stock.create([
+              // re-add to original batch
+              {
+                orderId: reverseOrder.id,
+                materialId: item.materialId,
+                batchId: item.batchId, // original batch
+                locationId: item.locationId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                quantity: cancelQuantity,
+              } as DeepPartial<StockEntityClass>,
+              // remove from new reversal splitted batch (marked inTransfer)
+              {
+                orderId: reverseOrder.id,
+                materialId: item.materialId,
+                batchId: reversalBatch.id, // new splitted batch for cancel reversal
+                locationId: item.locationId || undefined,
+                loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                quantity: -1 * cancelQuantity,
+              } as DeepPartial<StockEntityClass>,
+            ]),
+          ),
+        ]);
+      }),
+    );
+  }
+
+  /**
+   * Remove a transfer order
+   * Automatically cancels all remaining pending transfers to release stock
+   */
+  async removeTransferOrder(id: string): Promise<boolean> {
+    return this.dataSource.transaction(async (manager) => {
+      const repos = this.getRepositories(manager);
+
+      // Find order
+      const order = await repos.transferOrder.findOne({ where: { id } });
+      if (!order || order.removedAt) return false;
+
+      // Find all items with changes to calculate cancellable quantities
       const items = await repos.transferOrderItem.find({
-        where: { id: In(options.map((o) => o.itemId)) },
+        where: { orderId: id },
         relations: ['changes'],
       });
 
-      const itemMap = new Map(items.map((item) => [item.id, item]));
+      // Build cancel inputs for items with remaining pending quantity
+      const cancelInputs: CancelTransferOrderInput[] = [];
+      for (const item of items) {
+        const conversionFactor = await this.materialService.getConversionFactor(
+          item.materialId,
+          item.unitId || undefined,
+        );
 
-      await Promise.all(
-        options.map(async (option) => {
-          const item = itemMap.get(option.itemId);
-          if (!item) return;
+        const totalChanged = item.changes.reduce(
+          (sum, change) => sum + Number(change.quantityChanged),
+          0,
+        );
 
-          const conversionFactor =
-            await this.materialService.getConversionFactor(
-              item.materialId,
-              item.unitId || undefined,
-            );
+        const remainingQuantity =
+          conversionFactor * item.targetTransferredQuantity - totalChanged;
 
-          const totalChanged = item.changes.reduce(
-            (sum, change) => sum + Number(change.quantityChanged),
-            0,
-          );
-
-          const remainingQuantity =
-            conversionFactor * item.targetTransferredQuantity - totalChanged;
-
-          if (remainingQuantity - option.quantity * conversionFactor < 0) {
-            throw new Error(
-              `Cancel quantity exceeds pending transfer for item ${option.itemId}`,
-            );
-          }
-
-          // Generate new splitted batch for cancellation reversal with inTransfer flag
-          const reversalBatch = await this.batchService.splitBatch({
-            id: item.batchId,
-            transferId: item.orderId,
-            manager: transactionManager,
+        if (remainingQuantity > 0) {
+          // Use base quantity (without conversion) since cancelTransferInternal will apply conversion
+          cancelInputs.push({
+            itemId: item.id,
+            quantity: remainingQuantity / conversionFactor,
           });
+        }
+      }
 
-          const reverseOrder = await repos.order.save(repos.order.create());
+      // Cancel all remaining pending transfers
+      if (cancelInputs.length > 0) {
+        await this.cancelTransferInternal(cancelInputs, manager);
+      }
 
-          await this.stockService.validateStockAvailability(
-            {
-              materialId: item.materialId,
-              batchId: reversalBatch.id,
-              locationId: item.locationId || undefined,
-              loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: option.quantity * conversionFactor,
-            },
-            transactionManager,
-          );
-
-          // Reverse the stock changes via new splitted batch
-          await Promise.all([
-            repos.transferOrderChange.save(
-              repos.transferOrderChange.create({
-                itemId: option.itemId,
-                id: reverseOrder.id,
-                quantityChanged: -1 * option.quantity * conversionFactor,
-              }),
-            ),
-            // Stock ledger will reconcile +/- quantities by batch metrics grouping
-            repos.stock.save(
-              repos.stock.create([
-                // re-add to original batch
-                {
-                  orderId: reverseOrder.id,
-                  materialId: item.materialId,
-                  batchId: item.batchId, // original batch
-                  locationId: item.locationId || undefined,
-                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: option.quantity * conversionFactor,
-                } as DeepPartial<StockEntityClass>,
-                // remove from new reversal splitted batch (marked inTransfer)
-                {
-                  orderId: reverseOrder.id,
-                  materialId: item.materialId,
-                  batchId: reversalBatch.id, // new splitted batch for cancel reversal
-                  locationId: item.locationId || undefined,
-                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * option.quantity * conversionFactor,
-                } as DeepPartial<StockEntityClass>,
-              ]),
-            ),
-          ]);
-        }),
-      );
+      // Mark order as removed
+      await repos.transferOrder.update({ id }, { removedAt: new Date() });
       return true;
     });
   }

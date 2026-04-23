@@ -14,3 +14,5 @@ export * from './find-ship-inventory-order.input';
 export * from './find-stock.input';
 export * from './reclassify-inventory-order.input';
 export * from './paginations';
+export * from './cancel-ship-inventory-order.input';
+export * from './cancel-transfer-order.input';

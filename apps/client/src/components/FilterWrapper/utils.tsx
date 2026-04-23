@@ -50,7 +50,14 @@ export function renderFilter(filter: FilterType | ReactNode) {
       return <BatchesField key={filter} name={filter} selectValueMode />;
 
     case FilterType.location:
-      return <LocationsField key={filter} name={filter} selectValueMode />;
+      return (
+        <LocationsField
+          key={filter}
+          name={filter}
+          selectValueMode
+          useMpaButton
+        />
+      );
 
     case FilterType.loader:
       return <LoadersField key={filter} name={filter} selectValueMode />;
