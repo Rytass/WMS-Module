@@ -43,13 +43,18 @@ const ShipInventoryOrdersField: FC<ShipInventoryOrdersFieldProps> = ({
     [],
   );
 
-  const { currentOptions, onVisibilityChange, onSearch, onReachBottom } =
-    useFetchMoreOptions<ShipInventoryOrderOptionsQuery>({
-      fetchData: fetchOnlyPending
-        ? fetchShipInventoryOrderPendingOptions
-        : fetchShipInventoryOrderOptions,
-      getNewOptions,
-    });
+  const {
+    currentOptions,
+    onVisibilityChange,
+    onSearch,
+    onClear,
+    onReachBottom,
+  } = useFetchMoreOptions<ShipInventoryOrderOptionsQuery>({
+    fetchData: fetchOnlyPending
+      ? fetchShipInventoryOrderPendingOptions
+      : fetchShipInventoryOrderOptions,
+    getNewOptions,
+  });
 
   const baseProps = useMemo(
     () => ({
@@ -62,6 +67,7 @@ const ShipInventoryOrdersField: FC<ShipInventoryOrdersFieldProps> = ({
       disabled,
       onVisibilityChange,
       onSearch,
+      onClear,
       onReachBottom,
     }),
     [
@@ -72,6 +78,7 @@ const ShipInventoryOrdersField: FC<ShipInventoryOrdersFieldProps> = ({
       name,
       onReachBottom,
       onSearch,
+      onClear,
       onVisibilityChange,
       placeholder,
       required,

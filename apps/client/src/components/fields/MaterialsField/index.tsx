@@ -35,11 +35,16 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
     [],
   );
 
-  const { currentOptions, onVisibilityChange, onSearch, onReachBottom } =
-    useFetchMoreOptions<MaterialOptionsQuery>({
-      fetchData: fetchMaterials,
-      getNewOptions,
-    });
+  const {
+    currentOptions,
+    onVisibilityChange,
+    onSearch,
+    onClear,
+    onReachBottom,
+  } = useFetchMoreOptions<MaterialOptionsQuery>({
+    fetchData: fetchMaterials,
+    getNewOptions,
+  });
 
   const baseProps = useMemo(
     () => ({
@@ -52,6 +57,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
       disabled,
       onVisibilityChange,
       onSearch,
+      onClear,
       onReachBottom,
     }),
     [
@@ -62,6 +68,7 @@ const MaterialsField: FC<MaterialsFieldProps> = ({
       name,
       onReachBottom,
       onSearch,
+      onClear,
       onVisibilityChange,
       placeholder,
       required,

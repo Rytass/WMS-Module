@@ -16,7 +16,7 @@ import { YesOrNo } from '../../../../../../utils/share';
 import { FormValues, FieldArrayItem } from '../typing';
 
 const FieldArrayTable: FC = () => {
-  const { fields, insert } = useFieldArray<FormValues, 'items'>({
+  const { fields, update, insert } = useFieldArray<FormValues, 'items'>({
     name: 'items',
   });
 
@@ -162,6 +162,18 @@ const FieldArrayTable: FC = () => {
             fuzzySearch={false}
             selectValueMode
             required
+            onChange={(option) => {
+              update(index, {
+                ...source,
+                location: option,
+              });
+            }}
+            onClear={() => {
+              update(index, {
+                ...source,
+                location: null,
+              });
+            }}
             disabled={!!source.removedAt}
           />
         );
@@ -179,6 +191,9 @@ const FieldArrayTable: FC = () => {
             placeholder="輸入目標載具"
             fuzzySearch={false}
             selectValueMode
+            relativeLocationId={
+              source.location ? source.location.id : undefined
+            }
             disabled={!!source.removedAt}
           />
         );

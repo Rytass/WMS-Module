@@ -8,6 +8,7 @@ import Actions from './Actions';
 import { LoaderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryLoaders } from '../../useApi';
 import { NextPath } from '../../../../../utils/nextpath';
+import { formatKeyName } from '../../../../../utils/share';
 
 function LoadersManagementListTable() {
   const { push } = useRouter();
@@ -47,13 +48,13 @@ function LoadersManagementListTable() {
       key: 'serialId',
       title: '載具編碼',
       width: 100,
-      render: (source) => source.serialId,
+      render: (source) => formatKeyName(source.serialId),
     },
     {
       key: 'locationKey',
       title: '儲存位置',
       width: 100,
-      render: (source) => source.location?.key,
+      render: (source) => formatKeyName(source.location?.key),
     },
     {
       key: 'length',

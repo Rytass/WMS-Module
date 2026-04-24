@@ -1,4 +1,4 @@
-import { MouseEventHandler, useCallback, useMemo } from 'react';
+import { MouseEvent, MouseEventHandler, useCallback, useMemo } from 'react';
 import { SelectValue } from '@mezzanine-ui/react';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
 import SingleAutoCompleteByIdField from '../SingleAutoCompleteByIdField';
@@ -25,7 +25,7 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
   label = '銷售訂單號碼',
   placeholder,
   onChange,
-  onClear,
+  onClear: onClearProps,
   addable,
   fuzzySearch = true,
   required,
@@ -48,6 +48,7 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
     setOptions,
     onVisibilityChange,
     onSearch,
+    onClear: onClearHooks,
     onReachBottom,
   } = useFetchMoreOptions<SaleOrderDistinctIdsQuery>({
     fetchData: fetchSaleOrderIds,
@@ -55,6 +56,14 @@ const SaleOrderIdsField: FC<SaleOrderIdsFieldProps> = ({
   });
 
   const handleInsert = useInsertOption(setOptions);
+
+  const onClear = useCallback(
+    (e: MouseEvent) => {
+      onClearProps?.(e);
+      onClearHooks();
+    },
+    [onClearHooks, onClearProps],
+  );
 
   const baseProps = useMemo(
     () => ({

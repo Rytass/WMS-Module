@@ -7,6 +7,7 @@ import Table from '../../../../TableWrapper/Table';
 import Actions from './Actions';
 import { TransferOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryTransferOrders } from '../../useApi';
+import { formatKeyName } from '../../../../../utils/share';
 
 function InventoryMovementTransferTable() {
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
@@ -78,9 +79,9 @@ function InventoryMovementTransferTable() {
       title: '來源位置',
       width: 140,
       render: (source) =>
-        uniq((source.items ?? []).map((item) => item.location?.key || '')).join(
-          ',',
-        ),
+        uniq(
+          (source.items ?? []).map((item) => formatKeyName(item.location?.key)),
+        ).join(','),
     },
     {
       key: 'loader',
@@ -88,7 +89,9 @@ function InventoryMovementTransferTable() {
       width: 140,
       render: (source) =>
         uniq(
-          (source.items ?? []).map((item) => item.loader?.serialId || ''),
+          (source.items ?? []).map((item) =>
+            formatKeyName(item.loader?.serialId),
+          ),
         ).join(','),
     },
     {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import dayjs from 'dayjs';
 import { Button, Description, DescriptionContent } from '@mezzanine-ui/react';
 import { PlusIcon } from '@mezzanine-ui/icons';
-import { useFieldArray } from 'react-hook-form';
+import { useFieldArray, useWatch } from 'react-hook-form';
 import { NextPath } from '../../../../../utils/nextpath';
 import PageWrapper from '../../../../PageWrapper';
 import SectionWrapper from '../../../../SectionWrapper';
@@ -32,6 +32,9 @@ function TransferOrderFormBody({
 }: TransferOrderFormBodyProps) {
   const [modalOpened, setModalOpened] = useState<boolean>(false);
   const onFormCancel = useFormCancel({});
+  const targetLocation = useWatch<FormValues, 'targetLocation'>({
+    name: 'targetLocation',
+  });
 
   const { fields, append, update, remove } = useFieldArray<FormValues, 'items'>(
     {
@@ -91,6 +94,9 @@ function TransferOrderFormBody({
               label="目標載具"
               fuzzySearch={false}
               selectValueMode
+              relativeLocationId={
+                targetLocation ? targetLocation.id : undefined
+              }
             />
             <InputField
               name="description"

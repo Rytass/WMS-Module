@@ -173,6 +173,18 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
               placeholder="輸入目標位置"
               fuzzySearch={false}
               selectValueMode
+              onChange={(option) => {
+                update(index, {
+                  ...source,
+                  location: option,
+                });
+              }}
+              onClear={() => {
+                update(index, {
+                  ...source,
+                  location: null,
+                });
+              }}
               disabled={source.receivedQuantity > 0 || !!source.removedAt}
             />
           );
@@ -194,6 +206,9 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
               placeholder="輸入目標載具"
               fuzzySearch={false}
               selectValueMode
+              relativeLocationId={
+                source.location ? source.location.id : undefined
+              }
               disabled={source.receivedQuantity > 0 || !!source.removedAt}
             />
           );

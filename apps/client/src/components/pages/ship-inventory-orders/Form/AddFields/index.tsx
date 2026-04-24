@@ -91,7 +91,12 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             required
           />
           <InputField name="description" label="物料說明" disabled />
-          <BatchesField name="batch" fuzzySearch={false} selectValueMode />
+          <BatchesField
+            name="batch"
+            addable
+            fuzzySearch={false}
+            selectValueMode
+          />
           <div />
           <NumberInputField
             name="quantity"
