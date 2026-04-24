@@ -42,11 +42,16 @@ const LocationsField: FC<LocationsFieldProps> = ({
     [],
   );
 
-  const { currentOptions, onVisibilityChange, onSearch, onReachBottom } =
-    useFetchMoreOptions<LocationOptionsQuery>({
-      fetchData: fetchLocations,
-      getNewOptions,
-    });
+  const {
+    currentOptions,
+    onVisibilityChange,
+    onSearch,
+    onClear,
+    onReachBottom,
+  } = useFetchMoreOptions<LocationOptionsQuery>({
+    fetchData: fetchLocations,
+    getNewOptions,
+  });
 
   const baseProps = useMemo(
     () => ({
@@ -60,6 +65,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
       disabled,
       onVisibilityChange,
       onSearch,
+      onClear,
       onReachBottom,
     }),
     [
@@ -70,6 +76,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
       name,
       onReachBottom,
       onSearch,
+      onClear,
       onVisibilityChange,
       placeholder,
       required,

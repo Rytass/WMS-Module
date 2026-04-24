@@ -37,16 +37,21 @@ const LoadersField: FC<LoadersFieldProps> = ({
     [],
   );
 
-  const { currentOptions, onVisibilityChange, onSearch, onReachBottom } =
-    useFetchMoreOptions<LoaderOptionsQuery>({
-      fetchData: fetchLoaders,
-      getNewOptions,
-      otherArgs: relativeLocationId
-        ? {
-            locationId: relativeLocationId,
-          }
-        : undefined,
-    });
+  const {
+    currentOptions,
+    onVisibilityChange,
+    onSearch,
+    onClear,
+    onReachBottom,
+  } = useFetchMoreOptions<LoaderOptionsQuery>({
+    fetchData: fetchLoaders,
+    getNewOptions,
+    otherArgs: relativeLocationId
+      ? {
+          locationId: relativeLocationId,
+        }
+      : undefined,
+  });
 
   const baseProps = useMemo(
     () => ({
@@ -59,6 +64,7 @@ const LoadersField: FC<LoadersFieldProps> = ({
       disabled,
       onVisibilityChange,
       onSearch,
+      onClear,
       onReachBottom,
     }),
     [
@@ -69,6 +75,7 @@ const LoadersField: FC<LoadersFieldProps> = ({
       name,
       onReachBottom,
       onSearch,
+      onClear,
       onVisibilityChange,
       placeholder,
       required,

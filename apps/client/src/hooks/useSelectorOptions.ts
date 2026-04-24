@@ -176,6 +176,10 @@ export function useFetchMoreOptions<T>({
     [preSearchTerm],
   );
 
+  const onClear = useCallback(() => {
+    setOptions([]);
+  }, []);
+
   const onReachBottom = useCallback(() => {
     if (!isEnd) {
       setPage((p) => p + 1);
@@ -187,6 +191,7 @@ export function useFetchMoreOptions<T>({
     setOptions,
     onVisibilityChange,
     onSearch,
+    onClear,
     onReachBottom,
   };
 }

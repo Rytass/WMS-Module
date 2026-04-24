@@ -45,6 +45,7 @@ const BatchesField: FC<BatchesFieldProps> = ({
     setOptions,
     onVisibilityChange,
     onSearch,
+    onClear,
     onReachBottom,
   } = useFetchMoreOptions<BatchOptionsQuery>({
     fetchData: fetchBatches,
@@ -66,6 +67,7 @@ const BatchesField: FC<BatchesFieldProps> = ({
       onVisibilityChange,
       onInsert: handleInsert,
       onSearch,
+      onClear,
       onReachBottom,
     }),
     [
@@ -78,6 +80,7 @@ const BatchesField: FC<BatchesFieldProps> = ({
       name,
       onReachBottom,
       onSearch,
+      onClear,
       onVisibilityChange,
       placeholder,
       required,
