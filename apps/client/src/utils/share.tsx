@@ -37,6 +37,14 @@ export const yesNoOptions = [YesOrNo.YES, YesOrNo.NO].map((o) => ({
   name: yesNoName(o),
 }));
 
+export function formatKeyName(key?: string) {
+  if (!key || key === 'DEFAULT') {
+    return '-';
+  }
+
+  return key;
+}
+
 export function changeTypeName(type: ChangeType): string {
   switch (type) {
     case ChangeType.RECEIVED:
@@ -166,13 +174,13 @@ export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
     key: 'locationKey',
     title: '儲存位置',
     width: 140,
-    render: (source) => source.location?.key,
+    render: (source) => formatKeyName(source.location?.key),
   },
   {
     key: 'loaderSerialId',
     title: '載具',
     width: 100,
-    render: (source) => source.loader?.serialId,
+    render: (source) => formatKeyName(source.loader?.serialId),
   },
   {
     key: 'quantity',

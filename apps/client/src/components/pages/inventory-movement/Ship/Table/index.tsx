@@ -7,6 +7,7 @@ import Table from '../../../../TableWrapper/Table';
 import Actions from './Actions';
 import { ShipInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryShipInventoryOrders } from '../../useApi';
+import { formatKeyName } from '../../../../../utils/share';
 
 function InventoryMovementShipTable() {
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
@@ -60,9 +61,9 @@ function InventoryMovementShipTable() {
       title: '來源位置',
       width: 140,
       render: (source) =>
-        uniq((source.items ?? []).map((item) => item.location?.key || '')).join(
-          ',',
-        ),
+        uniq(
+          (source.items ?? []).map((item) => formatKeyName(item.location?.key)),
+        ).join(','),
     },
     {
       key: 'loader',
@@ -70,7 +71,9 @@ function InventoryMovementShipTable() {
       width: 140,
       render: (source) =>
         uniq(
-          (source.items ?? []).map((item) => item.loader?.serialId || ''),
+          (source.items ?? []).map((item) =>
+            formatKeyName(item.loader?.serialId),
+          ),
         ).join(','),
     },
     {

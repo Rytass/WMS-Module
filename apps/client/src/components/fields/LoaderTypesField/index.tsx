@@ -35,12 +35,17 @@ const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
     [],
   );
 
-  const { currentOptions, onVisibilityChange, onSearch, onReachBottom } =
-    useFetchMoreOptions<LoaderTypeOptionsQuery>({
-      fetchData: fetchLoaderTypes,
-      getNewOptions,
-      searchByDescription: true,
-    });
+  const {
+    currentOptions,
+    onVisibilityChange,
+    onSearch,
+    onClear,
+    onReachBottom,
+  } = useFetchMoreOptions<LoaderTypeOptionsQuery>({
+    fetchData: fetchLoaderTypes,
+    getNewOptions,
+    searchByDescription: true,
+  });
 
   const baseProps = useMemo(
     () => ({
@@ -53,6 +58,7 @@ const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
       disabled,
       onVisibilityChange,
       onSearch,
+      onClear,
       onReachBottom,
     }),
     [
@@ -63,6 +69,7 @@ const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
       name,
       onReachBottom,
       onSearch,
+      onClear,
       onVisibilityChange,
       placeholder,
       required,

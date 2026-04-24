@@ -1,9 +1,15 @@
+import { useWatch } from 'react-hook-form';
 import LocationsField from '../../../fields/LocationsField';
 import LoadersField from '../../../fields/LoadersField';
 import InputField from '../../../fields/InputField';
+import { CreateTransferInventoryFieldValues } from './typing';
 import classes from './index.module.scss';
 
 function CreateTransferInventoryField() {
+  const location = useWatch<CreateTransferInventoryFieldValues, 'location'>({
+    name: 'location',
+  });
+
   return (
     <div className={classes.host}>
       <div className={classes.selectorsWrapper}>
@@ -19,6 +25,7 @@ function CreateTransferInventoryField() {
           label="目標載具"
           fuzzySearch={false}
           selectValueMode
+          relativeLocationId={location ? location.id : undefined}
         />
       </div>
       <div className={classes.receiverWrapper}>
