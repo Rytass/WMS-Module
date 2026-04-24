@@ -13,6 +13,7 @@ interface LoadersFieldProps {
   required?: boolean;
   disabled?: boolean;
   selectValueMode: boolean;
+  relativeLocationId?: string;
 }
 
 const LoadersField: FC<LoadersFieldProps> = ({
@@ -23,6 +24,7 @@ const LoadersField: FC<LoadersFieldProps> = ({
   required,
   disabled,
   selectValueMode,
+  relativeLocationId,
 }) => {
   const { fetchLoaders } = useLazyQueryLoaders();
 
@@ -39,6 +41,11 @@ const LoadersField: FC<LoadersFieldProps> = ({
     useFetchMoreOptions<LoaderOptionsQuery>({
       fetchData: fetchLoaders,
       getNewOptions,
+      otherArgs: relativeLocationId
+        ? {
+            locationId: relativeLocationId,
+          }
+        : undefined,
     });
 
   const baseProps = useMemo(

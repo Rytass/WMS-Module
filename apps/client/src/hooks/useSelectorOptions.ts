@@ -96,7 +96,7 @@ export function useFetchMoreOptions<T>({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [currentOtherArgs, setCurrentOtherArgs] = useState<{
     [key: string]: any;
-  }>({});
+  }>(otherArgs ?? {});
   const [page, setPage] = useState<number>(0);
   const [currentOptions, setOptions] = useState<SelectValue[]>([]);
   const [isEnd, setIsEnd] = useState<boolean>(false);
