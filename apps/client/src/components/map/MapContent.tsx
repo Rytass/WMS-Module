@@ -5,13 +5,15 @@ import {
   ViewMode,
   DrawingMode,
 } from '@rytass/wms-map-react-components';
+import type { FlowNode } from '@rytass/wms-map-react-components';
 import { COLOR_PALETTE } from './utils';
 
 interface MapContentProps {
   viewMode?: ViewMode;
+  initialNodes?: FlowNode[];
 }
 
-function MapContent({ viewMode = ViewMode.EDIT }: MapContentProps) {
+function MapContent({ viewMode = ViewMode.EDIT, initialNodes }: MapContentProps) {
   const [editMode, setEditMode] = useState<EditMode>(EditMode.BACKGROUND);
   const [drawingMode, setDrawingMode] = useState<DrawingMode>(DrawingMode.NONE);
   const [selectedColor, setSelectedColor] = useState<string>(COLOR_PALETTE[0]);
@@ -49,6 +51,7 @@ function MapContent({ viewMode = ViewMode.EDIT }: MapContentProps) {
       onTogglePenTool={handleTogglePenTool}
       onColorChange={setSelectedColor}
       onUpload={handleUpload}
+      initialNodes={initialNodes}
       warehouseIds={[]}
     />
   );
