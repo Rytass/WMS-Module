@@ -4101,9 +4101,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/react@npm:1.0.4":
-  version: 1.0.4
-  resolution: "@mezzanine-ui/react@npm:1.0.4"
+"@mezzanine-ui/react@npm:1.1.0":
+  version: 1.1.0
+  resolution: "@mezzanine-ui/react@npm:1.1.0"
   dependencies:
     "@floating-ui/dom": "npm:^1.7.4"
     "@floating-ui/react-dom": "npm:^2.1.6"
@@ -4124,7 +4124,7 @@ __metadata:
     lodash: ">=4"
     react: ">=18"
     react-dom: ">=18"
-  checksum: 10c0/f0ae92b6023c5bf8ffd29d2428a4d4799f987b192ce7e1c3ed89302fdf7e027d39adbca5cf811bf71f71c454849b2475e846bd107d298a1de03b5c5f42a15add
+  checksum: 10c0/7350c9b6ae82309c7c3a911eb25aab9fbc3ffbf571ff5749f660b05c35c558a073bac8ad126e430974fe128107d3acd2333e44f3bd699ba5b0e0b14e05ecf609
   languageName: node
   linkType: hard
 
@@ -8124,7 +8124,7 @@ __metadata:
     "@hookform/resolvers": "npm:^5.2.2"
     "@mezzanine-ui/core": "npm:1.0.4"
     "@mezzanine-ui/icons": "npm:1.0.2"
-    "@mezzanine-ui/react": "npm:1.0.4"
+    "@mezzanine-ui/react": "npm:1.1.0"
     "@mezzanine-ui/system": "npm:1.0.2"
     "@nestjs/apollo": "npm:^13.2.3"
     "@nestjs/common": "npm:^11.0.0"
