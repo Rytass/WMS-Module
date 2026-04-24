@@ -36,6 +36,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
   });
 
   const materialSelectValue = methods.watch('material');
+  const locationValue = methods.watch('location');
 
   const { fetchMaterial } = useLazyQueryMaterial();
 
@@ -108,6 +109,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             label="目標載具"
             fuzzySearch={false}
             selectValueMode
+            relativeLocationId={locationValue ? locationValue.id : undefined}
           />
           <NumberInputField
             name="quantity"

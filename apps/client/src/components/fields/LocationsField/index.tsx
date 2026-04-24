@@ -1,5 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Button, cx } from '@mezzanine-ui/react';
+import {
+  MouseEvent,
+  MouseEventHandler,
+  useCallback,
+  useMemo,
+  useState,
+} from 'react';
+import { Button, SelectValue, cx } from '@mezzanine-ui/react';
 import { MaximizeIcon } from '@mezzanine-ui/icons';
 import MapModal from '../../map/MapModal';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
@@ -13,6 +19,8 @@ interface LocationsFieldProps {
   name: string;
   label?: string;
   placeholder?: string;
+  onChange?(newOptions: SelectValue<string>): void;
+  onClear?: MouseEventHandler;
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
@@ -24,6 +32,8 @@ const LocationsField: FC<LocationsFieldProps> = ({
   name,
   label = '儲存位置',
   placeholder,
+  onChange,
+  onClear: onClearProps,
   fuzzySearch = true,
   required,
   disabled,
@@ -46,12 +56,20 @@ const LocationsField: FC<LocationsFieldProps> = ({
     currentOptions,
     onVisibilityChange,
     onSearch,
-    onClear,
+    onClear: onClearHooks,
     onReachBottom,
   } = useFetchMoreOptions<LocationOptionsQuery>({
     fetchData: fetchLocations,
     getNewOptions,
   });
+
+  const onClear = useCallback(
+    (e: MouseEvent) => {
+      onClearProps?.(e);
+      onClearHooks();
+    },
+    [onClearHooks, onClearProps],
+  );
 
   const baseProps = useMemo(
     () => ({
@@ -65,6 +83,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
       disabled,
       onVisibilityChange,
       onSearch,
+      onChange,
       onClear,
       onReachBottom,
     }),
@@ -76,6 +95,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
       name,
       onReachBottom,
       onSearch,
+      onChange,
       onClear,
       onVisibilityChange,
       placeholder,
