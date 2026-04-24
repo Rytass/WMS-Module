@@ -403,6 +403,7 @@ type LocationDto {
   isActive: Boolean
   mapData: MapDataDto
   parent: LocationDto
+  children: [LocationDto!]!
 }
 
 type Locations {

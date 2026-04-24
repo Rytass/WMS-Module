@@ -12,6 +12,7 @@ export class LocationQuery {
   location(@Args('id', { type: () => ID }) id: string): Promise<LocationDto> {
     return this.locationService.locationReposistory
       .createQueryBuilder('location')
+      .leftJoinAndSelect('location.children', 'children')
       .where('location.id = :id', { id })
       .getOneOrFail() as Promise<LocationDto>;
   }

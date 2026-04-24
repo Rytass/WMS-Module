@@ -73,7 +73,8 @@ export class LocationService<
   async findMany(options: FindLocationInput<T>): Promise<[T[], number]> {
     const queryBuilder = this.locationReposistory
       .createQueryBuilder('location')
-      .loadRelationIdAndMap('location.parentId', 'location.parent');
+      .loadRelationIdAndMap('location.parentId', 'location.parent')
+      .leftJoinAndSelect('location.children', 'children');
 
     if (options.description)
       queryBuilder.andWhere('location."description" ILIKE :description', {
