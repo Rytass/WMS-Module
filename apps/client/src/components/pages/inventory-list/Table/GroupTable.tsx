@@ -28,7 +28,7 @@ import {
   AggregatedStockFragment,
 } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
-import { aggregatedStockColumns } from '../../../../utils/share';
+import { aggregatedStockColumns, formatKeyName } from '../../../../utils/share';
 import { stockStatusName } from '../../../inventoryActions/utils';
 import { useQueryStocksGrouped } from '../useApi';
 import { FilterValues } from '../typing';
@@ -262,7 +262,9 @@ function InventoryGroupTable({
       title: '儲存位置',
       width: 140,
       render: (source) => {
-        const keys = uniq(source.aggregatedStock?.map((s) => s.location.key));
+        const keys = uniq(
+          source.aggregatedStock?.map((s) => formatKeyName(s.location.key)),
+        );
 
         if (keys.length > 1) {
           return (
@@ -284,7 +286,7 @@ function InventoryGroupTable({
       width: 100,
       render: (source) => {
         const keys = uniq(
-          source.aggregatedStock?.map((s) => s.loader.serialId),
+          source.aggregatedStock?.map((s) => formatKeyName(s.loader.serialId)),
         );
 
         if (keys.length > 1) {

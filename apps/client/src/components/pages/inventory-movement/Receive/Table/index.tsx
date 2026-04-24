@@ -7,6 +7,7 @@ import Table from '../../../../TableWrapper/Table';
 import Actions from './Actions';
 import { ReceiveInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryReceiveInventoryOrders } from '../../useApi';
+import { formatKeyName } from '../../../../../utils/share';
 
 function InventoryMovementReceiveTable() {
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
@@ -62,9 +63,9 @@ function InventoryMovementReceiveTable() {
       title: '目標位置',
       width: 140,
       render: (source) =>
-        uniq((source.items ?? []).map((item) => item.location?.key || '')).join(
-          ',',
-        ),
+        uniq(
+          (source.items ?? []).map((item) => formatKeyName(item.location?.key)),
+        ).join(','),
     },
     {
       key: 'loader',
@@ -72,7 +73,9 @@ function InventoryMovementReceiveTable() {
       width: 140,
       render: (source) =>
         uniq(
-          (source.items ?? []).map((item) => item.loader?.serialId || ''),
+          (source.items ?? []).map((item) =>
+            formatKeyName(item.loader?.serialId),
+          ),
         ).join(','),
     },
     {

@@ -3,7 +3,7 @@ import { TableColumn } from '@mezzanine-ui/react';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
 import { ChangeLogFragment } from '../../../../graphql/generated/.graphql';
-import { changeTypeName } from '../../../../utils/share';
+import { changeTypeName, formatKeyName } from '../../../../utils/share';
 import { useQueryChangeLogs } from '../useApi';
 
 function ChangeHistoryTable() {
@@ -44,7 +44,7 @@ function ChangeHistoryTable() {
       key: 'locationKey',
       title: '儲存位置',
       width: 140,
-      render: (source) => source.location?.key,
+      render: (source) => formatKeyName(source.location?.key),
     },
     {
       key: 'quantity',
