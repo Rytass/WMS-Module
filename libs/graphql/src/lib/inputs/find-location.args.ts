@@ -11,4 +11,7 @@ export class FindLocationArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   key?: string;
+
+  @Field(() => Boolean, { nullable: true })
+  root?: boolean;
 }

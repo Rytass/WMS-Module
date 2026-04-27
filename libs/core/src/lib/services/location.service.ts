@@ -76,6 +76,11 @@ export class LocationService<
       .loadRelationIdAndMap('location.parentId', 'location.parent')
       .leftJoinAndSelect('location.children', 'children');
 
+    if (options.root !== undefined)
+      queryBuilder.andWhere(
+        options.root ? 'location."parentId" IS NULL' : 'location."parentId" IS NOT NULL',
+      );
+
     if (options.description)
       queryBuilder.andWhere('location."description" ILIKE :description', {
         description: `%${options.description}%`,
