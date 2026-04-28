@@ -10,6 +10,7 @@ query Locations(
   $description: String
   $key: String
   $isActive: Boolean
+  $root: Boolean
 ) {
   locations(
     offset: $offset
@@ -17,6 +18,7 @@ query Locations(
     description: $description
     key: $key
     isActive: $isActive
+    root: $root
   ) {
     id
     items {

@@ -1,5 +1,5 @@
 import { SelectValue } from '@mezzanine-ui/react';
-import { YesOrNo } from '../../../../../utils/share';
+import { YesOrNo, UnitOptionsType } from '../../../../../utils/share';
 
 export type FieldArrayItem = {
   itemId: string;
@@ -8,7 +8,7 @@ export type FieldArrayItem = {
   receivedQuantity: number;
   serialId: string;
   unitId?: string | null;
-  unitOptions: SelectValue[];
+  unitOptions: UnitOptionsType;
   material: SelectValue;
   batch?: SelectValue | null;
   location?: SelectValue | null;

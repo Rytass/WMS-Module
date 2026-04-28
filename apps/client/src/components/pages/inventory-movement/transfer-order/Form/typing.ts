@@ -1,4 +1,5 @@
 import { SelectValue } from '@mezzanine-ui/react';
+import { UnitOptionsType } from '../../../../../utils/share';
 
 export type ItemFieldValues = {
   material: SelectValue | null;
@@ -16,7 +17,7 @@ export type ItemFieldValues = {
   newQuantity: number;
   maxOriginQuantity: number;
   transferredQuantity: number;
-  unitOptions: { id: string; name: string; conversionFactor: number }[];
+  unitOptions: UnitOptionsType;
   isExisted: boolean;
   removedAt?: string;
 };

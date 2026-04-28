@@ -29,6 +29,7 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
             Yup.object({
               id: Yup.string().required('必填'),
               name: Yup.string().required('必填'),
+              conversionFactor: Yup.number().required('必填'),
             }),
           )
           .required('必填'),
@@ -43,7 +44,9 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
         location: Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
-        }).required('必填'),
+        }).when(['quantity'], ([quantity], schema) => {
+          return quantity > 0 ? schema.required('必填欄位') : schema.nullable();
+        }),
         loader: Yup.object({
           id: Yup.string().required('必填'),
           name: Yup.string().required('必填'),
