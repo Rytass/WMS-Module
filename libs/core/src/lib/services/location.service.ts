@@ -78,7 +78,9 @@ export class LocationService<
 
     if (options.root !== undefined)
       queryBuilder.andWhere(
-        options.root ? 'location."parentId" IS NULL' : 'location."parentId" IS NOT NULL',
+        options.root
+          ? 'location."parentId" IS NULL'
+          : 'location."parentId" IS NOT NULL',
       );
 
     if (options.description)

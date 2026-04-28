@@ -515,19 +515,25 @@ export class TransferOrderService<
               `Transfer quantity exceeds remaining quantity for item ${item.id}`,
             );
 
-          // Create splitted batch for transfer completion
-          const completedBatch = await this.batchService.splitBatch({
+          // Locate the existing IN_TRANSFER split (created at reservation time) via
+          // idempotent forward sibling-match: same call shape processTransferOrderItems
+          // used to create it. No new batch row is written — sibling-match returns the
+          // existing IN_TRANSFER batch B for this order. The original batch (item.batchId,
+          // transferId=null) is the anchor for the FREE-restore at target loc/loader.
+          const inTransferBatch = await this.batchService.splitBatch({
             id: item.batchId,
+            transferId: item.orderId,
             manager,
           });
 
           // Record the transfer change
           const base = await manager.getRepository(OrderEntity).save({});
 
+          // Availability check at the IN_TRANSFER coord — must have ≥ qty to drain
           await this.stockService.validateStockAvailability(
             {
               materialId: item.materialId,
-              batchId: completedBatch.id,
+              batchId: inTransferBatch.id,
               locationId: item.locationId || undefined,
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: option.quantity * conversionFactor,
@@ -543,10 +549,13 @@ export class TransferOrderService<
                 quantityChanged: -1 * option.quantity * conversionFactor,
               }),
             ),
-            // Update stock levels
+            // Stock pair: +qty FREE @ original batch at TARGET loc/loader
+            //            -qty IN_TRANSFER @ split batch at SOURCE loc/loader (drains pool)
+            // The original-batch FREE at SOURCE loc/loader is left untouched (its
+            // reservation-time deduction stays as the durable "moved out of source" record).
             stockRepository.save(
               stockRepository.create([
-                // add to destination with original batch reference
+                // add to destination using original batch (transferId=null → derived FREE)
                 {
                   orderId: base.id,
                   materialId: item.materialId,
@@ -557,11 +566,11 @@ export class TransferOrderService<
                   ),
                   quantity: option.quantity * conversionFactor,
                 } as DeepPartial<StockEntityClass>,
-                // deduct from completed splitted batch
+                // drain from the IN_TRANSFER split batch
                 {
                   orderId: base.id,
                   materialId: item.materialId,
-                  batchId: completedBatch.id,
+                  batchId: inTransferBatch.id,
                   locationId: item.locationId || undefined,
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
                   quantity: -1 * option.quantity * conversionFactor,

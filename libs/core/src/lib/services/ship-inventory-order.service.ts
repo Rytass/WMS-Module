@@ -26,11 +26,7 @@ import {
   FindShipInventoryOrderInput,
   ShipInventoryOrderStatus,
 } from '../typings/find-ship-inventory-order.input';
-import {
-  OrderEntity,
-  StockEntity,
-  BatchEntity,
-} from '@rytass/wms-base-nestjs-module';
+import { OrderEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
   ShipInventoryOrderChangeEntityClass,
   ShipInventoryOrderReferenceEntity,
@@ -710,7 +706,8 @@ export class ShipInventoryOrderService<
         );
 
       const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
-      const stockRepository = manager.getRepository<StockEntity>(StockEntity);
+      const stockRepository =
+        manager.getRepository<StockEntityClass>(StockEntityClass);
 
       const items = await itemRepository.find({
         where: { id: In(options.map((option) => option.itemId)) },
@@ -745,6 +742,7 @@ export class ShipInventoryOrderService<
           // Create splitted batch for ship completion
           const shippedBatch = await this.batchService.splitBatch({
             id: item.batchId,
+            inShipment: true,
             manager,
           });
 
@@ -771,16 +769,6 @@ export class ShipInventoryOrderService<
             ),
             stockRepository.save(
               stockRepository.create([
-                // add to destination with original batch reference
-                {
-                  batchId: item.batchId,
-                  materialId: item.materialId,
-                  locationId: item.locationId || undefined,
-                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: option.quantity * conversionFactor,
-                  orderId: newOrder.id,
-                } as DeepPartial<StockEntityClass>,
-                // deduct from shipped splitted batch
                 {
                   batchId: shippedBatch.id,
                   materialId: item.materialId,
