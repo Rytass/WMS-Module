@@ -12,6 +12,11 @@ import { WaitIcon, TransferIcon } from '../icons';
 import { stockStatusName } from '../components/inventoryActions/utils';
 
 export const BASE_UNIT = 'BASE_UNIT';
+export type UnitOptionsType = {
+  id: string;
+  name: string;
+  conversionFactor: number;
+}[];
 
 export enum YesOrNo {
   YES = 'YES',

@@ -30,4 +30,9 @@ export class LocationResolver {
       __from: { id: parentId },
     });
   }
+
+  @ResolveField(() => [LocationDto])
+  children(@Parent() { children }: LocationEntityClass) {
+    return children;
+  }
 }
