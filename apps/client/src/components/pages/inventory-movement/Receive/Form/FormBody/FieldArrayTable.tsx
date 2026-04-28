@@ -69,7 +69,15 @@ const FieldArrayTable: FC = () => {
       title: '已入數量',
       minWidth: 120,
       align: 'end',
-      render: (source) => source.receivedQuantity,
+      render: (source) => {
+        const conversionFactor =
+          source.unitOptions.find((o) => o.id === source.unitId)
+            ?.conversionFactor ?? 1;
+
+        return (
+          Math.round((source.receivedQuantity / conversionFactor) * 100) / 100
+        );
+      },
     },
     {
       key: 'targetReceivedQuantity',

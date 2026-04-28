@@ -7,6 +7,10 @@ fragment Location on LocationDto {
     id
     key
   }
+  children {
+    id
+    key
+  }
   mapData {
     ...MapData
   }
