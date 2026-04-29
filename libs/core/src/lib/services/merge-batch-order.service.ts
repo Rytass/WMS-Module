@@ -127,7 +127,7 @@ export class MergeBatchOrderService<
             mergeBatchOrderItemRepository.create({
               targetMergedQuantity: item.quantity,
               orderId: order.id,
-              locationId: item.locationId || '',
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: item.loaderId || null,
             } as DeepPartial<K>),
           );
@@ -146,7 +146,7 @@ export class MergeBatchOrderService<
             {
               materialId: targetBatch.materialId,
               batchId: item.batchId,
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.quantity * conversionFactor,
             },
@@ -160,7 +160,9 @@ export class MergeBatchOrderService<
                 orderId: baseOrder.id,
                 materialId: targetBatch.materialId,
                 batchId: item.batchId,
-                locationId: item.locationId || undefined,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,
@@ -169,7 +171,9 @@ export class MergeBatchOrderService<
                 orderId: baseOrder.id,
                 materialId: targetBatch.materialId,
                 batchId: mergedBatch.id,
-                locationId: item.locationId || undefined,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,

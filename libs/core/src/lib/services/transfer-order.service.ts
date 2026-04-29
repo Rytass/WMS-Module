@@ -112,7 +112,7 @@ export class TransferOrderService<
           {
             materialId: item.materialId,
             batchId: item.batchId,
-            locationId: item.locationId || undefined,
+            locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: item.targetTransferredQuantity * conversionFactor,
           },
@@ -126,7 +126,7 @@ export class TransferOrderService<
               orderId: base.id,
               materialId: item.materialId,
               batchId: item.batchId, // original batch
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: -1 * item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
@@ -135,7 +135,7 @@ export class TransferOrderService<
               orderId: base.id,
               materialId: item.materialId,
               batchId: splittedBatch.id, // splitted batch marked inTransfer
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
@@ -215,7 +215,7 @@ export class TransferOrderService<
           {
             materialId: item.materialId,
             batchId: reversalBatch.id,
-            locationId: item.locationId || undefined,
+            locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: cancelQuantity,
           },
@@ -239,7 +239,9 @@ export class TransferOrderService<
                 orderId: reverseOrder.id,
                 materialId: item.materialId,
                 batchId: item.batchId, // original batch
-                locationId: item.locationId || undefined,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: cancelQuantity,
               } as DeepPartial<StockEntityClass>,
@@ -248,7 +250,9 @@ export class TransferOrderService<
                 orderId: reverseOrder.id,
                 materialId: item.materialId,
                 batchId: reversalBatch.id, // new splitted batch for cancel reversal
-                locationId: item.locationId || undefined,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * cancelQuantity,
               } as DeepPartial<StockEntityClass>,
@@ -534,7 +538,7 @@ export class TransferOrderService<
             {
               materialId: item.materialId,
               batchId: inTransferBatch.id,
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: option.quantity * conversionFactor,
             },
@@ -571,7 +575,9 @@ export class TransferOrderService<
                   orderId: base.id,
                   materialId: item.materialId,
                   batchId: inTransferBatch.id,
-                  locationId: item.locationId || undefined,
+                  locationId: this.stockService.resolveLocationId(
+                    item.locationId,
+                  ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
                   quantity: -1 * option.quantity * conversionFactor,
                 } as DeepPartial<StockEntityClass>,

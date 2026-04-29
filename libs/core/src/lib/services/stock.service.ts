@@ -35,6 +35,7 @@ export class StockService<
 > implements OnModuleInit
 {
   defaultLoaderId!: string;
+  defaultLocationId!: string;
   readonly stockRepository: Repository<T>;
   readonly selectQueryBuilder: (
     alias: string,
@@ -145,6 +146,7 @@ export class StockService<
         }),
       );
     }
+    this.defaultLocationId = location.id;
 
     // Ensure default loader exists
     let loader = await loaderRepo.findOneBy({
@@ -165,6 +167,10 @@ export class StockService<
 
   resolveLoaderId(loaderId: string | null | undefined): string {
     return loaderId || this.defaultLoaderId;
+  }
+
+  resolveLocationId(locationId: string | null | undefined): string {
+    return locationId || this.defaultLocationId;
   }
 
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(

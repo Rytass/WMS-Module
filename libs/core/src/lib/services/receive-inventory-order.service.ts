@@ -170,7 +170,7 @@ export class ReceiveInventoryOrderService<
               orderId,
               materialId: material.id,
               batchId: batch?.id || null,
-              locationId: location?.id || null,
+              locationId: this.stockService.resolveLocationId(location?.id),
               loaderId: loader?.id || null,
             },
           ];
@@ -478,7 +478,7 @@ export class ReceiveInventoryOrderService<
             stockRepository.save(
               stockRepository.create({
                 batchId: batchId || undefined,
-                locationId: locationId || undefined,
+                locationId: this.stockService.resolveLocationId(locationId),
                 loaderId: this.stockService.resolveLoaderId(loaderId),
                 materialId: item.materialId,
                 quantity: option.quantity * conversionFactor,

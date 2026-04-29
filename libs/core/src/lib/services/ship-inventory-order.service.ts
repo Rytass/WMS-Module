@@ -227,7 +227,7 @@ export class ShipInventoryOrderService<
           {
             materialId: item.materialId,
             batchId: item.batchId,
-            locationId: item.locationId || undefined,
+            locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: item.targetShippedQuantity * conversionFactor,
           },
@@ -241,7 +241,7 @@ export class ShipInventoryOrderService<
               orderId: base.id,
               materialId: item.materialId,
               batchId: item.batchId, // original batch
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: -1 * item.targetShippedQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
@@ -250,7 +250,7 @@ export class ShipInventoryOrderService<
               orderId: base.id,
               materialId: item.materialId,
               batchId: splittedBatch.id, // splitted batch marked inShipment
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.targetShippedQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
@@ -572,7 +572,7 @@ export class ShipInventoryOrderService<
           {
             materialId: item.materialId,
             batchId: inShipmentBatch.id,
-            locationId: item.locationId || undefined,
+            locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: cancelQuantity,
           },
@@ -593,7 +593,9 @@ export class ShipInventoryOrderService<
                 orderId: reverseOrder.id,
                 materialId: item.materialId,
                 batchId: item.batchId,
-                locationId: item.locationId || undefined,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: cancelQuantity,
               } as DeepPartial<StockEntityClass>,
@@ -601,7 +603,9 @@ export class ShipInventoryOrderService<
                 orderId: reverseOrder.id,
                 materialId: item.materialId,
                 batchId: inShipmentBatch.id,
-                locationId: item.locationId || undefined,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * cancelQuantity,
               } as DeepPartial<StockEntityClass>,
@@ -752,7 +756,7 @@ export class ShipInventoryOrderService<
             {
               materialId: item.materialId,
               batchId: item.batchId,
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: option.quantity * conversionFactor,
             },
@@ -772,7 +776,9 @@ export class ShipInventoryOrderService<
                 {
                   batchId: shippedBatch.id,
                   materialId: item.materialId,
-                  locationId: item.locationId || undefined,
+                  locationId: this.stockService.resolveLocationId(
+                    item.locationId,
+                  ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
                   quantity: -1 * option.quantity * conversionFactor,
                   orderId: newOrder.id,
