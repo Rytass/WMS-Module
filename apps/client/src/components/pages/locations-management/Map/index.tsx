@@ -3,10 +3,10 @@ import { transformApiDataToNodes } from '@rytass/wms-map-react-components';
 import type { FlowNode } from '@rytass/wms-map-react-components';
 import SectionWrapper from '../../../SectionWrapper';
 import MapContent from '../../../map/MapContent';
-import { useQueryLocations } from '../useApi';
+import { useQueryAllRootLocations } from '../useApi';
 
 const LocationsManagementMap: FC = () => {
-  const { data } = useQueryLocations();
+  const { data } = useQueryAllRootLocations();
 
   const initialNodes = useMemo((): FlowNode[] => {
     const items = data?.locations.items ?? [];
