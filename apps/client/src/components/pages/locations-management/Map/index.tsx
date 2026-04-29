@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { transformApiDataToNodes } from '@rytass/wms-map-react-components';
+import { useMemo, useCallback } from 'react';
+import { transformApiDataToNodes, Map } from '@rytass/wms-map-react-components';
 import type { FlowNode } from '@rytass/wms-map-react-components';
 import SectionWrapper from '../../../SectionWrapper';
 import MapContent from '../../../map/MapContent';
@@ -55,9 +55,13 @@ const LocationsManagementMap: FC = () => {
 
   console.log('initialNodes', initialNodes);
 
+  const onSave = useCallback(async (mapData: Map) => {
+    console.log('mapData', mapData);
+  }, []);
+
   return (
     <SectionWrapper>
-      <MapContent initialNodes={initialNodes} />
+      <MapContent initialNodes={initialNodes} onSave={onSave} />
     </SectionWrapper>
   );
 };
