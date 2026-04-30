@@ -85,8 +85,8 @@ export function changeTypeName(type: ChangeType): string {
     case ChangeType.RECLASSIFIED:
       return '轉料號';
 
-    // case ChangeType.TRANSFERRED:
-    //   return '';
+    case ChangeType.TRANSFERRED:
+      return '已調撥';
 
     case ChangeType.IN_TRANSFER:
       return '調撥';

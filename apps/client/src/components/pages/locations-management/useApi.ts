@@ -5,6 +5,7 @@ import {
 } from '../../../hooks/useTablePagination';
 import {
   LocationsDocument,
+  AllRootLocationsDocument,
   CreateLocationDocument,
   UpdateLocationDocument,
 } from '../../../graphql/generated/.graphql';
@@ -35,6 +36,17 @@ export function useQueryLocations() {
     setPage,
     limit,
     setLimit,
+  };
+}
+
+export function useQueryAllRootLocations() {
+  const { data, loading } = useQuery(AllRootLocationsDocument, {
+    fetchPolicy: 'cache-and-network',
+  });
+
+  return {
+    data,
+    loading,
   };
 }
 

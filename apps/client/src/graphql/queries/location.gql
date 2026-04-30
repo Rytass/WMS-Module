@@ -28,6 +28,16 @@ query Locations(
   }
 }
 
+query AllRootLocations {
+  locations(offset: null, limit: null, root: true) {
+    id
+    items {
+      ...Location
+    }
+    total
+  }
+}
+
 query LocationOptions(
   $offset: Int
   $limit: Int
