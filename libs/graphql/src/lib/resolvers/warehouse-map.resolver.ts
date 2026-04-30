@@ -14,7 +14,7 @@ export class MapRangeUnionResolver {
     if (!id) return null;
     return loaders.batchSingle.load({
       __entity: LocationEntityClass,
-      __from: { id },
+      __from: { key: id },
     });
   }
 }
