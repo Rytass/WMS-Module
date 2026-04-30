@@ -84,7 +84,7 @@ export class SplitBatchOrderService<
           const splitItem = await splitBatchOrderItemRepository.save(
             splitBatchOrderItemRepository.create({
               targetSplitQuantity: item.quantity,
-              locationId: item.locationId,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: item.loaderId,
               orderId: order.id,
             } as DeepPartial<K>),
@@ -104,7 +104,7 @@ export class SplitBatchOrderService<
             {
               materialId: originalBatch.materialId,
               batchId: options.batchId,
-              locationId: item.locationId,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.quantity * conversionFactor,
             },
@@ -118,7 +118,9 @@ export class SplitBatchOrderService<
                 orderId: baseOrder.id,
                 materialId: originalBatch.materialId,
                 batchId: options.batchId,
-                locationId: item.locationId,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,
@@ -127,7 +129,9 @@ export class SplitBatchOrderService<
                 orderId: baseOrder.id,
                 materialId: originalBatch.materialId,
                 batchId: targetBatch.id,
-                locationId: item.locationId,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,

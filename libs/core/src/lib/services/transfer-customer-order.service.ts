@@ -121,7 +121,7 @@ export class TransferCustomerOrderService<
           {
             materialId: item.materialId,
             batchId: item.batchId,
-            locationId: item.locationId || undefined,
+            locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: item.targetTransferredQuantity * conversionFactor,
           },
@@ -135,7 +135,7 @@ export class TransferCustomerOrderService<
               orderId: base.id,
               materialId: item.materialId,
               batchId: item.batchId, // original batch
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: -1 * item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
@@ -144,7 +144,7 @@ export class TransferCustomerOrderService<
               orderId: base.id,
               materialId: item.materialId,
               batchId: splittedBatch.id, // splitted batch marked with customerId
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.targetTransferredQuantity * conversionFactor,
             } as DeepPartial<StockEntityClass>,
@@ -304,7 +304,7 @@ export class TransferCustomerOrderService<
             {
               materialId: item.materialId,
               batchId: item.batchId,
-              locationId: item.locationId || undefined,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: change.quantityChanged,
             },
@@ -318,7 +318,9 @@ export class TransferCustomerOrderService<
                 orderId: base.id,
                 materialId: item.materialId,
                 batchId: item.batchId, // original batch
-                locationId: item.locationId || undefined,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * change.quantityChanged,
               } as DeepPartial<StockEntityClass>,

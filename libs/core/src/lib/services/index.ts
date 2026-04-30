@@ -18,5 +18,5 @@ export * from './transfer-customer-order.service';
 export * from './hold-inventory-order.service';
 export * from './sale-order.service';
 export * from './scrape.service';
-
+export * from './warehouse-map.service';
 export * from './helper.service';

@@ -13,7 +13,7 @@ export class WarehouseMapMutation {
     @Args() args: UpdateWarehouseMapArgs,
   ): Promise<MapDataDto> {
     const { mapData } = await this.warehouseMapService.updateMap(
-      args.locationId,
+      args.locationKey,
       args.backgrounds,
       args.ranges,
     );

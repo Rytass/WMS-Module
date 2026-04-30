@@ -60,7 +60,7 @@ export class MapRangeInput {
 @ArgsType()
 export class UpdateWarehouseMapArgs {
   @Field(() => ID)
-  locationId!: string;
+  locationKey!: string;
 
   @Field(() => [MapBackgroundInput])
   backgrounds!: MapBackgroundInput[];
