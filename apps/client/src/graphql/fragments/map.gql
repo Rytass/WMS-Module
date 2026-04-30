@@ -10,6 +10,11 @@ fragment MapData on MapDataDto {
   }
   ranges {
     ... on MapRectangleRangeDto {
+      location {
+        id
+        key
+        isActive
+      }
       id
       type
       color
@@ -19,6 +24,11 @@ fragment MapData on MapDataDto {
       height
     }
     ... on MapPolygonRangeDto {
+      location {
+        id
+        key
+        isActive
+      }
       id
       type
       color

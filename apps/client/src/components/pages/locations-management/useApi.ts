@@ -1,11 +1,11 @@
-import { useQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
 import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
 import {
   LocationsDocument,
-  AllRootLocationsDocument,
+  MapDataDocument,
   CreateLocationDocument,
   UpdateLocationDocument,
 } from '../../../graphql/generated/.graphql';
@@ -39,12 +39,13 @@ export function useQueryLocations() {
   };
 }
 
-export function useQueryAllRootLocations() {
-  const { data, loading } = useQuery(AllRootLocationsDocument, {
+export function useLazyQueryMapData() {
+  const [fetchMapData, { data, loading }] = useLazyQuery(MapDataDocument, {
     fetchPolicy: 'cache-and-network',
   });
 
   return {
+    fetchMapData,
     data,
     loading,
   };

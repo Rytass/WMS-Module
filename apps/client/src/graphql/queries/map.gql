@@ -1,0 +1,5 @@
+query MapData($key: String!) {
+  mapData(key: $key) {
+    ...MapData
+  }
+}

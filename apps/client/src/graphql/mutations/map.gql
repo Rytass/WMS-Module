@@ -1,10 +1,10 @@
 mutation UpdateWarehouseMap(
-  $locationId: ID!
+  $locationKey: ID!
   $backgrounds: [MapBackgroundInput!]!
   $ranges: [MapRangeInput!]!
 ) {
   updateWarehouseMap(
-    locationId: $locationId
+    locationKey: $locationKey
     backgrounds: $backgrounds
     ranges: $ranges
   ) {
