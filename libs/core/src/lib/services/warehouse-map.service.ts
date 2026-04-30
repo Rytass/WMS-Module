@@ -20,6 +20,7 @@ export class WarehouseMapDataService implements OnApplicationBootstrap {
           manager.getRepository(WarehouseMapEntity).create({
             id: this.defaultMapDataKey,
             mapData: {
+              id: this.defaultMapDataKey,
               backgrounds: [],
               ranges: [],
             },
