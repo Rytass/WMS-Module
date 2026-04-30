@@ -22,7 +22,14 @@ interface FilterWrapperProps<T extends FieldValues> {
     filters: (FilterType | ReactNode)[];
     gridTemplateColumns: string;
   };
-  expandedFilters?: ReactNode;
+  expandedFilters1?: {
+    filters: (FilterType | ReactNode)[];
+    gridTemplateColumns: string;
+  };
+  expandedFilters2?: {
+    filters: (FilterType | ReactNode)[];
+    gridTemplateColumns: string;
+  };
   onSubmit?: SubmitHandler<T>;
   syncValues?: T;
 }
@@ -30,7 +37,8 @@ interface FilterWrapperProps<T extends FieldValues> {
 const FilterWrapper = <T extends FieldValues>({
   haveAdvancedFilters = false,
   defaultValues,
-  expandedFilters,
+  expandedFilters1,
+  expandedFilters2,
   baseFilters,
   onSubmit,
   syncValues,
@@ -60,12 +68,35 @@ const FilterWrapper = <T extends FieldValues>({
     <FormWrapper className={classes.host} methods={methods} onSubmit={onSubmit}>
       <div className={classes.filters}>
         <div
-          className={classes.baseFilters}
+          className={classes.filterLine}
           style={{ gridTemplateColumns: baseFilters.gridTemplateColumns }}
         >
           {baseFilters.filters.map(renderFilter)}
         </div>
-        {expandedFilters}
+        {isExpanded && (
+          <>
+            {expandedFilters1 && (
+              <div
+                className={classes.filterLine}
+                style={{
+                  gridTemplateColumns: expandedFilters1.gridTemplateColumns,
+                }}
+              >
+                {expandedFilters1.filters.map(renderFilter)}
+              </div>
+            )}
+            {expandedFilters2 && (
+              <div
+                className={classes.filterLine}
+                style={{
+                  gridTemplateColumns: expandedFilters2.gridTemplateColumns,
+                }}
+              >
+                {expandedFilters2.filters.map(renderFilter)}
+              </div>
+            )}
+          </>
+        )}
       </div>
       <FormActionButtons
         onReset={onReset}

@@ -12,11 +12,12 @@
     flex-direction: column;
     gap: spacing.semantic-variable(gap, base);
 
-    .baseFilters {
+    .filterLine {
       display: grid;
       gap: spacing.semantic-variable(gap, base);
     }
   }
+
   .expandButton {
     & > i {
       transition: transition.standard(transform, fast);
