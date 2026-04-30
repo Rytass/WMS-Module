@@ -1,12 +1,23 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useEffect } from 'react';
 import { transformApiDataToNodes, Map } from '@rytass/wms-map-react-components';
 import type { FlowNode } from '@rytass/wms-map-react-components';
 import SectionWrapper from '../../../SectionWrapper';
 import MapContent from '../../../map/MapContent';
+import { DEFAULT_MAP_DATA_KEY } from '../../../../utils/share';
 import { useLazyQueryMapData } from '../useApi';
 
 const LocationsManagementMap: FC = () => {
+  const [currentMapKey, setCurrentMapKey] =
+    useState<string>(DEFAULT_MAP_DATA_KEY);
   const { fetchMapData, data, loading } = useLazyQueryMapData();
+
+  useEffect(() => {
+    fetchMapData({
+      variables: {
+        key: currentMapKey,
+      },
+    });
+  }, [currentMapKey, fetchMapData]);
 
   const initialNodes = useMemo((): FlowNode[] => {
     const mapData = data?.mapData;
