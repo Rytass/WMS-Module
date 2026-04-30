@@ -12,11 +12,30 @@
     flex-direction: column;
     gap: spacing.semantic-variable(gap, base);
 
-    .baseFilters {
+    .filterLine {
       display: grid;
       gap: spacing.semantic-variable(gap, base);
     }
   }
+
+  .expandable {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: transition.standard(grid-template-rows, fast);
+
+    &.expanded {
+      grid-template-rows: 1fr;
+    }
+  }
+
+  .expandableInner {
+    overflow: hidden;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: spacing.semantic-variable(gap, base);
+  }
+
   .expandButton {
     & > i {
       transition: transition.standard(transform, fast);
