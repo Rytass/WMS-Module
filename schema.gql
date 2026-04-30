@@ -2,6 +2,10 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+interface MapRangeDto {
+  location: LocationDto
+}
+
 type LoaderTypeDto {
   id: ID!
   description: String!
@@ -442,15 +446,8 @@ type MapBackgroundDto {
   width: Float!
 }
 
-type MapDataDto {
-  id: ID!
-  backgrounds: [MapBackgroundDto!]!
-  ranges: [MapRange!]!
-}
-
-union MapRange = MapRectangleRangeDto | MapPolygonRangeDto
-
-type MapRectangleRangeDto {
+type MapRectangleRangeDto implements MapRangeDto {
+  location: LocationDto
   id: ID!
   type: MapRangeType!
   color: String!
@@ -466,11 +463,18 @@ enum MapRangeType {
   POLYGON
 }
 
-type MapPolygonRangeDto {
+type MapPolygonRangeDto implements MapRangeDto {
+  location: LocationDto
   id: ID!
   type: MapRangeType!
   color: String!
   points: [MapPolygonRangePointDto!]!
+}
+
+type MapDataDto {
+  id: ID!
+  backgrounds: [MapBackgroundDto!]!
+  ranges: [MapRangeDto!]!
 }
 
 type ShipInventoryOrderReferenceDto {
@@ -553,10 +557,10 @@ type Query {
   holdInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): HoldInventoryOrders!
   location(id: ID!): LocationDto!
   locations(offset: Int, limit: Int, description: String, isActive: Boolean, key: String): Locations!
-  rootLocation: LocationDto!
   allocateInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): AllocateInventoryOrders!
   saleOrderDistinctIds(offset: Int, limit: Int, key: String): [String!]!
   saleOrders(id: ID!): [String!]!
+  mapData(key: String!): MapDataDto!
 }
 
 input DateRangeArgs {

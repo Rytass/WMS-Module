@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { DataSource, DeepPartial, EntityTarget, Repository } from 'typeorm';
 import { LocationEntity, LocationEntityClass } from '../models';
 import {
@@ -10,9 +10,7 @@ import { FindLocationInput } from '../typings/find-location.input';
 @Injectable()
 export class LocationService<
   T extends LocationEntityClass = LocationEntityClass,
-> implements OnApplicationBootstrap
-{
-  readonly defaultRootLocationKey = 'DEFAULT_ROOT_LOCATION_KEY';
+> {
   readonly locationReposistory: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
@@ -21,24 +19,6 @@ export class LocationService<
     this.locationReposistory = this.dataSource.getRepository<T>(
       this.locationEntity,
     );
-  }
-  onApplicationBootstrap() {
-    return this.dataSource.transaction(async (manager) => {
-      const locationRepository = manager.getRepository(this.locationEntity);
-      const existingDefaultRoot = await locationRepository
-        .createQueryBuilder('location')
-        .where('location.key = :key', { key: this.defaultRootLocationKey })
-        .getOne();
-
-      if (!existingDefaultRoot) {
-        await locationRepository.save(
-          locationRepository.create({
-            key: this.defaultRootLocationKey,
-            description: 'Default Root Location',
-          } as unknown as DeepPartial<T>),
-        );
-      }
-    });
   }
 
   async createLocation({

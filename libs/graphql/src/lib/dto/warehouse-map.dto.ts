@@ -3,6 +3,7 @@ import {
   Field,
   Float,
   ID,
+  InterfaceType,
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
@@ -47,7 +48,22 @@ export class MapBackgroundDto {
   width!: number;
 }
 
-@ObjectType()
+@InterfaceType({
+  resolveType: (value) => {
+    if (value.type === MapRangeType.RECTANGLE) {
+      return MapRectangleRangeDto;
+    }
+    if (value.type === MapRangeType.POLYGON) {
+      return MapPolygonRangeDto;
+    }
+    return null;
+  },
+})
+export abstract class MapRangeDto {
+  id: string;
+}
+
+@ObjectType({ implements: [MapRangeDto] })
 export class MapRectangleRangeDto {
   @Field(() => ID)
   id!: string;
@@ -71,7 +87,7 @@ export class MapRectangleRangeDto {
   height!: number;
 }
 
-@ObjectType()
+@ObjectType({ implements: [MapRangeDto] })
 export class MapPolygonRangeDto {
   @Field(() => ID)
   id!: string;
@@ -86,20 +102,6 @@ export class MapPolygonRangeDto {
   points!: MapPolygonRangePointDto[];
 }
 
-export const MapRangeUnion = createUnionType({
-  name: 'MapRange',
-  types: () => [MapRectangleRangeDto, MapPolygonRangeDto] as const,
-  resolveType(value) {
-    if (value.type === MapRangeType.RECTANGLE) {
-      return MapRectangleRangeDto;
-    }
-    if (value.type === MapRangeType.POLYGON) {
-      return MapPolygonRangeDto;
-    }
-    return null;
-  },
-});
-
 @ObjectType()
 export class MapDataDto {
   @Field(() => ID)
@@ -108,6 +110,6 @@ export class MapDataDto {
   @Field(() => [MapBackgroundDto])
   backgrounds!: MapBackgroundDto[];
 
-  @Field(() => [MapRangeUnion])
-  ranges!: (MapRectangleRangeDto | MapPolygonRangeDto)[];
+  @Field(() => [MapRangeDto])
+  ranges!: MapRangeDto[];
 }
