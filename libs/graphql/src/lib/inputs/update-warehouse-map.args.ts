@@ -41,19 +41,19 @@ export class MapRangeInput {
   @Field(() => String)
   color: string;
 
-  @Field(() => Float)
+  @Field(() => Float, { nullable: true })
   x?: number;
 
-  @Field(() => Float)
+  @Field(() => Float, { nullable: true })
   y?: number;
 
-  @Field(() => Float)
+  @Field(() => Float, { nullable: true })
   width?: number;
 
-  @Field(() => Float)
+  @Field(() => Float, { nullable: true })
   height?: number;
 
-  @Field(() => [MapPolygonRangePointInput])
+  @Field(() => [MapPolygonRangePointInput], { nullable: true })
   points?: MapPolygonRangePointInput[];
 }
 

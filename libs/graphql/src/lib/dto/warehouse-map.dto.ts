@@ -1,5 +1,4 @@
 import {
-  createUnionType,
   Field,
   Float,
   ID,

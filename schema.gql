@@ -776,11 +776,11 @@ input MapRangeInput {
   id: ID!
   type: MapRangeType!
   color: String!
-  x: Float!
-  y: Float!
-  width: Float!
-  height: Float!
-  points: [MapPolygonRangePointInput!]!
+  x: Float
+  y: Float
+  width: Float
+  height: Float
+  points: [MapPolygonRangePointInput!]
 }
 
 input MapPolygonRangePointInput {
