@@ -1,11 +1,16 @@
 import { useMemo, useCallback, useState, useEffect } from 'react';
 import { Message } from '@mezzanine-ui/react';
 import { MapRangeType } from '../../../../graphql/generated/.graphql';
-import { transformApiDataToNodes, Map } from '@rytass/wms-map-react-components';
+import {
+  EditMode,
+  transformApiDataToNodes,
+  Map,
+} from '@rytass/wms-map-react-components';
 import type {
   FlowNode,
   MapPolygonRange,
   MapRectangleRange,
+  WMSNodeClickInfo,
 } from '@rytass/wms-map-react-components';
 import SectionWrapper from '../../../SectionWrapper';
 import MapContent from '../../../map/MapContent';
@@ -128,6 +133,16 @@ const LocationsManagementMap: FC = () => {
     [],
   );
 
+  const onNodeClick = useCallback(
+    (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
+      if (editMode === EditMode.BACKGROUND) {
+        setCurrentMapKey(nodeInfo.id);
+        setBreadcrumb((prev) => [...prev, nodeInfo.id]);
+      }
+    },
+    [],
+  );
+
   return (
     <SectionWrapper>
       <MapContent
@@ -135,6 +150,7 @@ const LocationsManagementMap: FC = () => {
         warehouseIds={breadcrumb}
         onSave={onSave}
         onBreadcrumbClick={onBreadcrumbClick}
+        onNodeClick={onNodeClick}
       />
     </SectionWrapper>
   );

@@ -16,7 +16,7 @@ interface MapContentProps {
   warehouseIds?: string[];
   onSave?: (mapData: Map) => void;
   onBreadcrumbClick?: (warehouseId: string, index: number) => void;
-  onNodeClick?: (nodeInfo: WMSNodeClickInfo) => void;
+  onNodeClick?: (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => void;
 }
 
 function MapContent({
@@ -61,7 +61,9 @@ function MapContent({
       selectedColor={selectedColor}
       onSave={onSave}
       onBreadcrumbClick={onBreadcrumbClick}
-      onNodeClick={onNodeClick}
+      onNodeClick={(nodeInfo) => {
+        onNodeClick?.(nodeInfo, editMode);
+      }}
       onEditModeChange={handleEditModeChange}
       onToggleRectangleTool={handleToggleRectangleTool}
       onTogglePenTool={handleTogglePenTool}
