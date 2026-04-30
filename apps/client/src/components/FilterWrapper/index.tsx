@@ -73,29 +73,35 @@ const FilterWrapper = <T extends FieldValues>({
         >
           {baseFilters.filters.map(renderFilter)}
         </div>
-        {isExpanded && (
-          <>
-            {expandedFilters1 && (
-              <div
-                className={classes.filterLine}
-                style={{
-                  gridTemplateColumns: expandedFilters1.gridTemplateColumns,
-                }}
-              >
-                {expandedFilters1.filters.map(renderFilter)}
-              </div>
-            )}
-            {expandedFilters2 && (
-              <div
-                className={classes.filterLine}
-                style={{
-                  gridTemplateColumns: expandedFilters2.gridTemplateColumns,
-                }}
-              >
-                {expandedFilters2.filters.map(renderFilter)}
-              </div>
-            )}
-          </>
+        {(expandedFilters1 || expandedFilters2) && (
+          <div
+            className={cx(classes.expandable, {
+              [classes.expanded]: isExpanded,
+            })}
+          >
+            <div className={classes.expandableInner}>
+              {expandedFilters1 && (
+                <div
+                  className={classes.filterLine}
+                  style={{
+                    gridTemplateColumns: expandedFilters1.gridTemplateColumns,
+                  }}
+                >
+                  {expandedFilters1.filters.map(renderFilter)}
+                </div>
+              )}
+              {expandedFilters2 && (
+                <div
+                  className={classes.filterLine}
+                  style={{
+                    gridTemplateColumns: expandedFilters2.gridTemplateColumns,
+                  }}
+                >
+                  {expandedFilters2.filters.map(renderFilter)}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
       <FormActionButtons
