@@ -9,12 +9,18 @@ import type {
 } from '@rytass/wms-map-react-components';
 import SectionWrapper from '../../../SectionWrapper';
 import MapContent from '../../../map/MapContent';
-import { DEFAULT_MAP_DATA_KEY } from '../../../../utils/share';
+import {
+  DEFAULT_MAP_DATA_KEY,
+  DEFAULT_MAP_DATA_NAME,
+} from '../../../../utils/share';
 import { useLazyQueryMapData, useUpdateMapData } from '../useApi';
 
 const LocationsManagementMap: FC = () => {
   const [currentMapKey, setCurrentMapKey] =
     useState<string>(DEFAULT_MAP_DATA_KEY);
+  const [breadcrumb, setBreadcrumb] = useState<string[]>([
+    DEFAULT_MAP_DATA_NAME,
+  ]);
   const { fetchMapData, data, loading: queryLoading } = useLazyQueryMapData();
   const { updateMapData, loading: updateLoading } = useUpdateMapData();
 
@@ -110,9 +116,26 @@ const LocationsManagementMap: FC = () => {
     [currentMapKey, updateMapData],
   );
 
+  const onBreadcrumbClick = useCallback(
+    (warehouseId: string, index: number) => {
+      setCurrentMapKey(
+        warehouseId === DEFAULT_MAP_DATA_NAME
+          ? DEFAULT_MAP_DATA_KEY
+          : warehouseId,
+      );
+      setBreadcrumb((prev) => prev.splice(0, index + 1));
+    },
+    [],
+  );
+
   return (
     <SectionWrapper>
-      <MapContent initialNodes={initialNodes} onSave={onSave} />
+      <MapContent
+        initialNodes={initialNodes}
+        warehouseIds={breadcrumb}
+        onSave={onSave}
+        onBreadcrumbClick={onBreadcrumbClick}
+      />
     </SectionWrapper>
   );
 };
