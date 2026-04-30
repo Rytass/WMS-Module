@@ -1,15 +1,22 @@
 import { useMemo, useCallback, useState, useEffect } from 'react';
+import { Message } from '@mezzanine-ui/react';
+import { MapRangeType } from '../../../../graphql/generated/.graphql';
 import { transformApiDataToNodes, Map } from '@rytass/wms-map-react-components';
-import type { FlowNode } from '@rytass/wms-map-react-components';
+import type {
+  FlowNode,
+  MapPolygonRange,
+  MapRectangleRange,
+} from '@rytass/wms-map-react-components';
 import SectionWrapper from '../../../SectionWrapper';
 import MapContent from '../../../map/MapContent';
 import { DEFAULT_MAP_DATA_KEY } from '../../../../utils/share';
-import { useLazyQueryMapData } from '../useApi';
+import { useLazyQueryMapData, useUpdateMapData } from '../useApi';
 
 const LocationsManagementMap: FC = () => {
   const [currentMapKey, setCurrentMapKey] =
     useState<string>(DEFAULT_MAP_DATA_KEY);
-  const { fetchMapData, data, loading } = useLazyQueryMapData();
+  const { fetchMapData, data, loading: queryLoading } = useLazyQueryMapData();
+  const { updateMapData, loading: updateLoading } = useUpdateMapData();
 
   useEffect(() => {
     fetchMapData({
@@ -61,11 +68,47 @@ const LocationsManagementMap: FC = () => {
     ) as FlowNode[];
   }, [data?.mapData]);
 
-  console.log('initialNodes', initialNodes);
+  const onSave = useCallback(
+    async (mapData: Map) => {
+      try {
+        const { data } = await updateMapData({
+          variables: {
+            locationKey: currentMapKey,
+            backgrounds: mapData.backgrounds,
+            ranges: mapData.ranges.map((r) => {
+              const range = r as MapPolygonRange | MapRectangleRange;
 
-  const onSave = useCallback(async (mapData: Map) => {
-    console.log('mapData', mapData);
-  }, []);
+              if (range.type === 'POLYGON') {
+                return {
+                  id: range.id,
+                  type: MapRangeType.POLYGON,
+                  color: range.color,
+                  points: range.points,
+                };
+              }
+
+              return {
+                id: range.id,
+                type: MapRangeType.RECTANGLE,
+                color: range.color,
+                x: range.x,
+                y: range.y,
+                width: range.width,
+                height: range.height,
+              };
+            }),
+          },
+        });
+
+        if (data?.updateWarehouseMap.id) {
+          Message.success('儲存成功');
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    },
+    [currentMapKey, updateMapData],
+  );
 
   return (
     <SectionWrapper>

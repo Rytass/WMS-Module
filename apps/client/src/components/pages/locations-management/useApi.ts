@@ -6,6 +6,7 @@ import {
 import {
   LocationsDocument,
   MapDataDocument,
+  UpdateWarehouseMapDocument,
   CreateLocationDocument,
   UpdateLocationDocument,
 } from '../../../graphql/generated/.graphql';
@@ -47,6 +48,17 @@ export function useLazyQueryMapData() {
   return {
     fetchMapData,
     data,
+    loading,
+  };
+}
+
+export function useUpdateMapData() {
+  const [updateMapData, { loading }] = useMutation(UpdateWarehouseMapDocument, {
+    refetchQueries: [MapDataDocument],
+  });
+
+  return {
+    updateMapData,
     loading,
   };
 }
