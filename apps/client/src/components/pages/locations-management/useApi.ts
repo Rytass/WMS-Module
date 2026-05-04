@@ -1,4 +1,4 @@
-import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import {
   useTablePageState,
   useTablePageTotal,
@@ -37,18 +37,6 @@ export function useQueryLocations() {
     setPage,
     limit,
     setLimit,
-  };
-}
-
-export function useLazyQueryMapData() {
-  const [fetchMapData, { data, loading }] = useLazyQuery(MapDataDocument, {
-    fetchPolicy: 'cache-and-network',
-  });
-
-  return {
-    fetchMapData,
-    data,
-    loading,
   };
 }
 
