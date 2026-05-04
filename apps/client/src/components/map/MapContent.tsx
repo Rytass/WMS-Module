@@ -9,6 +9,7 @@ import {
   transformApiDataToNodes,
 } from '@rytass/wms-map-react-components';
 import type { FlowNode } from '@rytass/wms-map-react-components';
+import { compact } from 'lodash';
 import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
 import { useLazyQueryMapData } from './useApi';
@@ -16,9 +17,14 @@ import { useLazyQueryMapData } from './useApi';
 interface MapContentProps {
   viewMode?: ViewMode;
   onSave?: (mapData: Map, currentMapKey: string) => Promise<void>;
+  onNodeClick?: (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => void;
 }
 
-function MapContent({ viewMode = ViewMode.EDIT, onSave }: MapContentProps) {
+function MapContent({
+  viewMode = ViewMode.EDIT,
+  onSave,
+  onNodeClick: onNodeClickProps,
+}: MapContentProps) {
   const [currentMapKey, setCurrentMapKey] =
     useState<string>(DEFAULT_MAP_DATA_KEY);
   const [breadcrumb, setBreadcrumb] = useState<string[]>([
@@ -37,6 +43,11 @@ function MapContent({ viewMode = ViewMode.EDIT, onSave }: MapContentProps) {
       },
     });
   }, [currentMapKey, fetchMapData]);
+
+  const existingLocationKeys = useMemo(
+    () => compact((data?.mapData.ranges ?? []).map((r) => r.location?.key)),
+    [data?.mapData.ranges],
+  );
 
   const initialNodes = useMemo((): FlowNode[] => {
     const mapData = data?.mapData;
@@ -94,12 +105,20 @@ function MapContent({ viewMode = ViewMode.EDIT, onSave }: MapContentProps) {
 
   const onNodeClick = useCallback(
     (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
+      onNodeClickProps?.(nodeInfo, editMode);
+
       if (editMode === EditMode.BACKGROUND) {
-        setCurrentMapKey(nodeInfo.id);
-        setBreadcrumb((prev) => [...prev, nodeInfo.id]);
+        if (
+          (viewMode === ViewMode.VIEW &&
+            existingLocationKeys.includes(nodeInfo.id)) ||
+          viewMode === ViewMode.EDIT
+        ) {
+          setCurrentMapKey(nodeInfo.id);
+          setBreadcrumb((prev) => [...prev, nodeInfo.id]);
+        }
       }
     },
-    [],
+    [existingLocationKeys, onNodeClickProps, viewMode],
   );
 
   const handleEditModeChange = useCallback((mode: EditMode) => {
