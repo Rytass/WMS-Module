@@ -7,29 +7,69 @@ import {
   Map,
   WMSNodeClickInfo,
 } from '@rytass/wms-map-react-components';
-import type { FlowNode } from '@rytass/wms-map-react-components';
 import { COLOR_PALETTE } from './utils';
+import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
+import { useQueryMapData } from './useApi';
 
 interface MapContentProps {
   viewMode?: ViewMode;
-  initialNodes?: FlowNode[];
-  warehouseIds?: string[];
-  onSave?: (mapData: Map) => void;
-  onBreadcrumbClick?: (warehouseId: string, index: number) => void;
-  onNodeClick?: (nodeInfo: WMSNodeClickInfo) => void;
+  onSave?: (mapData: Map, currentMapKey: string) => Promise<void>;
+  onNodeClick?: (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => void;
 }
 
 function MapContent({
   viewMode = ViewMode.EDIT,
-  initialNodes,
-  warehouseIds = [],
   onSave,
-  onBreadcrumbClick,
-  onNodeClick,
+  onNodeClick: onNodeClickProps,
 }: MapContentProps) {
   const [editMode, setEditMode] = useState<EditMode>(EditMode.BACKGROUND);
   const [drawingMode, setDrawingMode] = useState<DrawingMode>(DrawingMode.NONE);
   const [selectedColor, setSelectedColor] = useState<string>(COLOR_PALETTE[0]);
+
+  const {
+    currentMapKey,
+    setCurrentMapKey,
+    breadcrumb,
+    setBreadcrumb,
+    existingLocationKeys,
+    initialNodes,
+  } = useQueryMapData();
+
+  const onBreadcrumbClick = useCallback(
+    (warehouseId: string, index: number) => {
+      setCurrentMapKey(
+        warehouseId === DEFAULT_MAP_DATA_NAME
+          ? DEFAULT_MAP_DATA_KEY
+          : warehouseId,
+      );
+      setBreadcrumb((prev) => prev.splice(0, index + 1));
+    },
+    [setBreadcrumb, setCurrentMapKey],
+  );
+
+  const onNodeClick = useCallback(
+    (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
+      onNodeClickProps?.(nodeInfo, editMode);
+
+      if (editMode === EditMode.BACKGROUND) {
+        if (
+          (viewMode === ViewMode.VIEW &&
+            existingLocationKeys.includes(nodeInfo.id)) ||
+          viewMode === ViewMode.EDIT
+        ) {
+          setCurrentMapKey(nodeInfo.id);
+          setBreadcrumb((prev) => [...prev, nodeInfo.id]);
+        }
+      }
+    },
+    [
+      existingLocationKeys,
+      onNodeClickProps,
+      setBreadcrumb,
+      setCurrentMapKey,
+      viewMode,
+    ],
+  );
 
   const handleEditModeChange = useCallback((mode: EditMode) => {
     setEditMode(mode);
@@ -59,16 +99,20 @@ function MapContent({
       drawingMode={drawingMode}
       colorPalette={COLOR_PALETTE}
       selectedColor={selectedColor}
-      onSave={onSave}
+      onSave={async (mapData) => {
+        await onSave?.(mapData, currentMapKey);
+      }}
       onBreadcrumbClick={onBreadcrumbClick}
-      onNodeClick={onNodeClick}
+      onNodeClick={(nodeInfo) => {
+        onNodeClick?.(nodeInfo, editMode);
+      }}
       onEditModeChange={handleEditModeChange}
       onToggleRectangleTool={handleToggleRectangleTool}
       onTogglePenTool={handleTogglePenTool}
       onColorChange={setSelectedColor}
       onUpload={handleUpload}
       initialNodes={initialNodes}
-      warehouseIds={warehouseIds}
+      warehouseIds={breadcrumb}
     />
   );
 }

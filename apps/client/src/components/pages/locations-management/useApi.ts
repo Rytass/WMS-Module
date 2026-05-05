@@ -5,7 +5,8 @@ import {
 } from '../../../hooks/useTablePagination';
 import {
   LocationsDocument,
-  AllRootLocationsDocument,
+  MapDataDocument,
+  UpdateWarehouseMapDocument,
   CreateLocationDocument,
   UpdateLocationDocument,
 } from '../../../graphql/generated/.graphql';
@@ -39,13 +40,13 @@ export function useQueryLocations() {
   };
 }
 
-export function useQueryAllRootLocations() {
-  const { data, loading } = useQuery(AllRootLocationsDocument, {
-    fetchPolicy: 'cache-and-network',
+export function useUpdateMapData() {
+  const [updateMapData, { loading }] = useMutation(UpdateWarehouseMapDocument, {
+    refetchQueries: [MapDataDocument],
   });
 
   return {
-    data,
+    updateMapData,
     loading,
   };
 }

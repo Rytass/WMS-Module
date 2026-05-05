@@ -95,7 +95,7 @@ export class ScrapeService<
           {
             materialId: item.materialId,
             batchId: item.batchId,
-            locationId: item.locationId || undefined,
+            locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: item.targetScrapedQuantity * conversionFactor,
           },
@@ -107,7 +107,7 @@ export class ScrapeService<
             orderId: baseOrder.id,
             materialId: item.materialId,
             batchId: item.batchId,
-            locationId: item.locationId || undefined,
+            locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: -1 * item.targetScrapedQuantity * conversionFactor,
           } as DeepPartial<StockEntityClass>),

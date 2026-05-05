@@ -12,6 +12,7 @@ import { CreateInspectionOrderInput } from '../typings/create-inspection-order.i
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { BatchService } from './batch.service';
 import { MaterialService } from './material.service';
+import { StockService } from './stock.service';
 
 @Injectable()
 export class QualityInspectionOrderService<
@@ -28,6 +29,7 @@ export class QualityInspectionOrderService<
     readonly qualityInspectionOrderItemEntity: EntityTarget<K>,
     private readonly batchService: BatchService,
     private readonly materialService: MaterialService,
+    private readonly stockService: StockService,
   ) {}
 
   async inspect({
@@ -98,16 +100,16 @@ export class QualityInspectionOrderService<
             orderId: baseOrder.id,
             materialId: data.materialId,
             batchId: splittedBatch.id,
-            locationId: data.locationId,
-            loaderId: data.loaderId,
+            locationId: this.stockService.resolveLocationId(data.locationId),
+            loaderId: this.stockService.resolveLoaderId(data.loaderId),
             quantity: data.quantity * conversionFactor,
           }),
           stockRepository.create({
             orderId: baseOrder.id,
             materialId: data.materialId,
             batchId: data.batchId,
-            locationId: data.locationId,
-            loaderId: data.loaderId,
+            locationId: this.stockService.resolveLocationId(data.locationId),
+            loaderId: this.stockService.resolveLoaderId(data.loaderId),
             quantity: -1 * data.quantity * conversionFactor,
           }),
         ]);
