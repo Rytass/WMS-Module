@@ -10,7 +10,6 @@ query Locations(
   $description: String
   $key: String
   $isActive: Boolean
-  $root: Boolean
 ) {
   locations(
     offset: $offset
@@ -18,18 +17,7 @@ query Locations(
     description: $description
     key: $key
     isActive: $isActive
-    root: $root
   ) {
-    id
-    items {
-      ...Location
-    }
-    total
-  }
-}
-
-query AllRootLocations {
-  locations(offset: null, limit: null, root: true) {
     id
     items {
       ...Location

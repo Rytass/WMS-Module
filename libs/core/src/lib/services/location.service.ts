@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { LocationService as BaseLocationService } from '@rytass/wms-base-nestjs-module';
 import { DataSource, DeepPartial, EntityTarget, Repository } from 'typeorm';
 import { LocationEntity, LocationEntityClass } from '../models';
 import {
@@ -15,7 +14,6 @@ export class LocationService<
   readonly locationReposistory: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
-    private readonly locationBaseService: BaseLocationService,
     @Inject(LocationEntity) readonly locationEntity: EntityTarget<T>,
   ) {
     this.locationReposistory = this.dataSource.getRepository<T>(
@@ -78,7 +76,9 @@ export class LocationService<
 
     if (options.root !== undefined)
       queryBuilder.andWhere(
-        options.root ? 'location."parentId" IS NULL' : 'location."parentId" IS NOT NULL',
+        options.root
+          ? 'location."parentId" IS NULL'
+          : 'location."parentId" IS NOT NULL',
       );
 
     if (options.description)

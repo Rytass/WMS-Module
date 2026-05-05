@@ -24,6 +24,7 @@ import {
   ReclassifyInventoryOrderService,
   ScrapeService,
   QualityInspectionOrderService,
+  WarehouseMapDataService,
 } from './services';
 import { BatchService } from './services/batch.service';
 import { WMS_CORE_MODULE_OPTIONS } from './typings/core-module-options';
@@ -53,6 +54,7 @@ const exportDependencies = [
   ReclassifyInventoryOrderService,
   ScrapeService,
   QualityInspectionOrderService,
+  WarehouseMapDataService,
 ];
 
 @Module({

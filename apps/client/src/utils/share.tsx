@@ -12,6 +12,8 @@ import { WaitIcon, TransferIcon } from '../icons';
 import { stockStatusName } from '../components/inventoryActions/utils';
 
 export const BASE_UNIT = 'BASE_UNIT';
+export const DEFAULT_MAP_DATA_KEY = 'DEFAULT_MAP_DATA_KEY';
+export const DEFAULT_MAP_DATA_NAME = 'ROOT';
 export type UnitOptionsType = {
   id: string;
   name: string;

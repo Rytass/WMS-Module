@@ -23,8 +23,8 @@ export class QualityInspectionOrderEntityClass {
   @Index()
   key!: string;
 
-  @Column({ type: 'text' })
-  note!: string;
+  @Column({ type: 'text', nullable: true })
+  note!: string | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;

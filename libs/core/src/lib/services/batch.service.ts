@@ -44,6 +44,24 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     batch: BatchEntityClass,
     options: SplitBatchInput,
   ): void {
+    // Check if trying to clear/release a top-tier state
+    const isReleasingInShipment =
+      batch.inShipment === true && options.inShipment === false;
+    const isReleasingHeld = batch.held === true && options.held === false;
+    const isReleasingTransfer =
+      batch.transferId != null && options.transferId === null;
+    const isReleasingVendor =
+      batch.vendorId != null && options.vendorId === null;
+    const isReleasingCustomer =
+      batch.customerId != null && options.customerId === null;
+
+    const isReleasing =
+      isReleasingInShipment ||
+      isReleasingHeld ||
+      isReleasingTransfer ||
+      isReleasingVendor ||
+      isReleasingCustomer;
+
     // Determine current state tier
     const isTopTier =
       batch.inShipment === true ||
@@ -54,47 +72,43 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
 
     const isMiddleTier = batch.saleId != null || batch.saleSerialId != null;
 
-    const hasInspection = batch.inspectionResult != null;
-
     // What is being changed (explicitly set, not undefined)
     const changingMiddleTier =
       options.saleId !== undefined || options.saleSerialId !== undefined;
 
     const changingInspection = options.inspectionResult !== undefined;
 
-    // Rule 1: Top tier is terminal - no state transition allowed
-    if (isTopTier) {
+    // Rule 1: Top tier is terminal unless explicitly releasing that state
+    if (isTopTier && !isReleasing) {
       const state = batch.inShipment
-        ? 'in shipment (can only ship)'
+        ? 'in shipment'
         : batch.held
-          ? 'held (can only release)'
+          ? 'held'
           : batch.transferId
-            ? 'in transfer (can only complete transfer)'
+            ? 'in transfer'
             : batch.vendorId
-              ? 'vendor inventory (can only return)'
-              : 'customer inventory (can only return)';
-      throw new Error(`Batch is ${state}, no state transition allowed`);
+              ? 'vendor inventory'
+              : 'customer inventory';
+      throw new Error(
+        `Batch is ${state}, cannot transition to other states. Only release is allowed.`,
+      );
     }
 
-    // Rule 2: Middle tier cannot change to same or lower tier
-    if (isMiddleTier) {
-      if (changingMiddleTier) {
-        throw new Error(
-          'Cannot modify allocation (saleId/saleSerialId) for already allocated batch',
-        );
-      }
-      if (changingInspection) {
-        throw new Error('Cannot modify inspection result for allocated batch');
-      }
-      // Can transition to top tier - no validation needed
+    // Rule 2: Middle tier cannot change to same tier
+    if (isMiddleTier && changingMiddleTier) {
+      throw new Error(
+        'Cannot modify allocation (saleId/saleSerialId) for already allocated batch',
+      );
     }
 
-    // Rule 3: Has inspection result cannot change it (unless already at higher tier)
-    if (hasInspection && !isMiddleTier && !isTopTier) {
-      if (changingInspection) {
-        throw new Error('Inspection result already set, cannot modify');
-      }
-      // Can transition to middle or top tier - no validation needed
+    // Rule 3: Cannot change inspection result after it's set (unless releasing to higher tier)
+    if (
+      batch.inspectionResult != null &&
+      !isMiddleTier &&
+      !isTopTier &&
+      changingInspection
+    ) {
+      throw new Error('Inspection result already set, cannot modify');
     }
   }
 

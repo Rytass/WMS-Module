@@ -71,22 +71,6 @@ export const SingleAutoCompleteByIdField: FC<
     [options, watchValue, useNameToValue],
   );
 
-  // const watchValueInOptions = useMemo(() => {
-  //   const target =
-  //     options?.find((o) =>
-  //       useNameToValue ? o.name === watchValue : o.id === watchValue,
-  //     ) ?? null;
-
-  //   if (useNameToValue && watchValue && !target) {
-  //     return {
-  //       id: watchValue,
-  //       name: watchValue,
-  //     };
-  //   }
-
-  //   return target;
-  // }, [options, watchValue, useNameToValue]);
-
   const prevWatchValueInOptions = usePreviousValue(watchValueInOptions);
 
   useEffect(() => {

@@ -114,7 +114,7 @@ export class ReclassifyInventoryOrderService<
           const reclassifyItem = await reclassifyOrderItemRepository.save(
             reclassifyOrderItemRepository.create({
               targetReclassifiedQuantity: item.quantity,
-              locationId: item.locationId,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: item.loaderId,
               orderId: order.id,
             } as DeepPartial<K>),
@@ -134,7 +134,7 @@ export class ReclassifyInventoryOrderService<
             {
               materialId: item.materialId,
               batchId: item.batchId,
-              locationId: item.locationId,
+              locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: item.quantity * conversionFactor,
             },
@@ -148,7 +148,9 @@ export class ReclassifyInventoryOrderService<
                 orderId: baseOrder.id,
                 materialId: item.materialId,
                 batchId: item.batchId,
-                locationId: item.locationId,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: -1 * item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,
@@ -157,7 +159,9 @@ export class ReclassifyInventoryOrderService<
                 orderId: baseOrder.id,
                 materialId: material.id,
                 batchId: targetBatch.id,
-                locationId: item.locationId,
+                locationId: this.stockService.resolveLocationId(
+                  item.locationId,
+                ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: item.quantity * conversionFactor,
               } as DeepPartial<StockEntityClass>,

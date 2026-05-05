@@ -57,6 +57,8 @@ import { SplitBatchResolver } from './resolvers/split-batch.resolver';
 import { MergeBatchOrderResolver } from './resolvers/merge-batch.resolver';
 import { ScrapeMutation } from './mutations/scrape-order.mutation';
 import { QualityInspectionOrderMutation } from './mutations/quality-inspection-order.mutation';
+import { WarehouseMapDataQuery } from './queries/warehouse-map.query';
+import { MapRangeUnionResolver } from './resolvers/warehouse-map.resolver';
 
 const exportDependencies = [
   UnitQuery,
@@ -121,6 +123,9 @@ const exportDependencies = [
 
   ScrapeMutation,
   QualityInspectionOrderMutation,
+
+  WarehouseMapDataQuery,
+  MapRangeUnionResolver,
 ];
 @Module({
   providers: exportDependencies,

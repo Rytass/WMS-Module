@@ -2,6 +2,10 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+interface MapRangeDto {
+  location: LocationDto
+}
+
 type LoaderTypeDto {
   id: ID!
   description: String!
@@ -442,15 +446,8 @@ type MapBackgroundDto {
   width: Float!
 }
 
-type MapDataDto {
-  id: ID!
-  backgrounds: [MapBackgroundDto!]!
-  ranges: [MapRange!]!
-}
-
-union MapRange = MapRectangleRangeDto | MapPolygonRangeDto
-
-type MapRectangleRangeDto {
+type MapRectangleRangeDto implements MapRangeDto {
+  location: LocationDto
   id: ID!
   type: MapRangeType!
   color: String!
@@ -466,11 +463,18 @@ enum MapRangeType {
   POLYGON
 }
 
-type MapPolygonRangeDto {
+type MapPolygonRangeDto implements MapRangeDto {
+  location: LocationDto
   id: ID!
   type: MapRangeType!
   color: String!
   points: [MapPolygonRangePointDto!]!
+}
+
+type MapDataDto {
+  id: ID!
+  backgrounds: [MapBackgroundDto!]!
+  ranges: [MapRangeDto!]!
 }
 
 type ShipInventoryOrderReferenceDto {
@@ -552,10 +556,11 @@ type Query {
   transferOrder(id: ID!): TransferOrderDto!
   holdInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): HoldInventoryOrders!
   location(id: ID!): LocationDto!
-  locations(offset: Int, limit: Int, description: String, isActive: Boolean, key: String, root: Boolean): Locations!
+  locations(offset: Int, limit: Int, description: String, isActive: Boolean, key: String): Locations!
   allocateInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): AllocateInventoryOrders!
   saleOrderDistinctIds(offset: Int, limit: Int, key: String): [String!]!
   saleOrders(id: ID!): [String!]!
+  mapData(key: String!): MapDataDto!
 }
 
 input DateRangeArgs {
@@ -590,7 +595,7 @@ type Mutation {
   createHoldInventoryOrder(createdBy: String, items: [CreateHoldInventoryOrderItemArgs!]!): HoldInventoryOrderDto!
   updateHoldInventoryOrder(createdBy: String, id: String!, removedAt: DateTime, items: [UpdateHoldInventoryOrderItemArgs!]): HoldInventoryOrderDto!
   release(items: [ReleaseOrderArgs!]!): Boolean!
-  updateWarehouseMap(locationId: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
+  updateWarehouseMap(locationKey: ID!, backgrounds: [MapBackgroundInput!]!, ranges: [MapRangeInput!]!): MapDataDto!
   createLocation(key: String!, description: String!, parentId: ID): LocationDto!
   updateLocation(id: ID!, description: String, isActive: Boolean, parentId: ID): LocationDto!
   createAllocateInventoryOrder(items: [CreateAllocateInventoryOrderItemArgs!]!): AllocateInventoryOrderDto!
@@ -771,11 +776,11 @@ input MapRangeInput {
   id: ID!
   type: MapRangeType!
   color: String!
-  x: Float!
-  y: Float!
-  width: Float!
-  height: Float!
-  points: [MapPolygonRangePointInput!]!
+  x: Float
+  y: Float
+  width: Float
+  height: Float
+  points: [MapPolygonRangePointInput!]
 }
 
 input MapPolygonRangePointInput {
