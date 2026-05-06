@@ -12,6 +12,8 @@ export type FilterValues = Pick<
   | 'batch-search'
   | FilterType.materialDescription
 > & {
+  receiveOrder?: SelectValue | null;
+  'receiveOrder-search'?: string;
   location?: SelectValue | null;
   'location-search'?: string;
   loader?: SelectValue | null;

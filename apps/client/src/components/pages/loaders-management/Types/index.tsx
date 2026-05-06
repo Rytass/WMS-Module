@@ -24,17 +24,20 @@ function LoadersManagementTypes() {
         baseFilters={{
           filters: [
             <LoaderTypesField
+              key="loaderType"
               name="loaderType"
               label="類型代碼"
               selectValueMode
               useKeyToName
             />,
             <InputField
+              key="description"
               name="description"
               label="類型說明"
               placeholder="輸入類型說明"
             />,
             <SingleAutoCompleteByIdField
+              key="status"
               name="status"
               label="狀態"
               placeholder="輸入狀態"

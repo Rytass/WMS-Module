@@ -20,12 +20,14 @@ const LocationsManagementList: FC = () => {
         baseFilters={{
           filters: [
             <LocationsField
+              key="location"
               name="location"
               label="儲存位置 ID"
               selectValueMode
               useMpaButton
             />,
             <InputField
+              key="description"
               name="description"
               label="位置說明"
               placeholder="輸入位置說明"

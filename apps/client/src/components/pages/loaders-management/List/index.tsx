@@ -25,10 +25,20 @@ function LoadersManagementList() {
         }}
         baseFilters={{
           filters: [
-            <LoaderTypesField name="loaderType" selectValueMode />,
+            <LoaderTypesField
+              key="loaderType"
+              name="loaderType"
+              selectValueMode
+            />,
             FilterType.location,
-            <LoadersField name="loader" label="載具編碼" selectValueMode />,
+            <LoadersField
+              key="loader"
+              name="loader"
+              label="載具編碼"
+              selectValueMode
+            />,
             <SingleAutoCompleteByIdField
+              key="status"
               name="status"
               label="狀態"
               placeholder="輸入狀態"
