@@ -9,6 +9,7 @@ interface YesNoFieldProps {
   menuMaxHeight?: number;
   size?: TextFieldSize;
   required?: boolean;
+  clearable?: boolean;
   disabled?: boolean;
   customizeOptions?: {
     yesName: string;
@@ -23,6 +24,7 @@ const YesNoField: FC<YesNoFieldProps> = ({
   menuMaxHeight,
   size,
   required = false,
+  clearable = false,
   disabled = false,
   customizeOptions,
 }) => {
@@ -33,6 +35,7 @@ const YesNoField: FC<YesNoFieldProps> = ({
       placeholder={placeholder}
       menuMaxHeight={menuMaxHeight}
       size={size}
+      clearable={clearable}
       options={
         customizeOptions
           ? [

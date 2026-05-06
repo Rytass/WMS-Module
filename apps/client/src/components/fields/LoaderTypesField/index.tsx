@@ -12,6 +12,7 @@ interface LoaderTypesFieldProps {
   fuzzySearch?: boolean;
   required?: boolean;
   disabled?: boolean;
+  useKeyToName?: boolean;
   selectValueMode: boolean;
 }
 
@@ -22,6 +23,7 @@ const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
   fuzzySearch = true,
   required,
   disabled,
+  useKeyToName = false,
   selectValueMode,
 }) => {
   const { fetchLoaderTypes } = useLazyQueryLoaderTypes();
@@ -29,10 +31,10 @@ const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
   const getNewOptions = useCallback(
     (data: LoaderTypeOptionsQuery | undefined) =>
       (data?.loaderTypes.items ?? []).map((i) => ({
-        id: i.key,
-        name: i.description,
+        id: useKeyToName ? i.id : i.key,
+        name: useKeyToName ? i.key : i.description,
       })),
-    [],
+    [useKeyToName],
   );
 
   const {
@@ -44,7 +46,7 @@ const LoaderTypesField: FC<LoaderTypesFieldProps> = ({
   } = useFetchMoreOptions<LoaderTypeOptionsQuery>({
     fetchData: fetchLoaderTypes,
     getNewOptions,
-    searchByDescription: true,
+    searchByDescription: useKeyToName ? false : true,
   });
 
   const baseProps = useMemo(

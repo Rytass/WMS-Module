@@ -30,6 +30,7 @@ function LoadersManagementList() {
               name="status"
               label="狀態"
               placeholder="狀態"
+              clearable
               customizeOptions={{
                 yesName: '啟用中',
                 noName: '已停用',
