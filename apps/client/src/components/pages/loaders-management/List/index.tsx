@@ -10,9 +10,13 @@ function LoadersManagementList() {
   return (
     <>
       <FilterWrapper<FilterValues>
-        defaultValues={{}}
+        defaultValues={{ location: null, description: '' }}
         baseFilters={{
-          filters: [FilterType.createdAt],
+          filters: [
+            FilterType.location,
+            FilterType.createdAt,
+            FilterType.description,
+          ],
           gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr',
         }}
         onSubmit={(values) => {
