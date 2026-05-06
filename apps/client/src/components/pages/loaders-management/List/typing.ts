@@ -1,3 +1,4 @@
+import { SelectValue } from '@mezzanine-ui/react';
 import {
   FilterValues as GeneralFilterValues,
   FilterType,
@@ -9,4 +10,9 @@ export type FilterValues = Pick<
   | FilterType.description
   | FilterType.location
   | 'location-search'
->;
+> & {
+  loaderType?: SelectValue | null;
+  'loaderType-search'?: string;
+  loader?: SelectValue | null;
+  'location-search'?: string;
+};
