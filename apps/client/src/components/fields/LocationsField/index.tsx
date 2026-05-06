@@ -73,7 +73,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
 
   const baseProps = useMemo(
     () => ({
-      fieldClassName: classes.filed,
+      fieldClassName: classes.field,
       name,
       label,
       placeholder: placeholder || `輸入${label}`,
