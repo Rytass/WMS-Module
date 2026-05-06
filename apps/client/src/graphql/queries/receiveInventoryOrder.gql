@@ -43,6 +43,26 @@ query ReceiveInventoryOrderOptions($offset: Int, $limit: Int, $key: String) {
   }
 }
 
+query ReceiveInventoryOrderPendingOptions(
+  $offset: Int
+  $limit: Int
+  $key: String
+) {
+  receiveInventoryOrders(
+    offset: $offset
+    limit: $limit
+    key: $key
+    statuses: [PENDING, PARTIAL_RECEIVED]
+  ) {
+    id
+    items {
+      id
+      key
+    }
+    total
+  }
+}
+
 query FullReceiveInventoryOrders(
   $offset: Int
   $limit: Int

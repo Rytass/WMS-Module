@@ -29,6 +29,7 @@ function InventoryMovementReceive() {
               key="receiveOrder"
               name="receiveOrder"
               selectValueMode
+              fetchOnlyPending
             />,
             FilterType.material,
             FilterType.materialDescription,
