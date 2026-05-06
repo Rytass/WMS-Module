@@ -8,6 +8,8 @@ import { FilterValues } from './typing';
 function ChangeHistory() {
   const [currentFilter, setCurrentFilter] = useState<FilterValues>();
 
+  console.log('currentFilter', currentFilter);
+
   return (
     <PageWrapper title="異動紀錄">
       <FilterWrapper<FilterValues>

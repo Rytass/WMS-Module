@@ -7,7 +7,6 @@ query ShipInventoryOrder($shipInventoryOrderId: ID!) {
 query ShipInventoryOrders(
   $offset: Int
   $limit: Int
-  $shipInventoryOrdersId: ID
   $key: String
   $createdBy: String
   $status: ShipInventoryOrderStatus
@@ -18,7 +17,6 @@ query ShipInventoryOrders(
   shipInventoryOrders(
     offset: $offset
     limit: $limit
-    id: $shipInventoryOrdersId
     key: $key
     createdBy: $createdBy
     status: $status
@@ -68,7 +66,6 @@ query ShipInventoryOrderPendingOptions(
 query FullShipInventoryOrders(
   $offset: Int
   $limit: Int
-  $shipInventoryOrdersId: ID
   $key: String
   $createdBy: String
   $status: ShipInventoryOrderStatus
@@ -79,7 +76,6 @@ query FullShipInventoryOrders(
   shipInventoryOrders(
     offset: $offset
     limit: $limit
-    id: $shipInventoryOrdersId
     key: $key
     createdBy: $createdBy
     status: $status

@@ -7,7 +7,6 @@ query ReceiveInventoryOrder($receiveInventoryOrderId: ID!) {
 query ReceiveInventoryOrders(
   $offset: Int
   $limit: Int
-  $receiveInventoryOrdersId: ID
   $key: String
   $createdBy: String
   $status: ReceiveInventoryOrderStatus
@@ -18,7 +17,6 @@ query ReceiveInventoryOrders(
   receiveInventoryOrders(
     offset: $offset
     limit: $limit
-    id: $receiveInventoryOrdersId
     key: $key
     createdBy: $createdBy
     status: $status
@@ -34,10 +32,40 @@ query ReceiveInventoryOrders(
   }
 }
 
+query ReceiveInventoryOrderOptions($offset: Int, $limit: Int, $key: String) {
+  receiveInventoryOrders(offset: $offset, limit: $limit, key: $key) {
+    id
+    items {
+      id
+      key
+    }
+    total
+  }
+}
+
+query ReceiveInventoryOrderPendingOptions(
+  $offset: Int
+  $limit: Int
+  $key: String
+) {
+  receiveInventoryOrders(
+    offset: $offset
+    limit: $limit
+    key: $key
+    statuses: [PENDING, PARTIAL_RECEIVED]
+  ) {
+    id
+    items {
+      id
+      key
+    }
+    total
+  }
+}
+
 query FullReceiveInventoryOrders(
   $offset: Int
   $limit: Int
-  $receiveInventoryOrdersId: ID
   $key: String
   $createdBy: String
   $status: ReceiveInventoryOrderStatus
@@ -48,7 +76,6 @@ query FullReceiveInventoryOrders(
   receiveInventoryOrders(
     offset: $offset
     limit: $limit
-    id: $receiveInventoryOrdersId
     key: $key
     createdBy: $createdBy
     status: $status

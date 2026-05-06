@@ -30,6 +30,17 @@ query TransferOrders(
   }
 }
 
+query TransferOrderOptions($offset: Int, $limit: Int, $key: String) {
+  transferOrders(offset: $offset, limit: $limit, key: $key) {
+    id
+    items {
+      id
+      key
+    }
+    total
+  }
+}
+
 query TransferOrder($transferOrderId: ID!) {
   transferOrder(id: $transferOrderId) {
     ...TransferOrder

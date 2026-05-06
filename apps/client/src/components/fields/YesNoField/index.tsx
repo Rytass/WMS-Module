@@ -1,6 +1,6 @@
 import { TextFieldSize } from '@mezzanine-ui/react';
 import SingleSelectByIdField from '../SingleSelectByIdField';
-import { yesNoOptions } from '../../../utils/share';
+import { YesOrNo, yesNoOptions } from '../../../utils/share';
 
 interface YesNoFieldProps {
   name: string;
@@ -9,7 +9,12 @@ interface YesNoFieldProps {
   menuMaxHeight?: number;
   size?: TextFieldSize;
   required?: boolean;
+  clearable?: boolean;
   disabled?: boolean;
+  customizeOptions?: {
+    yesName: string;
+    noName: string;
+  };
 }
 
 const YesNoField: FC<YesNoFieldProps> = ({
@@ -19,7 +24,9 @@ const YesNoField: FC<YesNoFieldProps> = ({
   menuMaxHeight,
   size,
   required = false,
+  clearable = false,
   disabled = false,
+  customizeOptions,
 }) => {
   return (
     <SingleSelectByIdField
@@ -28,7 +35,21 @@ const YesNoField: FC<YesNoFieldProps> = ({
       placeholder={placeholder}
       menuMaxHeight={menuMaxHeight}
       size={size}
-      options={yesNoOptions}
+      clearable={clearable}
+      options={
+        customizeOptions
+          ? [
+              {
+                id: YesOrNo.YES,
+                name: customizeOptions.yesName,
+              },
+              {
+                id: YesOrNo.NO,
+                name: customizeOptions.noName,
+              },
+            ]
+          : yesNoOptions
+      }
       required={required}
       disabled={disabled}
     />
