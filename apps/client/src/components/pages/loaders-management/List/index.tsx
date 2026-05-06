@@ -4,21 +4,37 @@ import FilterWrapper from '../../../FilterWrapper';
 import { FilterType } from '../../../FilterWrapper/typing';
 import LoaderTypesField from '../../../fields/LoaderTypesField';
 import LoadersField from '../../../fields/LoadersField';
+import YesNoField from '../../../fields/YesNoField';
 import { FilterValues } from './typing';
 
 function LoadersManagementList() {
   const [currentFilter, setCurrentFilter] = useState<FilterValues>();
 
+  console.log('currentFilter', currentFilter);
+
   return (
     <>
       <FilterWrapper<FilterValues>
-        defaultValues={{ location: null, description: '' }}
+        defaultValues={{
+          loaderType: null,
+          location: null,
+          loader: null,
+          description: '',
+        }}
         baseFilters={{
           filters: [
             <LoaderTypesField name="loaderType" selectValueMode />,
             FilterType.location,
             <LoadersField name="loader" label="載具編碼" selectValueMode />,
-            <div>狀態</div>,
+            <YesNoField
+              name="status"
+              label="狀態"
+              placeholder="狀態"
+              customizeOptions={{
+                yesName: '啟用中',
+                noName: '已停用',
+              }}
+            />,
             FilterType.createdAt,
             FilterType.description,
           ],
