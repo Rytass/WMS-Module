@@ -97,12 +97,14 @@ query LoaderTypeOptions(
   $offset: Int
   $limit: Int
   $description: String
+  $key: String
   $isActive: Boolean
 ) {
   loaderTypes(
     offset: $offset
     limit: $limit
     description: $description
+    key: $key
     isActive: $isActive
   ) {
     id

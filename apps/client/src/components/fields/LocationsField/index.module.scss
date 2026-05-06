@@ -9,7 +9,8 @@
     gap: spacing.semantic-variable(gap, slim);
   }
 
-  .filed {
+  .field {
     flex: 1;
+    min-width: 0;
   }
 }
