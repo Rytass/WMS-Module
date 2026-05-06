@@ -7,4 +7,6 @@ import {
 export type FilterValues = Pick<GeneralFilterValues, FilterType.createdAt> & {
   loaderType?: SelectValue | null;
   'loaderType-search'?: string;
+  description?: string;
+  status?: string;
 };

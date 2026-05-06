@@ -20,6 +20,7 @@ function LoadersManagementList() {
           loaderType: null,
           location: null,
           loader: null,
+          status: '',
           description: '',
         }}
         baseFilters={{
