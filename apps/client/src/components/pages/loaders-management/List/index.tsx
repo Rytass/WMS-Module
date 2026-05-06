@@ -4,7 +4,8 @@ import FilterWrapper from '../../../FilterWrapper';
 import { FilterType } from '../../../FilterWrapper/typing';
 import LoaderTypesField from '../../../fields/LoaderTypesField';
 import LoadersField from '../../../fields/LoadersField';
-import YesNoField from '../../../fields/YesNoField';
+import SingleAutoCompleteByIdField from '../../../fields/SingleAutoCompleteByIdField';
+import { YesOrNo } from '../../../../utils/share';
 import { FilterValues } from './typing';
 
 function LoadersManagementList() {
@@ -26,15 +27,20 @@ function LoadersManagementList() {
             <LoaderTypesField name="loaderType" selectValueMode />,
             FilterType.location,
             <LoadersField name="loader" label="載具編碼" selectValueMode />,
-            <YesNoField
+            <SingleAutoCompleteByIdField
               name="status"
               label="狀態"
-              placeholder="狀態"
-              clearable
-              customizeOptions={{
-                yesName: '啟用中',
-                noName: '已停用',
-              }}
+              placeholder="輸入狀態"
+              options={[
+                {
+                  id: YesOrNo.YES,
+                  name: '啟用中',
+                },
+                {
+                  id: YesOrNo.NO,
+                  name: '已停用',
+                },
+              ]}
             />,
             FilterType.createdAt,
             FilterType.description,
