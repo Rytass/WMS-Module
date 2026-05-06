@@ -14,6 +14,6 @@ export type FilterValues = Pick<
   loaderType?: SelectValue | null;
   'loaderType-search'?: string;
   loader?: SelectValue | null;
-  'location-search'?: string;
+  'loader-search'?: string;
   status?: string;
 };
