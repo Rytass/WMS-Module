@@ -82,7 +82,7 @@
     "@nestjs/typeorm": "^11.0.0",
     "@rytass/secret-adapter-vault-nestjs": "^0.4.4",
     "@rytass/wms-base-nestjs-module": "0.1.11",
-    "@rytass/wms-map-react-components": "^0.1.7",
+    "@rytass/wms-map-react-components": "^0.1.8",
     "axios": "^1.6.0",
     "dataloader": "^2.2.3",
     "graphql": "^16.12.0",
