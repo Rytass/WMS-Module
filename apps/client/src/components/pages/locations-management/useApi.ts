@@ -10,14 +10,20 @@ import {
   CreateLocationDocument,
   UpdateLocationDocument,
 } from '../../../graphql/generated/.graphql';
+import { FilterValues } from './List/typing';
 
-export function useQueryLocations() {
+export function useQueryLocations(currentFilter?: FilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(LocationsDocument, {
     variables: {
       limit,
       offset,
+      description: currentFilter?.description || undefined,
+      key:
+        currentFilter?.location?.name ||
+        currentFilter?.['location-search'] ||
+        undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
