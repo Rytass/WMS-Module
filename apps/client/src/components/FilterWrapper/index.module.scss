@@ -25,10 +25,14 @@
   .expandable {
     display: grid;
     grid-template-rows: 0fr;
-    transition: transition.standard(grid-template-rows, fast);
+    transition:
+      transition.standard(grid-template-rows, fast),
+      transition.standard(margin-top, fast);
+    margin-top: calc(spacing.semantic-variable(gap, base) * -1);
 
     &.expanded {
       grid-template-rows: 1fr;
+      margin-top: 0;
     }
   }
 
