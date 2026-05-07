@@ -60,7 +60,7 @@ function InventoryMovementReceive() {
           setCurrentFilter(values);
         }}
       />
-      <InventoryMovementReceiveTable />
+      <InventoryMovementReceiveTable currentFilter={currentFilter} />
     </>
   );
 }

@@ -60,7 +60,7 @@ function InventoryMovementShip() {
           setCurrentFilter(values);
         }}
       />
-      <InventoryMovementShipTable />
+      <InventoryMovementShipTable currentFilter={currentFilter} />
     </>
   );
 }

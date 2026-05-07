@@ -60,7 +60,7 @@ function LoadersManagementTypes() {
           setCurrentFilter(values);
         }}
       />
-      <LoadersManagementTypesTable />
+      <LoadersManagementTypesTable currentFilter={currentFilter} />
     </>
   );
 }

@@ -51,7 +51,7 @@ function MapContent({
     (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
       onNodeClickProps?.(nodeInfo, editMode);
 
-      if (editMode === EditMode.BACKGROUND) {
+      if (editMode === EditMode.BACKGROUND && nodeInfo.type !== 'imageNode') {
         if (
           (viewMode === ViewMode.VIEW &&
             existingLocationKeys.includes(nodeInfo.id)) ||

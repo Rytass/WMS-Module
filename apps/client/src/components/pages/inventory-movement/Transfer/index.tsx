@@ -74,7 +74,7 @@ function InventoryMovementTransfer() {
           setCurrentFilter(values);
         }}
       />
-      <InventoryMovementTransferTable />
+      <InventoryMovementTransferTable currentFilter={currentFilter} />
     </>
   );
 }

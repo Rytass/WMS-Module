@@ -9,11 +9,18 @@ import { LoaderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryLoaders } from '../../useApi';
 import { NextPath } from '../../../../../utils/nextpath';
 import { formatKeyName } from '../../../../../utils/share';
+import { FilterValues } from '../typing';
 
-function LoadersManagementListTable() {
+interface LoadersManagementListTableProps {
+  currentFilter?: FilterValues;
+}
+
+function LoadersManagementListTable({
+  currentFilter,
+}: LoadersManagementListTableProps) {
   const { push } = useRouter();
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryLoaders();
+    useQueryLoaders(currentFilter);
 
   const dataSource = useMemo(
     (): LoaderFragment[] => data?.loaders.items ?? [],

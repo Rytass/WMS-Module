@@ -19,8 +19,11 @@ import {
   CancelTransferDocument,
   CancelShipDocument,
 } from '../../../graphql/generated/.graphql';
+import { FilterValues as TransferFilterValues } from './Transfer/typing';
+import { FilterValues as ShipFilterValues } from './Ship/typing';
+import { FilterValues as ReceiveFilterValues } from './Receive/typing';
 
-export function useQueryTransferOrders() {
+export function useQueryTransferOrders(currentFilter?: TransferFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(TransferOrdersDocument, {
@@ -78,7 +81,7 @@ export function useQueryTransferOrder(id: string) {
   };
 }
 
-export function useQueryShipInventoryOrders() {
+export function useQueryShipInventoryOrders(currentFilter?: ShipFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(FullShipInventoryOrdersDocument, {
@@ -126,7 +129,9 @@ export function useLazyQueryShipInventoryOrder() {
   };
 }
 
-export function useQueryReceiveInventoryOrders() {
+export function useQueryReceiveInventoryOrders(
+  currentFilter?: ReceiveFilterValues,
+) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(FullReceiveInventoryOrdersDocument, {

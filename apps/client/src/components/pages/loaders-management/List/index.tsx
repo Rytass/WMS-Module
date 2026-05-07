@@ -28,6 +28,7 @@ function LoadersManagementList() {
             <LoaderTypesField
               key="loaderType"
               name="loaderType"
+              useKeyToName
               selectValueMode
             />,
             FilterType.location,
@@ -62,7 +63,7 @@ function LoadersManagementList() {
           setCurrentFilter(values);
         }}
       />
-      <LoadersManagementListTable />
+      <LoadersManagementListTable currentFilter={currentFilter} />
     </>
   );
 }

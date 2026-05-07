@@ -8,10 +8,17 @@ import Actions from './Actions';
 import { ReceiveInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryReceiveInventoryOrders } from '../../useApi';
 import { formatKeyName } from '../../../../../utils/share';
+import { FilterValues } from '../typing';
 
-function InventoryMovementReceiveTable() {
+interface InventoryMovementReceiveTableProps {
+  currentFilter?: FilterValues;
+}
+
+function InventoryMovementReceiveTable({
+  currentFilter,
+}: InventoryMovementReceiveTableProps) {
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryReceiveInventoryOrders();
+    useQueryReceiveInventoryOrders(currentFilter);
 
   const dataSource = useMemo(
     (): ReceiveInventoryOrderFragment[] =>
