@@ -5,10 +5,15 @@ import Table from '../../../TableWrapper/Table';
 import { ChangeLogFragment } from '../../../../graphql/generated/.graphql';
 import { changeTypeName, formatKeyName } from '../../../../utils/share';
 import { useQueryChangeLogs } from '../useApi';
+import { FilterValues } from '../typing';
 
-function ChangeHistoryTable() {
+interface ChangeHistoryTableProps {
+  currentFilter?: FilterValues;
+}
+
+function ChangeHistoryTable({ currentFilter }: ChangeHistoryTableProps) {
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryChangeLogs();
+    useQueryChangeLogs(currentFilter);
 
   const dataSource = useMemo(
     (): ChangeLogFragment[] => data?.changeLogs.items ?? [],
