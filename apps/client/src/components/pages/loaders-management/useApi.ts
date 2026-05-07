@@ -12,8 +12,12 @@ import {
   CreateLoaderTypeDocument,
   UpdateLoaderTypeDocument,
 } from '../../../graphql/generated/.graphql';
+import { FilterValues as ListFilterValues } from './List/typing';
+import { FilterValues as TypesFilterValues } from './Types/typing';
+import { FilterType } from '../../FilterWrapper/typing';
+import { YesOrNo } from '../../../utils/share';
 
-export function useQueryLoaders() {
+export function useQueryLoaders(currentFilter?: ListFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(LoadersDocument, {
@@ -42,13 +46,27 @@ export function useQueryLoaders() {
   };
 }
 
-export function useQueryLoaderTypes() {
+export function useQueryLoaderTypes(currentFilter?: TypesFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(LoaderTypesDocument, {
     variables: {
       limit,
       offset,
+      key:
+        currentFilter?.loaderType?.name ||
+        currentFilter?.['loaderType-search'] ||
+        undefined,
+      description: currentFilter?.description || undefined,
+      isActive: currentFilter?.status
+        ? currentFilter.status === YesOrNo.YES
+        : undefined,
+      createdAt: currentFilter?.[FilterType.createdAt]
+        ? {
+            from: currentFilter[FilterType.createdAt],
+            to: currentFilter[FilterType.createdAt],
+          }
+        : undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
