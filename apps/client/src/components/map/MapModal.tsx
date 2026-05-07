@@ -13,7 +13,10 @@ interface MapModalProps {
   onClose: VoidFunction;
   title?: string;
   viewMode?: ViewMode;
-  onNodeClick?: (nodeInfo: WMSNodeClickInfo) => void;
+  onNodeClick?: (
+    nodeInfo: WMSNodeClickInfo,
+    isExistingLocation: boolean,
+  ) => void;
 }
 
 function MapModal({
@@ -49,7 +52,7 @@ function MapModal({
 
   const onNodeClick = useCallback(
     (nodeInfo: WMSNodeClickInfo) => {
-      onNodeClickProps?.(nodeInfo);
+      onNodeClickProps?.(nodeInfo, existingLocationKeys.includes(nodeInfo.id));
 
       if (
         (viewMode === ViewMode.VIEW &&
