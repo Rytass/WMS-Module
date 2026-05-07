@@ -650,6 +650,50 @@ export class ShipInventoryOrderService<
         statuses: options.statuses,
       });
 
+    if (options.materialKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM ship_inventory_order_items si_items
+          INNER JOIN materials si_mat ON si_mat.id = si_items."materialId"
+          WHERE si_items."orderId" = orders.id
+          AND si_mat.key ILIKE :materialKey
+        )`,
+        { materialKey: `%${options.materialKey}%` },
+      );
+
+    if (options.batchKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM ship_inventory_order_items si_items
+          INNER JOIN batches si_batch ON si_batch.id = si_items."batchId"
+          WHERE si_items."orderId" = orders.id
+          AND si_batch.key ILIKE :batchKey
+        )`,
+        { batchKey: `%${options.batchKey}%` },
+      );
+
+    if (options.locationKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM ship_inventory_order_items si_items
+          INNER JOIN locations si_loc ON si_loc.id = si_items."locationId"
+          WHERE si_items."orderId" = orders.id
+          AND si_loc.key ILIKE :locationKey
+        )`,
+        { locationKey: `%${options.locationKey}%` },
+      );
+
+    if (options.loaderKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM ship_inventory_order_items si_items
+          INNER JOIN loaders si_ldr ON si_ldr.id = si_items."loaderId"
+          WHERE si_items."orderId" = orders.id
+          AND si_ldr."serialId" ILIKE :loaderKey
+        )`,
+        { loaderKey: `%${options.loaderKey}%` },
+      );
+
     if (options.wildcard) {
       const { key, value } = options.wildcard;
       queryBuilder.andWhere(`orders."${String(key)}" ILIKE :value`, {

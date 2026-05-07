@@ -13,4 +13,10 @@ export type FindTransferOrderInput = PaginationInput & {
   batchId?: string;
   locationId?: string;
   loaderId?: string;
+  materialKey?: string;
+  batchKey?: string;
+  locationKey?: string;
+  loaderKey?: string;
+  targetLocationKey?: string;
+  targetLoaderKey?: string;
 };
