@@ -4070,27 +4070,30 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/core@npm:1.0.4":
-  version: 1.0.4
-  resolution: "@mezzanine-ui/core@npm:1.0.4"
+"@mezzanine-ui/core@npm:1.1.0":
+  version: 1.1.0
+  resolution: "@mezzanine-ui/core@npm:1.1.0"
   dependencies:
     "@mezzanine-ui/icons": "npm:1.0.2"
     "@mezzanine-ui/system": "npm:1.0.2"
     lodash: "npm:^4.17.21"
     tslib: "npm:^2.8.1"
   peerDependencies:
+    "@js-temporal/polyfill": ">=0.5"
     dayjs: ">=1"
     lodash: ">=4"
     luxon: ">=3"
     moment: ">=2"
   peerDependenciesMeta:
+    "@js-temporal/polyfill":
+      optional: true
     dayjs:
       optional: true
     luxon:
       optional: true
     moment:
       optional: true
-  checksum: 10c0/5953e384a5f8afd29073423bd6cbfcb122d52910bc4dd199eb2028b84cc78cd2f10de05980eedd46fc74ce8cc2c532c26a44d6b5f926e7322f2e02bd636339e3
+  checksum: 10c0/ec6cc80894bf5ff3e44fbd005a19efece9d8a50d3c1f1e1a055fa833869501b57cce085a153b4b0e073451ece5200b74a17236de6053007196fa2999477e5831
   languageName: node
   linkType: hard
 
@@ -4101,14 +4104,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/react@npm:1.1.0":
-  version: 1.1.0
-  resolution: "@mezzanine-ui/react@npm:1.1.0"
+"@mezzanine-ui/react@npm:1.2.0":
+  version: 1.2.0
+  resolution: "@mezzanine-ui/react@npm:1.2.0"
   dependencies:
     "@floating-ui/dom": "npm:^1.7.4"
     "@floating-ui/react-dom": "npm:^2.1.6"
     "@hello-pangea/dnd": "npm:^18.0.1"
-    "@mezzanine-ui/core": "npm:1.0.4"
+    "@mezzanine-ui/core": "npm:1.1.0"
     "@mezzanine-ui/icons": "npm:1.0.2"
     "@mezzanine-ui/system": "npm:1.0.2"
     "@tanstack/react-virtual": "npm:^3.13.13"
@@ -4124,7 +4127,7 @@ __metadata:
     lodash: ">=4"
     react: ">=18"
     react-dom: ">=18"
-  checksum: 10c0/7350c9b6ae82309c7c3a911eb25aab9fbc3ffbf571ff5749f660b05c35c558a073bac8ad126e430974fe128107d3acd2333e44f3bd699ba5b0e0b14e05ecf609
+  checksum: 10c0/ee7d0223c8f900421ae2362628cb645ea4bf9e19547e355ce931042d185c404776ca71406ef86c5b5b626447c72f9620bc428992aebddcf577376822e0ca06f5
   languageName: node
   linkType: hard
 
@@ -8122,9 +8125,9 @@ __metadata:
     "@hookform/devtools": "npm:^4.4.0"
     "@hookform/error-message": "npm:^2.0.1"
     "@hookform/resolvers": "npm:^5.2.2"
-    "@mezzanine-ui/core": "npm:1.0.4"
+    "@mezzanine-ui/core": "npm:1.1.0"
     "@mezzanine-ui/icons": "npm:1.0.2"
-    "@mezzanine-ui/react": "npm:1.1.0"
+    "@mezzanine-ui/react": "npm:1.2.0"
     "@mezzanine-ui/system": "npm:1.0.2"
     "@nestjs/apollo": "npm:^13.2.3"
     "@nestjs/common": "npm:^11.0.0"
