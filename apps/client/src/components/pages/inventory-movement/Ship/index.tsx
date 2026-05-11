@@ -10,8 +10,6 @@ import { FilterValues } from './typing';
 function InventoryMovementShip() {
   const [currentFilter, setCurrentFilter] = useState<FilterValues>();
 
-  console.log('currentFilter', currentFilter);
-
   return (
     <>
       <FilterWrapper<FilterValues>

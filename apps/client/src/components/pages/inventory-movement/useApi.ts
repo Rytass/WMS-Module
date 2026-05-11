@@ -193,6 +193,27 @@ export function useQueryReceiveInventoryOrders(
         ReceiveInventoryOrderStatus.PARTIAL_RECEIVED,
         ReceiveInventoryOrderStatus.PENDING,
       ],
+      key:
+        currentFilter?.receiveOrder?.name ||
+        currentFilter?.['receiveOrder-search'] ||
+        undefined,
+      materialKey:
+        currentFilter?.[FilterType.material]?.name ||
+        currentFilter?.['material-search'] ||
+        undefined,
+      batchKey:
+        currentFilter?.[FilterType.batch]?.name ||
+        currentFilter?.['batch-search'] ||
+        undefined,
+      description: currentFilter?.[FilterType.materialDescription] || undefined,
+      locationKey:
+        currentFilter?.location?.name ||
+        currentFilter?.['location-search'] ||
+        undefined,
+      loaderKey:
+        currentFilter?.loader?.name ||
+        currentFilter?.['loader-search'] ||
+        undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
