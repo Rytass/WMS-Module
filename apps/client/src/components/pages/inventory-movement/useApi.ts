@@ -122,6 +122,27 @@ export function useQueryShipInventoryOrders(currentFilter?: ShipFilterValues) {
         ShipInventoryOrderStatus.PARTIAL_SHIPPED,
         ShipInventoryOrderStatus.PENDING,
       ],
+      key:
+        currentFilter?.shipOrder?.name ||
+        currentFilter?.['shipOrder-search'] ||
+        undefined,
+      materialKey:
+        currentFilter?.[FilterType.material]?.name ||
+        currentFilter?.['material-search'] ||
+        undefined,
+      batchKey:
+        currentFilter?.[FilterType.batch]?.name ||
+        currentFilter?.['batch-search'] ||
+        undefined,
+      description: currentFilter?.[FilterType.materialDescription] || undefined,
+      locationKey:
+        currentFilter?.location?.name ||
+        currentFilter?.['location-search'] ||
+        undefined,
+      loaderKey:
+        currentFilter?.loader?.name ||
+        currentFilter?.['loader-search'] ||
+        undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
