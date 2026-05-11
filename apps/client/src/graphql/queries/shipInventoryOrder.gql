@@ -7,22 +7,30 @@ query ShipInventoryOrder($shipInventoryOrderId: ID!) {
 query ShipInventoryOrders(
   $offset: Int
   $limit: Int
-  $key: String
   $createdBy: String
   $status: ShipInventoryOrderStatus
   $statuses: [ShipInventoryOrderStatus!]
   $dateRange: DateRangeArgs
   $description: String
+  $key: String
+  $materialKey: String
+  $batchKey: String
+  $locationKey: String
+  $loaderKey: String
 ) {
   shipInventoryOrders(
     offset: $offset
     limit: $limit
-    key: $key
     createdBy: $createdBy
     status: $status
     statuses: $statuses
     dateRange: $dateRange
     description: $description
+    key: $key
+    materialKey: $materialKey
+    batchKey: $batchKey
+    locationKey: $locationKey
+    loaderKey: $loaderKey
   ) {
     id
     items {
@@ -72,6 +80,10 @@ query FullShipInventoryOrders(
   $statuses: [ShipInventoryOrderStatus!]
   $dateRange: DateRangeArgs
   $description: String
+  $materialKey: String
+  $batchKey: String
+  $locationKey: String
+  $loaderKey: String
 ) {
   shipInventoryOrders(
     offset: $offset
@@ -82,6 +94,10 @@ query FullShipInventoryOrders(
     statuses: $statuses
     dateRange: $dateRange
     description: $description
+    materialKey: $materialKey
+    batchKey: $batchKey
+    locationKey: $locationKey
+    loaderKey: $loaderKey
   ) {
     id
     items {
