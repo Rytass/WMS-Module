@@ -10,8 +10,6 @@ import { FilterValues } from './typing';
 function InventoryMovementTransfer() {
   const [currentFilter, setCurrentFilter] = useState<FilterValues>();
 
-  console.log('currentFilter', currentFilter);
-
   return (
     <>
       <FilterWrapper<FilterValues>
@@ -74,7 +72,7 @@ function InventoryMovementTransfer() {
           setCurrentFilter(values);
         }}
       />
-      <InventoryMovementTransferTable />
+      <InventoryMovementTransferTable currentFilter={currentFilter} />
     </>
   );
 }

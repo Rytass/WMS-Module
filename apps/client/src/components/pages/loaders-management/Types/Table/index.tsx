@@ -8,12 +8,19 @@ import { LoaderTypeFragment } from '../../../../../graphql/generated/.graphql';
 import LoaderTypeForm from '../Form';
 import { ActiveValue, FormValues } from '../Form/typing';
 import { useQueryLoaderTypes, useCreateLoaderType } from '../../useApi';
+import { FilterValues } from '../typing';
 
-function LoadersManagementTypesTable() {
+interface LoadersManagementTypesTableProps {
+  currentFilter?: FilterValues;
+}
+
+function LoadersManagementTypesTable({
+  currentFilter,
+}: LoadersManagementTypesTableProps) {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryLoaderTypes();
+    useQueryLoaderTypes(currentFilter);
 
   const { createLoaderType } = useCreateLoaderType();
 

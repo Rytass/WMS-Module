@@ -11,7 +11,7 @@ export class FindLoaderTypeArgs extends PaginationArgs {
   isActive?: boolean;
 
   @Field(() => DateRangeArgs, { nullable: true })
-  createdAt?: DateRangeArgs;
+  dateRange?: DateRangeArgs;
 
   @Field(() => String, { nullable: true })
   key?: string;

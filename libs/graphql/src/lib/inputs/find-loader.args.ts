@@ -33,4 +33,10 @@ export class FindLoaderArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   note?: string;
+
+  @Field(() => String, { nullable: true })
+  locationKey?: string;
+
+  @Field(() => String, { nullable: true })
+  loaderTypeKey?: string;
 }

@@ -8,8 +8,6 @@ import { FilterValues } from './typing';
 const LocationsManagementList: FC = () => {
   const [currentFilter, setCurrentFilter] = useState<FilterValues>();
 
-  console.log('currentFilter', currentFilter);
-
   return (
     <>
       <FilterWrapper<FilterValues>
@@ -39,7 +37,7 @@ const LocationsManagementList: FC = () => {
           setCurrentFilter(values);
         }}
       />
-      <LocationsManagementListTable />
+      <LocationsManagementListTable currentFilter={currentFilter} />
     </>
   );
 };

@@ -8,10 +8,17 @@ import Actions from './Actions';
 import { TransferOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryTransferOrders } from '../../useApi';
 import { formatKeyName } from '../../../../../utils/share';
+import { FilterValues } from '../typing';
 
-function InventoryMovementTransferTable() {
+interface InventoryMovementTransferTableProps {
+  currentFilter?: FilterValues;
+}
+
+function InventoryMovementTransferTable({
+  currentFilter,
+}: InventoryMovementTransferTableProps) {
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryTransferOrders();
+    useQueryTransferOrders(currentFilter);
 
   const dataSource = useMemo(
     (): TransferOrderFragment[] => data?.transferOrders.items ?? [],

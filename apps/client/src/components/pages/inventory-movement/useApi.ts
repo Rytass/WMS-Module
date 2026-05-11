@@ -19,14 +19,47 @@ import {
   CancelTransferDocument,
   CancelShipDocument,
 } from '../../../graphql/generated/.graphql';
+import { FilterType } from '../../FilterWrapper/typing';
+import { FilterValues as TransferFilterValues } from './Transfer/typing';
+import { FilterValues as ShipFilterValues } from './Ship/typing';
+import { FilterValues as ReceiveFilterValues } from './Receive/typing';
 
-export function useQueryTransferOrders() {
+export function useQueryTransferOrders(currentFilter?: TransferFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(TransferOrdersDocument, {
     variables: {
       limit,
       offset,
+      key:
+        currentFilter?.transferOrder?.name ||
+        currentFilter?.['transferOrder-search'] ||
+        undefined,
+      materialKey:
+        currentFilter?.[FilterType.material]?.name ||
+        currentFilter?.['material-search'] ||
+        undefined,
+      batchKey:
+        currentFilter?.[FilterType.batch]?.name ||
+        currentFilter?.['batch-search'] ||
+        undefined,
+      description: currentFilter?.[FilterType.materialDescription] || undefined,
+      targetLocationKey:
+        currentFilter?.targetLocation?.name ||
+        currentFilter?.['targetLocation-search'] ||
+        undefined,
+      targetLoaderKey:
+        currentFilter?.targetLoader?.name ||
+        currentFilter?.['targetLoader-search'] ||
+        undefined,
+      locationKey:
+        currentFilter?.sourceLocation?.name ||
+        currentFilter?.['sourceLocation-search'] ||
+        undefined,
+      loaderKey:
+        currentFilter?.sourceLoader?.name ||
+        currentFilter?.['sourceLoader-search'] ||
+        undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -78,7 +111,7 @@ export function useQueryTransferOrder(id: string) {
   };
 }
 
-export function useQueryShipInventoryOrders() {
+export function useQueryShipInventoryOrders(currentFilter?: ShipFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(FullShipInventoryOrdersDocument, {
@@ -89,6 +122,27 @@ export function useQueryShipInventoryOrders() {
         ShipInventoryOrderStatus.PARTIAL_SHIPPED,
         ShipInventoryOrderStatus.PENDING,
       ],
+      key:
+        currentFilter?.shipOrder?.name ||
+        currentFilter?.['shipOrder-search'] ||
+        undefined,
+      materialKey:
+        currentFilter?.[FilterType.material]?.name ||
+        currentFilter?.['material-search'] ||
+        undefined,
+      batchKey:
+        currentFilter?.[FilterType.batch]?.name ||
+        currentFilter?.['batch-search'] ||
+        undefined,
+      description: currentFilter?.[FilterType.materialDescription] || undefined,
+      locationKey:
+        currentFilter?.location?.name ||
+        currentFilter?.['location-search'] ||
+        undefined,
+      loaderKey:
+        currentFilter?.loader?.name ||
+        currentFilter?.['loader-search'] ||
+        undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -126,7 +180,9 @@ export function useLazyQueryShipInventoryOrder() {
   };
 }
 
-export function useQueryReceiveInventoryOrders() {
+export function useQueryReceiveInventoryOrders(
+  currentFilter?: ReceiveFilterValues,
+) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(FullReceiveInventoryOrdersDocument, {
@@ -137,6 +193,27 @@ export function useQueryReceiveInventoryOrders() {
         ReceiveInventoryOrderStatus.PARTIAL_RECEIVED,
         ReceiveInventoryOrderStatus.PENDING,
       ],
+      key:
+        currentFilter?.receiveOrder?.name ||
+        currentFilter?.['receiveOrder-search'] ||
+        undefined,
+      materialKey:
+        currentFilter?.[FilterType.material]?.name ||
+        currentFilter?.['material-search'] ||
+        undefined,
+      batchKey:
+        currentFilter?.[FilterType.batch]?.name ||
+        currentFilter?.['batch-search'] ||
+        undefined,
+      description: currentFilter?.[FilterType.materialDescription] || undefined,
+      locationKey:
+        currentFilter?.location?.name ||
+        currentFilter?.['location-search'] ||
+        undefined,
+      loaderKey:
+        currentFilter?.loader?.name ||
+        currentFilter?.['loader-search'] ||
+        undefined,
     },
     fetchPolicy: 'cache-and-network',
   });

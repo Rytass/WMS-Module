@@ -5,8 +5,13 @@ query ChangeLogs(
   $batchId: ID
   $locationId: ID
   $loaderId: ID
+  $ids: [ID!]
   $description: String
   $status: StockStatus
+  $materialKey: String
+  $batchKey: String
+  $locationKey: String
+  $loaderKey: String
 ) {
   changeLogs(
     offset: $offset
@@ -15,8 +20,13 @@ query ChangeLogs(
     batchId: $batchId
     locationId: $locationId
     loaderId: $loaderId
+    ids: $ids
     description: $description
     status: $status
+    materialKey: $materialKey
+    batchKey: $batchKey
+    locationKey: $locationKey
+    loaderKey: $loaderKey
   ) {
     id
     items {

@@ -29,4 +29,16 @@ export class FindShipInventoryOrderArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   key?: string;
+
+  @Field(() => String, { nullable: true })
+  materialKey?: string;
+
+  @Field(() => String, { nullable: true })
+  batchKey?: string;
+
+  @Field(() => String, { nullable: true })
+  locationKey?: string;
+
+  @Field(() => String, { nullable: true })
+  loaderKey?: string;
 }

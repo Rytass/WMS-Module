@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { useQuery, useMutation } from '@apollo/client/react';
 import {
   useTablePageState,
@@ -12,14 +13,44 @@ import {
   CreateLoaderTypeDocument,
   UpdateLoaderTypeDocument,
 } from '../../../graphql/generated/.graphql';
+import { FilterValues as ListFilterValues } from './List/typing';
+import { FilterValues as TypesFilterValues } from './Types/typing';
+import { FilterType } from '../../FilterWrapper/typing';
+import { YesOrNo } from '../../../utils/share';
 
-export function useQueryLoaders() {
+export function useQueryLoaders(currentFilter?: ListFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(LoadersDocument, {
     variables: {
       limit,
       offset,
+      loaderTypeKey:
+        currentFilter?.loaderType?.name ||
+        currentFilter?.['loaderType-search'] ||
+        undefined,
+      locationKey:
+        currentFilter?.[FilterType.location]?.name ||
+        currentFilter?.['location-search'] ||
+        undefined,
+      key:
+        currentFilter?.loader?.name ||
+        currentFilter?.['loader-search'] ||
+        undefined,
+      isActive: currentFilter?.status
+        ? currentFilter.status === YesOrNo.YES
+        : undefined,
+      dateRange: currentFilter?.[FilterType.createdAt]
+        ? {
+            from: dayjs(currentFilter[FilterType.createdAt])
+              .startOf('day')
+              .toISOString(),
+            to: dayjs(currentFilter[FilterType.createdAt])
+              .endOf('day')
+              .toISOString(),
+          }
+        : undefined,
+      note: currentFilter?.[FilterType.description] || undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -42,13 +73,31 @@ export function useQueryLoaders() {
   };
 }
 
-export function useQueryLoaderTypes() {
+export function useQueryLoaderTypes(currentFilter?: TypesFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
 
   const { data, loading } = useQuery(LoaderTypesDocument, {
     variables: {
       limit,
       offset,
+      key:
+        currentFilter?.loaderType?.name ||
+        currentFilter?.['loaderType-search'] ||
+        undefined,
+      description: currentFilter?.description || undefined,
+      isActive: currentFilter?.status
+        ? currentFilter.status === YesOrNo.YES
+        : undefined,
+      dateRange: currentFilter?.[FilterType.createdAt]
+        ? {
+            from: dayjs(currentFilter[FilterType.createdAt])
+              .startOf('day')
+              .toISOString(),
+            to: dayjs(currentFilter[FilterType.createdAt])
+              .endOf('day')
+              .toISOString(),
+          }
+        : undefined,
     },
     fetchPolicy: 'cache-and-network',
   });

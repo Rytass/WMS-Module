@@ -7,11 +7,18 @@ import { LocationFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryLocations, useCreateLocation } from '../../useApi';
 import LocationFormModal from '../../FormModal';
 import { FormValues } from '../../FormModal/typing';
+import { FilterValues } from '../typing';
 
-const LocationsManagementListTable: FC = () => {
+interface LocationsManagementListTableProps {
+  currentFilter?: FilterValues;
+}
+
+const LocationsManagementListTable: FC<LocationsManagementListTableProps> = ({
+  currentFilter,
+}) => {
   const [modalOpened, setModalOpened] = useState<boolean>(false);
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryLocations();
+    useQueryLocations(currentFilter);
   const { createLocation, loading: createLoading } = useCreateLocation();
 
   const dataSource = useMemo(

@@ -9,6 +9,12 @@ query TransferOrders(
   $batchId: ID
   $locationId: ID
   $loaderId: ID
+  $materialKey: String
+  $batchKey: String
+  $locationKey: String
+  $loaderKey: String
+  $targetLocationKey: String
+  $targetLoaderKey: String
 ) {
   transferOrders(
     offset: $offset
@@ -21,6 +27,12 @@ query TransferOrders(
     batchId: $batchId
     locationId: $locationId
     loaderId: $loaderId
+    materialKey: $materialKey
+    batchKey: $batchKey
+    locationKey: $locationKey
+    loaderKey: $loaderKey
+    targetLocationKey: $targetLocationKey
+    targetLoaderKey: $targetLoaderKey
   ) {
     id
     items {

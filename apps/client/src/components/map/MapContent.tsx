@@ -14,7 +14,11 @@ import { useQueryMapData } from './useApi';
 interface MapContentProps {
   viewMode?: ViewMode;
   onSave?: (mapData: Map, currentMapKey: string) => Promise<void>;
-  onNodeClick?: (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => void;
+  onNodeClick?: (
+    nodeInfo: WMSNodeClickInfo,
+    isExistingLocation: boolean,
+    editMode: EditMode,
+  ) => void;
 }
 
 function MapContent({
@@ -49,9 +53,13 @@ function MapContent({
 
   const onNodeClick = useCallback(
     (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
-      onNodeClickProps?.(nodeInfo, editMode);
+      onNodeClickProps?.(
+        nodeInfo,
+        existingLocationKeys.includes(nodeInfo.id),
+        editMode,
+      );
 
-      if (editMode === EditMode.BACKGROUND) {
+      if (editMode === EditMode.BACKGROUND && nodeInfo.type !== 'imageNode') {
         if (
           (viewMode === ViewMode.VIEW &&
             existingLocationKeys.includes(nodeInfo.id)) ||

@@ -8,10 +8,17 @@ import Actions from './Actions';
 import { ShipInventoryOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useQueryShipInventoryOrders } from '../../useApi';
 import { formatKeyName } from '../../../../../utils/share';
+import { FilterValues } from '../typing';
 
-function InventoryMovementShipTable() {
+interface InventoryMovementShipTableProps {
+  currentFilter?: FilterValues;
+}
+
+function InventoryMovementShipTable({
+  currentFilter,
+}: InventoryMovementShipTableProps) {
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryShipInventoryOrders();
+    useQueryShipInventoryOrders(currentFilter);
 
   const dataSource = useMemo(
     (): ShipInventoryOrderFragment[] => data?.shipInventoryOrders.items ?? [],

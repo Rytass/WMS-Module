@@ -461,6 +461,72 @@ export class TransferOrderService<
         },
       );
 
+    if (options.materialKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM transfer_order_items to_mat_items
+          INNER JOIN materials to_mat ON to_mat.id = to_mat_items."materialId"
+          WHERE to_mat_items."orderId" = to.id
+          AND to_mat.key ILIKE :materialKey
+        )`,
+        { materialKey: `%${options.materialKey}%` },
+      );
+
+    if (options.batchKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM transfer_order_items to_batch_items
+          INNER JOIN batches to_batch ON to_batch.id = to_batch_items."batchId"
+          WHERE to_batch_items."orderId" = to.id
+          AND to_batch.key ILIKE :batchKey
+        )`,
+        { batchKey: `%${options.batchKey}%` },
+      );
+
+    if (options.locationKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM transfer_order_items to_loc_items
+          INNER JOIN locations to_loc ON to_loc.id = to_loc_items."locationId"
+          WHERE to_loc_items."orderId" = to.id
+          AND to_loc.key ILIKE :locationKey
+        )`,
+        { locationKey: `%${options.locationKey}%` },
+      );
+
+    if (options.loaderKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM transfer_order_items to_ldr_items
+          INNER JOIN loaders to_ldr ON to_ldr.id = to_ldr_items."loaderId"
+          WHERE to_ldr_items."orderId" = to.id
+          AND to_ldr."serialId" ILIKE :loaderKey
+        )`,
+        { loaderKey: `%${options.loaderKey}%` },
+      );
+
+    if (options.targetLocationKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM transfer_order_items to_tgt_loc_items
+          INNER JOIN locations to_tgt_loc ON to_tgt_loc.id = to_tgt_loc_items."targetLocationId"
+          WHERE to_tgt_loc_items."orderId" = to.id
+          AND to_tgt_loc.key ILIKE :targetLocationKey
+        )`,
+        { targetLocationKey: `%${options.targetLocationKey}%` },
+      );
+
+    if (options.targetLoaderKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM transfer_order_items to_tgt_ldr_items
+          INNER JOIN loaders to_tgt_ldr ON to_tgt_ldr.id = to_tgt_ldr_items."targetLoaderId"
+          WHERE to_tgt_ldr_items."orderId" = to.id
+          AND to_tgt_ldr."serialId" ILIKE :targetLoaderKey
+        )`,
+        { targetLoaderKey: `%${options.targetLoaderKey}%` },
+      );
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
