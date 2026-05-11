@@ -17,6 +17,8 @@ query Loaders(
   $isActive: Boolean
   $dateRange: DateRangeArgs
   $note: String
+  $locationKey: String
+  $loaderTypeKey: String
 ) {
   loaders(
     offset: $offset
@@ -31,6 +33,8 @@ query Loaders(
     isActive: $isActive
     dateRange: $dateRange
     note: $note
+    locationKey: $locationKey
+    loaderTypeKey: $loaderTypeKey
   ) {
     id
     items {
@@ -74,7 +78,7 @@ query LoaderTypes(
   $limit: Int
   $description: String
   $isActive: Boolean
-  $createdAt: DateRangeArgs
+  $dateRange: DateRangeArgs
   $key: String
 ) {
   loaderTypes(
@@ -82,7 +86,7 @@ query LoaderTypes(
     limit: $limit
     description: $description
     isActive: $isActive
-    createdAt: $createdAt
+    dateRange: $dateRange
     key: $key
   ) {
     id

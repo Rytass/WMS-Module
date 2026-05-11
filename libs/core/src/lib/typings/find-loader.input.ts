@@ -13,6 +13,8 @@ export type FindLoaderInput<U> = PaginationInput & {
     to: Date;
   };
   note?: string;
+  locationKey?: string;
+  loaderTypeKey?: string;
   wildcard?: {
     key: keyof U;
     value: string;
