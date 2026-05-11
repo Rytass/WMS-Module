@@ -19,6 +19,7 @@ import {
   CancelTransferDocument,
   CancelShipDocument,
 } from '../../../graphql/generated/.graphql';
+import { FilterType } from '../../FilterWrapper/typing';
 import { FilterValues as TransferFilterValues } from './Transfer/typing';
 import { FilterValues as ShipFilterValues } from './Ship/typing';
 import { FilterValues as ReceiveFilterValues } from './Receive/typing';
@@ -30,6 +31,35 @@ export function useQueryTransferOrders(currentFilter?: TransferFilterValues) {
     variables: {
       limit,
       offset,
+      key:
+        currentFilter?.transferOrder?.name ||
+        currentFilter?.['transferOrder-search'] ||
+        undefined,
+      materialKey:
+        currentFilter?.[FilterType.material]?.name ||
+        currentFilter?.['material-search'] ||
+        undefined,
+      batchKey:
+        currentFilter?.[FilterType.batch]?.name ||
+        currentFilter?.['batch-search'] ||
+        undefined,
+      description: currentFilter?.[FilterType.materialDescription] || undefined,
+      targetLocationKey:
+        currentFilter?.targetLocation?.name ||
+        currentFilter?.['targetLocation-search'] ||
+        undefined,
+      targetLoaderKey:
+        currentFilter?.targetLoader?.name ||
+        currentFilter?.['targetLoader-search'] ||
+        undefined,
+      locationKey:
+        currentFilter?.sourceLocation?.name ||
+        currentFilter?.['sourceLocation-search'] ||
+        undefined,
+      loaderKey:
+        currentFilter?.sourceLoader?.name ||
+        currentFilter?.['sourceLoader-search'] ||
+        undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
