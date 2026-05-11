@@ -1,3 +1,4 @@
+import dayjs from 'dayjs';
 import { useQuery, useMutation } from '@apollo/client/react';
 import {
   useTablePageState,
@@ -24,6 +25,7 @@ export function useQueryLoaders(currentFilter?: ListFilterValues) {
     variables: {
       limit,
       offset,
+      note: currentFilter?.[FilterType.description] || undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -63,8 +65,12 @@ export function useQueryLoaderTypes(currentFilter?: TypesFilterValues) {
         : undefined,
       createdAt: currentFilter?.[FilterType.createdAt]
         ? {
-            from: currentFilter[FilterType.createdAt],
-            to: currentFilter[FilterType.createdAt],
+            from: dayjs(currentFilter[FilterType.createdAt])
+              .startOf('day')
+              .toISOString(),
+            to: dayjs(currentFilter[FilterType.createdAt])
+              .endOf('day')
+              .toISOString(),
           }
         : undefined,
     },
