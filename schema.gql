@@ -536,7 +536,7 @@ type ReclassifyInventoryOrderDto {
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
-  loaders(offset: Int, limit: Int, key: String, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String): Loaders!
+  loaders(offset: Int, limit: Int, key: String, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String, locationKey: String, loaderTypeKey: String): Loaders!
   loaderType(id: ID!): LoaderTypeDto!
   loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, createdAt: DateRangeArgs, key: String): LoaderTypes!
   loaderUnits(type: LoaderUnit!): [LoaderUnitDto!]!

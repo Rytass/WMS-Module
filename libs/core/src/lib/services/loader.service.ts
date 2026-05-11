@@ -278,6 +278,26 @@ export class LoaderService<
         note: `%${options.note}%`,
       });
 
+    if (options.locationKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM locations ldr_loc
+          WHERE ldr_loc.id = loader."locationId"
+          AND ldr_loc.key ILIKE :locationKey
+        )`,
+        { locationKey: `%${options.locationKey}%` },
+      );
+
+    if (options.loaderTypeKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM loader_types ldr_type
+          WHERE ldr_type.id = loader."typeId"
+          AND ldr_type.key ILIKE :loaderTypeKey
+        )`,
+        { loaderTypeKey: `%${options.loaderTypeKey}%` },
+      );
+
     if (options.wildcard) {
       const { key, value } = options.wildcard;
       queryBuilder.andWhere(`loader."${String(key)}" ILIKE :value`, {
