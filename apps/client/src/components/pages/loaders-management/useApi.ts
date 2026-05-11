@@ -63,7 +63,7 @@ export function useQueryLoaderTypes(currentFilter?: TypesFilterValues) {
       isActive: currentFilter?.status
         ? currentFilter.status === YesOrNo.YES
         : undefined,
-      createdAt: currentFilter?.[FilterType.createdAt]
+      dateRange: currentFilter?.[FilterType.createdAt]
         ? {
             from: dayjs(currentFilter[FilterType.createdAt])
               .startOf('day')

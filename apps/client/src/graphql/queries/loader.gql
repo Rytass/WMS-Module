@@ -78,7 +78,7 @@ query LoaderTypes(
   $limit: Int
   $description: String
   $isActive: Boolean
-  $createdAt: DateRangeArgs
+  $dateRange: DateRangeArgs
   $key: String
 ) {
   loaderTypes(
@@ -86,7 +86,7 @@ query LoaderTypes(
     limit: $limit
     description: $description
     isActive: $isActive
-    createdAt: $createdAt
+    dateRange: $dateRange
     key: $key
   ) {
     id
