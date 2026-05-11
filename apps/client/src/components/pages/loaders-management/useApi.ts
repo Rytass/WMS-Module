@@ -25,6 +25,31 @@ export function useQueryLoaders(currentFilter?: ListFilterValues) {
     variables: {
       limit,
       offset,
+      loaderTypeKey:
+        currentFilter?.loaderType?.name ||
+        currentFilter?.['loaderType-search'] ||
+        undefined,
+      locationKey:
+        currentFilter?.[FilterType.location]?.name ||
+        currentFilter?.['location-search'] ||
+        undefined,
+      key:
+        currentFilter?.loader?.name ||
+        currentFilter?.['loader-search'] ||
+        undefined,
+      isActive: currentFilter?.status
+        ? currentFilter.status === YesOrNo.YES
+        : undefined,
+      dateRange: currentFilter?.[FilterType.createdAt]
+        ? {
+            from: dayjs(currentFilter[FilterType.createdAt])
+              .startOf('day')
+              .toISOString(),
+            to: dayjs(currentFilter[FilterType.createdAt])
+              .endOf('day')
+              .toISOString(),
+          }
+        : undefined,
       note: currentFilter?.[FilterType.description] || undefined,
     },
     fetchPolicy: 'cache-and-network',
