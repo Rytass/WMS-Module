@@ -336,6 +336,50 @@ export class ReceiveInventoryOrderService<
         statuses: options.statuses,
       });
 
+    if (options.materialKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM receive_inventory_order_items ri_items
+          INNER JOIN materials ri_mat ON ri_mat.id = ri_items."materialId"
+          WHERE ri_items."orderId" = orders.id
+          AND ri_mat.key ILIKE :materialKey
+        )`,
+        { materialKey: `%${options.materialKey}%` },
+      );
+
+    if (options.batchKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM receive_inventory_order_items ri_items
+          INNER JOIN batches ri_batch ON ri_batch.id = ri_items."batchId"
+          WHERE ri_items."orderId" = orders.id
+          AND ri_batch.key ILIKE :batchKey
+        )`,
+        { batchKey: `%${options.batchKey}%` },
+      );
+
+    if (options.locationKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM receive_inventory_order_items ri_items
+          INNER JOIN locations ri_loc ON ri_loc.id = ri_items."locationId"
+          WHERE ri_items."orderId" = orders.id
+          AND ri_loc.key ILIKE :locationKey
+        )`,
+        { locationKey: `%${options.locationKey}%` },
+      );
+
+    if (options.loaderKey)
+      queryBuilder.andWhere(
+        `EXISTS (
+          SELECT 1 FROM receive_inventory_order_items ri_items
+          INNER JOIN loaders ri_ldr ON ri_ldr.id = ri_items."loaderId"
+          WHERE ri_items."orderId" = orders.id
+          AND ri_ldr."serialId" ILIKE :loaderKey
+        )`,
+        { loaderKey: `%${options.loaderKey}%` },
+      );
+
     if (options.wildcard) {
       const { key, value } = options.wildcard;
       queryBuilder.andWhere(`orders."${String(key)}" ILIKE :value`, {

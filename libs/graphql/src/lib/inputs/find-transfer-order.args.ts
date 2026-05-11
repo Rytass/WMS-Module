@@ -27,4 +27,22 @@ export class FindTransferOrderArgs extends PaginationArgs {
 
   @Field(() => ID, { nullable: true })
   loaderId?: string;
+
+  @Field(() => String, { nullable: true })
+  materialKey?: string;
+
+  @Field(() => String, { nullable: true })
+  batchKey?: string;
+
+  @Field(() => String, { nullable: true })
+  locationKey?: string;
+
+  @Field(() => String, { nullable: true })
+  loaderKey?: string;
+
+  @Field(() => String, { nullable: true })
+  targetLocationKey?: string;
+
+  @Field(() => String, { nullable: true })
+  targetLoaderKey?: string;
 }

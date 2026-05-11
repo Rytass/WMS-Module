@@ -17,6 +17,10 @@ export type FindShipInventoryOrderInput<T> = PaginationInput & {
     to: Date;
   };
   description?: string;
+  materialKey?: string;
+  batchKey?: string;
+  locationKey?: string;
+  loaderKey?: string;
   wildcard?: {
     key: keyof T;
     value: string;
