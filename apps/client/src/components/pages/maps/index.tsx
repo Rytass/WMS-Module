@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Message } from '@mezzanine-ui/react';
 import { ViewMode } from '@rytass/wms-map-react-components';
 import PageWrapper from '../../PageWrapper';
 import MapContent from '../../map/MapContent';
@@ -14,13 +15,29 @@ function Maps() {
   return (
     <PageWrapper title="地圖清單">
       <SectionWrapper>
-        <MapContent viewMode={ViewMode.VIEW} />
+        <MapContent
+          viewMode={ViewMode.VIEW}
+          onNodeClick={(nodeInfo, isExistingLocation) => {
+            if (!isExistingLocation) {
+              Message.error('不存在此位置');
+            } else {
+              setCurrentFilter((prev) => ({
+                ...prev,
+                location: {
+                  id: nodeInfo.id,
+                  name: nodeInfo.id,
+                },
+              }));
+            }
+          }}
+        />
       </SectionWrapper>
       <FilterWrapper<FilterValues>
         defaultValues={{
           material: null,
           materialDescription: '',
           batch: null,
+          location: null,
         }}
         baseFilters={{
           filters: [

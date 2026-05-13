@@ -129,6 +129,7 @@ function LoadersManagementListTable({
       }}
     >
       <Table<LoaderFragment>
+        tableKey="Loaders"
         columns={columns}
         dataSource={dataSource}
         loading={loading}

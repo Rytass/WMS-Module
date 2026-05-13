@@ -63,6 +63,7 @@ function InventoryListTable({
 
   return (
     <Table<AggregatedStockFragment>
+      tableKey="InventoryListTable"
       columns={columns}
       dataSource={dataSource}
       rowState={(source) =>

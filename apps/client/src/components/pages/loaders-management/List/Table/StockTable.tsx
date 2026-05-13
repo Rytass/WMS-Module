@@ -23,6 +23,7 @@ const StockTable: FC<StockTableProps> = ({ loaderId }) => {
 
   return (
     <Table<AggregatedStockFragment>
+      tableKey="LoaderStocks"
       columns={columns}
       dataSource={dataSource}
       loading={loading}

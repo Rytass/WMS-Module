@@ -105,6 +105,7 @@ function ReceiveInventoryOrdersTable() {
         }}
       >
         <Table<SimpleReceiveInventoryOrderFragment>
+          tableKey="ReceiveInventoryOrders"
           columns={columns}
           dataSource={dataSource}
           loading={loading}

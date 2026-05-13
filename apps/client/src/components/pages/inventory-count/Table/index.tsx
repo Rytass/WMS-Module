@@ -16,6 +16,7 @@ function InventoryCountTable() {
         }}
       >
         <Table
+          tableKey="InventoryCount"
           columns={[]}
           dataSource={[]}
           // loading={loading}

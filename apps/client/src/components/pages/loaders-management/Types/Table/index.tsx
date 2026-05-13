@@ -105,6 +105,7 @@ function LoadersManagementTypesTable({
         }}
       >
         <Table<LoaderTypeFragment>
+          tableKey="LoaderTypes"
           columns={columns}
           dataSource={dataSource}
           loading={loading}

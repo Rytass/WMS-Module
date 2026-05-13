@@ -5,7 +5,8 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { Button, SelectValue, cx } from '@mezzanine-ui/react';
+import { Button, SelectValue, Message, cx } from '@mezzanine-ui/react';
+import { useFormContext } from 'react-hook-form';
 import { MaximizeIcon } from '@mezzanine-ui/icons';
 import MapModal from '../../map/MapModal';
 import SingleAutoCompleteField from '../SingleAutoCompleteField';
@@ -40,6 +41,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
   selectValueMode,
   useMpaButton = false,
 }) => {
+  const { setValue } = useFormContext();
   const [modalOpened, setModalOpened] = useState<boolean>(false);
   const { fetchLocations } = useLazyQueryLocations();
 
@@ -121,10 +123,27 @@ const LocationsField: FC<LocationsFieldProps> = ({
             onClose={() => {
               setModalOpened(false);
             }}
+            onNodeClick={(nodeInfo, isExistingLocation) => {
+              if (!isExistingLocation) {
+                Message.error('不存在此位置');
+              } else {
+                setValue(
+                  name,
+                  selectValueMode
+                    ? { id: nodeInfo.id, name: nodeInfo.id }
+                    : nodeInfo.id,
+                  {
+                    shouldDirty: true,
+                  },
+                );
+                onChange?.({ id: nodeInfo.id, name: nodeInfo.id });
+                setModalOpened(false);
+              }
+            }}
           />
         </>
       ) : null,
-    [modalOpened, useMpaButton],
+    [modalOpened, name, onChange, selectValueMode, setValue, useMpaButton],
   );
 
   if (selectValueMode) {
