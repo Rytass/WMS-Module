@@ -9,6 +9,7 @@ import {
 } from '@rytass/wms-map-react-components';
 import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
+import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
 
 interface MapContentProps {
@@ -26,6 +27,7 @@ function MapContent({
   onSave,
   onNodeClick: onNodeClickProps,
 }: MapContentProps) {
+  const { openDialog } = useDialog();
   const [editMode, setEditMode] = useState<EditMode>(EditMode.BACKGROUND);
   const [drawingMode, setDrawingMode] = useState<DrawingMode>(DrawingMode.NONE);
   const [selectedColor, setSelectedColor] = useState<string>(COLOR_PALETTE[0]);
@@ -52,14 +54,25 @@ function MapContent({
   );
 
   const onNodeClick = useCallback(
-    (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
-      onNodeClickProps?.(
-        nodeInfo,
-        existingLocationKeys.includes(nodeInfo.id),
-        editMode,
-      );
+    async (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
+      if (onNodeClickProps) {
+        const isConfirm = await openDialog({
+          modalStatusType: 'info',
+          title: '確認選擇此位置',
+          cancelText: '取消',
+          confirmText: '確認',
+        });
+
+        if (isConfirm) {
+          onNodeClickProps(
+            nodeInfo,
+            existingLocationKeys.includes(nodeInfo.id),
+            editMode,
+          );
+        }
+      }
     },
-    [existingLocationKeys, onNodeClickProps],
+    [existingLocationKeys, onNodeClickProps, openDialog],
   );
 
   const onNodeDoubleClick = useCallback(

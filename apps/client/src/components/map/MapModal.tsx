@@ -6,6 +6,7 @@ import {
 } from '@rytass/wms-map-react-components';
 import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
+import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
 
 interface MapModalProps {
@@ -26,6 +27,8 @@ function MapModal({
   viewMode = ViewMode.VIEW,
   onNodeClick: onNodeClickProps,
 }: MapModalProps) {
+  const { openDialog } = useDialog();
+
   const {
     setCurrentMapKey,
     breadcrumb,
@@ -51,10 +54,24 @@ function MapModal({
   );
 
   const onNodeClick = useCallback(
-    (nodeInfo: WMSNodeClickInfo) => {
-      onNodeClickProps?.(nodeInfo, existingLocationKeys.includes(nodeInfo.id));
+    async (nodeInfo: WMSNodeClickInfo) => {
+      if (onNodeClickProps) {
+        const isConfirm = await openDialog({
+          modalStatusType: 'info',
+          title: '確認選擇此位置',
+          cancelText: '取消',
+          confirmText: '確認',
+        });
+
+        if (isConfirm) {
+          onNodeClickProps(
+            nodeInfo,
+            existingLocationKeys.includes(nodeInfo.id),
+          );
+        }
+      }
     },
-    [existingLocationKeys, onNodeClickProps],
+    [existingLocationKeys, onNodeClickProps, openDialog],
   );
 
   const onNodeDoubleClick = useCallback(
