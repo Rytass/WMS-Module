@@ -44,45 +44,21 @@ export function useColumnWidthPersistence<T extends TableDataSource>(
     const container = containerRef.current;
     if (!container) return;
 
-    const colGroup = container.querySelector('table colgroup');
-    if (!colGroup) return;
+    const cols = container.querySelectorAll('table colgroup col');
+    if (cols.length === 0) return;
 
-    const cols = colGroup.querySelectorAll('col');
     const widths: Record<string, number> = {};
+    const offset = Math.max(0, cols.length - columns.length - 1);
 
-    // col elements correspond to: [selection?] [expansion?] [draggable?] ...columns [actions?]
-    // We match by counting from the end since action columns are predictable
-    // Simpler: use data attributes or match by index
-    const headerCells = container.querySelectorAll(
-      'thead tr th[data-column-key]',
-    );
-
-    if (headerCells.length > 0) {
-      headerCells.forEach((th) => {
-        const key = th.getAttribute('data-column-key');
-        if (key) {
-          const width = th.getBoundingClientRect().width;
-          if (width > 0) {
-            widths[key] = Math.round(width);
-          }
+    columns.forEach((col, i) => {
+      const colEl = cols[offset + i] as HTMLElement;
+      if (colEl) {
+        const width = colEl.getBoundingClientRect().width;
+        if (width > 0) {
+          widths[col.key] = Math.round(width);
         }
-      });
-    } else {
-      // Fallback: match col elements to columns by index offset
-      // Find the offset by checking how many extra cols exist
-      const extraCols = cols.length - columns.length;
-      const offset = Math.max(0, extraCols > 1 ? extraCols - 1 : extraCols);
-
-      columns.forEach((col, i) => {
-        const colEl = cols[offset + i];
-        if (colEl) {
-          const width = colEl.getBoundingClientRect().width;
-          if (width > 0) {
-            widths[col.key] = Math.round(width);
-          }
-        }
-      });
-    }
+      }
+    });
 
     if (Object.keys(widths).length > 0) {
       saveWidths(tableKey, widths);
@@ -93,18 +69,17 @@ export function useColumnWidthPersistence<T extends TableDataSource>(
     const container = containerRef.current;
     if (!container) return;
 
+    const colGroup = container.querySelector('table colgroup');
+    if (!colGroup) return;
+
     const observer = new MutationObserver(() => {
       readWidthsFromDOM();
     });
 
-    const colGroup = container.querySelector('table colgroup');
-    if (colGroup) {
-      observer.observe(colGroup, {
-        attributes: true,
-        attributeFilter: ['style'],
-        subtree: true,
-      });
-    }
+    observer.observe(colGroup, {
+      attributes: true,
+      subtree: true,
+    });
 
     return () => observer.disconnect();
   }, [readWidthsFromDOM]);

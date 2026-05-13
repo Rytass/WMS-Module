@@ -8,7 +8,7 @@ import {
   TableProps,
   // useTableDataSource,
 } from '@mezzanine-ui/react';
-import { useColumnWidthPersistence } from './useColumnWidthPersistence';
+import { useColumnWidthPersistence } from '../../../hooks/useColumnWidthPersistence';
 
 const Table = <T extends TableDataSource>(
   props: TableProps<T> & {
