@@ -1,7 +1,9 @@
-// import { useEffect } from 'react';
+import { useMemo } from 'react';
 // import { isEqual } from 'lodash';
 import {
   Table as MznTable,
+  TableColumnWithMinWidth,
+  TableActionsWithMinWidth,
   TableDataSource,
   TableProps,
   // useTableDataSource,
@@ -21,11 +23,32 @@ const Table = <T extends TableDataSource>(props: TableProps<T>) => {
   //   }
   // }, [dataSource, props.dataSource, updateDataSource]);
 
+  const columns = useMemo(
+    (): TableColumnWithMinWidth<T>[] =>
+      props.columns.map((c) => ({
+        ...c,
+        minWidth: 40,
+      })),
+    [props.columns],
+  );
+
+  const actions = useMemo(
+    (): TableActionsWithMinWidth<T> => ({
+      ...props.actions,
+      render: props.actions?.render ?? (() => []),
+      minWidth: 40,
+    }),
+    [props.actions],
+  );
+
   return (
     <MznTable<T>
       {...props}
       // dataSource={dataSource}
+      columns={columns}
+      actions={actions}
       fullWidth
+      resizable
       emptyProps={{
         title: '查無資料',
       }}
