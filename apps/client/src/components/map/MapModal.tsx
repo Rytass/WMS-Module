@@ -37,6 +37,12 @@ function MapModal({
     initialNodes,
   } = useQueryMapData();
 
+  const handleClose = useCallback(() => {
+    setCurrentMapKey(DEFAULT_MAP_DATA_KEY);
+    setBreadcrumb([DEFAULT_MAP_DATA_NAME]);
+    onClose();
+  }, [onClose, setCurrentMapKey, setBreadcrumb]);
+
   const handleUpload = useCallback(async (files: File[]): Promise<string[]> => {
     return files.map((file) => URL.createObjectURL(file));
   }, []);
@@ -59,6 +65,7 @@ function MapModal({
         const isConfirm = await openDialog({
           modalStatusType: 'info',
           title: '確認選擇此位置',
+          supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
           cancelText: '取消',
           confirmText: '確認',
         });
@@ -87,7 +94,7 @@ function MapModal({
   return (
     <WMSMapModal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={title}
       viewMode={viewMode}
       colorPalette={COLOR_PALETTE}

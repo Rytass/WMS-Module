@@ -59,6 +59,7 @@ function MapContent({
         const isConfirm = await openDialog({
           modalStatusType: 'info',
           title: '確認選擇此位置',
+          supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
           cancelText: '取消',
           confirmText: '確認',
         });
