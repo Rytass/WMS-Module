@@ -55,7 +55,7 @@ function MapModal({
 
   const onNodeClick = useCallback(
     async (nodeInfo: WMSNodeClickInfo) => {
-      if (onNodeClickProps) {
+      if (onNodeClickProps && nodeInfo.type !== 'imageNode') {
         const isConfirm = await openDialog({
           modalStatusType: 'info',
           title: '確認選擇此位置',
