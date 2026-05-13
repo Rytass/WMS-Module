@@ -6,6 +6,7 @@ import {
 } from '@rytass/wms-map-react-components';
 import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
+import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
 
 interface MapModalProps {
@@ -26,6 +27,8 @@ function MapModal({
   viewMode = ViewMode.VIEW,
   onNodeClick: onNodeClickProps,
 }: MapModalProps) {
+  const { openDialog } = useDialog();
+
   const {
     setCurrentMapKey,
     breadcrumb,
@@ -33,6 +36,12 @@ function MapModal({
     existingLocationKeys,
     initialNodes,
   } = useQueryMapData();
+
+  const handleClose = useCallback(() => {
+    setCurrentMapKey(DEFAULT_MAP_DATA_KEY);
+    setBreadcrumb([DEFAULT_MAP_DATA_NAME]);
+    onClose();
+  }, [onClose, setCurrentMapKey, setBreadcrumb]);
 
   const handleUpload = useCallback(async (files: File[]): Promise<string[]> => {
     return files.map((file) => URL.createObjectURL(file));
@@ -51,39 +60,51 @@ function MapModal({
   );
 
   const onNodeClick = useCallback(
-    (nodeInfo: WMSNodeClickInfo) => {
-      onNodeClickProps?.(nodeInfo, existingLocationKeys.includes(nodeInfo.id));
+    async (nodeInfo: WMSNodeClickInfo) => {
+      if (onNodeClickProps && nodeInfo.type !== 'imageNode') {
+        const isConfirm = await openDialog({
+          modalStatusType: 'info',
+          title: '確認選擇此位置',
+          supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
+          cancelText: '取消',
+          confirmText: '確認',
+        });
 
-      if (
-        (viewMode === ViewMode.VIEW &&
-          existingLocationKeys.includes(nodeInfo.id)) ||
-        viewMode === ViewMode.EDIT
-      ) {
+        if (isConfirm) {
+          onNodeClickProps(
+            nodeInfo,
+            existingLocationKeys.includes(nodeInfo.id),
+          );
+        }
+      }
+    },
+    [existingLocationKeys, onNodeClickProps, openDialog],
+  );
+
+  const onNodeDoubleClick = useCallback(
+    (nodeInfo: WMSNodeClickInfo) => {
+      if (nodeInfo.type !== 'imageNode') {
         setCurrentMapKey(nodeInfo.id);
         setBreadcrumb((prev) => [...prev, nodeInfo.id]);
       }
     },
-    [
-      existingLocationKeys,
-      onNodeClickProps,
-      setBreadcrumb,
-      setCurrentMapKey,
-      viewMode,
-    ],
+    [setBreadcrumb, setCurrentMapKey],
   );
 
   return (
     <WMSMapModal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title={title}
       viewMode={viewMode}
       colorPalette={COLOR_PALETTE}
       onUpload={handleUpload}
       initialNodes={initialNodes}
+      showBreadcrumbEditButton={() => false}
       warehouseIds={breadcrumb}
       onBreadcrumbClick={onBreadcrumbClick}
       onNodeClick={onNodeClick}
+      onNodeDoubleClick={onNodeDoubleClick}
     />
   );
 }

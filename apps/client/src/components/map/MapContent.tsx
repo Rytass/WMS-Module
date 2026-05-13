@@ -9,6 +9,7 @@ import {
 } from '@rytass/wms-map-react-components';
 import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
+import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
 
 interface MapContentProps {
@@ -26,6 +27,7 @@ function MapContent({
   onSave,
   onNodeClick: onNodeClickProps,
 }: MapContentProps) {
+  const { openDialog } = useDialog();
   const [editMode, setEditMode] = useState<EditMode>(EditMode.BACKGROUND);
   const [drawingMode, setDrawingMode] = useState<DrawingMode>(DrawingMode.NONE);
   const [selectedColor, setSelectedColor] = useState<string>(COLOR_PALETTE[0]);
@@ -52,31 +54,36 @@ function MapContent({
   );
 
   const onNodeClick = useCallback(
-    (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
-      onNodeClickProps?.(
-        nodeInfo,
-        existingLocationKeys.includes(nodeInfo.id),
-        editMode,
-      );
+    async (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
+      if (onNodeClickProps && nodeInfo.type !== 'imageNode') {
+        const isConfirm = await openDialog({
+          modalStatusType: 'info',
+          title: '確認選擇此位置',
+          supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
+          cancelText: '取消',
+          confirmText: '確認',
+        });
 
-      if (editMode === EditMode.BACKGROUND && nodeInfo.type !== 'imageNode') {
-        if (
-          (viewMode === ViewMode.VIEW &&
-            existingLocationKeys.includes(nodeInfo.id)) ||
-          viewMode === ViewMode.EDIT
-        ) {
-          setCurrentMapKey(nodeInfo.id);
-          setBreadcrumb((prev) => [...prev, nodeInfo.id]);
+        if (isConfirm) {
+          onNodeClickProps(
+            nodeInfo,
+            existingLocationKeys.includes(nodeInfo.id),
+            editMode,
+          );
         }
       }
     },
-    [
-      existingLocationKeys,
-      onNodeClickProps,
-      setBreadcrumb,
-      setCurrentMapKey,
-      viewMode,
-    ],
+    [existingLocationKeys, onNodeClickProps, openDialog],
+  );
+
+  const onNodeDoubleClick = useCallback(
+    (nodeInfo: WMSNodeClickInfo) => {
+      if (editMode === EditMode.BACKGROUND && nodeInfo.type !== 'imageNode') {
+        setCurrentMapKey(nodeInfo.id);
+        setBreadcrumb((prev) => [...prev, nodeInfo.id]);
+      }
+    },
+    [editMode, setBreadcrumb, setCurrentMapKey],
   );
 
   const handleEditModeChange = useCallback((mode: EditMode) => {
@@ -111,9 +118,11 @@ function MapContent({
         await onSave?.(mapData, currentMapKey);
       }}
       onBreadcrumbClick={onBreadcrumbClick}
+      showBreadcrumbEditButton={() => false}
       onNodeClick={(nodeInfo) => {
         onNodeClick?.(nodeInfo, editMode);
       }}
+      onNodeDoubleClick={onNodeDoubleClick}
       onEditModeChange={handleEditModeChange}
       onToggleRectangleTool={handleToggleRectangleTool}
       onTogglePenTool={handleTogglePenTool}

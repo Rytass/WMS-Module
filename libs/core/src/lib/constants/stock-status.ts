@@ -32,11 +32,17 @@ export enum ChangeType {
   // vendor-inventory-change.entity.ts, change < 0
   VENDOR_RETURNED = 'VENDOR_RETURNED',
 
-  // customer-inventory-change.entity.ts, change > 0
+  // hold-inventory-order-change.entity.ts, change > 0
   HELD = 'HELD',
 
-  // customer-inventory-change.entity.ts, change < 0
+  // hold-inventory-order-change.entity.ts, change < 0
   RELEASED = 'RELEASED',
+
+  // customer-inventory-change.entity.ts, change > 0
+  CUSTOMER_HELD = 'CUSTOMER_HELD',
+
+  // customer-inventory-change.entity.ts, change < 0
+  CUSTOMER_RETURNED = 'CUSTOMER_RETURNED',
 
   // split-ivnentory-change.entity.ts
   SPLITTED = 'SPLITTED',
@@ -52,4 +58,7 @@ export enum ChangeType {
 
   // reclassify-inventory-order-change.entity.ts
   RECLASSIFIED = 'RECLASSIFIED',
+
+  // scrape-order-change.entity.ts
+  SCRAPED = 'SCRAPED',
 }

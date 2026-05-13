@@ -541,6 +541,11 @@ export class StockService<
         'stock."orderId" = customer_change.id',
       )
       .leftJoin(
+        'hold_inventory_order_changes',
+        'hold_change',
+        'stock."orderId" = hold_change.id',
+      )
+      .leftJoin(
         'split_batch_order_changes',
         'split_change',
         'stock."orderId" = split_change.id',
@@ -560,6 +565,11 @@ export class StockService<
         'reclassify_change',
         'stock."orderId" = reclassify_change.id',
       )
+      .leftJoin(
+        'scrape_order_changes',
+        'scrape_change',
+        'stock."orderId" = scrape_change.id',
+      )
       .andWhere(
         `(
           (receive_change.id IS NOT NULL AND receive_change."quantityChanged" * stock.quantity > 0)
@@ -567,10 +577,12 @@ export class StockService<
           OR (transfer_change.id IS NOT NULL AND transfer_change."quantityChanged" * stock.quantity > 0)
           OR (vendor_change.id IS NOT NULL AND vendor_change."quantityChanged" * stock.quantity > 0)
           OR (customer_change.id IS NOT NULL AND customer_change."quantityChanged" * stock.quantity > 0)
+          OR (hold_change.id IS NOT NULL AND hold_change."quantityChanged" * stock.quantity > 0)
           OR (split_change.id IS NOT NULL AND split_change."quantityChanged" * stock.quantity > 0)
           OR (merge_change.id IS NOT NULL AND merge_change."quantityChanged" * stock.quantity > 0)
           OR (allocate_change.id IS NOT NULL AND allocate_change."quantityChanged" * stock.quantity > 0)
           OR (reclassify_change.id IS NOT NULL AND reclassify_change."quantityChanged" * stock.quantity > 0)
+          OR (scrape_change.id IS NOT NULL AND scrape_change."quantityChanged" * stock.quantity > 0)
         )`,
       );
 
@@ -618,7 +630,10 @@ export class StockService<
             CASE WHEN vendor_change."quantityChanged" > 0 THEN '${ChangeType.VENDOR_TRANSFERRED}'
                  ELSE '${ChangeType.VENDOR_RETURNED}' END
           WHEN customer_change.id IS NOT NULL THEN
-            CASE WHEN customer_change."quantityChanged" > 0 THEN '${ChangeType.HELD}'
+            CASE WHEN customer_change."quantityChanged" > 0 THEN '${ChangeType.CUSTOMER_HELD}'
+                 ELSE '${ChangeType.CUSTOMER_RETURNED}' END
+          WHEN hold_change.id IS NOT NULL THEN
+            CASE WHEN hold_change."quantityChanged" > 0 THEN '${ChangeType.HELD}'
                  ELSE '${ChangeType.RELEASED}' END
           WHEN split_change.id IS NOT NULL THEN '${ChangeType.SPLITTED}'
           WHEN merge_change.id IS NOT NULL THEN '${ChangeType.MERGED}'
@@ -626,6 +641,7 @@ export class StockService<
             CASE WHEN allocate_change."quantityChanged" > 0 THEN '${ChangeType.ALLOCATED}'
                  ELSE '${ChangeType.DEALLOCATED}' END
           WHEN reclassify_change.id IS NOT NULL THEN '${ChangeType.RECLASSIFIED}'
+          WHEN scrape_change.id IS NOT NULL THEN '${ChangeType.SCRAPED}'
           ELSE NULL
         END`,
         'changeType',
