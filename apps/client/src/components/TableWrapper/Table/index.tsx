@@ -8,6 +8,7 @@ import {
   TableProps,
   // useTableDataSource,
 } from '@mezzanine-ui/react';
+import { useColumnWidthPersistence } from './useColumnWidthPersistence';
 
 const Table = <T extends TableDataSource>(
   props: TableProps<T> & {
@@ -27,13 +28,18 @@ const Table = <T extends TableDataSource>(
   //   }
   // }, [dataSource, props.dataSource, updateDataSource]);
 
+  const { containerRef, columnsWithWidths } = useColumnWidthPersistence(
+    props.tableKey,
+    props.columns,
+  );
+
   const columns = useMemo(
     (): TableColumnWithMinWidth<T>[] =>
-      props.columns.map((c) => ({
+      columnsWithWidths.map((c) => ({
         ...c,
         minWidth: 40,
       })),
-    [props.columns],
+    [columnsWithWidths],
   );
 
   const actions = useMemo(
@@ -46,24 +52,26 @@ const Table = <T extends TableDataSource>(
   );
 
   return (
-    <MznTable<T>
-      {...props}
-      // dataSource={dataSource}
-      columns={columns}
-      actions={actions}
-      fullWidth
-      resizable
-      emptyProps={{
-        title: '查無資料',
-      }}
-      pagination={{
-        showPageSizeOptions: true,
-        pageSizeLabel: '每頁顯示：',
-        pageSizeOptions: [5, 10, 15, 20],
-        ...props.pagination,
-      }}
-      // transitionState={transitionState}
-    />
+    <div ref={containerRef}>
+      <MznTable<T>
+        {...props}
+        // dataSource={dataSource}
+        columns={columns}
+        actions={actions}
+        fullWidth
+        resizable
+        emptyProps={{
+          title: '查無資料',
+        }}
+        pagination={{
+          showPageSizeOptions: true,
+          pageSizeLabel: '每頁顯示：',
+          pageSizeOptions: [5, 10, 15, 20],
+          ...props.pagination,
+        }}
+        // transitionState={transitionState}
+      />
+    </div>
   );
 };
 
