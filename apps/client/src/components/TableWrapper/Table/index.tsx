@@ -9,7 +9,11 @@ import {
   // useTableDataSource,
 } from '@mezzanine-ui/react';
 
-const Table = <T extends TableDataSource>(props: TableProps<T>) => {
+const Table = <T extends TableDataSource>(
+  props: TableProps<T> & {
+    tableKey: string;
+  },
+) => {
   // const { dataSource, transitionState, updateDataSource } =
   //   useTableDataSource<T>({
   //     initialData: props.dataSource,
