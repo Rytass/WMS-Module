@@ -107,6 +107,7 @@ function InventoryMovementShipTable({
   return (
     <TableWrapper title="出庫單清單">
       <Table<ShipInventoryOrderFragment>
+        tableKey="InventoryMovementShipOrders"
         columns={columns}
         dataSource={dataSource}
         loading={loading}

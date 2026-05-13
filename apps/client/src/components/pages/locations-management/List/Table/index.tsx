@@ -89,6 +89,7 @@ const LocationsManagementListTable: FC<LocationsManagementListTableProps> = ({
         }}
       >
         <Table<LocationFragment>
+          tableKey="Locations"
           columns={columns}
           dataSource={dataSource}
           loading={loading}

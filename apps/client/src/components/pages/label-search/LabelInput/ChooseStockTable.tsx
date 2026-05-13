@@ -78,6 +78,7 @@ const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
 
   return (
     <Table<AggregatedStockFragment>
+      tableKey="ChooseStockTable"
       columns={columns}
       dataSource={dataSource}
       rowState={(source) =>

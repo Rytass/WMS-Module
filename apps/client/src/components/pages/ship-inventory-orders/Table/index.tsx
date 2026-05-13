@@ -105,6 +105,7 @@ function ShipInventoryOrdersTable() {
         }}
       >
         <Table<SimpleShipInventoryOrderFragment>
+          tableKey="ShipInventoryOrders"
           columns={columns}
           dataSource={dataSource}
           loading={loading}

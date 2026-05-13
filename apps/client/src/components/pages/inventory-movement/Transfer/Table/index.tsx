@@ -125,6 +125,7 @@ function InventoryMovementTransferTable({
   return (
     <TableWrapper title="調撥單清單">
       <Table<TransferOrderFragment>
+        tableKey="InventoryMovementTransferOrders"
         columns={columns}
         dataSource={dataSource}
         loading={loading}

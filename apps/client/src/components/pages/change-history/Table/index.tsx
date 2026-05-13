@@ -70,6 +70,7 @@ function ChangeHistoryTable({ currentFilter }: ChangeHistoryTableProps) {
   return (
     <TableWrapper title="異動項目">
       <Table<ChangeLogFragment>
+        tableKey="ChangeLog"
         columns={columns}
         dataSource={dataSource}
         loading={loading}

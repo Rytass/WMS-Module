@@ -109,6 +109,7 @@ function InventoryMovementReceiveTable({
   return (
     <TableWrapper title="入庫單清單">
       <Table<ReceiveInventoryOrderFragment>
+        tableKey="InventoryMovementReceiveOrders"
         columns={columns}
         dataSource={dataSource}
         loading={loading}

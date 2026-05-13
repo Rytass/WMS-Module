@@ -116,6 +116,7 @@ function MaterialsManagementTable({
         }}
       >
         <Table<SimpleMaterialFragment>
+          tableKey="Materials"
           columns={columns}
           dataSource={dataSource}
           loading={loading}

@@ -414,6 +414,7 @@ function InventoryGroupTable({
 
   return (
     <Table<DataType>
+      tableKey="InventoryGroupTable"
       columns={baseColumns}
       dataSource={dataSource}
       rowState={(source) =>
