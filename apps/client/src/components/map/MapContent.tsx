@@ -58,25 +58,18 @@ function MapContent({
         existingLocationKeys.includes(nodeInfo.id),
         editMode,
       );
+    },
+    [existingLocationKeys, onNodeClickProps],
+  );
 
+  const onNodeDoubleClick = useCallback(
+    (nodeInfo: WMSNodeClickInfo) => {
       if (editMode === EditMode.BACKGROUND && nodeInfo.type !== 'imageNode') {
-        if (
-          (viewMode === ViewMode.VIEW &&
-            existingLocationKeys.includes(nodeInfo.id)) ||
-          viewMode === ViewMode.EDIT
-        ) {
-          setCurrentMapKey(nodeInfo.id);
-          setBreadcrumb((prev) => [...prev, nodeInfo.id]);
-        }
+        setCurrentMapKey(nodeInfo.id);
+        setBreadcrumb((prev) => [...prev, nodeInfo.id]);
       }
     },
-    [
-      existingLocationKeys,
-      onNodeClickProps,
-      setBreadcrumb,
-      setCurrentMapKey,
-      viewMode,
-    ],
+    [editMode, setBreadcrumb, setCurrentMapKey],
   );
 
   const handleEditModeChange = useCallback((mode: EditMode) => {
@@ -111,9 +104,11 @@ function MapContent({
         await onSave?.(mapData, currentMapKey);
       }}
       onBreadcrumbClick={onBreadcrumbClick}
+      showBreadcrumbEditButton={() => false}
       onNodeClick={(nodeInfo) => {
         onNodeClick?.(nodeInfo, editMode);
       }}
+      onNodeDoubleClick={onNodeDoubleClick}
       onEditModeChange={handleEditModeChange}
       onToggleRectangleTool={handleToggleRectangleTool}
       onTogglePenTool={handleTogglePenTool}

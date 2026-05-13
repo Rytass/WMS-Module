@@ -53,23 +53,18 @@ function MapModal({
   const onNodeClick = useCallback(
     (nodeInfo: WMSNodeClickInfo) => {
       onNodeClickProps?.(nodeInfo, existingLocationKeys.includes(nodeInfo.id));
+    },
+    [existingLocationKeys, onNodeClickProps],
+  );
 
-      if (
-        (viewMode === ViewMode.VIEW &&
-          existingLocationKeys.includes(nodeInfo.id)) ||
-        viewMode === ViewMode.EDIT
-      ) {
+  const onNodeDoubleClick = useCallback(
+    (nodeInfo: WMSNodeClickInfo) => {
+      if (nodeInfo.type !== 'imageNode') {
         setCurrentMapKey(nodeInfo.id);
         setBreadcrumb((prev) => [...prev, nodeInfo.id]);
       }
     },
-    [
-      existingLocationKeys,
-      onNodeClickProps,
-      setBreadcrumb,
-      setCurrentMapKey,
-      viewMode,
-    ],
+    [setBreadcrumb, setCurrentMapKey],
   );
 
   return (
@@ -81,9 +76,11 @@ function MapModal({
       colorPalette={COLOR_PALETTE}
       onUpload={handleUpload}
       initialNodes={initialNodes}
+      showBreadcrumbEditButton={() => false}
       warehouseIds={breadcrumb}
       onBreadcrumbClick={onBreadcrumbClick}
       onNodeClick={onNodeClick}
+      onNodeDoubleClick={onNodeDoubleClick}
     />
   );
 }
