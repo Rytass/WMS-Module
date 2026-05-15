@@ -78,6 +78,12 @@ export function changeTypeName(type: ChangeType): string {
     case ChangeType.VENDOR_TRANSFERRED:
       return '調撥至供應商';
 
+    case ChangeType.CUSTOMER_RETURNED:
+      return '客戶倉回廠';
+
+    case ChangeType.CUSTOMER_HELD:
+      return 'CUSTOMER_HELD';
+
     case ChangeType.ALLOCATED:
       return '綁定訂單';
 
@@ -95,6 +101,9 @@ export function changeTypeName(type: ChangeType): string {
 
     case ChangeType.IN_SHIPMENT:
       return '出庫';
+
+    case ChangeType.SCRAPED:
+      return '報廢';
 
     default:
       return type;
