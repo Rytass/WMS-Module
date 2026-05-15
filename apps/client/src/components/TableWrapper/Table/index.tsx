@@ -10,11 +10,12 @@ import {
 } from '@mezzanine-ui/react';
 import { useColumnWidthPersistence } from '../../../hooks/useColumnWidthPersistence';
 
-const Table = <T extends TableDataSource>(
-  props: TableProps<T> & {
-    tableKey: string;
-  },
-) => {
+const Table = <T extends TableDataSource>({
+  tableKey,
+  ...props
+}: TableProps<T> & {
+  tableKey: string;
+}) => {
   // const { dataSource, transitionState, updateDataSource } =
   //   useTableDataSource<T>({
   //     initialData: props.dataSource,
@@ -29,7 +30,7 @@ const Table = <T extends TableDataSource>(
   // }, [dataSource, props.dataSource, updateDataSource]);
 
   const { containerRef, columnsWithWidths } = useColumnWidthPersistence(
-    props.tableKey,
+    tableKey,
     props.columns,
   );
 
