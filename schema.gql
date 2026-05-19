@@ -45,6 +45,7 @@ type LoaderDto {
   createdAt: DateTime!
   type: LoaderTypeDto!
   location: LocationDto!
+  totalQuantity: Int!
 }
 
 type Loaders {
