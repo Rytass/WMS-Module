@@ -12,23 +12,6 @@ interface CreateTransferInventoryFieldProps {
   inventoryList: StockInActionsFragment[];
 }
 
-function getBaseQuantity(
-  item: StockInActionsFragment,
-  signature: { quantity: number; unitId: string | null },
-): number {
-  if (signature.unitId) {
-    const conversionFactor = item.material.materialUnits.find(
-      (u) => u.id === signature.unitId,
-    )?.conversionFactor;
-
-    if (conversionFactor) {
-      return signature.quantity * conversionFactor;
-    }
-  }
-
-  return signature.quantity;
-}
-
 function CreateTransferInventoryField({
   inventoryList,
 }: CreateTransferInventoryFieldProps) {
@@ -37,45 +20,47 @@ function CreateTransferInventoryField({
   });
   const { inventorySignature } = useInventoryActions();
 
-  const fullyFilledLoaderIds = useMemo(() => {
-    const loaderMap = new Map<
-      string,
-      { totalQuantity: number; operatedQuantity: number }
-    >();
-
-    for (const item of inventoryList) {
-      if (!item.loader) continue;
+  const fullyFilledLoaders = useMemo(() => {
+    const loaderMap = inventoryList.reduce<
+      Record<
+        string,
+        {
+          loader: { id: string; serialId: string };
+          totalQuantity: number;
+          operatedQuantity: number;
+        }
+      >
+    >((acc, item) => {
+      if (!item.loader) return acc;
 
       const loaderId = item.loader.id;
-
-      if (!loaderMap.has(loaderId)) {
-        loaderMap.set(loaderId, {
-          totalQuantity: item.loader.totalQuantity,
-          operatedQuantity: 0,
-        });
-      }
-
       const signature = inventorySignature[item.id];
+      const conversionFactor = signature?.unitId
+        ? (item.material.materialUnits.find((u) => u.id === signature.unitId)
+            ?.conversionFactor ?? 1)
+        : 1;
 
-      if (signature) {
-        loaderMap.get(loaderId)!.operatedQuantity += getBaseQuantity(
-          item,
-          signature,
-        );
-      }
-    }
+      return {
+        ...acc,
+        [loaderId]: {
+          loader: { id: item.loader.id, serialId: item.loader.serialId },
+          totalQuantity: item.loader.totalQuantity,
+          operatedQuantity:
+            (acc[loaderId]?.operatedQuantity ?? 0) +
+            (signature?.quantity ?? 0) * conversionFactor,
+        },
+      };
+    }, {});
 
-    return new Set(
-      [...loaderMap.entries()]
-        .filter(
-          ([, { totalQuantity, operatedQuantity }]) =>
-            operatedQuantity >= totalQuantity,
-        )
-        .map(([id]) => id),
-    );
+    return Object.values(loaderMap)
+      .filter(
+        ({ totalQuantity, operatedQuantity }) =>
+          operatedQuantity === totalQuantity,
+      )
+      .map(({ loader }) => loader);
   }, [inventoryList, inventorySignature]);
 
-  console.log('fullyFilledLoaderIds', fullyFilledLoaderIds);
+  console.log('fullyFilledLoaders', fullyFilledLoaders);
 
   return (
     <div className={classes.host}>
