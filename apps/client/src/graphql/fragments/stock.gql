@@ -48,8 +48,14 @@ fragment StockInActions on AggregatedStockDto {
   id
   key: id
   quantity
+  transferId
+  held
+  inShipment
   saleId
   saleSerialId
+  customerId
+  vendorId
+  inspectionResult
   status
   material {
     ...SimpleMaterial

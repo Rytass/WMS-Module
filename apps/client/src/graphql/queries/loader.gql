@@ -44,6 +44,12 @@ query Loaders(
   }
 }
 
+query AvailableLoaders($locationId: ID) {
+  availableLoaders(locationId: $locationId) {
+    ...Loader
+  }
+}
+
 query LoaderOptions(
   $offset: Int
   $limit: Int
