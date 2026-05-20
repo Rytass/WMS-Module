@@ -2,13 +2,24 @@ import { useWatch } from 'react-hook-form';
 import LocationsField from '../../../fields/LocationsField';
 import LoadersField from '../../../fields/LoadersField';
 import InputField from '../../../fields/InputField';
+import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
+import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { CreateTransferInventoryFieldValues } from './typing';
 import classes from './index.module.scss';
 
-function CreateTransferInventoryField() {
+interface CreateTransferInventoryFieldProps {
+  inventoryList: StockInActionsFragment[];
+}
+
+function CreateTransferInventoryField({
+  inventoryList,
+}: CreateTransferInventoryFieldProps) {
   const location = useWatch<CreateTransferInventoryFieldValues, 'location'>({
     name: 'location',
   });
+  const { inventorySignature } = useInventoryActions();
+
+  console.log('inventoryList', inventoryList, inventorySignature);
 
   return (
     <div className={classes.host}>

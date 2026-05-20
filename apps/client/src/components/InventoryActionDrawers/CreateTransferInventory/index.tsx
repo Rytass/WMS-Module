@@ -43,7 +43,7 @@ const CreateTransferInventory: FC<CreateTransferInventoryProps> = ({
     >
       <div className={classes.wrapper}>
         <div className={classes.fieldsWrapper}>
-          <CreateTransferInventoryField />
+          <CreateTransferInventoryField inventoryList={inventoryList} />
         </div>
         <InventoryGrid
           inventoryList={inventoryList}

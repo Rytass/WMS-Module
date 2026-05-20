@@ -28,7 +28,7 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
   const additionalFields = useMemo(() => {
     switch (targetAction?.id) {
       case InventoryActions.CreateTransferInventory:
-        return <CreateTransferInventoryField />;
+        return <CreateTransferInventoryField inventoryList={inventoryList} />;
 
       case InventoryActions.AllocateInventory:
         return <AllocateInventoryField />;
