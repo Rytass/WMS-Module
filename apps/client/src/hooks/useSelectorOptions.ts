@@ -60,6 +60,11 @@ export function useFetchAllOptions<T>({
       if (open && page === 0) {
         setPage(1);
       }
+
+      if (!open) {
+        setPage(0);
+        setOptions([]);
+      }
     },
     [page],
   );
@@ -148,7 +153,7 @@ export function useFetchMoreOptions<T>({
   useEffect(() => {
     if (!isEqual(otherArgs, preOtherArgs)) {
       setCurrentOtherArgs(otherArgs ?? {});
-      setPage(1);
+      setPage(0);
       setIsEnd(false);
       setOptions([]);
     }
@@ -158,6 +163,12 @@ export function useFetchMoreOptions<T>({
     (open: boolean) => {
       if (open && page === 0) {
         setPage(1);
+      }
+
+      if (!open) {
+        setPage(0);
+        setOptions([]);
+        setIsEnd(false);
       }
     },
     [page],
@@ -177,7 +188,7 @@ export function useFetchMoreOptions<T>({
   );
 
   const onClear = useCallback(() => {
-    setOptions([]);
+    // setOptions([]);
   }, []);
 
   const onReachBottom = useCallback(() => {
