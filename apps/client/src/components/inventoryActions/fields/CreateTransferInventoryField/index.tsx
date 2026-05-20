@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
 import LocationsField from '../../../fields/LocationsField';
 import LoadersField from '../../../fields/LoadersField';
@@ -11,6 +12,23 @@ interface CreateTransferInventoryFieldProps {
   inventoryList: StockInActionsFragment[];
 }
 
+function getBaseQuantity(
+  item: StockInActionsFragment,
+  signature: { quantity: number; unitId: string | null },
+): number {
+  if (signature.unitId) {
+    const conversionFactor = item.material.materialUnits.find(
+      (u) => u.id === signature.unitId,
+    )?.conversionFactor;
+
+    if (conversionFactor) {
+      return signature.quantity * conversionFactor;
+    }
+  }
+
+  return signature.quantity;
+}
+
 function CreateTransferInventoryField({
   inventoryList,
 }: CreateTransferInventoryFieldProps) {
@@ -19,7 +37,45 @@ function CreateTransferInventoryField({
   });
   const { inventorySignature } = useInventoryActions();
 
-  console.log('inventoryList', inventoryList, inventorySignature);
+  const fullyFilledLoaderIds = useMemo(() => {
+    const loaderMap = new Map<
+      string,
+      { totalQuantity: number; operatedQuantity: number }
+    >();
+
+    for (const item of inventoryList) {
+      if (!item.loader) continue;
+
+      const loaderId = item.loader.id;
+
+      if (!loaderMap.has(loaderId)) {
+        loaderMap.set(loaderId, {
+          totalQuantity: item.loader.totalQuantity,
+          operatedQuantity: 0,
+        });
+      }
+
+      const signature = inventorySignature[item.id];
+
+      if (signature) {
+        loaderMap.get(loaderId)!.operatedQuantity += getBaseQuantity(
+          item,
+          signature,
+        );
+      }
+    }
+
+    return new Set(
+      [...loaderMap.entries()]
+        .filter(
+          ([, { totalQuantity, operatedQuantity }]) =>
+            operatedQuantity >= totalQuantity,
+        )
+        .map(([id]) => id),
+    );
+  }, [inventoryList, inventorySignature]);
+
+  console.log('fullyFilledLoaderIds', fullyFilledLoaderIds);
 
   return (
     <div className={classes.host}>
