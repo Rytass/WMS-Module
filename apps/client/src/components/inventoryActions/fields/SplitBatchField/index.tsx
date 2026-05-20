@@ -2,12 +2,12 @@ import { useCallback } from 'react';
 import { useFieldArray } from 'react-hook-form';
 import { Typography, Button } from '@mezzanine-ui/react';
 import SplitBatchFieldArray from './SplitBatchFieldArray';
-import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
 import { SplitBatchFieldValues } from './typing';
 import classes from './index.module.scss';
 
 interface SplitBatchFieldProps {
-  inventory?: AggregatedStockFragment;
+  inventory?: StockInActionsFragment;
 }
 
 function SplitBatchField({ inventory }: SplitBatchFieldProps) {

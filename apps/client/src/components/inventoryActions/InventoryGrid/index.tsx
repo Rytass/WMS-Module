@@ -1,12 +1,12 @@
 import { Typography, cx } from '@mezzanine-ui/react';
 import { uniq } from 'lodash';
 import InventoryCard from './InventoryCard';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 import Loading from '../../Loading';
 import classes from './index.module.scss';
 
 interface InventoryGridProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
   haveTitle?: boolean;
   expandedLayout?: boolean;

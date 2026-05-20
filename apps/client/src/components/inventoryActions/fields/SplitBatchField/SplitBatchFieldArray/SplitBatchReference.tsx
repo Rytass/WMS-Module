@@ -6,7 +6,7 @@ import {
   DescriptionContent,
 } from '@mezzanine-ui/react';
 import { WarningFilledIcon } from '@mezzanine-ui/icons';
-import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../../graphql/generated/.graphql';
 import {
   useInventoryActions,
   useInventorySignature,
@@ -14,7 +14,7 @@ import {
 import classes from './index.module.scss';
 
 interface SplitBatchReferenceProps {
-  inventory: AggregatedStockFragment;
+  inventory: StockInActionsFragment;
   remainingQuantity: number;
 }
 
