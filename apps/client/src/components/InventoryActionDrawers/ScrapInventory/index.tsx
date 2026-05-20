@@ -1,12 +1,12 @@
 import { useForm } from 'react-hook-form';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import { useScrapInventory } from '../../inventoryActions/useApi';
 
 interface ScrapInventoryProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;

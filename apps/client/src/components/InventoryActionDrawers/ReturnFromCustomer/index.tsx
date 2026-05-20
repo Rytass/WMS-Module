@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import ReturnFromCustomerField from '../../inventoryActions/fields/ReturnFromCustomerField';
 import { defaultValues } from '../../inventoryActions/fields/ReturnFromCustomerField/defaultValues';
@@ -12,7 +12,7 @@ import { useReturnCustomer } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface ReturnFromCustomerProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;
