@@ -7,6 +7,7 @@ import {
   StocksGroupedByMaterialDocument,
   AggregatedStocksDocument,
   AggregatedStocksForInventoryActionsDocument,
+  AvailableLoadersDocument,
   CreateTransferOrderDocument,
   CreateHoldInventoryOrderDocument,
   ReleaseDocument,
@@ -68,6 +69,20 @@ export function useQueryInventoryList(ids: string[]) {
       fetchPolicy: 'cache-and-network',
     },
   );
+
+  return {
+    data,
+    loading,
+  };
+}
+
+export function useQueryAvailableLoaders(locationId?: string) {
+  const { data, loading } = useQuery(AvailableLoadersDocument, {
+    variables: {
+      locationId,
+    },
+    fetchPolicy: 'cache-and-network',
+  });
 
   return {
     data,

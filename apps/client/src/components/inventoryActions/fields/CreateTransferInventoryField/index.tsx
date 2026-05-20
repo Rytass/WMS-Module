@@ -7,6 +7,7 @@ import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { useFullyFilledLoadersByInventoryList } from '../../../../hooks/useFullyFilledLoadersByInventoryList';
 import { CreateTransferInventoryFieldValues } from './typing';
+import { useQueryAvailableLoaders } from '../../useApi';
 import classes from './index.module.scss';
 
 interface CreateTransferInventoryFieldProps {
@@ -20,13 +21,32 @@ function CreateTransferInventoryField({
     name: 'location',
   });
   const { inventorySignature } = useInventoryActions();
+  const { data } = useQueryAvailableLoaders(location?.id);
+
+  const availableLoaders = useMemo(
+    () => data?.availableLoaders ?? [],
+    [data?.availableLoaders],
+  );
 
   const fullyFilledLoaders = useFullyFilledLoadersByInventoryList({
     inventoryList,
     inventorySignature,
   });
 
-  console.log('fullyFilledLoaders', fullyFilledLoaders);
+  const loaderOptions = useMemo(() => {
+    return [
+      ...availableLoaders.map((l) => ({
+        id: l.id,
+        name: l.serialId,
+      })),
+      ...fullyFilledLoaders.map((l) => ({
+        id: l.id,
+        name: l.serialId,
+      })),
+    ];
+  }, [availableLoaders, fullyFilledLoaders]);
+
+  console.log('loaderOptions', loaderOptions);
 
   return (
     <div className={classes.host}>
