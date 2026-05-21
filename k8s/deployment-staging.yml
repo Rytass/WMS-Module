@@ -49,12 +49,12 @@ spec:
           imagePullPolicy: Always
           resources:
             requests:
-              memory: 128Mi
-              cpu: 100m
+              memory: 256Mi
+              cpu: 250m
               ephemeral-storage: 2Gi
             limits:
-              memory: 384Mi
-              cpu: 200m
+              memory: 1Gi
+              cpu: 1000m
               ephemeral-storage: 2Gi
           env:
             - name: VAULT_HOST
@@ -97,12 +97,12 @@ spec:
           imagePullPolicy: Always
           resources:
             requests:
-              memory: 128Mi
-              cpu: 100m
-              ephemeral-storage: 2Gi
-            limits:
               memory: 256Mi
               cpu: 200m
+              ephemeral-storage: 2Gi
+            limits:
+              memory: 768Mi
+              cpu: 800m
               ephemeral-storage: 2Gi
           env:
             - name: PORT
