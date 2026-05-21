@@ -44,7 +44,7 @@ spec:
           persistentVolumeClaim:
             claimName: wms-module-api-pvc
       containers:
-        - image: asia-east1-docker.pkg.dev/develop-server/wms-module/api:v0.0.0 # Tag is updated by CI/CD
+        - image: asia-east1-docker.pkg.dev/develop-server/wms-module/api:v0.0.33 # Tag is updated by CI/CD
           name: api
           imagePullPolicy: Always
           resources:
@@ -92,7 +92,7 @@ spec:
             - name: wms-module-api-storage
               mountPath: /app/storage
 
-        - image: asia-east1-docker.pkg.dev/develop-server/wms-module/client:v0.0.0 # Tag is updated by CI/CD
+        - image: asia-east1-docker.pkg.dev/develop-server/wms-module/client:v0.0.33 # Tag is updated by CI/CD
           name: client
           imagePullPolicy: Always
           resources:
