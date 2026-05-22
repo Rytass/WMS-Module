@@ -7,6 +7,7 @@ import { WmsModuleGraphqlModule } from '@wms-module/graphql';
 import { ApolloDriver } from '@nestjs/apollo';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { resolve } from 'path';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { resolve } from 'path';
         }),
       },
     ),
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
