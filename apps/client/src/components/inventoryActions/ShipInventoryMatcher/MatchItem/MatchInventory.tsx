@@ -7,12 +7,12 @@ import {
 import { Select } from '@mezzanine-ui/react';
 import FormField from '@mezzanine-ui/react/Form/FormField';
 import NumberInputField from '../../../fields/NumberInputField';
-import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
 import { getQuantityWithUnitId, getSaleInformation } from '../../utils';
 import classes from './index.module.scss';
 
 interface MatchInventoryProps {
-  inventory: AggregatedStockFragment;
+  inventory: StockInActionsFragment;
   index: number;
   serialId: string;
   unitId?: string | null;

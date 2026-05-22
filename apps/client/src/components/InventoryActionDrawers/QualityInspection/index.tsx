@@ -3,7 +3,7 @@ import { DangerousOutlineIcon } from '@mezzanine-ui/icons';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import QualityInspectionField from '../../inventoryActions/fields/QualityInspectionField';
 import { defaultValues } from '../../inventoryActions/fields/QualityInspectionField/defaultValues';
@@ -13,7 +13,7 @@ import { useQualityInspection } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface QualityInspectionProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;

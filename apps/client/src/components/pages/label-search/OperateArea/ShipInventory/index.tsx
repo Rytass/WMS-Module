@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
@@ -11,7 +11,7 @@ import { FormValues } from './typing';
 import { useShipInventory } from '../../../../inventoryActions/useApi';
 
 interface ShipInventoryProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
 }
 

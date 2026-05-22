@@ -1,11 +1,11 @@
 import { Typography } from '@mezzanine-ui/react';
 import InventoryCard from '../InventoryGrid/InventoryCard';
 import Loading from '../../Loading';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 import classes from './index.module.scss';
 
 interface SplitTargetProps {
-  inventory?: AggregatedStockFragment;
+  inventory?: StockInActionsFragment;
   loading: boolean;
 }
 

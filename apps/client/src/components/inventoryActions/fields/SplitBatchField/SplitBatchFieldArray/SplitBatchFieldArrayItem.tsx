@@ -2,7 +2,7 @@ import { FieldArrayWithId, UseFieldArrayUpdate } from 'react-hook-form';
 import { Typography, Button, cx } from '@mezzanine-ui/react';
 import { FormFieldLayout } from '@mezzanine-ui/core/form';
 import { TrashIcon } from '@mezzanine-ui/icons';
-import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../../graphql/generated/.graphql';
 import { useInventorySignature } from '../../../useInventoryActions';
 import InputField from '../../../../fields/InputField';
 import NumberInputField from '../../../../fields/NumberInputField';
@@ -14,7 +14,7 @@ interface SplitBatchFieldArrayItemProps {
   field: FieldArrayWithId<SplitBatchFieldValues, 'items', 'id'>;
   update: UseFieldArrayUpdate<SplitBatchFieldValues, 'items'>;
   remove: VoidFunction;
-  inventory: AggregatedStockFragment;
+  inventory: StockInActionsFragment;
 }
 
 const SplitBatchFieldArrayItem: FC<SplitBatchFieldArrayItemProps> = ({

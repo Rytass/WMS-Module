@@ -45,6 +45,7 @@ type LoaderDto {
   createdAt: DateTime!
   type: LoaderTypeDto!
   location: LocationDto!
+  totalQuantity: Int!
 }
 
 type Loaders {
@@ -543,6 +544,7 @@ type Query {
   loaderType(id: ID!): LoaderTypeDto!
   loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, dateRange: DateRangeArgs, key: String): LoaderTypes!
   loaderUnits(type: LoaderUnit!): [LoaderUnitDto!]!
+  availableLoaders(locationId: ID): [LoaderDto!]!
   material(id: ID, key: String): MaterialDto!
   materials(offset: Int, limit: Int, key: String, description: String): Materials!
   batches(offset: Int, limit: Int, key: String, materialId: ID): Batches!

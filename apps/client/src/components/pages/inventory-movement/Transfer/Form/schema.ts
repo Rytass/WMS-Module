@@ -19,6 +19,23 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
 
             return value <= max;
           })
+          .test(
+            'must-full-quantity',
+            '來源載具與目標載具相同，必須執行全部數量',
+            function (value) {
+              const { loader, targetTransferredQuantity, transferredQuantity } =
+                this.parent;
+              const targetLoaderId = this.options.context?.targetLoaderId;
+
+              if (!targetLoaderId || !loader || loader.id !== targetLoaderId) {
+                return true;
+              }
+
+              const remaining = targetTransferredQuantity - transferredQuantity;
+
+              return value === remaining;
+            },
+          )
           .required('必填'),
         targetTransferredQuantity: Yup.number().required('必填'),
         transferredQuantity: Yup.number().required('必填'),

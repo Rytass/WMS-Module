@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { DangerousOutlineIcon } from '@mezzanine-ui/icons';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
@@ -11,7 +11,7 @@ import { FormValues } from './typing';
 import { useQualityInspection } from '../../../../inventoryActions/useApi';
 
 interface QualityInspectionProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
 }
 

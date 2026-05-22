@@ -1,5 +1,5 @@
 import {
-  AggregatedStockFragment,
+  StockInActionsFragment,
   ShipInventoryOrderReferenceFragment,
 } from '../../../graphql/generated/.graphql';
 
@@ -7,7 +7,7 @@ export function matchInventoryToReference({
   inventory,
   reference,
 }: {
-  inventory: AggregatedStockFragment;
+  inventory: StockInActionsFragment;
   reference: ShipInventoryOrderReferenceFragment;
 }) {
   let condition = reference.material.key === inventory.material.key;

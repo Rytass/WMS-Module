@@ -2,7 +2,7 @@ import { useMemo, ReactNode } from 'react';
 import { Typography, Button, Empty, cx } from '@mezzanine-ui/react';
 import SectionWrapper from '../../../SectionWrapper';
 import { useDialog } from '../../../dialog/useDialog';
-import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import InventoryGrid from '../../../inventoryActions/InventoryGrid';
 import { haveAdditionalFields } from '../../../inventoryActions/utils';
@@ -10,7 +10,7 @@ import AdditionalBlock from './AdditionalBlock';
 import classes from './index.module.scss';
 
 interface HostSectionProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
   customizedMainBlock?: ReactNode;
   onlySelectUnit?: boolean;
