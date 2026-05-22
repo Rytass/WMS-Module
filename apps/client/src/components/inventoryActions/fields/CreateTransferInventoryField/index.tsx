@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useWatch } from 'react-hook-form';
+import { useEffect, useMemo } from 'react';
+import { useWatch, useFormContext } from 'react-hook-form';
 import { unionBy } from 'lodash';
 import LocationsField from '../../../fields/LocationsField';
 import SingleAutoCompleteField from '../../../fields/SingleAutoCompleteField';
@@ -18,6 +18,7 @@ interface CreateTransferInventoryFieldProps {
 function CreateTransferInventoryField({
   inventoryList,
 }: CreateTransferInventoryFieldProps) {
+  const { setValue } = useFormContext<CreateTransferInventoryFieldValues>();
   const location = useWatch<CreateTransferInventoryFieldValues, 'location'>({
     name: 'location',
   });
@@ -49,6 +50,10 @@ function CreateTransferInventoryField({
       'id',
     );
   }, [availableLoaders, fullyFilledLoaders]);
+
+  useEffect(() => {
+    setValue('loader', null);
+  }, [loaderOptions.length, setValue]);
 
   return (
     <div className={classes.host}>
