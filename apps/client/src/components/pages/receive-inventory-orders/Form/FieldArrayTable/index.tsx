@@ -16,7 +16,7 @@ import SingleSelectByIdField from '../../../../fields/SingleSelectByIdField';
 import YesNoField from '../../../../fields/YesNoField';
 import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
-import LoadersField from '../../../../fields/LoadersField';
+import AvailableLoadersField from '../../../../fields/AvailableLoadersField';
 import { yesNoName } from '../../../../../utils/share';
 import { FormValues, ItemFieldValues } from '../typing';
 
@@ -200,7 +200,7 @@ const FieldArrayTable: FC<FieldArrayTableProps> = ({
       render: (source, index) => {
         if (source.isExisted && !viewMode) {
           return (
-            <LoadersField
+            <AvailableLoadersField
               name={`items.${index}.loader`}
               label=""
               placeholder="輸入目標載具"
