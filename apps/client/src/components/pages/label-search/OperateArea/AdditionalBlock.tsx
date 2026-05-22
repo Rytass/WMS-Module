@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Typography, Empty } from '@mezzanine-ui/react';
 import SectionWrapper from '../../../SectionWrapper';
-import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import CreateTransferInventoryField from '../../../inventoryActions/fields/CreateTransferInventoryField';
 import AllocateInventoryField from '../../../inventoryActions/fields/AllocateInventoryField';
@@ -18,7 +18,7 @@ import { InventoryActions } from '../../../inventoryActions/utils';
 import classes from './index.module.scss';
 
 interface AdditionalBlockProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
 }
 
@@ -28,7 +28,7 @@ const AdditionalBlock: FC<AdditionalBlockProps> = ({ inventoryList }) => {
   const additionalFields = useMemo(() => {
     switch (targetAction?.id) {
       case InventoryActions.CreateTransferInventory:
-        return <CreateTransferInventoryField />;
+        return <CreateTransferInventoryField inventoryList={inventoryList} />;
 
       case InventoryActions.AllocateInventory:
         return <AllocateInventoryField />;

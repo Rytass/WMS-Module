@@ -10,7 +10,7 @@ import {
 import { FilterValues } from '../../../../components/pages/inventory-list/typing';
 import {
   ShipInventoryOrderReferenceFragment,
-  AggregatedStockFragment,
+  StockInActionsFragment,
 } from '../../../../graphql/generated/.graphql';
 import MatchInventory from './MatchInventory';
 import {
@@ -23,7 +23,7 @@ import classes from './index.module.scss';
 
 interface MatchItemProps {
   reference: ShipInventoryOrderReferenceFragment;
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   haveFilterButton?: boolean;
   setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
   onClose?: VoidFunction;

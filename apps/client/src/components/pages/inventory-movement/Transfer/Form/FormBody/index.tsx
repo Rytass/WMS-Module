@@ -46,6 +46,7 @@ function InventoryMovementTransferFormBody({
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),
     defaultValues,
+    context: { targetLoaderId: targetLoader?.id },
   });
 
   const onSubmit = useCallback(

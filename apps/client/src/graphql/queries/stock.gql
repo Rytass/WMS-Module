@@ -106,7 +106,7 @@ query AggregatedStocksForInventoryActions($ids: [ID!], $status: StockStatus) {
   aggregatedStocks(offset: null, limit: null, ids: $ids, status: $status) {
     id
     items {
-      ...AggregatedStock
+      ...StockInActions
     }
     total
   }

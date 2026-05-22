@@ -16,7 +16,7 @@ import {
   cx,
 } from '@mezzanine-ui/react';
 import { TrashIcon, ErrorFilledIcon } from '@mezzanine-ui/icons';
-import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
 import {
   useInventoryActions,
   useInventorySignature,
@@ -25,7 +25,7 @@ import { BASE_UNIT } from '../../../../utils/share';
 import classes from './index.module.scss';
 
 interface InventoryCardProps {
-  inventory: AggregatedStockFragment;
+  inventory: StockInActionsFragment;
   onlySelectUnit?: boolean;
   notUpdateError?: boolean;
   isAllSameMaterial?: boolean;

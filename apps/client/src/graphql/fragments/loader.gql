@@ -27,3 +27,18 @@ fragment Loader on LoaderDto {
     ...SimpleLocation
   }
 }
+
+fragment LoaderWithTotal on LoaderDto {
+  id
+  serialId
+  note
+  isActive
+  createdAt
+  totalQuantity
+  type {
+    ...LoaderType
+  }
+  location {
+    ...SimpleLocation
+  }
+}

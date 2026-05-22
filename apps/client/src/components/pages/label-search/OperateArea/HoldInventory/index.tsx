@@ -1,12 +1,12 @@
 import { useForm } from 'react-hook-form';
-import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../../graphql/generated/.graphql';
 import { FormWrapper } from '../../../../fields/FormWrapper';
 import { useHoldInventory } from '../../../../inventoryActions/useApi';
 import { useShareFooterProps } from '../../hooks';
 import HostSection from '../HostSection';
 
 interface HoldInventoryProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
 }
 
