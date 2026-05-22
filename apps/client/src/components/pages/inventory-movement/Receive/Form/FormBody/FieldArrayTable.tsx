@@ -10,7 +10,7 @@ import { getUnitName } from '../../../../../inventoryActions/utils';
 import NumberInputField from '../../../../../fields/NumberInputField';
 import BatchesField from '../../../../../fields/BatchesField';
 import LocationsField from '../../../../../fields/LocationsField';
-import LoadersField from '../../../../../fields/LoadersField';
+import AvailableLoadersField from '../../../../../fields/AvailableLoadersField';
 import SingleSelectByIdField from '../../../../../fields/SingleSelectByIdField';
 import { YesOrNo } from '../../../../../../utils/share';
 import { FormValues, FieldArrayItem } from '../typing';
@@ -193,7 +193,7 @@ const FieldArrayTable: FC = () => {
       minWidth: 160,
       render: (source, index) => {
         return (
-          <LoadersField
+          <AvailableLoadersField
             name={`items.${index}.loader`}
             label=""
             placeholder="輸入目標載具"

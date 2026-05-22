@@ -10,7 +10,7 @@ import NumberInputField from '../../../../fields/NumberInputField';
 import MaterialsField from '../../../../fields/MaterialsField';
 import BatchesField from '../../../../fields/BatchesField';
 import LocationsField from '../../../../fields/LocationsField';
-import LoadersField from '../../../../fields/LoadersField';
+import AvailableLoadersField from '../../../../fields/AvailableLoadersField';
 import { YesOrNo } from '../../../../../utils/share';
 import { getMaterialUnitOptions } from '../../../../inventoryActions/utils';
 import { useLazyQueryMaterial } from '../useApi';
@@ -104,7 +104,7 @@ const AddFields: FC<AddFieldsProps> = ({ onCreate }) => {
             fuzzySearch={false}
             selectValueMode
           />
-          <LoadersField
+          <AvailableLoadersField
             name="loader"
             label="目標載具"
             fuzzySearch={false}
