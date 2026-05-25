@@ -15,12 +15,12 @@ import { useQueryMapData } from './useApi';
 
 export async function uploadFile(
   file: File,
-): Promise<{ data: { id: string }; status: number; statusText: string }> {
+): Promise<{ data: { id: string } }> {
   const formData = new FormData();
 
   formData.append('file', file, encodeURI(file.name));
 
-  return axios.post('/files/upload', formData);
+  return axios.post('/api/files/upload', formData);
 }
 
 interface MapContentProps {
@@ -123,9 +123,7 @@ function MapContent({
 
         const res = await uploadFile(file);
 
-        console.log('res', res);
-
-        return `/files/get/${res.data.id}`;
+        return `/api/files/get/${res.data.id}`;
       }),
     );
 

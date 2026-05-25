@@ -21,12 +21,12 @@ const nextConfig = {
       destination: `${API_URL}/graphql`,
     },
     {
-      source: '/files/upload',
-      destination: `${API_URL}/files/upload`,
+      source: '/api/files/upload',
+      destination: `${API_URL}/api/files/upload`,
     },
     {
-      source: '/files/get/:key*',
-      destination: `${API_URL}/files/get/:key*`,
+      source: '/api/files/get/:key*',
+      destination: `${API_URL}/api/files/get/:key*`,
     },
   ],
   transpilePackages: [
