@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
 import {
   WMSMapModalContent,
   EditMode,
@@ -12,16 +11,7 @@ import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
 import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
-
-export async function uploadFile(
-  file: File,
-): Promise<{ data: { id: string } }> {
-  const formData = new FormData();
-
-  formData.append('file', file, encodeURI(file.name));
-
-  return axios.post('/api/files/upload', formData);
-}
+import { uploadFile } from '../../utils/upload';
 
 interface MapContentProps {
   viewMode?: ViewMode;
