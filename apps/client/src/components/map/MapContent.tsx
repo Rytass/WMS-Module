@@ -107,10 +107,6 @@ function MapContent({
   const handleUpload = useCallback(async (files: File[]): Promise<string[]> => {
     const urls = await Promise.all(
       files.map(async (file) => {
-        const formData = new FormData();
-
-        formData.append('file', file);
-
         const res = await uploadFile(file);
 
         return `/api/files/get/${res.data.id}`;
