@@ -11,6 +11,7 @@ import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
 import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
+import { uploadFile } from '../../utils/upload';
 
 interface MapContentProps {
   viewMode?: ViewMode;
@@ -104,7 +105,15 @@ function MapContent({
   }, []);
 
   const handleUpload = useCallback(async (files: File[]): Promise<string[]> => {
-    return files.map((file) => URL.createObjectURL(file));
+    const urls = await Promise.all(
+      files.map(async (file) => {
+        const res = await uploadFile(file);
+
+        return `/api/files/get/${res.data.id}`;
+      }),
+    );
+
+    return urls;
   }, []);
 
   return (

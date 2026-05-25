@@ -8677,6 +8677,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"api@workspace:apps/api":
+  version: 0.0.0-use.local
+  resolution: "api@workspace:apps/api"
+  dependencies:
+    "@as-integrations/express5": "npm:^1.1.2"
+    pg: "npm:^8.16.3"
+  languageName: unknown
+  linkType: soft
+
 "app-root-path@npm:^3.1.0":
   version: 3.1.0
   resolution: "app-root-path@npm:3.1.0"
