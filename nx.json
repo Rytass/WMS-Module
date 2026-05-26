@@ -39,6 +39,32 @@
     ],
     "sharedGlobals": []
   },
+  "release": {
+    "projects": ["core", "graphql"],
+    "projectsRelationship": "independent",
+    "releaseTagPattern": "{projectName}@{version}",
+    "version": {
+      "conventionalCommits": true,
+      "preserveLocalDependencyProtocols": true,
+      "preserveMatchingDependencyRanges": false,
+      "updateDependents": "auto",
+      "generatorOptions": {
+        "currentVersionResolver": "git-tag",
+        "fallbackCurrentVersionResolver": "disk"
+      }
+    },
+    "changelog": {
+      "workspaceChangelog": false,
+      "projectChangelogs": {
+        "createRelease": "github",
+        "renderOptions": {
+          "authors": true,
+          "commitReferences": true,
+          "versionTitleDate": true
+        }
+      }
+    }
+  },
   "plugins": [
     {
       "plugin": "@nx/js/typescript",
