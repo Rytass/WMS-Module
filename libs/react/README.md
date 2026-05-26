@@ -108,6 +108,18 @@ All typed mutations / queries / fragments are pre-generated as `TypedDocumentNod
 import { useLoadersQuery, AggregatedStockFragment } from '@rytass/wms-module-react';
 ```
 
+## Known issues for standalone consumers
+
+`@mezzanine-ui/react` (a peer dependency) ships JavaScript files written in ESM syntax but does **not** set `"type": "module"` in its `package.json`, and its files import lodash subpaths without explicit `.js` extensions (e.g. `import compact from 'lodash/compact'`). This combination fails Node's ESM resolver when this lib (which is `"type": "module"`) imports Mezzanine UI at SSR time on a fresh npm-installed Next.js app.
+
+The Rytass internal monorepo does not hit this because `apps/client` builds the lib from source through a `tsconfig` path alias — Next.js's webpack therefore transpiles Mezzanine UI alongside the consumer code, and webpack's resolver tolerates the missing extensions. For a standalone consumer that `npm install`s us, you currently need one of:
+
+- Use yarn workspaces with hoisting and run the consumer through Nx (mirrors the Rytass setup).
+- Wait for Mezzanine UI to publish a corrected ESM build.
+- Pre-bundle Mezzanine UI into the consumer's app using `next.config.js` `transpilePackages` plus a custom webpack `resolve.extensionAlias` (still does not fully cover the SSR `next start` page-data-collection step).
+
+Track upstream progress via the [Mezzanine UI repo](https://github.com/mezzanine-ui/mezzanine).
+
 ## Generic hooks
 
 `useColumnWidthPersistence`, `useFormCancel`, `usePreviousValue`, `useRoutes`, `useFetchAllOptions`, `useFetchMoreOptions`, `useInsertOption`, `useSortTable`, `useTablePageState`, `useTablePageTotal` — useful for custom screens that follow the same conventions as the bundled pages.
