@@ -6591,36 +6591,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rytass/wms-module-core@workspace:libs/core":
-  version: 0.0.0-use.local
-  resolution: "@rytass/wms-module-core@workspace:libs/core"
-  dependencies:
-    "@rytass/wms-base-nestjs-module": "npm:0.1.11"
-  peerDependencies:
-    "@nestjs/common": ^11.0.0
-    "@nestjs/typeorm": ^11.0.0
-    reflect-metadata: ^0.1.13 || ^0.2.0
-    rxjs: ^7.8.0
-    typeorm: ^0.3.0
-  languageName: unknown
-  linkType: soft
-
-"@rytass/wms-module-graphql@workspace:libs/graphql":
-  version: 0.0.0-use.local
-  resolution: "@rytass/wms-module-graphql@workspace:libs/graphql"
-  dependencies:
-    dataloader: "npm:^2.2.3"
-  peerDependencies:
-    "@nestjs/apollo": ^13.0.0
-    "@nestjs/common": ^11.0.0
-    "@nestjs/graphql": ^13.0.0
-    "@rytass/wms-module-core": ^0.0.0
-    graphql: ^16.0.0
-    reflect-metadata: ^0.1.13 || ^0.2.0
-    rxjs: ^7.8.0
-  languageName: unknown
-  linkType: soft
-
 "@sinclair/typebox@npm:^0.27.8":
   version: 0.27.8
   resolution: "@sinclair/typebox@npm:0.27.8"

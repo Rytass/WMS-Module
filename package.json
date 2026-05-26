@@ -63,8 +63,7 @@
   },
   "workspaces": [
     "packages/*",
-    "apps/*",
-    "libs/*"
+    "apps/*"
   ],
   "packageManager": "yarn@4.12.0",
   "dependencies": {
