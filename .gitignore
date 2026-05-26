@@ -5,6 +5,16 @@ dist
 tmp
 out-tsc
 
+# library build artefacts (emitted alongside source)
+libs/*/index.cjs.js
+libs/*/index.js
+libs/*/index.d.ts
+libs/*/lib
+libs/core/constants
+libs/core/models
+libs/core/services
+libs/core/typings
+
 # dependencies
 node_modules
 
