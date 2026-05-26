@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import SplitTarget from '../../inventoryActions/SplitTarget';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import SplitBatchField from '../../inventoryActions/fields/SplitBatchField';
 import { defaultValues } from '../../inventoryActions/fields/SplitBatchField/defaultValues';
@@ -13,7 +13,7 @@ import { useSplitBatch } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface SplitBatchProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;

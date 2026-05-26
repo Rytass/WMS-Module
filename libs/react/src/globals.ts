@@ -1,26 +1,16 @@
-// Ambient declarations that the migrated WMS components rely on globally:
-// - `FC` mirrors the pre-React-18 `FunctionComponent` signature which
-//   implicitly accepts `children` (the apps/client codebase relied on a
-//   global declaration of the same shape before this lib existed).
-// - `*.scss` and `*.svg` module declarations cover the CSS Modules and
-//   svg imports used by the migrated components, so consumers do not
-//   have to redeclare them in their own ambient types.
-
-import type { ReactNode } from 'react';
+// Ambient declaration for the global `FC` alias the migrated WMS
+// components rely on. apps/client previously kept this in its own
+// index.d.ts; consumers of the published lib pick it up automatically
+// via the side-effect import from src/index.ts.
+//
+// Wildcard module declarations (*.scss, *.svg) live in consumers' own
+// next-env.d.ts / framework setup — they cannot be declared from a
+// module file (this file becomes a module because of declare global).
 
 declare global {
   type FC<Props = unknown> = React.FunctionComponent<
-    Props & { children?: ReactNode }
+    Props & { children?: React.ReactNode }
   >;
-}
-
-declare module '*.scss';
-
-declare module '*.svg' {
-  const content: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  export const ReactComponent: any;
-  export default content;
 }
 
 export {};

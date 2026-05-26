@@ -5,7 +5,10 @@ import {
   InventoryActionsContext,
   InventoryActionsContextValues,
 } from './InventoryActionsContext';
-import { AggregatedStockFragment } from '../../graphql/generated/.graphql';
+import {
+  StockInActionsFragment,
+  AggregatedStockFragment,
+} from '../../graphql/generated/.graphql';
 import {
   InventoryActionItem,
   getQuantityWithUnitId,
@@ -90,7 +93,7 @@ export const useAddInventories = () => {
   return addInventories;
 };
 
-export function useInventorySignature(inventory: AggregatedStockFragment) {
+export function useInventorySignature(inventory: StockInActionsFragment) {
   const { inventorySignature } = useInventoryActions();
 
   const currentSignature = useMemo(

@@ -3,7 +3,7 @@ import { isEmpty, isNumber, uniq } from 'lodash';
 import { IconDefinition } from '@mezzanine-ui/icons';
 import { useDialog } from '../../dialog/useDialog';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 
 export function useClearAll() {
   const { resetAll } = useInventoryActions();
@@ -29,7 +29,7 @@ export function useClearAll() {
   return onClearAll;
 }
 
-export function useShareFooterProps(inventoryList: AggregatedStockFragment[]): {
+export function useShareFooterProps(inventoryList: StockInActionsFragment[]): {
   submitText: string;
   primaryButtonIcon?: IconDefinition;
   havePageFooter: true;

@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import CreateTransferInventoryField from '../../inventoryActions/fields/CreateTransferInventoryField';
 import { defaultValues } from '../../inventoryActions/fields/CreateTransferInventoryField/defaultValues';
@@ -12,7 +12,7 @@ import { useCreateTransferInventory } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface CreateTransferInventoryProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;
@@ -43,7 +43,7 @@ const CreateTransferInventory: FC<CreateTransferInventoryProps> = ({
     >
       <div className={classes.wrapper}>
         <div className={classes.fieldsWrapper}>
-          <CreateTransferInventoryField />
+          <CreateTransferInventoryField inventoryList={inventoryList} />
         </div>
         <InventoryGrid
           inventoryList={inventoryList}

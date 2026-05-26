@@ -7410,6 +7410,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/multer@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "@types/multer@npm:2.1.0"
+  dependencies:
+    "@types/express": "npm:*"
+  checksum: 10c0/f1f512918f79c5dac007d8d30de74372ad24932b34b43d09f250178dcce6da426297e0ea9c939322545519f133cd525dca0552781967d05f43d782ff0b169333
+  languageName: node
+  linkType: hard
+
 "@types/node@npm:*":
   version: 25.0.8
   resolution: "@types/node@npm:25.0.8"
@@ -7577,6 +7586,15 @@ __metadata:
   version: 0.0.6
   resolution: "@types/use-sync-external-store@npm:0.0.6"
   checksum: 10c0/77c045a98f57488201f678b181cccd042279aff3da34540ad242f893acc52b358bd0a8207a321b8ac09adbcef36e3236944390e2df4fcedb556ce7bb2a88f2a8
+  languageName: node
+  linkType: hard
+
+"@types/uuid@npm:^11.0.0":
+  version: 11.0.0
+  resolution: "@types/uuid@npm:11.0.0"
+  dependencies:
+    uuid: "npm:*"
+  checksum: 10c0/6ebf1448d8fdc78d348a8a84389b74083f2f58bed75a5a6cf3be8419d33dcf757735c8b2de746b066ff8ef07f4384d02549774dc84195ffa46b24745471e9d8e
   languageName: node
   linkType: hard
 
@@ -8158,10 +8176,12 @@ __metadata:
     "@swc/helpers": "npm:~0.5.11"
     "@types/lodash": "npm:^4.17.23"
     "@types/luxon": "npm:^3"
+    "@types/multer": "npm:^2.1.0"
     "@types/node": "npm:20.19.9"
     "@types/pg": "npm:^8"
     "@types/react": "npm:^19"
     "@types/react-dom": "npm:^19"
+    "@types/uuid": "npm:^11.0.0"
     axios: "npm:^1.6.0"
     dataloader: "npm:^2.2.3"
     eslint: "npm:^9.8.0"
@@ -8175,6 +8195,7 @@ __metadata:
     graphql: "npm:^16.12.0"
     lodash: "npm:^4.17.21"
     luxon: "npm:^3.7.2"
+    multer: "npm:^2.1.1"
     next: "npm:15.5.9"
     nuqs: "npm:^2.8.6"
     nx: "npm:22.3.3"
@@ -8191,6 +8212,7 @@ __metadata:
     typeorm: "npm:^0.3.28"
     typescript: "npm:~5.9.2"
     typescript-eslint: "npm:^8.40.0"
+    uuid: "npm:^14.0.0"
     webpack-cli: "npm:^5.1.4"
     yup: "npm:^1.7.1"
   languageName: unknown
@@ -8656,6 +8678,15 @@ __metadata:
   checksum: 10c0/57b06ae984bc32a0d22592c87384cd88fe4511b1dd7581497831c56d41939c8a001b28e7b853e1450f2bf61992dfcaa8ae2d0d161a0a90c4fb631ef07098fbac
   languageName: node
   linkType: hard
+
+"api@workspace:apps/api":
+  version: 0.0.0-use.local
+  resolution: "api@workspace:apps/api"
+  dependencies:
+    "@as-integrations/express5": "npm:^1.1.2"
+    pg: "npm:^8.16.3"
+  languageName: unknown
+  linkType: soft
 
 "app-root-path@npm:^3.1.0":
   version: 3.1.0
@@ -15952,6 +15983,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"multer@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "multer@npm:2.1.1"
+  dependencies:
+    append-field: "npm:^1.0.0"
+    busboy: "npm:^1.6.0"
+    concat-stream: "npm:^2.0.0"
+    type-is: "npm:^1.6.18"
+  checksum: 10c0/2ec4e02833b20f403cfb879d4b64d2a9070d902b9deae7aef18a6faadb707d7665385456cf540aa8a6dadfe3d4c5fc8e0e7b0675b94e1077048b1125426deee6
+  languageName: node
+  linkType: hard
+
 "multicast-dns@npm:^7.2.5":
   version: 7.2.5
   resolution: "multicast-dns@npm:7.2.5"
@@ -21335,6 +21378,15 @@ __metadata:
   version: 1.0.1
   resolution: "utils-merge@npm:1.0.1"
   checksum: 10c0/02ba649de1b7ca8854bfe20a82f1dfbdda3fb57a22ab4a8972a63a34553cf7aa51bc9081cf7e001b035b88186d23689d69e71b510e610a09a4c66f68aa95b672
+  languageName: node
+  linkType: hard
+
+"uuid@npm:*, uuid@npm:^14.0.0":
+  version: 14.0.0
+  resolution: "uuid@npm:14.0.0"
+  bin:
+    uuid: dist-node/bin/uuid
+  checksum: 10c0/a57ae7794c45005c1a9208989196c5baf79a7679c30f43c1bee9033a2c4d113a2cea216fa6fcc9663b08b0d55635df1a7c6eb7e7f3d21c3e50688c698fa39a50
   languageName: node
   linkType: hard
 

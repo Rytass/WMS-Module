@@ -3,10 +3,11 @@ import { flatten, groupBy } from 'lodash';
 import { Message } from '@mezzanine-ui/react';
 import { useQuery, useLazyQuery, useMutation } from '@apollo/client/react';
 import {
-  AggregatedStockFragment,
+  StockInActionsFragment,
   StocksGroupedByMaterialDocument,
   AggregatedStocksDocument,
   AggregatedStocksForInventoryActionsDocument,
+  AvailableLoadersDocument,
   CreateTransferOrderDocument,
   CreateHoldInventoryOrderDocument,
   ReleaseDocument,
@@ -75,8 +76,22 @@ export function useQueryInventoryList(ids: string[]) {
   };
 }
 
+export function useQueryAvailableLoaders(locationId?: string) {
+  const { data, loading } = useQuery(AvailableLoadersDocument, {
+    variables: {
+      locationId,
+    },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  return {
+    data,
+    loading,
+  };
+}
+
 export function useCreateTransferInventory(
-  inventoryList: AggregatedStockFragment[],
+  inventoryList: StockInActionsFragment[],
 ) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [createTransferInventory] = useMutation(CreateTransferOrderDocument, {
@@ -126,7 +141,7 @@ export function useCreateTransferInventory(
   };
 }
 
-export function useHoldInventory(inventoryList: AggregatedStockFragment[]) {
+export function useHoldInventory(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [holdInventory] = useMutation(CreateHoldInventoryOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
@@ -169,7 +184,7 @@ export function useHoldInventory(inventoryList: AggregatedStockFragment[]) {
 }
 
 export function useReleaseHoldInventory(
-  inventoryList: AggregatedStockFragment[],
+  inventoryList: StockInActionsFragment[],
 ) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [releaseHoldInventory] = useMutation(ReleaseDocument, {
@@ -212,7 +227,7 @@ export function useReleaseHoldInventory(
   };
 }
 
-export function useAllocateInventory(inventoryList: AggregatedStockFragment[]) {
+export function useAllocateInventory(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [allocateInventory] = useMutation(
     CreateAllocateInventoryOrderDocument,
@@ -263,7 +278,7 @@ export function useAllocateInventory(inventoryList: AggregatedStockFragment[]) {
 }
 
 export function useDeallocateInventory(
-  inventoryList: AggregatedStockFragment[],
+  inventoryList: StockInActionsFragment[],
 ) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [deallocateInventory] = useMutation(DeallocateDocument, {
@@ -306,7 +321,7 @@ export function useDeallocateInventory(
   };
 }
 
-export function useShipInventory(inventoryList: AggregatedStockFragment[]) {
+export function useShipInventory(inventoryList: StockInActionsFragment[]) {
   const { targetAction, resetAll } = useInventoryActions();
   const [updateShipInventoryOrder] = useMutation(
     UpdateShipInventoryOrderDocument,
@@ -376,7 +391,7 @@ export function useShipInventory(inventoryList: AggregatedStockFragment[]) {
   };
 }
 
-export function useSplitBatch(inventory?: AggregatedStockFragment) {
+export function useSplitBatch(inventory?: StockInActionsFragment) {
   const { inventorySignature, targetAction, resetAll } = useInventoryActions();
   const [splitBatch] = useMutation(SplitBatchDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
@@ -418,7 +433,7 @@ export function useSplitBatch(inventory?: AggregatedStockFragment) {
   };
 }
 
-export function useMergeBatch(inventoryList: AggregatedStockFragment[]) {
+export function useMergeBatch(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [mergeBatch] = useMutation(MergeBatchDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
@@ -459,7 +474,7 @@ export function useMergeBatch(inventoryList: AggregatedStockFragment[]) {
 }
 
 export function useReclassifyInventory(
-  inventoryList: AggregatedStockFragment[],
+  inventoryList: StockInActionsFragment[],
 ) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [reclassifyInventory] = useMutation(ReclassifyInventoryOrderDocument, {
@@ -506,7 +521,7 @@ export function useReclassifyInventory(
   };
 }
 
-export function useTransferVendor(inventoryList: AggregatedStockFragment[]) {
+export function useTransferVendor(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [transferVendor] = useMutation(CreateTransferVendorOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
@@ -546,7 +561,7 @@ export function useTransferVendor(inventoryList: AggregatedStockFragment[]) {
   };
 }
 
-export function useReturnVendor(inventoryList: AggregatedStockFragment[]) {
+export function useReturnVendor(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [returnVendor] = useMutation(ReturnTransferVendorOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
@@ -587,7 +602,7 @@ export function useReturnVendor(inventoryList: AggregatedStockFragment[]) {
   };
 }
 
-export function useQualityInspection(inventoryList: AggregatedStockFragment[]) {
+export function useQualityInspection(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [qualityInspect] = useMutation(InspectMaterialsDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
@@ -629,7 +644,7 @@ export function useQualityInspection(inventoryList: AggregatedStockFragment[]) {
   };
 }
 
-export function useTransferCustomer(inventoryList: AggregatedStockFragment[]) {
+export function useTransferCustomer(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [transferCustomer] = useMutation(CreateTransferCustomerOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
@@ -675,7 +690,7 @@ export function useTransferCustomer(inventoryList: AggregatedStockFragment[]) {
   };
 }
 
-export function useReturnCustomer(inventoryList: AggregatedStockFragment[]) {
+export function useReturnCustomer(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [returnCustomer] = useMutation(ReturnTransferCustomerOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
@@ -716,7 +731,7 @@ export function useReturnCustomer(inventoryList: AggregatedStockFragment[]) {
   };
 }
 
-export function useScrapInventory(inventoryList: AggregatedStockFragment[]) {
+export function useScrapInventory(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
   const [scrapInventory] = useMutation(ScrapeMaterialsDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,

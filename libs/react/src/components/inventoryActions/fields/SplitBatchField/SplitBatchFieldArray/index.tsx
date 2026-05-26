@@ -5,7 +5,7 @@ import {
   UseFieldArrayRemove,
   useWatch,
 } from 'react-hook-form';
-import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../../../graphql/generated/.graphql';
 import { useInventorySignature } from '../../../useInventoryActions';
 import SplitBatchReference from './SplitBatchReference';
 import SplitBatchFieldArrayItem from './SplitBatchFieldArrayItem';
@@ -15,7 +15,7 @@ interface SplitBatchFieldArrayProps {
   fields: FieldArrayWithId<SplitBatchFieldValues, 'items', 'id'>[];
   update: UseFieldArrayUpdate<SplitBatchFieldValues, 'items'>;
   remove: UseFieldArrayRemove;
-  inventory: AggregatedStockFragment;
+  inventory: StockInActionsFragment;
 }
 
 const SplitBatchFieldArray: FC<SplitBatchFieldArrayProps> = ({

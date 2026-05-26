@@ -4,7 +4,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import { FilterValues } from '../../../components/pages/inventory-list/typing';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import ShipInventoryField from '../../inventoryActions/fields/ShipInventoryField';
 import ShipInventoryMatcher from '../../inventoryActions/ShipInventoryMatcher';
@@ -15,7 +15,7 @@ import { useShipInventory } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface ShipInventoryProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
   setCurrentFilter?: Dispatch<SetStateAction<FilterValues | undefined>>;
   onClose: VoidFunction;

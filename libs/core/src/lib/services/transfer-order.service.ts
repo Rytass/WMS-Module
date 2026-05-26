@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  LoadersEntityClass,
   StockEntity,
   StockEntityClass,
   TransferOrderChangeEntityClass,
@@ -16,6 +17,7 @@ import {
   In,
   Repository,
 } from 'typeorm';
+import { StockStatus } from '../constants/stock-status';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { HelperService } from './helper.service';
 import {
@@ -66,6 +68,7 @@ export class TransferOrderService<
       ),
       order: manager.getRepository(OrderEntity),
       stock: manager.getRepository<StockEntityClass>(this.stockEntity),
+      loader: manager.getRepository(LoadersEntityClass),
     };
   }
 
@@ -169,6 +172,36 @@ export class TransferOrderService<
     });
 
     const itemMap = new Map(items.map((item) => [item.id, item]));
+
+    // Whole-loader transfer cancel validation (Phase 2d-sync).
+    // For each whole-loader item in the REQUEST, the cancel qty must equal the
+    // item's remaining cancellable (= sumPos - sumNeg). Partial cancel of a
+    // whole-loader item is forbidden — they cancel atomically or not at all.
+    // Decant items in the same order can be partially cancelled independently.
+    for (const option of options) {
+      const item = itemMap.get(option.itemId);
+      if (!item || !item.loaderId || !item.targetLoaderId) continue;
+      if (item.loaderId !== item.targetLoaderId) continue;   // not whole-loader
+      const factor = await this.materialService.getConversionFactor(
+        item.materialId,
+        item.unitId || undefined,
+      );
+      const totalChanged = item.changes.reduce(
+        (sum, c) => sum + Number(c.quantityChanged),
+        0,
+      );
+      const remainingBase =
+        item.targetTransferredQuantity * factor - totalChanged;
+      const cancelQtyBase =
+        option.quantity != null
+          ? option.quantity * factor
+          : remainingBase;
+      if (cancelQtyBase !== remainingBase) {
+        throw new Error(
+          `Whole-loader item must be cancelled atomically (item=${item.id}, thisCall=${cancelQtyBase}, remaining=${remainingBase})`,
+        );
+      }
+    }
 
     await Promise.all(
       options.map(async (option) => {
@@ -323,6 +356,65 @@ export class TransferOrderService<
   ): Promise<T> {
     const repos = this.getRepositories(manager);
     const { items, ...orderOptions } = options;
+
+    // Whole-loader transfer validation (Phase 2d-sync).
+    // If any item's source loader matches the header's targetLoaderId, treat the
+    // items sharing that source loader as a whole-loader group:
+    //   Gate 1: the loader's stocks must be 100% FREE (no orphan-prone HELD/etc.)
+    //   Gate 2: those items collectively must cover the loader's full qty
+    if (options.loaderId && items?.length) {
+      const wholeLoaderSourceIds = new Set<string>();
+      for (const item of items) {
+        if (item.loaderId && item.loaderId === options.loaderId) {
+          wholeLoaderSourceIds.add(item.loaderId);
+        }
+      }
+
+      for (const srcLoaderId of wholeLoaderSourceIds) {
+        const [aggRows] = await this.stockService.findAggregatedStocks({
+          loaderId: srcLoaderId,
+          aggregated: true,
+        });
+        // Gate 1
+        const nonFree = aggRows.filter((r) => r.status !== StockStatus.FREE);
+        if (nonFree.length > 0) {
+          const statuses = [...new Set(nonFree.map((r) => r.status))].join(
+            ', ',
+          );
+          throw new Error(
+            `Cannot whole-loader transfer: loader ${srcLoaderId} has non-FREE stocks (statuses: ${statuses})`,
+          );
+        }
+        // Gate 2
+        const loaderTotalQty = aggRows.reduce(
+          (s, r) => s + Number(r.quantity),
+          0,
+        );
+        let subTotalQty = 0;
+        for (const item of items) {
+          if (item.loaderId === srcLoaderId) {
+            // Runtime callers augment items with materialId/batchId/unitId beyond
+            // the public CreateTransferOrderItemInput shape (see processTransferOrderItems
+            // which expects Partial<TransferOrderItemEntityClass>); access via cast.
+            const itemFull =
+              item as Partial<TransferOrderItemEntityClass> &
+                typeof item;
+            if (!itemFull.materialId) continue;
+            const factor = await this.materialService.getConversionFactor(
+              itemFull.materialId,
+              itemFull.unitId || undefined,
+            );
+            subTotalQty +=
+              Number(item.targetTransferredQuantity) * factor;
+          }
+        }
+        if (subTotalQty !== loaderTotalQty) {
+          throw new Error(
+            `Whole-loader transfer must reserve entire loader qty for loader ${srcLoaderId} (requested=${subTotalQty}, loaderTotal=${loaderTotalQty})`,
+          );
+        }
+      }
+    }
 
     const key = await this.helperService.getSeq(this.seqPrefix, manager);
     const order = await repos.transferOrder.save(
@@ -558,6 +650,92 @@ export class TransferOrderService<
       });
 
       const itemMap = new Map(items.map((item) => [item.id, item]));
+      const inputMap = new Map(options.map((o) => [o.itemId, o]));
+
+      // Whole-loader transfer commit validation (Phase 2d-sync).
+      //
+      // Priority rule: for each whole-loader item in the ORDER, it must be either
+      //   (a) already fully transferred (alreadyTransferred >= target), or
+      //   (b) being fully transferred in this request (alreadyTransferred + input.qty == target)
+      // Otherwise reject — whole-loader items must be 100% committed before any other
+      // items in the same order can commit. Prevents the unconditional loader UPDATE
+      // from moving the target loader prematurely (which would orphan stocks).
+      //
+      // Plus the per-loader sum check: for whole-loader-mode inputs in this request,
+      // sum.input.quantity * factor must equal loaderTotalQty (catches the
+      // receive-onto-moving-loader scenario where loaderTotalQty drifts > sum).
+      const orderIds = new Set<string>();
+      for (const item of items) orderIds.add(item.orderId);
+      if (orderIds.size > 1) {
+        throw new Error(
+          'Transfer request spans multiple orders, which is not supported',
+        );
+      }
+      const orderId = orderIds.size === 1 ? [...orderIds][0] : null;
+      if (orderId) {
+        const allOrderItems = await itemRepository.find({
+          where: { orderId },
+          relations: ['changes'],
+        });
+        for (const orderItem of allOrderItems) {
+          if (orderItem.removedAt) continue;
+          if (!orderItem.loaderId || !orderItem.targetLoaderId) continue;
+          if (orderItem.loaderId !== orderItem.targetLoaderId) continue;
+          // Whole-loader item — apply priority rule.
+          const factor = await this.materialService.getConversionFactor(
+            orderItem.materialId,
+            orderItem.unitId || undefined,
+          );
+          const targetBase = orderItem.targetTransferredQuantity * factor;
+          const alreadyTransferred = orderItem.changes.reduce(
+            (sum, c) =>
+              c.quantityChanged < 0 ? sum + Math.abs(Number(c.quantityChanged)) : sum,
+            0,
+          );
+          if (alreadyTransferred >= targetBase) continue;   // already fully transferred (committed or cancelled)
+          const inputOpt = inputMap.get(orderItem.id);
+          if (inputOpt) {
+            const inputBase = inputOpt.quantity * factor;
+            if (alreadyTransferred + inputBase === targetBase) continue;   // this request completes it
+          }
+          throw new Error(
+            `Whole-loader item must be fully transferred first (item=${orderItem.id}, target=${targetBase}, alreadyTransferred=${alreadyTransferred})`,
+          );
+        }
+      }
+
+      // Per-loader sum check (catches receive-onto-moving-loader orphan W08).
+      const wholeLoaderGroupSums = new Map<string, number>();
+      for (const option of options) {
+        const item = itemMap.get(option.itemId);
+        if (!item || !item.loaderId) continue;
+        if (item.loaderId === item.targetLoaderId) {
+          const factor = await this.materialService.getConversionFactor(
+            item.materialId,
+            item.unitId || undefined,
+          );
+          wholeLoaderGroupSums.set(
+            item.loaderId,
+            (wholeLoaderGroupSums.get(item.loaderId) ?? 0) +
+              option.quantity * factor,
+          );
+        }
+      }
+      for (const [srcLoaderId, subTotalQty] of wholeLoaderGroupSums) {
+        const [aggRows] = await this.stockService.findAggregatedStocks({
+          loaderId: srcLoaderId,
+          aggregated: true,
+        });
+        const loaderTotalQty = aggRows.reduce(
+          (s, r) => s + Number(r.quantity),
+          0,
+        );
+        if (subTotalQty !== loaderTotalQty) {
+          throw new Error(
+            `Whole-loader transfer must execute 100% qty (loader=${srcLoaderId}, thisRequest=${subTotalQty}, loaderTotal=${loaderTotalQty})`,
+          );
+        }
+      }
 
       await Promise.all(
         options.map(async (option) => {
@@ -650,6 +828,18 @@ export class TransferOrderService<
               ]),
             ),
           ]);
+
+          // Whole-loader transfer (Phase 2d-sync): unconditionally pin the target
+          // loader to the target location on commit. Idempotent in regular-decant
+          // case (loader already at target location); performs the actual
+          // relocation in whole-loader-mode case. No-op on cancel-transfer.
+          if (item.targetLoaderId && item.targetLocationId) {
+            await manager
+              .getRepository(LoadersEntityClass)
+              .update({ id: item.targetLoaderId }, {
+                locationId: item.targetLocationId,
+              } as DeepPartial<LoadersEntityClass>);
+          }
         }),
       );
 

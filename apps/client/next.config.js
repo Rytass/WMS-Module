@@ -20,6 +20,14 @@ const nextConfig = {
       source: '/graphql',
       destination: `${API_URL}/graphql`,
     },
+    {
+      source: '/api/files/upload',
+      destination: `${API_URL}/api/files/upload`,
+    },
+    {
+      source: '/api/files/get/:key*',
+      destination: `${API_URL}/api/files/get/:key*`,
+    },
   ],
   transpilePackages: [
     '@mezzanine-ui/core',

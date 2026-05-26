@@ -42,3 +42,10 @@
 .mzn-form-field--vertical .mzn-form-field__data-entry {
   max-width: unset !important;
 }
+
+.mzn-form-field__hint-text--error {
+  align-items: flex-start;
+  white-space: normal;
+  word-break: break-word;
+  text-align: start;
+}

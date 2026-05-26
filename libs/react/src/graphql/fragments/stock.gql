@@ -43,3 +43,30 @@ fragment AggregatedStock on AggregatedStockDto {
     ...Loader
   }
 }
+
+fragment StockInActions on AggregatedStockDto {
+  id
+  key: id
+  quantity
+  transferId
+  held
+  inShipment
+  saleId
+  saleSerialId
+  customerId
+  vendorId
+  inspectionResult
+  status
+  material {
+    ...SimpleMaterial
+  }
+  batch {
+    ...Batch
+  }
+  location {
+    ...SimpleLocation
+  }
+  loader {
+    ...LoaderWithTotal
+  }
+}

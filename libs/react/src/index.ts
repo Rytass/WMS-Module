@@ -38,7 +38,6 @@ export { useFormCancel } from './hooks/useFormCancel';
 export { usePreviousValue } from './hooks/usePreviousValue';
 export { useRoutes } from './hooks/useRoutes';
 export {
-  useFetchAllOptions,
   useFetchMoreOptions,
   useInsertOption,
 } from './hooks/useSelectorOptions';

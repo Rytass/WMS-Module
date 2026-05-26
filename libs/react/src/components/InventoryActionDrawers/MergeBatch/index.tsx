@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import FormDrawerWrapper from '../../fields/FormDrawerWrapper';
 import InventoryGrid from '../../inventoryActions/InventoryGrid';
-import { AggregatedStockFragment } from '../../../graphql/generated/.graphql';
+import { StockInActionsFragment } from '../../../graphql/generated/.graphql';
 import { useShareFooterProps } from '../hooks';
 import MergeBatchField from '../../inventoryActions/fields/MergeBatchField';
 import { defaultValues } from '../../inventoryActions/fields/MergeBatchField/defaultValues';
@@ -12,7 +12,7 @@ import { useMergeBatch } from '../../inventoryActions/useApi';
 import classes from '../index.module.scss';
 
 interface MergeBatchProps {
-  inventoryList: AggregatedStockFragment[];
+  inventoryList: StockInActionsFragment[];
   queryInventoryListLoading: boolean;
   onClose: VoidFunction;
   open: boolean;
