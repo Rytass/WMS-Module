@@ -1,3 +1,8 @@
+// Side-effect import that loads ambient global declarations
+// (FC alias, *.scss / *.svg module declarations) consumed by
+// the migrated components.
+import './globals';
+
 // Page components — drop-in for Next.js Pages-Router shells.
 export { default as ChangeHistory } from './components/pages/change-history';
 export { default as InventoryCount } from './components/pages/inventory-count';

@@ -22,9 +22,20 @@
   "bugs": {
     "url": "https://github.com/Rytass/WMS-Module/issues"
   },
-  "main": "./index.cjs.js",
+  "type": "module",
+  "main": "./index.js",
   "module": "./index.js",
   "typings": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./globals": {
+      "types": "./globals.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "**/*.js",
     "**/*.d.ts",
@@ -37,6 +48,7 @@
   },
   "dependencies": {
     "axios": "^1.6.0",
+    "dayjs": "^1.11.0",
     "luxon": "^3.7.2"
   },
   "peerDependencies": {

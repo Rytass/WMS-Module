@@ -36,28 +36,13 @@ const isExternal = (id) => {
   );
 };
 
+// @rytass/wms-module-react is ESM-only because key React-side deps in
+// the WMS stack (e.g. nuqs, @apollo/client/react helpers) ship as pure
+// ESM packages. Modern bundlers (Next.js, Vite, webpack 5) consume ESM
+// natively, so dropping a CJS bundle keeps the lib compatible with
+// downstream ESM-only deps without forcing consumers to wrestle with
+// CommonJS interop.
 export default [
-  {
-    input: 'src/index.ts',
-    output: {
-      file: 'index.cjs.js',
-      format: 'cjs',
-      exports: 'named',
-      interop: 'auto',
-    },
-    external: isExternal,
-    plugins: [
-      typescript({
-        tsconfig: './tsconfig.lib.json',
-        declaration: false,
-        outDir: '.',
-        compilerOptions: {
-          module: 'esnext',
-          jsx: 'react-jsx',
-        },
-      }),
-    ],
-  },
   {
     input: 'src/index.ts',
     output: {

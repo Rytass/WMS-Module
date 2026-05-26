@@ -13,9 +13,10 @@
     "build": {
       "executor": "nx:run-commands",
       "outputs": [
-        "{projectRoot}/index.cjs.js",
         "{projectRoot}/index.js",
         "{projectRoot}/index.d.ts",
+        "{projectRoot}/globals.js",
+        "{projectRoot}/globals.d.ts",
         "{projectRoot}/components",
         "{projectRoot}/hooks",
         "{projectRoot}/icons",
@@ -37,7 +38,7 @@
       "options": {
         "cwd": "libs/react",
         "commands": [
-          "rm -rf index.cjs.js index.js index.d.ts components hooks icons utils apollo graphql/generated"
+          "rm -rf index.js index.d.ts globals.js globals.d.ts components hooks icons utils apollo graphql/generated"
         ],
         "parallel": false
       }

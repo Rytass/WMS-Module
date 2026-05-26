@@ -16,6 +16,7 @@ libs/core/services
 libs/core/typings
 libs/react/apollo
 libs/react/components
+libs/react/globals.d.ts
 libs/react/graphql
 libs/react/hooks
 libs/react/icons
