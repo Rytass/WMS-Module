@@ -6,7 +6,7 @@
   "scripts": {
     "api": "nx serve api",
     "client": "nx serve client --port 7101",
-    "gql": "nx run client:graphql",
+    "gql": "nx run react:graphql",
     "pages": "npx generate-next-links -P apps/client/src/ -O libs/react/src/utils/ -N NextPath -T",
     "release": "nx release --skip-publish",
     "release:publish": "nx release publish"
