@@ -1,4 +1,4 @@
-import InventoryList from '../../components/pages/inventory-list';
+import { InventoryList } from "@rytass/wms-module-react";
 
 function InventoryListPage() {
   return <InventoryList />;

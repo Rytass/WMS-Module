@@ -34,6 +34,7 @@ const nextConfig = {
     '@mezzanine-ui/system',
     '@mezzanine-ui/react',
     '@mezzanine-ui/icons',
+    '@rytass/wms-module-react',
   ],
 };
 

@@ -1,4 +1,4 @@
-import ViewShipInventoryOrder from '../../../components/pages/ship-inventory-orders/view';
+import { ViewShipInventoryOrder } from '@rytass/wms-module-react';
 
 function ShipInventoryOrderViewPage() {
   return <ViewShipInventoryOrder />;

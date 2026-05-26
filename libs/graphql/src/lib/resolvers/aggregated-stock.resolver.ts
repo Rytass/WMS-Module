@@ -8,7 +8,7 @@ import {
   LocationEntityClass,
   MaterialEntityClass,
   StockService,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { BatchDto } from '../dto/batch.dto';
 import { LocationDto } from '../dto/location.dto';
 

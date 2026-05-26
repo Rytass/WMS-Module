@@ -6,7 +6,7 @@ import {
   TransferOrderChangeEntityClass,
   TransferOrderItemEntityClass,
   TransferOrderService,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { LoaderDto, Loaders, LoaderTypeDto, LoaderTypes } from '../dto';
 import { FindLoaderArgs } from '../inputs/find-loader.args';
 import { FindLoaderTypeArgs } from '../inputs/find-loader-type.args';

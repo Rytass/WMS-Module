@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Query } from '@nestjs/graphql';
-import { HoldInventoryOrderService } from '@wms-module/core';
+import { HoldInventoryOrderService } from '@rytass/wms-module-core';
 import { HoldInventoryOrders } from '../dto/hold-inventory-order.dto';
 import { FindHoldInventoryOrderArgs } from '../inputs/find-hold-inventory-order.args';
 

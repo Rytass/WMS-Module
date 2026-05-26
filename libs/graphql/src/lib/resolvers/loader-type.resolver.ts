@@ -1,6 +1,6 @@
 import { Context, Int, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { LoaderTypeDto } from '../dto';
-import { LoadersEntityClass, LoaderTypeEntityClass } from '@wms-module/core';
+import { LoadersEntityClass, LoaderTypeEntityClass } from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 
 @Resolver(() => LoaderTypeDto)

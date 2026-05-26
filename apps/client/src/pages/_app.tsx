@@ -7,7 +7,7 @@ import Head from 'next/head';
 import { ApolloProvider } from '@apollo/client/react';
 import CalendarConfigProviderDayjs from '@mezzanine-ui/react/Calendar/CalendarConfigProviderDayjs';
 import { NuqsAdapter } from 'nuqs/adapters/next/pages';
-import ApolloClient from '../apollo';
+import { ApolloClient } from '@rytass/wms-module-react';
 import AuthGuard from '../auth/AuthGuard';
 
 function CustomApp({ Component, pageProps }: AppProps) {

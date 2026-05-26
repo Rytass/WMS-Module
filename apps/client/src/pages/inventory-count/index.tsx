@@ -1,4 +1,4 @@
-import InventoryCount from '../../components/pages/inventory-count';
+import { InventoryCount } from "@rytass/wms-module-react";
 
 function InventoryCountPage() {
   return <InventoryCount />;

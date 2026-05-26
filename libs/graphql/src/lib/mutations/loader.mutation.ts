@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LoaderService } from '@wms-module/core';
+import { LoaderService } from '@rytass/wms-module-core';
 import { LoaderDto, LoaderTypeDto } from '../dto';
 import { Args, Mutation } from '@nestjs/graphql';
 import {

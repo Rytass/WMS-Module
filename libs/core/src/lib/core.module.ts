@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
 import {
   WMSBaseModule,
   WMSBaseModuleOptions,
@@ -64,7 +64,7 @@ export class WmsModuleCoreModule {
   static forRoot(
     options: WMSBaseModuleOptions,
     coreOptions: WmsModuleCoreModuleOptions,
-  ) {
+  ): DynamicModule {
     const coreModule = WMSBaseModule.forRoot(options);
     return {
       module: WmsModuleCoreModule,
@@ -82,7 +82,7 @@ export class WmsModuleCoreModule {
     };
   }
 
-  static forRootAsync(options: WmsModuleCoreModuleAsyncOptions) {
+  static forRootAsync(options: WmsModuleCoreModuleAsyncOptions): DynamicModule {
     const {
       defaultLoaderSerialId,
       defaultLoaderTypeKey,

@@ -1,4 +1,4 @@
-import LocationsManagement from '../../components/pages/locations-management';
+import { LocationsManagement } from "@rytass/wms-module-react";
 
 function LocationsManagementPage() {
   return <LocationsManagement />;

@@ -1,4 +1,4 @@
-import InventoryMovement from '../../components/pages/inventory-movement';
+import { InventoryMovement } from "@rytass/wms-module-react";
 
 function InventoryMovementPage() {
   return <InventoryMovement />;

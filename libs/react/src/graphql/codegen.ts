@@ -3,12 +3,12 @@ import { CodegenConfig } from '@graphql-codegen/cli';
 const config: CodegenConfig = {
   schema: 'schema.gql',
   documents: [
-    'apps/client/src/graphql/**/*.gql',
-    'apps/client/src/graphql/*.gql',
+    'libs/react/src/graphql/**/*.gql',
+    'libs/react/src/graphql/*.gql',
   ],
   ignoreNoDocuments: true,
   generates: {
-    'apps/client/src/graphql/generated/.graphql.ts': {
+    'libs/react/src/graphql/generated/.graphql.ts': {
       plugins: ['typescript', 'typescript-operations', 'typed-document-node'],
     },
   },

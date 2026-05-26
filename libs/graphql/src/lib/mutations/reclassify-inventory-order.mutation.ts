@@ -3,7 +3,7 @@ import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import {
   ReclassifyInventoryOrderService,
   StockService,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { ReclassifyInventoryOrderArgs } from '../inputs/reclassify-inventory-order.args';
 import { ReclassifyInventoryOrderDto } from '../dto/reclassify-inventory-order.dto';
 

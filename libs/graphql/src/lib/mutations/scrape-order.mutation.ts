@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Mutation } from '@nestjs/graphql';
-import { ScrapeService, StockService } from '@wms-module/core';
+import { ScrapeService, StockService } from '@rytass/wms-module-core';
 import { ScrapeOrderDto } from '../dto/scrape-order.dto';
 import { ScrapeOrderArgs } from '../inputs/scrape-order.args';
 
