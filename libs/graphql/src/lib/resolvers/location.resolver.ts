@@ -3,7 +3,7 @@ import { LocationDto } from '../dto/location.dto';
 import { MapDataDto } from '../dto/warehouse-map.dto';
 import { type LoaderType } from '../helpers';
 import { WarehouseMapEntity } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
-import { LocationEntityClass } from '@wms-module/core';
+import { LocationEntityClass } from '@rytass/wms-module-core';
 
 @Resolver(() => LocationDto)
 export class LocationResolver {

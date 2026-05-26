@@ -1,7 +1,7 @@
 import { Field, ID, ObjectType } from '@nestjs/graphql';
 import { ReceiveInventoryOrderItemDto } from './receive-inventory-order-item.dto';
 import { PaginatedResponse } from './pagination.dto';
-import { ReceiveInventoryOrderStatus } from '@wms-module/core';
+import { ReceiveInventoryOrderStatus } from '@rytass/wms-module-core';
 
 @ObjectType()
 export class ReceiveInventoryOrderDto {

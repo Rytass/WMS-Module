@@ -3,7 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { VaultModule, VaultService } from '@rytass/secret-adapter-vault-nestjs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WmsModuleGraphqlModule } from '@wms-module/graphql';
+import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
 import { ApolloDriver } from '@nestjs/apollo';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { resolve } from 'path';

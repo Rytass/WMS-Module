@@ -4,7 +4,7 @@ import { AllocateInventoryOrderItemDto } from '../dto/allocate-inventory-order-i
 import {
   AllocateInventoryOrderEntityClass,
   AllocateInventoryOrderItemEntityClass,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 
 @Resolver(() => AllocateInventoryOrderDto)

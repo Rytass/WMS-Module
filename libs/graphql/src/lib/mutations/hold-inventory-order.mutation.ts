@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Mutation } from '@nestjs/graphql';
-import { HoldInventoryOrderService, StockService } from '@wms-module/core';
+import { HoldInventoryOrderService, StockService } from '@rytass/wms-module-core';
 import { HoldInventoryOrderDto } from '../dto/hold-inventory-order.dto';
 import {
   CreateHoldInventoryOrderArgs,

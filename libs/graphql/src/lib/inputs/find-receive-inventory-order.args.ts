@@ -1,7 +1,7 @@
 import { Field, ID, ArgsType, registerEnumType } from '@nestjs/graphql';
 import { PaginationArgs } from './pagination.args';
 import { DateRangeArgs } from './date-range.args';
-import { ReceiveInventoryOrderStatus } from '@wms-module/core';
+import { ReceiveInventoryOrderStatus } from '@rytass/wms-module-core';
 
 registerEnumType(ReceiveInventoryOrderStatus, {
   name: 'ReceiveInventoryOrderStatus',

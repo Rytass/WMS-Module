@@ -1,6 +1,6 @@
 import { Field, ID, ArgsType } from '@nestjs/graphql';
 import { PaginationArgs } from './pagination.args';
-import { StockStatus } from '@wms-module/core';
+import { StockStatus } from '@rytass/wms-module-core';
 
 @ArgsType()
 export class FindStockArgs extends PaginationArgs {

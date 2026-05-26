@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Mutation } from '@nestjs/graphql';
-import { StockService, TransferCustomerOrderService } from '@wms-module/core';
+import { StockService, TransferCustomerOrderService } from '@rytass/wms-module-core';
 import { TransferCustomerOrderDto } from '../dto/transfer-customer-order.dto';
 import {
   CreateTransferCustomerOrderArgs,

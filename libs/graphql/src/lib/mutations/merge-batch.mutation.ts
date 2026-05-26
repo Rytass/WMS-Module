@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
-import { MergeBatchOrderService, StockService } from '@wms-module/core';
+import { MergeBatchOrderService, StockService } from '@rytass/wms-module-core';
 import { MergeBatchArgs } from '../inputs/merge-batch.args';
 import { MergeBatchOrderDto } from '../dto/merge-batch-order.dto';
 
