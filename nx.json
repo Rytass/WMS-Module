@@ -40,7 +40,7 @@
     "sharedGlobals": []
   },
   "release": {
-    "projects": ["core", "graphql"],
+    "projects": ["core", "graphql", "react"],
     "projectsRelationship": "independent",
     "releaseTagPattern": "{projectName}@{version}",
     "version": {

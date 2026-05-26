@@ -1,4 +1,4 @@
-import MaterialsManagement from '../../components/pages/materials-management';
+import { MaterialsManagement } from "@rytass/wms-module-react";
 
 function MaterialsManagementPage() {
   return <MaterialsManagement />;

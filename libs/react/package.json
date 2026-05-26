@@ -1,0 +1,59 @@
+{
+  "name": "@rytass/wms-module-react",
+  "version": "0.0.0",
+  "description": "Rytass WMS Module — React components, hooks, Apollo client factory and GraphQL operations for warehouse management",
+  "keywords": [
+    "rytass",
+    "wms",
+    "warehouse",
+    "react",
+    "nextjs",
+    "apollo",
+    "graphql",
+    "mezzanine-ui"
+  ],
+  "author": "Chia Yu Pai <fantasyatelier@gmail.com>",
+  "homepage": "https://github.com/Rytass/WMS-Module#readme",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rytass/WMS-Module.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Rytass/WMS-Module/issues"
+  },
+  "main": "./index.cjs.js",
+  "module": "./index.js",
+  "typings": "./index.d.ts",
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "**/*.scss",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "luxon": "^3.7.2"
+  },
+  "peerDependencies": {
+    "@apollo/client": "^4.0.0",
+    "@hookform/error-message": "^2.0.0",
+    "@hookform/resolvers": "^5.0.0",
+    "@mezzanine-ui/core": "^1.0.0",
+    "@mezzanine-ui/icons": "^1.0.0",
+    "@mezzanine-ui/react": "^1.0.0",
+    "@mezzanine-ui/system": "^1.0.0",
+    "graphql": "^16.0.0",
+    "lodash": "^4.17.0",
+    "next": "^15.0.0",
+    "nuqs": "^2.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.0.0",
+    "yup": "^1.0.0"
+  }
+}

@@ -14,6 +14,12 @@ libs/core/constants
 libs/core/models
 libs/core/services
 libs/core/typings
+libs/react/apollo
+libs/react/components
+libs/react/graphql
+libs/react/hooks
+libs/react/icons
+libs/react/utils
 
 # dependencies
 node_modules
@@ -54,8 +60,6 @@ Thumbs.db
 # Next.js
 .next
 out
-
-.graphql.ts
 
 .yarn/install-state.gz
 

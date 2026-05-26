@@ -1,0 +1,47 @@
+{
+  "name": "react",
+  "projectType": "library",
+  "sourceRoot": "libs/react/src",
+  "prefix": "wms-module",
+  "targets": {
+    "graphql": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "graphql-codegen -c libs/react/src/graphql/codegen.ts"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/index.cjs.js",
+        "{projectRoot}/index.js",
+        "{projectRoot}/index.d.ts",
+        "{projectRoot}/components",
+        "{projectRoot}/hooks",
+        "{projectRoot}/icons",
+        "{projectRoot}/utils",
+        "{projectRoot}/apollo",
+        "{projectRoot}/graphql"
+      ],
+      "options": {
+        "cwd": "libs/react",
+        "parallel": false,
+        "commands": [
+          "rollup -c rollup.config.mjs",
+          "rsync -a --include='*/' --include='*.scss' --exclude='*' src/ ./"
+        ]
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/react",
+        "commands": [
+          "rm -rf index.cjs.js index.js index.d.ts components hooks icons utils apollo graphql/generated"
+        ],
+        "parallel": false
+      }
+    }
+  },
+  "tags": []
+}
