@@ -1,8 +1,36 @@
 {
-  "name": "@wms-module/core",
+  "name": "core",
   "projectType": "library",
   "sourceRoot": "libs/core/src",
   "prefix": "wms-module",
-  "targets": {},
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{projectRoot}/index.cjs.js",
+        "{projectRoot}/index.js",
+        "{projectRoot}/index.d.ts",
+        "{projectRoot}/lib",
+        "{projectRoot}/constants",
+        "{projectRoot}/models",
+        "{projectRoot}/services",
+        "{projectRoot}/typings"
+      ],
+      "options": {
+        "cwd": "libs/core",
+        "command": "rollup -c rollup.config.mjs"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/core",
+        "commands": [
+          "rm -rf index.cjs.js index.js index.d.ts lib constants models services typings"
+        ],
+        "parallel": false
+      }
+    }
+  },
   "tags": []
 }

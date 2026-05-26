@@ -19,7 +19,9 @@
     "jsx": "react-jsx",
     "paths": {
       "@wms-module/core": ["libs/core/src/index.ts"],
-      "@wms-module/graphql": ["libs/graphql/src/index.ts"]
+      "@wms-module/graphql": ["libs/graphql/src/index.ts"],
+      "@rytass/wms-module-core": ["libs/core/src/index.ts"],
+      "@rytass/wms-module-graphql": ["libs/graphql/src/index.ts"]
     }
   }
 }
