@@ -3,6 +3,8 @@ import { useWatch, useFormContext } from 'react-hook-form';
 import { unionBy } from 'lodash';
 import LocationsField from '../../../fields/LocationsField';
 import SingleAutoCompleteField from '../../../fields/SingleAutoCompleteField';
+import MembersField from '../../../fields/MembersField';
+import { options } from '../../../fields/MembersField/mock';
 import InputField from '../../../fields/InputField';
 import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
@@ -74,7 +76,12 @@ function CreateTransferInventoryField({
         />
       </div>
       <div className={classes.receiverWrapper}>
-        <InputField name="receiver" label="接收者" placeholder="輸入接收者" />
+        <MembersField
+          name="receiver"
+          options={options}
+          label="接收者"
+          placeholder="輸入接收者"
+        />
         <InputField name="description" label="備註" placeholder="輸入備註" />
       </div>
     </div>
