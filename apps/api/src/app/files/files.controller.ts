@@ -11,7 +11,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { FileEntity } from './file.entity';
-import { FilesService, UploadedFileInput } from './files.service';
+import { FilesService, type UploadedFileInput } from './files.service';
 
 @Controller('files')
 export class FilesController {
@@ -19,9 +19,7 @@ export class FilesController {
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async upload(
-    @UploadedFile() file: UploadedFileInput,
-  ): Promise<FileEntity> {
+  async upload(@UploadedFile() file: UploadedFileInput): Promise<FileEntity> {
     if (!file) {
       throw new BadRequestException('file is required');
     }
