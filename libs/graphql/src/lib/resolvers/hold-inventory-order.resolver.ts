@@ -2,7 +2,7 @@ import { Context, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { HoldInventoryOrderDto } from '../dto/hold-inventory-order.dto';
 import { HoldInventoryOrderItemDto } from '../dto/hold-inventory-order-item.dto';
 import { type LoaderType } from '../helpers';
-import { HoldInventoryOrderItemEntityClass } from '@wms-module/core';
+import { HoldInventoryOrderItemEntityClass } from '@rytass/wms-module-core';
 
 @Resolver(() => HoldInventoryOrderDto)
 export class HoldInventoryOrderResolver {

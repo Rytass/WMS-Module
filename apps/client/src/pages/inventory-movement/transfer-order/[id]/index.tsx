@@ -1,4 +1,4 @@
-import EditTransferOrder from '../../../../components/pages/inventory-movement/transfer-order';
+import { EditTransferOrder } from '@rytass/wms-module-react';
 
 function TransferOrderEditPage() {
   return <EditTransferOrder />;

@@ -1,4 +1,4 @@
-import ChangeHistory from '../../components/pages/change-history';
+import { ChangeHistory } from "@rytass/wms-module-react";
 
 function ChangeHistoryPage() {
   return <ChangeHistory />;

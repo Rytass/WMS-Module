@@ -22,12 +22,6 @@
           "dev": false
         }
       }
-    },
-    "graphql": {
-      "executor": "nx:run-commands",
-      "options": {
-        "command": "npx graphql-codegen -c apps/client/src/graphql/codegen.ts"
-      }
     }
   }
 }

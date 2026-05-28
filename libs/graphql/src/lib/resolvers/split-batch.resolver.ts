@@ -4,7 +4,7 @@ import {
   SplitBatchOrderItemDto,
 } from '../dto/split-batch-order.dto';
 import { type LoaderType } from '../helpers';
-import { SplitBatchOrderItemEntityClass } from '@wms-module/core';
+import { SplitBatchOrderItemEntityClass } from '@rytass/wms-module-core';
 
 @Resolver(() => SplitBatchOrderDto)
 export class SplitBatchResolver {

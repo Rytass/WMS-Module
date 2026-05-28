@@ -8166,6 +8166,7 @@ __metadata:
     "@nx/react": "npm:^22.3.3"
     "@nx/web": "npm:22.3.3"
     "@nx/webpack": "npm:22.3.3"
+    "@rollup/plugin-typescript": "npm:^12.1.0"
     "@rytass/secret-adapter-vault-nestjs": "npm:^0.4.4"
     "@rytass/wms-base-nestjs-module": "npm:0.1.11"
     "@rytass/wms-map-react-components": "npm:^0.1.9"
@@ -8204,6 +8205,7 @@ __metadata:
     react-dom: "npm:^19.2.3"
     react-hook-form: "npm:^7.71.1"
     reflect-metadata: "npm:^0.1.13"
+    rollup: "npm:^4.14.0"
     rxjs: "npm:^7.8.0"
     sass: "npm:1.62.1"
     tslib: "npm:^2.3.0"
@@ -8676,15 +8678,6 @@ __metadata:
   checksum: 10c0/57b06ae984bc32a0d22592c87384cd88fe4511b1dd7581497831c56d41939c8a001b28e7b853e1450f2bf61992dfcaa8ae2d0d161a0a90c4fb631ef07098fbac
   languageName: node
   linkType: hard
-
-"api@workspace:apps/api":
-  version: 0.0.0-use.local
-  resolution: "api@workspace:apps/api"
-  dependencies:
-    "@as-integrations/express5": "npm:^1.1.2"
-    pg: "npm:^8.16.3"
-  languageName: unknown
-  linkType: soft
 
 "app-root-path@npm:^3.1.0":
   version: 3.1.0

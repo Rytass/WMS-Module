@@ -6,7 +6,7 @@ import {
   LocationEntityClass,
   MaterialEntityClass,
   StockEntityClass,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 import { LocationDto } from '../dto/location.dto';
 import { BatchDto } from '../dto/batch.dto';

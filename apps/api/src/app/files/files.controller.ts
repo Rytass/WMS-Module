@@ -1,4 +1,3 @@
-import 'multer';
 import {
   BadRequestException,
   Controller,
@@ -12,7 +11,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { FileEntity } from './file.entity';
-import { FilesService } from './files.service';
+import { FilesService, UploadedFileInput } from './files.service';
 
 @Controller('files')
 export class FilesController {
@@ -21,7 +20,7 @@ export class FilesController {
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async upload(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: UploadedFileInput,
   ): Promise<FileEntity> {
     if (!file) {
       throw new BadRequestException('file is required');

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Mutation } from '@nestjs/graphql';
-import { QualityInspectionOrderService, StockService } from '@wms-module/core';
+import { QualityInspectionOrderService, StockService } from '@rytass/wms-module-core';
 import { QualityInspectionOrderDto } from '../dto/quality-inspection-order.dto';
 import { CreateQualityInspectionOrderArgs } from '../inputs/create-quality-inspection-order.args';
 

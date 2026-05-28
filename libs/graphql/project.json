@@ -1,8 +1,31 @@
 {
-  "name": "@wms-module/graphql",
+  "name": "graphql",
   "projectType": "library",
   "sourceRoot": "libs/graphql/src",
   "prefix": "wms-module",
-  "targets": {},
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["^build"],
+      "outputs": [
+        "{projectRoot}/index.cjs.js",
+        "{projectRoot}/index.js",
+        "{projectRoot}/index.d.ts",
+        "{projectRoot}/lib"
+      ],
+      "options": {
+        "cwd": "libs/graphql",
+        "command": "rollup -c rollup.config.mjs"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/graphql",
+        "commands": ["rm -rf index.cjs.js index.js index.d.ts lib"],
+        "parallel": false
+      }
+    }
+  },
   "tags": []
 }

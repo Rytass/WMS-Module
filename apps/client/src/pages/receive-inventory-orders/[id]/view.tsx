@@ -1,4 +1,4 @@
-import ViewReceiveInventoryOrder from '../../../components/pages/receive-inventory-orders/view';
+import { ViewReceiveInventoryOrder } from '@rytass/wms-module-react';
 
 function ReceiveInventoryOrderViewPage() {
   return <ViewReceiveInventoryOrder />;

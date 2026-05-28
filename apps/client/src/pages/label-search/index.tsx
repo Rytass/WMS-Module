@@ -1,4 +1,4 @@
-import LabelSearch from '../../components/pages/label-search';
+import { LabelSearch } from "@rytass/wms-module-react";
 
 function LabelSearchPage() {
   return <LabelSearch />;

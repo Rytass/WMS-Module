@@ -14,7 +14,7 @@ import {
   MaterialEntityClass,
   ReceiveInventoryOrderChangeEntityClass,
   ReceiveInventoryOrderItemEntityClass,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { BatchDto } from '../dto/batch.dto';
 import { LocationDto } from '../dto/location.dto';
 

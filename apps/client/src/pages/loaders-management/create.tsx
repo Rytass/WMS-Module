@@ -1,4 +1,4 @@
-import CreateLoader from '../../components/pages/loaders-management/List/create';
+import { CreateLoader } from '@rytass/wms-module-react';
 
 function CreateLoaderPage() {
   return <CreateLoader />;

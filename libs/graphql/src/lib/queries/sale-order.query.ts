@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
-import { SaleOrderService } from '@wms-module/core';
+import { SaleOrderService } from '@rytass/wms-module-core';
 import { FindSaleOrderArgs } from '../inputs/find-sale-order.args';
 
 @Injectable()

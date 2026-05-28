@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Query } from '@nestjs/graphql';
 import { Batches } from '../dto/batch.dto';
-import { BatchService } from '@wms-module/core';
+import { BatchService } from '@rytass/wms-module-core';
 import { FindBatchArgs } from '../inputs/find-batch.args';
 
 @Injectable()

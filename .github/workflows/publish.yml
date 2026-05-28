@@ -1,0 +1,46 @@
+name: Publish npm packages
+
+on:
+  push:
+    tags:
+      - 'core@*'
+      - 'graphql@*'
+      - 'react@*'
+
+jobs:
+  publish:
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: tree:0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build releasable libs
+        run: yarn nx run-many -t build --projects=core,graphql
+
+      - name: Print Nx report
+        run: yarn nx report
+
+      - name: Publish to npm
+        run: yarn nx release publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: 'true'

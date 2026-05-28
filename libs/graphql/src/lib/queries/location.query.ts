@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
-import { LocationService } from '@wms-module/core';
+import { LocationService } from '@rytass/wms-module-core';
 import { LocationDto, Locations } from '../dto/location.dto';
 import { FindLocationArgs } from '../inputs/find-location.args';
 

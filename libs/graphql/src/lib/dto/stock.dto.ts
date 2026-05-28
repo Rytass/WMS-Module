@@ -1,6 +1,6 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { PaginatedResponse } from './pagination.dto';
-import { ChangeType, StockStatus } from '@wms-module/core';
+import { ChangeType, StockStatus } from '@rytass/wms-module-core';
 
 @ObjectType()
 export class StockDto {

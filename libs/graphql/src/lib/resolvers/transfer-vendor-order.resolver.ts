@@ -4,7 +4,7 @@ import { TransferVendorOrderItemDto } from '../dto/transfer-vendor-order-item.dt
 import {
   TransferVendorOrderEntityClass,
   TransferVendorOrderItemEntityClass,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 
 @Resolver(() => TransferVendorOrderDto)

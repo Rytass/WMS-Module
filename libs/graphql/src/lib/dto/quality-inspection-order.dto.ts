@@ -10,8 +10,8 @@ export class QualityInspectionOrderDto {
   @Field(() => String)
   key!: string;
 
-  @Field(() => String)
-  note!: string;
+  @Field(() => String, { nullable: true })
+  note!: string | null;
 
   @Field(() => Date)
   createdAt!: Date;

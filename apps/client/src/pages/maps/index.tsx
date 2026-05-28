@@ -1,4 +1,4 @@
-import Maps from '../../components/pages/maps';
+import { Maps } from "@rytass/wms-module-react";
 
 function MapsPage() {
   return <Maps />;

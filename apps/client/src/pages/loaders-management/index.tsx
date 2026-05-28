@@ -1,4 +1,4 @@
-import LoadersManagement from '../../components/pages/loaders-management';
+import { LoadersManagement } from "@rytass/wms-module-react";
 
 function LoadersManagementPage() {
   return <LoadersManagement />;

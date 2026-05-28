@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UnitDto } from '../dto/unit.dto';
 import { Query } from '@nestjs/graphql';
-import { UnitService } from '@wms-module/core';
+import { UnitService } from '@rytass/wms-module-core';
 
 @Injectable()
 export class UnitQuery {

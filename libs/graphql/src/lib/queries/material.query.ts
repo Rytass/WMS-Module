@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
 import { MaterialDto, Materials } from '../dto';
-import { MaterialService } from '@wms-module/core';
+import { MaterialService } from '@rytass/wms-module-core';
 import { FindMaterialArgs } from '../inputs/find-material.args';
 
 @Injectable()
