@@ -19,6 +19,10 @@ RUN yarn install --immutable
 # This stage takes the source code and dependencies and builds all apps.
 FROM node:20-alpine AS builder
 WORKDIR /app
+# rsync is needed by libs/react:build (chains rollup + rsync to copy SCSS files
+# into the published lib structure). Each multi-stage `FROM` starts from a fresh
+# image, so installing rsync in `deps` doesn't carry over — must install here too.
+RUN apk add --no-cache rsync
 # Copy dependencies from the 'deps' stage
 COPY --from=deps /app/node_modules ./node_modules
 # Copy the entire source code
