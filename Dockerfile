@@ -9,8 +9,18 @@ RUN corepack enable
 # Copy dependency definition files
 COPY package.json yarn.lock .yarnrc.yml ./
 COPY .yarn ./.yarn
-# Install all dependencies (including devDependencies needed for the build)
-RUN yarn install --frozen-lockfile
+# Workspace package.json files MUST be copied before `yarn install` — without them,
+# Yarn 4 sees the workspace entries in yarn.lock (e.g. `api@workspace:apps/api`)
+# but can't find the on-disk packages they reference, so it tries to *remove* those
+# entries from the lockfile. Under --immutable / --frozen-lockfile this becomes
+# `YN0028: The lockfile would have been modified by this install, which is
+# explicitly forbidden` → exit 1.
+# Add a line here for each workspace declared by the root `workspaces` field.
+COPY apps/api/package.json apps/api/
+# Install all dependencies (including devDependencies needed for the build).
+# Yarn 4 canonical name for --frozen-lockfile is --immutable; the old alias is
+# accepted but emits YN0050 deprecation warnings.
+RUN yarn install --immutable
 
 # --- Builder Stage (Builds all applications) ---
 # This stage takes the source code and dependencies and builds all apps.
