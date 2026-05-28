@@ -22,7 +22,9 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy the entire source code
 COPY . .
 # Run GraphQL code generation first, as the client build depends on the generated files.
-RUN npx nx run client:graphql
+# Target moved from `client` to `react` lib in 48287ca (lib extraction). Matches the
+# root package.json `gql` script: `nx run react:graphql`.
+RUN npx nx run react:graphql
 # Run the build command for all applications in the monorepo
 RUN npx nx run-many -t build
 # Debugging step: List the contents of the dist directory to verify build output paths.
