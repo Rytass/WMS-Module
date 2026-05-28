@@ -17,7 +17,7 @@ import {
   MaterialEntityClass,
   TransferOrderChangeEntityClass,
   TransferOrderItemEntityClass,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { LoaderDto, MaterialDto } from '../dto';
 import { BatchDto } from '../dto/batch.dto';
 import { LocationDto } from '../dto/location.dto';

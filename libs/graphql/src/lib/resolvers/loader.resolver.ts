@@ -5,7 +5,7 @@ import {
   LoaderTypeEntityClass,
   LocationEntityClass,
   StockService,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 import { LocationDto } from '../dto/location.dto';
 import _ from 'lodash';

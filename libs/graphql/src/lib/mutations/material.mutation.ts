@@ -5,7 +5,7 @@ import {
   CreateMaterialArgs,
   UpdateMaterialArgs,
 } from '../inputs/create-material.args';
-import { MaterialService } from '@wms-module/core';
+import { MaterialService } from '@rytass/wms-module-core';
 
 @Injectable()
 export class MaterialMutation {

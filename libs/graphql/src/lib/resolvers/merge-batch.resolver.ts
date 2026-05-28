@@ -3,7 +3,7 @@ import {
   MergeBatchOrderDto,
   MergeBatchOrderItemDto,
 } from '../dto/merge-batch-order.dto';
-import { MergeBatchOrderItemEntityClass } from '@wms-module/core';
+import { MergeBatchOrderItemEntityClass } from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 
 @Resolver(() => MergeBatchOrderDto)

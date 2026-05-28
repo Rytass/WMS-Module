@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
-import { ShipInventoryOrderService } from '@wms-module/core';
+import { ShipInventoryOrderService } from '@rytass/wms-module-core';
 import { ShipInventoryOrderDto, ShipInventoryOrders } from '../dto';
 import { FindShipInventoryOrderArgs } from '../inputs/find-ship-inventory-order.args';
 

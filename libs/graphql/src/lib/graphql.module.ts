@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
+import { DynamicModule, Module } from '@nestjs/common';
 import { GqlModuleAsyncOptions, GraphQLModule } from '@nestjs/graphql';
-import { WmsModuleCoreModule } from '@wms-module/core';
-import type { WmsModuleCoreModuleAsyncOptions } from '@wms-module/core';
+import { WmsModuleCoreModule } from '@rytass/wms-module-core';
+import type { WmsModuleCoreModuleAsyncOptions } from '@rytass/wms-module-core';
 import { HelperModule, LoaderService } from './helpers';
 import { LoaderMutation } from './mutations/loader.mutation';
 import { LoaderQuery } from './queries/loader.query';
@@ -134,7 +134,7 @@ export class WmsModuleGraphqlModule {
   static forRootAsync(
     options: WmsModuleCoreModuleAsyncOptions,
     gqlOptions: GqlModuleAsyncOptions,
-  ) {
+  ): DynamicModule {
     const coreModule = WmsModuleCoreModule.forRootAsync(options);
 
     return {

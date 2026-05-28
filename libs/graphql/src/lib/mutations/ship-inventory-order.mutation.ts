@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ShipInventoryOrderService, StockService } from '@wms-module/core';
+import { ShipInventoryOrderService, StockService } from '@rytass/wms-module-core';
 import { ShipInventoryOrderDto } from '../dto';
 import { Args, Mutation } from '@nestjs/graphql';
 import {

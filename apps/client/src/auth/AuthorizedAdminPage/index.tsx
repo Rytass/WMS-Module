@@ -1,7 +1,9 @@
 import Main from './Main';
-import InventoryActionsProvider from '../../components/inventoryActions/InventoryActionsProvider';
-import DialogProvider from '../../components/dialog/DialogProvider';
-import ModalProvider from '../../components/modal/ModalProvider';
+import {
+  DialogProvider,
+  InventoryActionsProvider,
+  ModalProvider,
+} from '@rytass/wms-module-react';
 
 const AuthorizedAdminPage: FC = ({ children }) => {
   return (

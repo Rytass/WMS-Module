@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
-import { SplitBatchOrderService, StockService } from '@wms-module/core';
+import { SplitBatchOrderService, StockService } from '@rytass/wms-module-core';
 import { SplitBatchArgs } from '../inputs/split-batch.args';
 import { SplitBatchOrderDto } from '../dto/split-batch-order.dto';
 

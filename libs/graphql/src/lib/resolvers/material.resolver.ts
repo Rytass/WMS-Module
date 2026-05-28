@@ -5,7 +5,7 @@ import {
   MaterialUnitEntityClass,
   StockService,
   UnitEntityClass,
-} from '@wms-module/core';
+} from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 import { UnitDto } from '../dto/unit.dto';
 

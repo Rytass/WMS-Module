@@ -1,4 +1,4 @@
-import ShipInventoryOrders from '../../components/pages/ship-inventory-orders';
+import { ShipInventoryOrders } from "@rytass/wms-module-react";
 
 function ShipInventoryOrdersPage() {
   return <ShipInventoryOrders />;

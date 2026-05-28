@@ -8,6 +8,12 @@ import { Repository } from 'typeorm';
 import { v4 as uuid } from 'uuid';
 import { FileEntity } from './file.entity';
 
+export interface UploadedFileInput {
+  originalname: string;
+  mimetype: string;
+  buffer: Buffer;
+}
+
 @Injectable()
 export class FilesService {
   private readonly storagePath =
@@ -18,7 +24,7 @@ export class FilesService {
     private readonly fileRepo: Repository<FileEntity>,
   ) {}
 
-  async save(file: Express.Multer.File): Promise<FileEntity> {
+  async save(file: UploadedFileInput): Promise<FileEntity> {
     const id = uuid();
     const extension = extname(file.originalname).replace(/^\./, '');
     const name = extension

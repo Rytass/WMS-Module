@@ -11,7 +11,7 @@ import {
   NavigationIconButton,
   NavigationChild,
 } from '@mezzanine-ui/react/Navigation';
-import { useRoutes } from '../../hooks/useRoutes';
+import { useRoutes } from '@rytass/wms-module-react';
 // eslint-disable-next-line @nx/enforce-module-boundaries
 import logo from '/public/logo.jpg';
 import classes from './index.module.scss';

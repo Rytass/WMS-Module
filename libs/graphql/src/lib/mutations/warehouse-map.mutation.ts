@@ -3,7 +3,7 @@ import { WarehouseMapService as WarehouseMapBaseService } from '@rytass/wms-base
 import { MapDataDto } from '../dto/warehouse-map.dto';
 import { Args, Mutation } from '@nestjs/graphql';
 import { UpdateWarehouseMapArgs } from '../inputs/update-warehouse-map.args';
-import { WarehouseMapDataService } from '@wms-module/core';
+import { WarehouseMapDataService } from '@rytass/wms-module-core';
 import { In } from 'typeorm';
 
 @Injectable()
