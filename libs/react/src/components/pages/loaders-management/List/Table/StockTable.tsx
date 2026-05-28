@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { TableColumn } from '@mezzanine-ui/react';
 import Table from '../../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../../graphql/generated/.graphql';
-import { aggregatedStockColumns } from '../../../../../utils/share';
+import { aggregatedStockColumns } from '../../../../../utils/columns';
 import { useQueryStocksByLoaderId } from '../../useApi';
 
 interface StockTableProps {

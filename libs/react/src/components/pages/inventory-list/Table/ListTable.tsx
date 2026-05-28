@@ -3,7 +3,7 @@ import { TableColumn } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
-import { aggregatedStockColumns } from '../../../../utils/share';
+import { aggregatedStockColumns } from '../../../../utils/columns';
 import { useQueryStocks } from '../useApi';
 import { FilterValues } from '../typing';
 

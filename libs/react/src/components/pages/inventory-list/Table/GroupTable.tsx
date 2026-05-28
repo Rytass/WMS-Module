@@ -28,7 +28,8 @@ import {
   AggregatedStockFragment,
 } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
-import { aggregatedStockColumns, formatKeyName } from '../../../../utils/share';
+import { formatKeyName } from '../../../../utils/share';
+import { aggregatedStockColumns } from '../../../../utils/columns';
 import { stockStatusName } from '../../../inventoryActions/utils';
 import { useQueryStocksGrouped } from '../useApi';
 import { FilterValues } from '../typing';
