@@ -395,7 +395,7 @@ type QualityInspectionOrderItemDto {
 type QualityInspectionOrderDto {
   id: ID!
   key: String!
-  note: String!
+  note: String
   createdAt: DateTime!
   items: [QualityInspectionOrderItemDto!]!
 }
