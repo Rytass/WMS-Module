@@ -2,8 +2,10 @@
 # This stage installs all dependencies required for the build process.
 FROM node:20-alpine AS deps
 WORKDIR /app
-# Install git as some packages might be installed from git repositories
-RUN apk add --no-cache git
+# Install git (some packages installed from git repos) and rsync (libs/react's
+# build target runs `rsync -a --include='*/' --include='*.scss' --exclude='*'
+# src/ ./` as its second command — alpine base images don't ship rsync).
+RUN apk add --no-cache git rsync
 # Enable Yarn Berry, the package manager used in this project
 RUN corepack enable
 # Copy dependency definition files
