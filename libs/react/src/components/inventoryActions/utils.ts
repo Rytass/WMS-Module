@@ -10,6 +10,7 @@ import {
   CheckedOutlineIcon,
   TrashIcon,
 } from '@mezzanine-ui/icons';
+import { isNull } from 'lodash';
 import {
   CarIcon,
   SplitIcon,
@@ -199,7 +200,8 @@ export function inventoryActionsEnableStatus(
         isPositionChanging(stock) && !!stock.vendorId;
 
     case InventoryActions.QualityInspection:
-      return (stock: AggregatedStockFragment) => !isPositionChanging(stock);
+      return (stock: AggregatedStockFragment) =>
+        !isPositionChanging(stock) && isNull(stock.inspectionResult);
 
     case InventoryActions.DeliverToCustomer:
       return (stock: AggregatedStockFragment) =>
