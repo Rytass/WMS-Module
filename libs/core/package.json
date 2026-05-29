@@ -22,6 +22,14 @@
   "main": "./index.cjs.js",
   "module": "./index.js",
   "typings": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.cjs.js",
+      "import": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "**/*.js",
     "**/*.d.ts",
