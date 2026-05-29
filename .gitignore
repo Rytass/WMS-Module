@@ -4,6 +4,7 @@
 dist
 tmp
 out-tsc
+*.tsbuildinfo
 
 # library build artefacts (emitted alongside source)
 libs/*/index.cjs.js
