@@ -42,8 +42,12 @@
   },
   "typesVersions": {
     "*": {
-      "globals": ["./globals.d.ts"],
-      "apollo": ["./apollo/index.d.ts"]
+      "globals": [
+        "./globals.d.ts"
+      ],
+      "apollo": [
+        "./apollo/index.d.ts"
+      ]
     }
   },
   "files": [
