@@ -976,12 +976,15 @@ TypeOrmModule.forRoot({
 // data-source.ts (TypeORM CLI config)
 import { DataSource } from 'typeorm';
 // Import all entity classes from the core lib
+// (see docs/api-reference.md "TypeORM Entities" for the complete list of 50 classes)
 import {
   MaterialEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
-  // ... all 50 entity classes
+  // ... all entity classes from @rytass/wms-module-core
 } from '@rytass/wms-module-core';
+// WarehouseMapEntityClass lives in the base module, not in core
+import { WarehouseMapEntityClass } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
 
 export default new DataSource({
   type: 'postgres',
@@ -989,12 +992,23 @@ export default new DataSource({
   entities: [
     MaterialEntityClass,
     LoadersEntityClass,
-    // ... list every entity class
+    LocationEntityClass,
+    // ... list every entity class from @rytass/wms-module-core
+    WarehouseMapEntityClass, // required — used by LocationsManagement and Maps pages
     // Add your own entity classes here
   ],
   migrations: ['src/migrations/*.ts'],
 });
 ```
+
+> **Note**: `WarehouseMapEntityClass` is imported from `@rytass/wms-base-nestjs-module`, not
+> from `@rytass/wms-module-core`. If it is omitted, the `warehouse_map` table is never
+> created; the `LocationsManagement` and `Maps` pages will throw at runtime trying to query
+> a non-existent table. Install `@rytass/wms-base-nestjs-module` as an additional dependency
+> if it is not already in your `package.json`.
+>
+> For the full list of the 50+ entity classes exported from `@rytass/wms-module-core`, refer
+> to the **TypeORM Entities** section in [docs/api-reference.md](./api-reference.md).
 
 3. Run `npx typeorm migration:generate src/migrations/wms-init -d data-source.ts`.
 
