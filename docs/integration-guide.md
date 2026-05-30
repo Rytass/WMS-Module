@@ -235,14 +235,18 @@ The `@as-integrations/express5` package is required at runtime by `@nestjs/apoll
 
 Start the server and probe the schema:
 
+> **Note**: NestJS's `app.setGlobalPrefix('api')` does **not** apply to the `/graphql`
+> endpoint mounted by `@nestjs/apollo`. The GraphQL endpoint is always at `/graphql`,
+> not `/api/graphql`, regardless of the global prefix setting.
+
 ```bash
 pnpm dev
-curl -s -X POST http://localhost:7103/api/graphql \
+curl -s -X POST http://localhost:7103/graphql \
   -H "Content-Type: application/json" \
   -d '{"query":"{ __schema { queryType { name } } }"}'
 # -> {"data":{"__schema":{"queryType":{"name":"Query"}}}}
 
-curl -s -X POST http://localhost:7103/api/graphql \
+curl -s -X POST http://localhost:7103/graphql \
   -H "Content-Type: application/json" \
   -d '{"query":"{ locations { items { id key } } }"}'
 # -> {"data":{"locations":{"items":[{"id":"<uuid>","key":"DEFAULT"}]}}}
@@ -692,7 +696,7 @@ The cleanest approach is a small fetch-based script that POSTs against the local
 
 ```js
 // scripts/seed.mjs (ESM, no build step)
-const GQL_URL = 'http://localhost:7103/api/graphql';
+const GQL_URL = 'http://localhost:7103/graphql';
 
 async function gql(query, variables = {}) {
   const res = await fetch(GQL_URL, {
