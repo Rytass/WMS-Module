@@ -30,6 +30,30 @@
         ],
         "parallel": false
       }
+    },
+    "pkg-quality": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "yarn dlx publint run libs/core --pack false",
+        "parallel": false
+      }
+    },
+    "pkg-quality-attw": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "parallel": false,
+        "commands": [
+          "npm pack --pack-destination ./libs/core ./libs/core",
+          "yarn dlx @arethetypeswrong/cli ./libs/core/*.tgz",
+          "rm -f ./libs/core/*.tgz"
+        ]
+      }
+    },
+    "prepublish-check": {
+      "executor": "nx:noop",
+      "dependsOn": ["typecheck", "lint", "build", "pkg-quality"]
     }
   },
   "tags": []

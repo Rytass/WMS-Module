@@ -1,6 +1,6 @@
 {
   "name": "@rytass/wms-module-core",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Rytass WMS Module — NestJS services and TypeORM entities for warehouse management",
   "keywords": [
     "rytass",
@@ -22,6 +22,14 @@
   "main": "./index.cjs.js",
   "module": "./index.js",
   "typings": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.cjs.js",
+      "import": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "**/*.js",
     "**/*.d.ts",

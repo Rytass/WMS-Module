@@ -25,6 +25,30 @@
         "commands": ["rm -rf index.cjs.js index.js index.d.ts lib"],
         "parallel": false
       }
+    },
+    "pkg-quality": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "command": "yarn dlx publint run libs/graphql --pack false",
+        "parallel": false
+      }
+    },
+    "pkg-quality-attw": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build"],
+      "options": {
+        "parallel": false,
+        "commands": [
+          "npm pack --pack-destination ./libs/graphql ./libs/graphql",
+          "yarn dlx @arethetypeswrong/cli ./libs/graphql/*.tgz",
+          "rm -f ./libs/graphql/*.tgz"
+        ]
+      }
+    },
+    "prepublish-check": {
+      "executor": "nx:noop",
+      "dependsOn": ["typecheck", "lint", "build", "pkg-quality"]
     }
   },
   "tags": []

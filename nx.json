@@ -44,6 +44,7 @@
     "projectsRelationship": "independent",
     "releaseTagPattern": "{projectName}@{version}",
     "version": {
+      "preVersionCommand": "yarn nx run-many -t prepublish-check",
       "conventionalCommits": true,
       "preserveLocalDependencyProtocols": true,
       "preserveMatchingDependencyRanges": false,

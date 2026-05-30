@@ -1,6 +1,6 @@
 {
   "name": "@rytass/wms-module-react",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Rytass WMS Module — React components, hooks, Apollo client factory and GraphQL operations for warehouse management",
   "keywords": [
     "rytass",
@@ -34,7 +34,17 @@
     "./globals": {
       "types": "./globals.d.ts"
     },
+    "./apollo": {
+      "types": "./apollo/index.d.ts",
+      "import": "./apollo/index.js"
+    },
     "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "globals": ["./globals.d.ts"],
+      "apollo": ["./apollo/index.d.ts"]
+    }
   },
   "files": [
     "**/*.js",
