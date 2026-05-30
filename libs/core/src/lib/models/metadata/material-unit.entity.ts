@@ -33,7 +33,7 @@ export class MaterialUnitEntityClass {
   @Column({ type: 'boolean', default: true })
   isActive!: boolean;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type: 'datetime' })
   createdAt!: Date;
 
   @ManyToOne('materials')

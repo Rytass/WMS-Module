@@ -21,7 +21,7 @@ export class MergeBatchOrderEntityClass {
   @Index()
   key!: string;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type: 'datetime' })
   createdAt!: Date;
 
   @OneToMany(

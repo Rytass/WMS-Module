@@ -27,7 +27,7 @@ export class ReceiveInventoryOrderItemEntityClass {
   @Column({ type: 'uuid', nullable: true })
   unitId!: string | null;
 
-  @Column({ type: 'bool', default: true })
+  @Column({ type: 'boolean', default: true })
   requireInspection!: boolean;
 
   @Column({ type: 'numeric' })
@@ -53,7 +53,7 @@ export class ReceiveInventoryOrderItemEntityClass {
   @Index()
   loaderId!: string | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   removedAt!: Date | null;
 
   @ManyToOne(

@@ -23,7 +23,7 @@ export class TransferCustomerOrderEntityClass {
   @Index()
   key!: string;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type: 'datetime' })
   createdAt!: Date;
 
   @OneToMany(
