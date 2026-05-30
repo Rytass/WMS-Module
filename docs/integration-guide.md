@@ -539,24 +539,83 @@ const client = createApolloClient(/* future override args */);
 
 See [API Reference - createApolloClient](./api-reference.md) for the current signature.
 
-### 7.3 GraphQL operations & typed hooks
+### 7.3 GraphQL operations & DocumentNode constants
 
-All queries and mutations the lib pages need are pre-defined and pre-typed at `wms-module-react`'s top level. You can import them directly to build your own pages on top of the same data layer:
+All queries and mutations the lib pages need are pre-defined and pre-typed and exported from
+`@rytass/wms-module-react`. You can import them directly to build custom pages on top of the
+same data layer.
+
+> **Codegen strategy**: the lib uses the `typed-document-node` GraphQL Code Generator plugin,
+> which generates `DocumentNode` constants (e.g. `MaterialsDocument`) plus paired TypeScript
+> types — **not** React hook wrappers. Call `useQuery`/`useMutation` from `@apollo/client/react`
+> and pass the `Document` constant as the first argument.
+
+**Query example:**
 
 ```ts
+import { useQuery } from '@apollo/client/react';
 import {
-  useGetMaterialsQuery,
-  useCreateMaterialMutation,
+  MaterialsDocument,
   type MaterialsQuery,
+  type MaterialsQueryVariables,
 } from '@rytass/wms-module-react';
 
 function MyCustomMaterialList(): ReactNode {
-  const { data, loading } = useGetMaterialsQuery({ variables: { offset: 0, limit: 20 } });
+  const { data, loading } = useQuery<MaterialsQuery, MaterialsQueryVariables>(
+    MaterialsDocument,
+    { variables: { offset: 0, limit: 20 } },
+  );
+
+  if (loading) return <Loading />;
+  return <ul>{data?.materials.items.map((m) => <li key={m.id}>{m.name}</li>)}</ul>;
+}
+```
+
+**Paginated query example:**
+
+```ts
+import { useQuery } from '@apollo/client/react';
+import {
+  LocationsDocument,
+  type LocationsQuery,
+  type LocationsQueryVariables,
+} from '@rytass/wms-module-react';
+
+function MyLocationPicker(): ReactNode {
+  const { data } = useQuery<LocationsQuery, LocationsQueryVariables>(LocationsDocument, {
+    variables: { offset: 0, limit: 100 },
+  });
+  const locations = data?.locations.items ?? [];
   // ...
 }
 ```
 
-The full list of generated operations is in [API Reference - Generated GraphQL Operations](./api-reference.md).
+**Mutation example:**
+
+```ts
+import { useMutation } from '@apollo/client/react';
+import {
+  CreateMaterialDocument,
+  type CreateMaterialMutation,
+  type CreateMaterialMutationVariables,
+} from '@rytass/wms-module-react';
+
+function CreateMaterialButton(): ReactNode {
+  const [createMaterial, { loading }] = useMutation<
+    CreateMaterialMutation,
+    CreateMaterialMutationVariables
+  >(CreateMaterialDocument);
+
+  const handleCreate = (): void => {
+    createMaterial({ variables: { name: 'Steel Bolt', description: 'M8' } });
+  };
+
+  return <button onClick={handleCreate} disabled={loading}>Create</button>;
+}
+```
+
+The full list of generated `Document` constants and their types is in
+[API Reference - Generated GraphQL Operations](./api-reference.md).
 
 ---
 
