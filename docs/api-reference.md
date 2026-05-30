@@ -569,56 +569,72 @@ interface LoaderType<T> {
 
 # @rytass/wms-module-react
 
-## Apollo Client
+> **Public API vs Library Internals**: this package exposes a curated public barrel
+> (`src/index.ts`). Only the symbols listed under **Public API (in barrel)** below can be
+> imported directly from `@rytass/wms-module-react`. Everything listed under
+> **Library Internals** exists in the source tree but is **not** barrel-exported; attempting to
+> import those symbols will result in a module-not-found / tree-shaker error.
 
-### `createApolloClient(): ApolloClient`
-- 用途: 工廠函式，建立包含 error link、auth link（可擴充 Authorization header）、HttpLink（`/graphql`）的 Apollo client。
-- 來源: `apollo/index.ts`
-- 簽名:
+---
+
+## Public API (in barrel)
+
+### Apollo Client
+
+#### `createApolloClient(): ApolloClient<NormalizedCacheObject>`
+- Purpose: Factory function that creates an Apollo client with error link, auth link (extensible for Authorization headers), and HttpLink pointing at `/graphql`.
+- Source: `apollo/index.ts`
+
 ```ts
 export const createApolloClient: () => ApolloClient<NormalizedCacheObject>
 ```
 
-### `ApolloClient` (default export)
-- 用途: `createApolloClient()` 建立的預設 singleton 實例，供 `apps/client` 的 `ApolloProvider` 使用。
-- 來源: `apollo/index.ts`
+As of 0.1.2, this factory takes **no parameters** and returns a fresh instance with `/graphql`
+as the endpoint URI (the same as the default singleton). A URL/header override parameter is
+planned for 0.2.0 (semver minor, non-breaking addition).
 
-```tsx
-import ApolloClient, { createApolloClient } from '@rytass/wms-module-react';
-// 使用 singleton:
+#### `ApolloClient` (named export — singleton instance)
+- Purpose: The pre-built Apollo client singleton created by `createApolloClient()`. Re-exported
+  as a **named** export (`export { ..., default as ApolloClient }`), so consumers must use a
+  **named import**.
+- Source: `apollo/index.ts`
+
+```ts
+// Correct — named import:
+import { ApolloClient, createApolloClient } from '@rytass/wms-module-react';
 <ApolloProvider client={ApolloClient}>...</ApolloProvider>
-// 或自行建立:
-const client = createApolloClient();
+
+// Wrong — default import (will be undefined):
+// import ApolloClient from '@rytass/wms-module-react';
 ```
 
 ---
 
-## Providers（Context Provider）
+### Providers (Context Providers)
 
-### `DialogProvider`
-- 用途: 全域確認對話框 Context Provider，搭配 `useDialog` 在任何子元件觸發模態確認視窗。
-- 來源: `components/dialog/DialogProvider.tsx`
+#### `DialogProvider`
+- Purpose: Global confirmation dialog Context Provider. Pair with `useDialog()` (internal) to
+  open modal confirmation dialogs from any descendant component.
+- Source: `components/dialog/DialogProvider.tsx`
 
 ```tsx
 import { DialogProvider } from '@rytass/wms-module-react';
-// 放在 _app.tsx 頂層：
-<DialogProvider>
-  <App />
-</DialogProvider>
+<DialogProvider><App /></DialogProvider>
 ```
 
-### `ModalProvider`
-- 用途: 全域可程式化 Modal Context Provider，搭配 `useModal` 開啟任意內容的 Modal。
-- 來源: `components/modal/ModalProvider.tsx`
+#### `ModalProvider`
+- Purpose: Global programmable Modal Context Provider.
+- Source: `components/modal/ModalProvider.tsx`
 
 ```tsx
 import { ModalProvider } from '@rytass/wms-module-react';
 <ModalProvider><App /></ModalProvider>
 ```
 
-### `InventoryActionsProvider`
-- 用途: 管理庫存作業清單（選取的 stock items、目前操作類型、數量輸入）的全域 Context Provider，搭配 `useInventoryActions`。
-- 來源: `components/inventoryActions/InventoryActionsProvider.tsx`
+#### `InventoryActionsProvider`
+- Purpose: Global context for managing the list of selected inventory items and the current
+  operation type. Required by all inventory action flows.
+- Source: `components/inventoryActions/InventoryActionsProvider.tsx`
 
 ```tsx
 import { InventoryActionsProvider } from '@rytass/wms-module-react';
@@ -627,216 +643,49 @@ import { InventoryActionsProvider } from '@rytass/wms-module-react';
 
 ---
 
-## Page-level Components（直接用於 Next.js Pages-Router shell）
+### Page-level Components (for Next.js Pages-Router shells)
 
-以下元件均為 default export，無需 props（完整自包含頁面）：
+All 11 page components take no props (fully self-contained) and are default-exported from their
+source file, re-exported as named exports from the barrel.
 
-### `MaterialsManagement`
-- 用途: 料號主檔管理頁，含列表與表單 Modal。
-- 來源: `components/pages/materials-management/index.tsx`
+| Named Export              | Route                       |
+|---------------------------|-----------------------------|
+| `ChangeHistory`           | `/change-history`           |
+| `InventoryCount`          | `/inventory-count`          |
+| `InventoryList`           | `/inventory-list`           |
+| `InventoryMovement`       | `/inventory-movement`       |
+| `LabelSearch`             | `/label-search`             |
+| `LoadersManagement`       | `/loaders-management`       |
+| `LocationsManagement`     | `/locations-management`     |
+| `Maps`                    | `/maps`                     |
+| `MaterialsManagement`     | `/materials-management`     |
+| `ReceiveInventoryOrders`  | `/receive-inventory-orders` |
+| `ShipInventoryOrders`     | `/ship-inventory-orders`    |
+
 ```tsx
 import { MaterialsManagement } from '@rytass/wms-module-react';
 export default function Page() { return <MaterialsManagement />; }
 ```
 
-### `LoadersManagement`
-- 用途: 載具管理頁，含列表與類型管理。
-- 來源: `components/pages/loaders-management/index.tsx`
-```tsx
-import { LoadersManagement } from '@rytass/wms-module-react';
-export default function Page() { return <LoadersManagement />; }
-```
+---
 
-### `LocationsManagement`
-- 用途: 庫位管理頁，含樹狀庫位列表與地圖。
-- 來源: `components/pages/locations-management/index.tsx`
-```tsx
-import { LocationsManagement } from '@rytass/wms-module-react';
-export default function Page() { return <LocationsManagement />; }
-```
+### Sub-page Components (for dynamic route shells)
 
-### `InventoryList`
-- 用途: 庫存清單查詢頁。
-- 來源: `components/pages/inventory-list/index.tsx`
-```tsx
-import { InventoryList } from '@rytass/wms-module-react';
-export default function Page() { return <InventoryList />; }
-```
-
-### `InventoryMovement`
-- 用途: 庫存異動頁（入庫/出庫/調撥作業入口）。
-- 來源: `components/pages/inventory-movement/index.tsx`
-```tsx
-import { InventoryMovement } from '@rytass/wms-module-react';
-export default function Page() { return <InventoryMovement />; }
-```
-
-### `ReceiveInventoryOrders`
-- 用途: 入庫單列表頁。
-- 來源: `components/pages/receive-inventory-orders/index.tsx`
-```tsx
-import { ReceiveInventoryOrders } from '@rytass/wms-module-react';
-export default function Page() { return <ReceiveInventoryOrders />; }
-```
-
-### `ShipInventoryOrders`
-- 用途: 出庫單列表頁。
-- 來源: `components/pages/ship-inventory-orders/index.tsx`
-```tsx
-import { ShipInventoryOrders } from '@rytass/wms-module-react';
-export default function Page() { return <ShipInventoryOrders />; }
-```
-
-### `InventoryCount`
-- 用途: 盤點作業頁。
-- 來源: `components/pages/inventory-count/index.tsx`
-```tsx
-import { InventoryCount } from '@rytass/wms-module-react';
-export default function Page() { return <InventoryCount />; }
-```
-
-### `ChangeHistory`
-- 用途: 庫存異動紀錄查詢頁。
-- 來源: `components/pages/change-history/index.tsx`
-```tsx
-import { ChangeHistory } from '@rytass/wms-module-react';
-export default function Page() { return <ChangeHistory />; }
-```
-
-### `LabelSearch`
-- 用途: 標籤查詢頁（條碼/QR code 掃描查詢）。
-- 來源: `components/pages/label-search/index.tsx`
-```tsx
-import { LabelSearch } from '@rytass/wms-module-react';
-export default function Page() { return <LabelSearch />; }
-```
-
-### `Maps`
-- 用途: 倉庫地圖頁，顯示庫位地圖視覺化。
-- 來源: `components/pages/maps/index.tsx`
-```tsx
-import { Maps } from '@rytass/wms-module-react';
-export default function Page() { return <Maps />; }
-```
+| Named Export                 | Dynamic Route                                    |
+|------------------------------|--------------------------------------------------|
+| `CreateLoader`               | `/loaders-management/create`                     |
+| `EditReceiveInventoryOrder`  | `/receive-inventory-orders/[id]/edit`            |
+| `ViewReceiveInventoryOrder`  | `/receive-inventory-orders/[id]/view`            |
+| `EditShipInventoryOrder`     | `/ship-inventory-orders/[id]/edit`               |
+| `ViewShipInventoryOrder`     | `/ship-inventory-orders/[id]/view`               |
+| `EditTransferOrder`          | `/inventory-movement/transfer-order/[id]`        |
 
 ---
 
-## Sub-page Components（動態路由 shell 使用）
+### Generic Hooks
 
-### `CreateLoader`
-- 用途: 新建載具頁面（`/loaders-management/create`）。
-- 來源: `components/pages/loaders-management/List/create/index.tsx`
-```tsx
-import { CreateLoader } from '@rytass/wms-module-react';
-export default function Page() { return <CreateLoader />; }
-```
-
-### `EditReceiveInventoryOrder`
-- 用途: 入庫單編輯頁（`/receive-inventory-orders/[id]/edit`）。
-- 來源: `components/pages/receive-inventory-orders/edit/index.tsx`
-```tsx
-import { EditReceiveInventoryOrder } from '@rytass/wms-module-react';
-export default function Page() { return <EditReceiveInventoryOrder />; }
-```
-
-### `ViewReceiveInventoryOrder`
-- 用途: 入庫單詳情頁（`/receive-inventory-orders/[id]/view`）。
-- 來源: `components/pages/receive-inventory-orders/view/index.tsx`
-```tsx
-import { ViewReceiveInventoryOrder } from '@rytass/wms-module-react';
-export default function Page() { return <ViewReceiveInventoryOrder />; }
-```
-
-### `EditShipInventoryOrder`
-- 用途: 出庫單編輯頁（`/ship-inventory-orders/[id]/edit`）。
-- 來源: `components/pages/ship-inventory-orders/edit/index.tsx`
-```tsx
-import { EditShipInventoryOrder } from '@rytass/wms-module-react';
-export default function Page() { return <EditShipInventoryOrder />; }
-```
-
-### `ViewShipInventoryOrder`
-- 用途: 出庫單詳情頁（`/ship-inventory-orders/[id]/view`）。
-- 來源: `components/pages/ship-inventory-orders/view/index.tsx`
-```tsx
-import { ViewShipInventoryOrder } from '@rytass/wms-module-react';
-export default function Page() { return <ViewShipInventoryOrder />; }
-```
-
-### `EditTransferOrder`
-- 用途: 調撥單編輯頁（`/inventory-movement/transfer-order/[id]`）。
-- 來源: `components/pages/inventory-movement/transfer-order/index.tsx`
-```tsx
-import { EditTransferOrder } from '@rytass/wms-module-react';
-export default function Page() { return <EditTransferOrder />; }
-```
-
----
-
-## UI Building Blocks
-
-### Fields（Form 欄位元件）
-
-全部位於 `components/fields/`，均為 default export。適用於 `react-hook-form` 整合：
-
-| Export Name | 說明 | 來源 |
-|---|---|---|
-| `BaseField` | 通用表單欄位包裝，提供 label + error | `fields/BaseField/` |
-| `InputField` | 文字輸入欄位 | `fields/InputField/` |
-| `NumberInputField` | 數值輸入欄位 | `fields/NumberInputField/` |
-| `DateField` | 日期選擇欄位（Dayjs） | `fields/DateField/` |
-| `RadioField` | 單選按鈕欄位 | `fields/RadioField/` |
-| `SelectInputField` | 可輸入的 Select 欄位 | `fields/SelectInputField/` |
-| `SingleSelectField` | 單選 Select 欄位 | `fields/SingleSelectField/` |
-| `SingleSelectByIdField` | 依 ID 單選的 Select 欄位 | `fields/SingleSelectByIdField/` |
-| `SingleAutoCompleteField` | 自動完成單選欄位 | `fields/SingleAutoCompleteField/` |
-| `SingleAutoCompleteByIdField` | 依 ID 自動完成單選欄位 | `fields/SingleAutoCompleteByIdField/` |
-| `YesNoField` | 是/否 選擇欄位 | `fields/YesNoField/` |
-| `MaterialsField` | 料號選擇欄位（帶 fetch/搜尋） | `fields/MaterialsField/` |
-| `UnitsField` | 單位選擇欄位 | `fields/UnitsField/` |
-| `BatchesField` | 批號選擇欄位 | `fields/BatchesField/` |
-| `LoadersField` | 載具選擇欄位 | `fields/LoadersField/` |
-| `LoaderTypesField` | 載具類型選擇欄位 | `fields/LoaderTypesField/` |
-| `LoaderUnitsField` | 載具單位選擇欄位 | `fields/LoaderUnitsField/` |
-| `LocationsField` | 庫位選擇欄位 | `fields/LocationsField/` |
-| `AvailableLoadersField` | 可用載具選擇欄位（庫存作業用） | `fields/AvailableLoadersField/` |
-| `ReceiveInventoryOrdersField` | 入庫單選擇欄位 | `fields/ReceiveInventoryOrdersField/` |
-| `ShipInventoryOrdersField` | 出庫單選擇欄位 | `fields/ShipInventoryOrdersField/` |
-| `TransferOrdersField` | 調撥單選擇欄位 | `fields/TransferOrdersField/` |
-| `SaleOrdersField` | 銷售訂單選擇欄位 | `fields/SaleOrdersField/` |
-| `SaleOrderIdsField` | 銷售訂單 ID 選擇欄位 | `fields/SaleOrderIdsField/` |
-| `MembersField` | 成員選擇欄位 | `fields/MembersField/` |
-
-### Form Wrappers
-| Export Name | 說明 | 來源 |
-|---|---|---|
-| `FormWrapper` | React Hook Form `<form>` 包裝，泛型 `T extends FieldValues` | `fields/FormWrapper/` |
-| `FormModalWrapper` | 帶 Mezzanine Modal 的表單包裝，泛型 `T extends FieldValues` | `fields/FormModalWrapper/` |
-| `FormDrawerWrapper` | 帶 Drawer 的表單包裝 | `fields/FormDrawerWrapper/` |
-
-### Layout Wrappers
-| Export Name | 說明 | 來源 |
-|---|---|---|
-| `PageWrapper` | 頁面外框容器 | `components/PageWrapper/` |
-| `SectionWrapper` | 區塊容器 | `components/SectionWrapper/` |
-| `TableWrapper` | 帶分頁的表格容器 | `components/TableWrapper/` |
-| `FilterWrapper` | 篩選欄位容器，帶摺疊功能 | `components/FilterWrapper/` |
-
-### Other UI Components
-| Export Name | 說明 | 來源 |
-|---|---|---|
-| `PageTabs` | Tab 分頁元件（使用 `nuqs` 同步 URL query） | `components/PageTabs/` |
-| `FormActionButtons` | 表單儲存/取消按鈕組 | `components/FormActionButtons/` |
-| `Loading` | 載入中 spinner | `components/Loading/` |
-| `InventoryActionDrawers` | 庫存作業操作 Drawer 集合（出庫、調撥、拆批、凍結等 action drawers） | `components/InventoryActionDrawers/` |
-
----
-
-## Hooks
-
-### `useRoutes()`
-- 用途: 回傳 WMS 側邊欄導覽路由設定陣列（含 title、icon、href/children）。
-- 來源: `hooks/useRoutes.ts`
+#### `useRoutes()`
+- Source: `hooks/useRoutes.ts`
 ```ts
 useRoutes(): Array<{
   title: string;
@@ -845,23 +694,23 @@ useRoutes(): Array<{
   children?: Array<{ title: string; href: NextPath }>;
 }>
 ```
+Returns the full WMS sidebar navigation tree. Titles are hardcoded zh-TW strings; there is
+no i18n mechanism in 0.1.x (see §13.9 in the integration guide for workarounds).
 
-### `useTablePageState(usePageQs?: boolean)`
-- 用途: 管理 table 分頁狀態；`usePageQs = true` 時同步至 URL query string（`?page=`）。
-- 來源: `hooks/useTablePagination.ts`
+#### `useTablePageState(usePageQs?: boolean)`
+- Source: `hooks/useTablePagination.ts`
 ```ts
 useTablePageState(usePageQs?: boolean): {
   page: number;
   setPage: (p: number) => void;
   limit: number;
-  setLimit: (limit: number) => void; // 同時 reset page to 1
+  setLimit: (limit: number) => void;
   offset: number; // (page - 1) * limit
 }
 ```
 
-### `useTablePageTotal(params)`
-- 用途: 計算分頁總數，當 `filterValues` 變動時自動 reset page 到 1。
-- 來源: `hooks/useTablePagination.ts`
+#### `useTablePageTotal(params)`
+- Source: `hooks/useTablePagination.ts`
 ```ts
 useTablePageTotal(params: {
   total?: number;
@@ -871,89 +720,14 @@ useTablePageTotal(params: {
 }): { pageTotal: number | undefined }
 ```
 
-### `useDialog()`
-- 用途: 觸發全域確認 Dialog（非同步，回傳 `Promise<boolean>`）。需在 `DialogProvider` 下使用。
-- 來源: `components/dialog/useDialog.ts`
-```ts
-useDialog(): {
-  openDialog: (config: DialogConfigType) => Promise<boolean>;
-  closeDialog: () => void;
-  resolve: (value: boolean) => void;
-}
-```
-`DialogConfigType` = `Omit<ModalProps, 'modalType'> & { children?, resolve? }`
-
-### `useModal()`
-- 用途: 程式化開啟/關閉 Mezzanine Modal。需在 `ModalProvider` 下使用。
-- 來源: `components/modal/useModal.ts`
-```ts
-useModal(): {
-  open: boolean;
-  openModal: (config: ModalConfigType) => void;
-  closeModal: () => Promise<void>;
-}
-```
-
-### `useInventoryActions()`
-- 用途: 讀取 `InventoryActionsContext` 中的庫存作業狀態，包含已選庫存清單與操作 signatures。
-- 來源: `components/inventoryActions/useInventoryActions.ts`
-```ts
-useInventoryActions(): InventoryActionsContextValues
-// InventoryActionsContextValues:
-// {
-//   inventorySignature: InventorySignature;       // id → { quantity, unitId }
-//   targetInventories: InventoryItem[];           // 已選庫存項目
-//   targetInventoryIds: string[];
-//   pushTargetInventories(inventories): void;
-//   updateInventoryQuantity(id, quantity): void;
-//   updateInventoryUnitId(id, unitId): void;
-//   removeTargetInventory(id): void;
-//   removeInventoryByIds(ids): void;
-//   resetAll(): void;
-//   targetAction: InventoryActionItem | null;
-//   setTargetAction: Dispatch<SetStateAction<InventoryActionItem | null>>;
-//   errorSignature: ErrorSignature;               // id → 錯誤訊息
-//   updateErrorSignature(id, msg): void;
-//   removeErrorSignature(id): void;
-// }
-```
-
-### `useAddInventories()`
-- 用途: 包裝庫存加入邏輯（重複、條件、數量限制驗證），回傳 `addInventories` callback。
-- 來源: `components/inventoryActions/useInventoryActions.ts`
-```ts
-useAddInventories(): (params: {
-  targetStocks: AggregatedStockFragment[];
-  currentAction: InventoryActionItem | null;
-  onAddSuccess: () => void;
-}) => void
-```
-
-### `useInventorySignature(inventory: StockInActionsFragment)`
-- 用途: 讀取單一庫存項目的作業 signature（unit、quantity 等），用於 InventoryActionDrawer 中的輸入欄位。
-- 來源: `components/inventoryActions/useInventoryActions.ts`
-```ts
-useInventorySignature(inventory: StockInActionsFragment): {
-  currentSignature: InventorySignatureValues | undefined;
-  saleInformation: string | undefined;
-  currentUnitId: string | undefined;
-  unitOptions: { id: string; name: string; conversionFactor: number }[];
-  currentUnitName: string | undefined;
-  quantity: number;
-  inputQuantity: number | undefined;
-}
-```
-
-### `useFormCancel(params)`
-- 用途: 觸發「尚未儲存」確認 Dialog，確認後執行 `onCancel` 或 `router.back()`。
-- 來源: `hooks/useFormCancel.ts`
+#### `useFormCancel(params)`
+- Source: `hooks/useFormCancel.ts`
 ```ts
 useFormCancel(params: { onCancel?: () => void }): () => Promise<void>
 ```
 
-### `useFetchMoreOptions<T>(params)`
-- 用途: 管理 lazy-load Select 選項的 fetch/搜尋/觸底加載邏輯。
-- 來源: `hooks/useSelectorOptions.ts`
+#### `useFetchMoreOptions<T>(params)`
+- Source: `hooks/useSelectorOptions.ts`
 ```ts
 useFetchMoreOptions<T>(params: {
   fetchData: LazyQueryExecFunction;
@@ -970,18 +744,16 @@ useFetchMoreOptions<T>(params: {
 }
 ```
 
-### `useInsertOption(setOptions)`
-- 用途: 向 Select options 插入使用者輸入的新項目（允許自由輸入）。
-- 來源: `hooks/useSelectorOptions.ts`
+#### `useInsertOption(setOptions)`
+- Source: `hooks/useSelectorOptions.ts`
 ```ts
 useInsertOption(
   setOptions: Dispatch<SetStateAction<SelectValue<string>[]>>
 ): (text: string, currentOptions: SelectValue[]) => SelectValue[]
 ```
 
-### `useSortTable()`
-- 用途: 管理 Mezzanine Table 的排序狀態。
-- 來源: `hooks/useSortTable.ts`
+#### `useSortTable()`
+- Source: `hooks/useSortTable.ts`
 ```ts
 useSortTable(): {
   sortOrder: { key: string; sortOrder: SortOrder } | null;
@@ -991,9 +763,8 @@ useSortTable(): {
 }
 ```
 
-### `useColumnWidthPersistence<T>(tableKey, columns)`
-- 用途: 持久化 Mezzanine Table 欄寬至 `localStorage`，並在初始化時還原。
-- 來源: `hooks/useColumnWidthPersistence.ts`
+#### `useColumnWidthPersistence<T>(tableKey, columns)`
+- Source: `hooks/useColumnWidthPersistence.ts`
 ```ts
 useColumnWidthPersistence<T extends TableDataSource>(
   tableKey: string,
@@ -1004,43 +775,42 @@ useColumnWidthPersistence<T extends TableDataSource>(
 }
 ```
 
-### `usePreviousValue<T>(value: T): T`
-- 用途: 回傳前一個 render 的值（用於 useEffect 比對）。
-- 來源: `hooks/usePreviousValue.ts`
+#### `usePreviousValue<T>(value: T): T`
+- Source: `hooks/usePreviousValue.ts`
 
 ---
 
-## Utilities
+### Route Utilities
 
-### `NextPath` (enum)
-- 用途: 所有 WMS 路由路徑常數，由 `yarn pages` 從 `apps/client/src/pages` 自動生成。**更改現有值為 breaking change。**
-- 來源: `utils/nextpath.ts`
+#### `NextPath` (enum)
+- Source: `utils/nextpath.ts`
+- Generated by `yarn pages` from the `apps/client/src/pages` tree. **Renaming or removing
+  existing enum values is a breaking change** for downstream consumers.
 
 ```ts
 enum NextPath {
-  CHANGEHISTORY = "/change-history",
-  INVENTORYCOUNT = "/inventory-count",
-  INVENTORYLIST = "/inventory-list",
-  INVENTORYMOVEMENT = "/inventory-movement",
-  INVENTORYMOVEMENT_TRANSFERORDER_ID = "/inventory-movement/transfer-order/[id]",
-  LABELSEARCH = "/label-search",
-  LOADERSMANAGEMENT = "/loaders-management",
-  LOADERSMANAGEMENT_CREATE = "/loaders-management/create",
-  LOCATIONSMANAGEMENT = "/locations-management",
-  MAPS = "/maps",
-  MATERIALSMANAGEMENT = "/materials-management",
-  RECEIVEINVENTORYORDERS = "/receive-inventory-orders",
-  RECEIVEINVENTORYORDERS_ID_EDIT = "/receive-inventory-orders/[id]/edit",
-  RECEIVEINVENTORYORDERS_ID_VIEW = "/receive-inventory-orders/[id]/view",
-  SHIPINVENTORYORDERS = "/ship-inventory-orders",
-  SHIPINVENTORYORDERS_ID_EDIT = "/ship-inventory-orders/[id]/edit",
-  SHIPINVENTORYORDERS_ID_VIEW = "/ship-inventory-orders/[id]/view",
+  CHANGEHISTORY                       = "/change-history",
+  INVENTORYCOUNT                      = "/inventory-count",
+  INVENTORYLIST                       = "/inventory-list",
+  INVENTORYMOVEMENT                   = "/inventory-movement",
+  INVENTORYMOVEMENT_TRANSFERORDER_ID  = "/inventory-movement/transfer-order/[id]",
+  LABELSEARCH                         = "/label-search",
+  LOADERSMANAGEMENT                   = "/loaders-management",
+  LOADERSMANAGEMENT_CREATE            = "/loaders-management/create",
+  LOCATIONSMANAGEMENT                 = "/locations-management",
+  MAPS                                = "/maps",
+  MATERIALSMANAGEMENT                 = "/materials-management",
+  RECEIVEINVENTORYORDERS              = "/receive-inventory-orders",
+  RECEIVEINVENTORYORDERS_ID_EDIT      = "/receive-inventory-orders/[id]/edit",
+  RECEIVEINVENTORYORDERS_ID_VIEW      = "/receive-inventory-orders/[id]/view",
+  SHIPINVENTORYORDERS                 = "/ship-inventory-orders",
+  SHIPINVENTORYORDERS_ID_EDIT         = "/ship-inventory-orders/[id]/edit",
+  SHIPINVENTORYORDERS_ID_VIEW         = "/ship-inventory-orders/[id]/view",
 }
 ```
 
-### `nextDynamicPath(nextPath, replaceDynamicPaths)`
-- 用途: 將 `NextPath` 中的動態路徑段（如 `[id]`）替換為實際值。
-- 來源: `utils/path.ts`
+#### `nextDynamicPath(nextPath, replaceDynamicPaths)`
+- Source: `utils/path.ts`
 ```ts
 nextDynamicPath(
   nextPath: NextPath,
@@ -1050,133 +820,132 @@ nextDynamicPath(
 //      => "/receive-inventory-orders/abc/view"
 ```
 
-### `BASE_UNIT` / `DEFAULT_MAP_DATA_KEY` / `DEFAULT_MAP_DATA_NAME`
-- 用途: 共用常數。`BASE_UNIT` 標示基礎單位；`DEFAULT_MAP_DATA_KEY` / `DEFAULT_MAP_DATA_NAME` 為預設地圖 key/name。
-- 來源: `utils/share.ts`
+---
 
-### `YesOrNo` (enum)
-```ts
-enum YesOrNo { YES = 'YES', NO = 'NO', NULL = 'NULL' }
-```
-- 來源: `utils/share.ts`
+### Icons (re-export)
 
-### `UnitOptionsType`
-```ts
-type UnitOptionsType = { id: string; name: string; conversionFactor: number; }[]
-```
-- 來源: `utils/share.ts`
-
-### `yesNoName(option: YesOrNo): string`
-- 用途: 將 `YesOrNo` enum 值轉為中文標籤（是/否）。
-- 來源: `utils/share.ts`
-
-### `yesNoOptions`
-- 用途: `[{ id: YesOrNo.YES, name: '是' }, { id: YesOrNo.NO, name: '否' }]`，供 Select 直接使用。
-- 來源: `utils/share.ts`
-
-### `formatKeyName(key?: string): string`
-- 用途: 若 key 為空或 `'DEFAULT'` 則回傳 `'-'`，否則回傳原值。
-- 來源: `utils/share.ts`
-
-### `changeTypeName(type: ChangeType): string`
-- 用途: 將 `ChangeType` enum 轉為中文名稱（如 `RECEIVED` → `'入庫'`）。
-- 來源: `utils/share.ts`
-
-### `shipInventoryOrderStatusName(status?: ShipInventoryOrderStatus): string`
-- 用途: 將 `ShipInventoryOrderStatus` 轉為中文（如 `PENDING` → `'尚未執行'`）。
-- 來源: `utils/share.ts`
-
-### `shipInventoryOrderStatusOptions`
-- 用途: 出庫單狀態選項陣列，供 Select 使用。
-- 來源: `utils/share.ts`
-
-### `receiveInventoryOrderStatusName(status?: ReceiveInventoryOrderStatus): string`
-- 用途: 將 `ReceiveInventoryOrderStatus` 轉為中文。
-- 來源: `utils/share.ts`
-
-### `receiveInventoryOrderStatusOptions`
-- 用途: 入庫單狀態選項陣列，供 Select 使用。
-- 來源: `utils/share.ts`
-
-### `uploadFile(file: File): Promise<{ data: { id: string } }>`
-- 用途: 上傳檔案至 `/api/files/upload`（axios POST multipart/form-data）。
-- 來源: `utils/upload.ts`
-
-### `aggregatedStockColumns`
-- 用途: 預設的 `TableColumn<AggregatedStockFragment>[]` 設定，可傳入 Mezzanine `Table`。
-- 來源: `utils/columns.tsx`
+`export * from './icons'` — re-exports all custom WMS icon components:
+`UnlinkIcon`, `CarIcon`, `SplitIcon`, `MergeIcon`, `UpRightIcon`, `TransferIcon`, `WaitIcon`.
 
 ---
 
-## Icons（re-export for consumers）
+### Generated GraphQL Operations (`graphql/generated/.graphql`)
 
-全部位於 `icons/index.ts`：
+`export * from './graphql/generated/.graphql'` — re-exports everything from the
+generated file (committed, shipped with the package). Consumers do **not** need to run
+codegen themselves.
 
-| Export | 說明 |
-|---|---|
-| `UnlinkIcon` | 解除連結圖示 |
-| `CarIcon` | 車輛/貨車圖示 |
-| `SplitIcon` | 拆批圖示 |
-| `MergeIcon` | 併批圖示 |
-| `UpRightIcon` | 右上箭頭圖示 |
-| `TransferIcon` | 調撥圖示 |
-| `WaitIcon` | 等待/待處理圖示 |
+The generated file exports four categories of symbols:
 
----
+#### 1. DocumentNode Constants
 
-## Generated GraphQL Operations（`graphql/generated/.graphql`）
+Used as the first argument to `useQuery` / `useMutation` from `@apollo/client/react`.
 
-此檔案由 `yarn gql` 生成並提交，隨 npm 套件發布。匯出三類內容：
+**Queries (41)**:
+`AggregatedStocksDocument`, `AggregatedStocksForInventoryActionsDocument`, `AllocateInventoryOrdersDocument`, `AvailableLoadersDocument`, `BatchesDocument`, `BatchOptionsDocument`, `ChangeLogsDocument`, `FullReceiveInventoryOrdersDocument`, `FullShipInventoryOrdersDocument`, `HoldInventoryOrdersDocument`, `LoaderDocument`, `LoaderOptionsDocument`, `LoadersDocument`, `LoaderTypeDocument`, `LoaderTypeOptionsDocument`, `LoaderTypesDocument`, `LoaderUnitsDocument`, `LocationDocument`, `LocationOptionsDocument`, `LocationsDocument`, `MapDataDocument`, `MaterialDocument`, `MaterialOptionsDocument`, `MaterialsDocument`, `ReceiveInventoryOrderDocument`, `ReceiveInventoryOrderOptionsDocument`, `ReceiveInventoryOrderPendingOptionsDocument`, `ReceiveInventoryOrdersDocument`, `SaleOrderDistinctIdsDocument`, `SaleOrdersDocument`, `ShipInventoryOrderDocument`, `ShipInventoryOrderOptionsDocument`, `ShipInventoryOrderPendingOptionsDocument`, `ShipInventoryOrdersDocument`, `StockDocument`, `StocksDocument`, `StocksGroupedByMaterialDocument`, `TransferOrderDocument`, `TransferOrderOptionsDocument`, `TransferOrdersDocument`, `UnitsDocument`
 
-### 1. GraphQL Schema TypeScript Types（對應 GraphQL schema 的型別定義）
+**Mutations (34)**:
+`CancelShipDocument`, `CancelTransferDocument`, `CreateAllocateInventoryOrderDocument`, `CreateBatchLoaderDocument`, `CreateHoldInventoryOrderDocument`, `CreateLoaderTypeDocument`, `CreateLocationDocument`, `CreateMaterialDocument`, `CreateReceiveInventoryOrderDocument`, `CreateShipInventoryOrderDocument`, `CreateTransferCustomerOrderDocument`, `CreateTransferOrderDocument`, `CreateTransferVendorOrderDocument`, `DeallocateDocument`, `InspectMaterialsDocument`, `MergeBatchDocument`, `ReceiveDocument`, `ReclassifyInventoryOrderDocument`, `ReleaseDocument`, `ReturnTransferCustomerOrderDocument`, `ReturnTransferVendorOrderDocument`, `ScrapeMaterialsDocument`, `ShipDocument`, `SplitBatchDocument`, `TransferDocument`, `UpdateHoldInventoryOrderDocument`, `UpdateLoaderDocument`, `UpdateLoaderTypeDocument`, `UpdateLocationDocument`, `UpdateMaterialDocument`, `UpdateReceiveInventoryOrderDocument`, `UpdateShipInventoryOrderDocument`, `UpdateTransferOrderDocument`, `UpdateWarehouseMapDocument`
 
-包含所有 schema 層 DTO 型別，主要：
-`AggregatedStockDto`, `AllocateInventoryOrderDto`, `AllocateInventoryOrderItemDto`, `AllocateInventoryOrders`, `BatchDto`, `Batches`, `ChangeLogDto`, `ChangeLogs`, `HoldInventoryOrderDto`, `HoldInventoryOrderItemDto`, `HoldInventoryOrders`, `LoaderDto`, `LoaderTypeDto`, `LoaderTypes`, `LoaderUnitDto`, `Loaders`, `LocationDto`, `Locations`, `MapBackgroundDto`, `MapDataDto`, `MapPolygonRangeDto`, `MapPolygonRangePointDto`, `MapRangeDto`, `MapRectangleRangeDto`, `MaterialDto`, `MaterialUnitDto`, `Materials`, `MergeBatchOrderDto`, `MergeBatchOrderItemDto`, `QualityInspectionOrderDto`, `QualityInspectionOrderItemDto`, `ReceiveInventoryOrderDto`, `ReceiveInventoryOrderItemDto`, `ReceiveInventoryOrders`, `ReclassifyInventoryOrderItemDto`, `SaleOrderDto`, `ScrapeOrderDto`, `ScrapeOrderItemDto`, `ShipInventoryOrderDto`, `ShipInventoryOrderItemDto`, `ShipInventoryOrderReferenceDto`, `ShipInventoryOrders`, `SplitBatchOrderDto`, `SplitBatchOrderItemDto`, `StockDto`, `Stocks`, `TransferCustomerOrderDto`, `TransferCustomerOrderItemDto`, `TransferOrderDto`, `TransferOrderItemDto`, `TransferVendorOrderDto`, `TransferVendorOrderItemDto`, `UnitDto`
+#### 2. Fragment Types
 
-以及 utility types: `Maybe<T>`, `InputMaybe<T>`, `Exact<T>`, `Scalars`
-
-### 2. Fragment Types（供元件 prop 型別標注）
-
-共 42 個，命名規則為 `<Domain>Fragment`：
+42 fragment types named `<Domain>Fragment`, used for prop type annotations in custom components:
 
 `AggregatedStockFragment`, `AllocateInventoryOrderFragment`, `AllocateInventoryOrderItemFragment`, `BatchFragment`, `ChangeLogFragment`, `HoldInventoryOrderFragment`, `HoldInventoryOrderItemFragment`, `LoaderFragment`, `LoaderTypeFragment`, `LoaderWithTotalFragment`, `LocationFragment`, `SimpleLocationFragment`, `MapDataFragment`, `MaterialFragment`, `SimpleMaterialFragment`, `MaterialWithAggregatedStockFragment`, `MaterialUnitFragment`, `MergeBatchOrderItemFragment`, `QualityInspectionOrderFragment`, `QualityInspectionOrderItemFragment`, `ReceiveInventoryOrderFragment`, `ReceiveInventoryOrderItemFragment`, `SimpleReceiveInventoryOrderFragment`, `ReclassifyInventoryOrderItemFragment`, `ScrapeOrderFragment`, `ScrapeOrderItemFragment`, `ShipInventoryOrderFragment`, `ShipInventoryOrderItemFragment`, `ShipInventoryOrderReferenceFragment`, `SimpleShipInventoryOrderFragment`, `SimpleStockFragment`, `StockFragment`, `StockInActionsFragment`, `SplitBatchOrderItemFragment`, `SimplerAllocateInventoryOrderFragment`, `SimpleTransferOrderFragment`, `TransferCustomerOrderFragment`, `TransferCustomerOrderItemFragment`, `TransferOrderFragment`, `TransferOrderItemFragment`, `TransferVendorOrderFragment`, `TransferVendorOrderItemFragment`, `UnitFragment`
 
-### 3. DocumentNode 常數（供 `useQuery` / `useMutation` 直接傳入）
+#### 3. Query/Mutation Type Pairs
 
-共 74 個，命名規則為 `<OperationName>Document`（例如 `LoadersDocument`, `CreateMaterialDocument`），完整列表：
-
-**Queries (26)**:
-`AggregatedStocksDocument`, `AggregatedStocksForInventoryActionsDocument`, `AllocateInventoryOrdersDocument`, `AvailableLoadersDocument`, `BatchesDocument`, `BatchOptionsDocument`, `ChangeLogsDocument`, `FullReceiveInventoryOrdersDocument`, `FullShipInventoryOrdersDocument`, `HoldInventoryOrdersDocument`, `LoaderDocument`, `LoaderOptionsDocument`, `LoadersDocument`, `LoaderTypeDocument`, `LoaderTypeOptionsDocument`, `LoaderTypesDocument`, `LoaderUnitsDocument`, `LocationDocument`, `LocationOptionsDocument`, `LocationsDocument`, `MapDataDocument`, `MaterialDocument`, `MaterialOptionsDocument`, `MaterialsDocument`, `ReceiveInventoryOrderDocument`, `ReceiveInventoryOrderOptionsDocument`, `ReceiveInventoryOrderPendingOptionsDocument`, `ReceiveInventoryOrdersDocument`, `SaleOrderDistinctIdsDocument`, `SaleOrdersDocument`, `ShipInventoryOrderDocument`, `ShipInventoryOrderOptionsDocument`, `ShipInventoryOrderPendingOptionsDocument`, `ShipInventoryOrdersDocument`, `StockDocument`, `StocksDocument`, `StocksGroupedByMaterialDocument`, `TransferOrderDocument`, `TransferOrderOptionsDocument`, `TransferOrdersDocument`, `UnitsDocument`
-
-**Mutations (33)**:
-`CancelShipDocument`, `CancelTransferDocument`, `CreateAllocateInventoryOrderDocument`, `CreateBatchLoaderDocument`, `CreateHoldInventoryOrderDocument`, `CreateLoaderTypeDocument`, `CreateLocationDocument`, `CreateMaterialDocument`, `CreateReceiveInventoryOrderDocument`, `CreateShipInventoryOrderDocument`, `CreateTransferCustomerOrderDocument`, `CreateTransferOrderDocument`, `CreateTransferVendorOrderDocument`, `DeallocateDocument`, `InspectMaterialsDocument`, `MergeBatchDocument`, `ReceiveDocument`, `ReclassifyInventoryOrderDocument`, `ReleaseDocument`, `ReturnTransferCustomerOrderDocument`, `ReturnTransferVendorOrderDocument`, `ScrapeMaterialsDocument`, `ShipDocument`, `SplitBatchDocument`, `TransferDocument`, `UpdateHoldInventoryOrderDocument`, `UpdateLoaderDocument`, `UpdateLoaderTypeDocument`, `UpdateLocationDocument`, `UpdateMaterialDocument`, `UpdateReceiveInventoryOrderDocument`, `UpdateShipInventoryOrderDocument`, `UpdateTransferOrderDocument`, `UpdateWarehouseMapDocument`
-
-### 4. Query/Mutation Type Pairs（`<Op>Query` + `<Op>QueryVariables` / `<Op>Mutation` + `<Op>MutationVariables`）
-
-每個 DocumentNode 都有對應的兩個 TypeScript 型別（共 148 個）。命名規則：
+Each DocumentNode constant has paired TypeScript types (75 pairs total, 150 types):
 - `LoadersQuery` + `LoadersQueryVariables`
 - `CreateMaterialMutation` + `CreateMaterialMutationVariables`
+- etc.
 
-（完整清單見上方「Generated GraphQL Operations」段落，每個 Document 對應一組 Query/Mutation + Variables 型別）
+#### 4. Schema Types and Enums
 
-### 5. Enums（re-export from schema）
+All GraphQL schema DTO types and enums are re-exported:
 
-```ts
-enum ChangeType { RECEIVED, IN_SHIPMENT, SHIPPED, IN_TRANSFER, TRANSFERRED,
-  VENDOR_TRANSFERRED, VENDOR_RETURNED, HELD, RELEASED, CUSTOMER_HELD,
-  CUSTOMER_RETURNED, SPLITTED, MERGED, ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED }
+Schema types: `AggregatedStockDto`, `AllocateInventoryOrderDto`, `BatchDto`, `ChangeLogDto`, `HoldInventoryOrderDto`, `LoaderDto`, `LoaderTypeDto`, `LoaderUnitDto`, `Loaders`, `LocationDto`, `Locations`, `MapDataDto`, `MaterialDto`, `Materials`, `ReceiveInventoryOrderDto`, `ReceiveInventoryOrders`, `ShipInventoryOrderDto`, `ShipInventoryOrders`, `StockDto`, `Stocks`, `TransferOrderDto`, and many more.
 
-enum LoaderUnit { CM = 'CM', M = 'M', MM = 'MM' }
+Enums: `ChangeType`, `LoaderUnit`, `MapRangeType`, `ReceiveInventoryOrderStatus`, `ShipInventoryOrderStatus`, `StockStatus`
 
-enum MapRangeType { POLYGON = 'POLYGON', RECTANGLE = 'RECTANGLE' }
+---
 
-enum ReceiveInventoryOrderStatus { PARTIAL_RECEIVED, PENDING, RECEIVED, REMOVED }
+## Library Internals (NOT exported from barrel)
 
-enum ShipInventoryOrderStatus { PARTIAL_SHIPPED, PENDING, REMOVED, SHIPPED }
+> **Warning**: The following symbols **exist in the source tree** of `@rytass/wms-module-react`
+> but are **not exported from the package barrel** (`src/index.ts`). Attempting to import them
+> directly from `@rytass/wms-module-react` will fail with `Module not found` or
+> `is not exported from module`.
+>
+> They are listed here for reference — developers inspecting the source or planning to fork/patch
+> the lib may find this useful. Some may be promoted to public exports via subpath exports or in
+> a future 0.2.0 release.
 
-enum StockStatus { ALLOCATED, CUSTOMER_INVENTORY, FREE, HELD, IN_SHIPMENT,
-  IN_TRANSFER, INSPECTION_FAILED, PENDING_INSPECTION, VENDOR_INVENTORY }
-```
+### Internal Form Field Components (`components/fields/`)
+
+These field components are used internally by the page components but are not barrel-exported.
+A consumer cannot import `{ InputField }` from `@rytass/wms-module-react`.
+
+| Component                    | Description                                      |
+|------------------------------|--------------------------------------------------|
+| `BaseField`                  | Generic form field wrapper (label + error)       |
+| `InputField`                 | Text input field                                 |
+| `NumberInputField`           | Numeric input field                              |
+| `DateField`                  | Date picker field (Dayjs)                        |
+| `RadioField`                 | Radio button field                               |
+| `SelectInputField`           | Searchable select field                          |
+| `SingleSelectField`          | Single-select field                              |
+| `SingleSelectByIdField`      | Single-select by ID                              |
+| `SingleAutoCompleteField`    | Auto-complete single select                      |
+| `SingleAutoCompleteByIdField`| Auto-complete by ID                              |
+| `YesNoField`                 | Yes/No toggle field                              |
+| `MaterialsField`             | Material picker (with fetch/search)              |
+| `UnitsField`                 | Unit picker                                      |
+| `BatchesField`               | Batch picker                                     |
+| `LoadersField`               | Loader picker                                    |
+| `LoaderTypesField`           | Loader type picker                               |
+| `LoaderUnitsField`           | Loader unit picker                               |
+| `LocationsField`             | Location picker                                  |
+| `AvailableLoadersField`      | Available loader picker (for inventory actions)  |
+| `ReceiveInventoryOrdersField`| Receive order picker                             |
+| `ShipInventoryOrdersField`   | Ship order picker                                |
+| `TransferOrdersField`        | Transfer order picker                            |
+| `SaleOrdersField`            | Sale order picker                                |
+| `SaleOrderIdsField`          | Sale order ID picker                             |
+| `MembersField`               | Member picker                                    |
+
+### Internal Form Wrappers
+
+`FormWrapper`, `FormModalWrapper`, `FormDrawerWrapper` — React Hook Form wrappers used
+internally by page components.
+
+### Internal Layout Wrappers
+
+`PageWrapper`, `SectionWrapper`, `TableWrapper`, `FilterWrapper` — layout containers used
+internally. WMS pages expect full-viewport rendering via these wrappers; embedding a page
+in a smaller container is not officially supported (see §13.10 in the integration guide).
+
+### Internal UI Components
+
+`PageTabs`, `FormActionButtons`, `Loading`, `InventoryActionDrawers`
+
+### Internal Hooks (not in barrel)
+
+The following hooks exist in source but are internal implementation details:
+
+- `useInventoryActions()` — reads `InventoryActionsContext`; used by page components internally
+- `useAddInventories()` — inventory selection logic
+- `useInventorySignature()` — per-inventory-item signature reader
+- `useDialog()` — opens the global confirmation dialog (requires `DialogProvider`)
+- `useModal()` — opens the global modal (requires `ModalProvider`)
+
+### Internal Constants and Utilities (not in barrel)
+
+`BASE_UNIT`, `DEFAULT_MAP_DATA_KEY`, `DEFAULT_MAP_DATA_NAME`, `YesOrNo` (enum),
+`UnitOptionsType`, `yesNoName`, `yesNoOptions`, `formatKeyName`, `changeTypeName`,
+`shipInventoryOrderStatusName`, `shipInventoryOrderStatusOptions`,
+`receiveInventoryOrderStatusName`, `receiveInventoryOrderStatusOptions`,
+`uploadFile`, `aggregatedStockColumns`
 
 ---
 
@@ -1186,4 +955,3 @@ enum StockStatus { ALLOCATED, CUSTOMER_INVENTORY, FREE, HELD, IN_SHIPMENT,
 - `/Users/fantasyatelier/Repositories/WMS-Module/libs/core/src/index.ts`
 - `/Users/fantasyatelier/Repositories/WMS-Module/libs/graphql/src/index.ts`
 - `/Users/fantasyatelier/Repositories/WMS-Module/libs/react/src/index.ts`
-- `/Users/fantasyatelier/Repositories/WMS-Module/libs/react/src/graphql/generated/.graphql.ts`（358 個 type export + 74 個 DocumentNode）
