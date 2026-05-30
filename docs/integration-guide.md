@@ -1237,12 +1237,30 @@ You can render the route tree with any navigation component:
 import { useRoutes } from '@rytass/wms-module-react';
 import { YourSidebar } from '../components/YourSidebar';
 
+// The route tree has two shapes:
+//   - Leaf route:  { title: string; href: NextPath; children?: undefined }
+//   - Group node:  { title: string; href?: undefined; children: LeafRoute[] }
+// Top-level entries like "庫存查詢" are groups with no href — only their
+// children have navigable hrefs.
+
 function WmsLayout({ children }: { children: ReactNode }): ReactNode {
   const routes = useRoutes();
 
+  const navItems = routes.flatMap((r) => {
+    if (r.children) {
+      // Group node — render a section header + child links
+      return [
+        { label: r.title, href: undefined, isGroup: true as const },
+        ...r.children.map((c) => ({ label: c.title, href: c.href, isGroup: false as const })),
+      ];
+    }
+    // Leaf route
+    return [{ label: r.title, href: r.href, isGroup: false as const }];
+  });
+
   return (
     <div>
-      <YourSidebar items={routes.map((r) => ({ label: r.title, href: r.href }))} />
+      <YourSidebar items={navItems} />
       <main>{children}</main>
     </div>
   );
@@ -1291,6 +1309,11 @@ function useLocalizedRoutes() {
   }));
 }
 ```
+
+> **Limitation**: the `TITLE_MAP` approach can only override leaf routes that have an `href`
+> (e.g. `NextPath.MATERIALSMANAGEMENT`). Top-level navigation group labels such as `庫存查詢`
+> and `主檔管理` have no `href` and therefore cannot be keyed in `TITLE_MAP` — they remain
+> hardcoded in zh-TW. If you need to localize group titles, you must fork the lib.
 
 For component-internal strings (form labels, buttons, column headers), there is currently no
 override mechanism. The only path is to fork the lib. This is a known gap targeted for 0.2.x.
