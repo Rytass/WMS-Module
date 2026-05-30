@@ -1,0 +1,5 @@
+# Local Claude Code worktrees create duplicate Nx project graph entries
+# (same `libs/*` project.json discovered both at the repo root and inside
+# `.claude/worktrees/<name>/libs/*`). Exclude the directory so Nx only
+# treats the canonical projects under the repo root as project sources.
+.claude/
