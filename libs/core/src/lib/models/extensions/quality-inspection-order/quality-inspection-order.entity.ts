@@ -26,7 +26,7 @@ export class QualityInspectionOrderEntityClass {
   @Column({ type: 'text', nullable: true })
   note!: string | null;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type: 'datetime' })
   createdAt!: Date;
 
   @OneToMany(

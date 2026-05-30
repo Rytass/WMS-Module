@@ -21,7 +21,7 @@ export class TransferVendorOrderEntityClass {
   @Index()
   key!: string;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type: 'datetime' })
   createdAt!: Date;
 
   @OneToMany(

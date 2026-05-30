@@ -31,10 +31,10 @@ export class ReceiveInventoryOrderEntityClass {
   @Column({ type: 'varchar', nullable: true })
   createdBy!: string | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   removedAt!: Date | null;
 
-  @CreateDateColumn({ type: 'timestamptz' })
+  @CreateDateColumn({ type: 'datetime' })
   createdAt!: Date;
 
   @OneToMany(

@@ -37,6 +37,6 @@ export class ShipInventoryOrderReferenceEntityClass {
   @Index()
   batchId!: string | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   removedAt!: Date | null;
 }

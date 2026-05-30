@@ -56,7 +56,7 @@ export class ShipInventoryOrderItemEntityClass {
   @Index()
   loaderId!: string | null;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   removedAt!: Date | null;
 
   @ManyToOne(

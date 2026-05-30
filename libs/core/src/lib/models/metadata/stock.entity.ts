@@ -10,7 +10,7 @@ export class StockEntityClass extends BaseStockEntity {
   @Index()
   loaderId!: string;
 
-  @Column({ type: 'timestamptz', nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   rollbackedAt!: Date | null;
 
   @JoinColumn()

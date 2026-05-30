@@ -25,7 +25,7 @@ export class BatchEntityClass extends BaseBatchEntity {
   vendorId: string | null;
 
   // added when quality inspection, used to link to quality inspection order
-  @Column({ type: 'bool', nullable: true })
+  @Column({ type: 'boolean', nullable: true })
   inspectionResult: boolean | null;
 
   // added when transfer inventory, used to link to transfer order
@@ -33,11 +33,11 @@ export class BatchEntityClass extends BaseBatchEntity {
   transferId: string | null;
 
   // added when hold inventory, used to link to hold inventory order
-  @Column({ type: 'bool', default: false })
+  @Column({ type: 'boolean', default: false })
   held: boolean;
 
   // added when shipment inventory, used to link to shipment order
-  @Column({ type: 'bool', default: false })
+  @Column({ type: 'boolean', default: false })
   inShipment: boolean;
 
   @ManyToOne(
