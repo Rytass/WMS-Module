@@ -1103,34 +1103,64 @@ check. Use **Option A** (global `APP_GUARD`) to enforce auth on WMS resolvers.
 
 If your host Next.js app already has an `<ApolloProvider>`, you can use it for WMS page
 components. The WMS page components call `useQuery`/`useMutation` from `@apollo/client/react`
-internally, which reads the nearest `ApolloProvider` in the React tree.
+internally, which reads the **nearest** `ApolloProvider` in the React tree.
 
-**To use your own Apollo client for WMS pages**:
+**Recommended approach: separate `<ApolloProvider>` wrapping WMS routes only**
 
-1. Do not import `ApolloClient` from `@rytass/wms-module-react`.
-2. Configure your existing Apollo client to route WMS GraphQL calls to the WMS API endpoint.
-   If the WMS API is on a different host/port, you may need to use a split link or a separate
-   client instance:
+This is the only reliably correct approach. WMS page components issue `useQuery` calls
+internally — there is no mechanism in the lib to tag those operations with a custom context
+that a split-link predicate could test. A shared client with a split link will never route
+WMS operations to the WMS endpoint.
 
-```ts
-import { split, HttpLink, ApolloClient, InMemoryCache } from '@apollo/client';
+Create a dedicated Apollo client pointing at the WMS API and wrap only the WMS routes with
+it:
 
-const wmsLink = new HttpLink({ uri: 'http://wms-api.internal/graphql' });
-const appLink = new HttpLink({ uri: '/api/graphql' });
+```tsx
+// apollo-clients.ts
+import { ApolloClient, HttpLink, InMemoryCache } from '@apollo/client';
 
-// Route to WMS endpoint by operation name convention, or use a custom directive
-const client = new ApolloClient({
-  link: split(
-    (operation) => operation.getContext().client === 'wms',
-    wmsLink,
-    appLink,
-  ),
+export const hostApolloClient = new ApolloClient({
+  link: new HttpLink({ uri: '/api/graphql' }),
+  cache: new InMemoryCache(),
+});
+
+export const wmsApolloClient = new ApolloClient({
+  link: new HttpLink({ uri: 'http://wms-api.internal/graphql' }),
   cache: new InMemoryCache(),
 });
 ```
 
-Then wrap WMS page components in a context that sets `client: 'wms'` — or simply use a
-separate `<ApolloProvider client={wmsClient}>` that wraps only the WMS page trees.
+```tsx
+// In your routing layer (e.g. _app.tsx or a layout component):
+import { ApolloProvider } from '@apollo/client/react';
+import { hostApolloClient, wmsApolloClient } from './apollo-clients';
+
+function App({ Component, pageProps }: AppProps) {
+  const isWmsRoute = router.pathname.startsWith('/wms');
+
+  return (
+    <ApolloProvider client={hostApolloClient}>
+      {/* host routes use hostApolloClient via context */}
+
+      {isWmsRoute ? (
+        // WMS routes get their own provider — useQuery inside WMS components
+        // picks up wmsApolloClient from the nearest ApolloProvider
+        <ApolloProvider client={wmsApolloClient}>
+          <Component {...pageProps} />
+        </ApolloProvider>
+      ) : (
+        <Component {...pageProps} />
+      )}
+    </ApolloProvider>
+  );
+}
+```
+
+**Why split-link does not work for WMS pages**: a split-link predicate runs per operation
+and tests `operation.getContext()`. WMS page components call `useQuery(SomeDocument, vars)`
+without setting any operation context. The predicate `(op) => op.getContext().client === 'wms'`
+is always `false` for WMS operations. Split-link is only viable if you fork the lib and add
+an Apollo link that injects context into every WMS query — not recommended.
 
 ---
 
