@@ -209,7 +209,9 @@ WMS_DB_SCHEMA=wms_demo
 {
   "name": "api",
   "scripts": {
-    "dev": "nest start --watch -p 7103"
+    "dev": "ts-node -r tsconfig-paths/register src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js"
   },
   "dependencies": {
     "@apollo/server": "^4.0.0",
@@ -230,6 +232,11 @@ WMS_DB_SCHEMA=wms_demo
     "class-transformer": "^0.5.0",
     "class-validator": "^0.14.0",
     "typeorm": "^0.3.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.0.0",
+    "tsconfig-paths": "^4.0.0",
+    "typescript": "^5.0.0"
   }
 }
 ```
@@ -396,6 +403,18 @@ export default nextConfig;
 
 Why `transpilePackages`: the React package declares `"type": "module"` and Mezzanine UI ships ESM-syntax JS without the flag. Both must run through the Next.js transformer.
 
+`@rytass/wms-map-react-components` is a companion package that provides the warehouse-map
+visualization canvas used by the **LocationsManagement** and **Maps** pages (built on React
+Flow / `@xyflow/react`). It is a **required runtime dependency** for those two pages; omitting
+it causes import errors when those pages load. Like the React lib, it ships ESM-only and must
+be listed in `transpilePackages`. Install it as a regular production dependency:
+
+```bash
+pnpm add @rytass/wms-map-react-components
+```
+
+Current published version: `^0.1.0`. Registry: `https://registry.npmjs.org/`.
+
 ### 5.4 `apps/client/package.json` essentials
 
 ```json
@@ -539,10 +558,13 @@ If you need to talk to multiple GraphQL endpoints, override the URL, add headers
 ```ts
 import { createApolloClient } from '@rytass/wms-module-react';
 
-const client = createApolloClient(/* future override args */);
+const client = createApolloClient();
 ```
 
-See [API Reference - createApolloClient](./api-reference.md) for the current signature.
+As of **0.1.2**, `createApolloClient()` takes **no parameters** and returns a fresh
+`ApolloClient<NormalizedCacheObject>` instance configured with the same `/graphql` URI as
+the default singleton. A URL/header override parameter is planned for **0.2.0** (will be a
+non-breaking addition). See [API Reference - createApolloClient](./api-reference.md).
 
 ### 7.3 GraphQL operations & DocumentNode constants
 
