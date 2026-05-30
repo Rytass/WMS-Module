@@ -19,16 +19,16 @@ export class LoaderTypeEntityClass {
   @Column({ type: 'varchar' })
   description!: string;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'bool', default: true })
   isActive!: boolean;
 
   @Column({ type: 'varchar', unique: true })
   @Index()
   key!: string;
 
-  @CreateDateColumn({ type: 'datetime' })
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
-  @UpdateDateColumn({ type: 'datetime' })
+  @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt!: Date;
 }
