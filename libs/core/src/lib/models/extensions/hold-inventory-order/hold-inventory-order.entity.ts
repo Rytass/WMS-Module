@@ -24,10 +24,10 @@ export class HoldInventoryOrderEntityClass {
   @Column({ type: 'varchar', nullable: true })
   createdBy!: string | null;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
 
-  @CreateDateColumn({ type: 'datetime' })
+  @CreateDateColumn({ type: 'timestamptz' })
   createdAt!: Date;
 
   @OneToMany(

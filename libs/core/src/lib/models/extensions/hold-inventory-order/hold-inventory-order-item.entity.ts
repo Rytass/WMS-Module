@@ -43,7 +43,7 @@ export class HoldInventoryOrderItemEntityClass {
   @Index()
   orderId!: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
 
   @Column({ type: 'uuid', nullable: true })

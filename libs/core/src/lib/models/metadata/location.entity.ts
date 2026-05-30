@@ -8,7 +8,7 @@ export class LocationEntityClass extends BaseLocationEntity {
   @Column({ type: 'text' })
   description!: string;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'bool', default: true })
   isActive?: boolean;
 
   @RelationId((location: LocationEntityClass) => location.parent)

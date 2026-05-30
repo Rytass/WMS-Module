@@ -52,7 +52,7 @@ export class TransferOrderItemEntityClass {
   @Index()
   orderId!: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
   removedAt!: Date | null;
 
   @ManyToOne('locations')
