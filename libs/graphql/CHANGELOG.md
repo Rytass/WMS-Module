@@ -1,3 +1,15 @@
+## 0.1.1 (2026-05-30)
+
+### 🩹 Fixes
+
+- **graphql:** pin lru-cache to v10+ for runtime compatibility ([159d37f](https://github.com/Rytass/WMS-Module/commit/159d37f))
+- **graphql:** declare @as-integrations/express5 as peer dependency ([f5981af](https://github.com/Rytass/WMS-Module/commit/f5981af))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Sonnet 4.6
+
 ## 0.1.0 (2026-05-30)
 
 ### 🚀 Features

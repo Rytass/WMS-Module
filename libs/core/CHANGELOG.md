@@ -1,3 +1,14 @@
+## 0.1.1 (2026-05-30)
+
+### 🩹 Fixes
+
+- **core:** use cross-database column types instead of postgres-specific ones ([928fad0](https://github.com/Rytass/WMS-Module/commit/928fad0))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Sonnet 4.6
+
 ## 0.1.0 (2026-05-30)
 
 ### 🚀 Features
