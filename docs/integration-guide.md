@@ -20,7 +20,8 @@ Target audience: engineers integrating WMS into a new product who want a working
 10. [Seed data for demos](#10-seed-data-for-demos)
 11. [Deployment notes](#11-deployment-notes)
 12. [Known issues & roadmap](#12-known-issues--roadmap)
-13. [Reference implementation (`wms-standalone`)](#13-reference-implementation-wms-standalone)
+13. [Integrating into an existing NestJS / Next.js project](#13-integrating-into-an-existing-nestjs--nextjs-project)
+14. [Reference implementation (`wms-standalone`)](#14-reference-implementation-wms-standalone)
 
 ---
 
@@ -865,7 +866,502 @@ Tracked in this repo — see `libs/core/CHANGELOG.md`, `libs/graphql/CHANGELOG.m
 
 ---
 
-## 13. Reference implementation (`wms-standalone`)
+---
+
+## 13. Integrating into an existing NestJS / Next.js project
+
+This section covers the real-world scenarios where the WMS modules are added to a project
+that already has its own NestJS backend, GraphQL setup, or Next.js frontend. The greenfield
+setup in sections 4-7 is the baseline; read this section for the delta.
+
+> **Scope**: 0.1.x. Many limitations listed here are known gaps — roadmap notes are included
+> where improvements are planned.
+
+### 13.1 Coexisting with an existing `GraphQLModule`
+
+**Status**: Not supported in 0.1.x without forking the library.
+
+`WmsModuleGraphqlModule.forRootAsync(...)` internally calls `GraphQLModule.forRootAsync(...)`.
+NestJS does not allow two `GraphQLModule` registrations in the same application — the second
+registration throws `Error: Cannot register 2 GraphQL modules`. If your host app already
+imports `GraphQLModule`, you cannot simply add `WmsModuleGraphqlModule` to the same
+`imports: [...]` array.
+
+**Recommended workarounds** (in order of practicality):
+
+1. **Separate NestJS process** — run the WMS API as its own NestJS server on a different port
+   (e.g. 7103) and have the host API proxy or federate as needed. This is the architecture
+   used by `wms-standalone` and is the safest path.
+
+2. **NestJS sub-app (monorepo)** — if you use the Nx or NestJS CLI monorepo pattern, you can
+   host the WMS app as a separate application inside the same repo that shares code with your
+   existing app but runs as a distinct process.
+
+3. **Fork and merge** — advanced consumers can fork `libs/graphql` and extract the resolver
+   registrations, removing the internal `GraphQLModule.forRootAsync(...)` call. The host app
+   then registers a single `GraphQLModule` that includes the WMS resolver classes. This requires
+   maintaining a fork and is not recommended unless you intend to take full ownership of the lib.
+
+**Tied to §13.1**: the `/graphql` endpoint name conflict (§13.14 in the Q list) is also
+fundamentally blocked by this same single-GraphQLModule constraint when running both APIs in
+the same process.
+
+---
+
+### 13.2 Sharing a TypeORM DataSource
+
+`WmsModuleCoreModule` (loaded automatically by `WmsModuleGraphqlModule`) calls
+`TypeOrmModule.forFeature(entities)` using the **default** TypeORM data source connection.
+It does not create a named connection.
+
+**Implications:**
+
+- If your host app uses `TypeOrmModule.forRoot(...)` with the default connection name (`default`),
+  the WMS entities will register against the same data source — this is correct behavior and
+  works as-is. The `autoLoadEntities: true` flag handles entity discovery.
+
+- If your host uses a **named connection** (e.g. `TypeOrmModule.forRoot({ name: 'main', ... })`),
+  the WMS entities will attempt to register against the unnamed default connection, which will
+  not exist. You must provide a default connection alongside your named connection, or fork the
+  lib to pass a connection name through `forRootAsync`.
+
+**Schema isolation**: the WMS entities use no table prefix by default. If your database already
+has tables named `material`, `loader`, `location`, `stock`, etc. you will get name collisions.
+Use a dedicated PostgreSQL schema (the `schema` option in `TypeOrmModuleOptions`) to isolate
+WMS tables:
+
+```ts
+TypeOrmModule.forRoot({
+  // ...
+  schema: 'wms',       // All WMS entities create tables in the 'wms' schema
+  autoLoadEntities: true,
+});
+```
+
+This is what `wms-standalone` does (`WMS_DB_SCHEMA=wms_demo`).
+
+---
+
+### 13.3 Entity / Table Name Conflicts
+
+The WMS TypeORM entities use unqualified class names as table names (TypeORM default).
+If your host application already defines entities named `Material`, `Location`, `Loader`,
+`Stock`, `Batch`, `SaleOrder`, or any of the 50 WMS entity names, you will get either a
+TypeORM registration conflict or unexpected data sharing.
+
+**Fix**: use a dedicated PostgreSQL schema (see §13.2 above). If you cannot use a separate
+schema, you must fork `libs/core` and add a table-name prefix to every entity decorator,
+e.g. `@Entity('wms_material')`.
+
+---
+
+### 13.4 Production Database Migrations
+
+`synchronize: true` is for development only. In production:
+
+1. Disable `synchronize`:
+
+```ts
+TypeOrmModule.forRoot({
+  // ...
+  synchronize: false,
+});
+```
+
+2. To generate migrations that include WMS entities, TypeORM's `migration:generate` CLI needs
+   access to all entity classes. Since WMS entities are bundled inside `@rytass/wms-module-core`,
+   you need to import them in your TypeORM data source config:
+
+```ts
+// data-source.ts (TypeORM CLI config)
+import { DataSource } from 'typeorm';
+// Import all entity classes from the core lib
+import {
+  MaterialEntityClass,
+  LoadersEntityClass,
+  LocationEntityClass,
+  // ... all 50 entity classes
+} from '@rytass/wms-module-core';
+
+export default new DataSource({
+  type: 'postgres',
+  // ... connection config
+  entities: [
+    MaterialEntityClass,
+    LoadersEntityClass,
+    // ... list every entity class
+    // Add your own entity classes here
+  ],
+  migrations: ['src/migrations/*.ts'],
+});
+```
+
+3. Run `npx typeorm migration:generate src/migrations/wms-init -d data-source.ts`.
+
+The lib does **not** ship migration files. The first time you deploy with `synchronize: false`,
+you must generate and run an initial migration that creates all WMS tables.
+
+---
+
+### 13.5 Passing Host Auth Identity into WMS Resolvers
+
+The WMS lib resolvers do **not** enforce auth themselves — they execute queries against the
+database without any identity check. RBAC must be layered on top.
+
+**Option A**: NestJS-level global guard. Apply a guard globally in your `AppModule`:
+
+```ts
+// app.module.ts
+import { APP_GUARD } from '@nestjs/core';
+import { YourAuthGuard } from './auth/auth.guard';
+
+@Module({
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: YourAuthGuard,
+    },
+  ],
+})
+export class AppModule {}
+```
+
+This applies your guard to every resolver, including WMS resolvers.
+
+**Option B**: Apollo context injection. Pass the authenticated user identity into the GraphQL
+context so that resolvers can access it if needed. In `WmsModuleGraphqlModule.forRootAsync`,
+the `gqlOptions.useFactory` can return a `context` factory:
+
+```ts
+WmsModuleGraphqlModule.forRootAsync(
+  { useFactory: async () => ({}), /* ... seed keys */ },
+  {
+    driver: ApolloDriver,
+    useFactory: async () => ({
+      // ...
+      context: ({ req }: { req: Request }) => ({
+        user: req.user,  // Populated by your Passport/JWT strategy
+      }),
+    }),
+  },
+);
+```
+
+The WMS resolvers do not currently read from `context.user`, so this is purely additive for
+your own custom resolvers or guards.
+
+---
+
+### 13.6 Apollo Client Coexistence — Using Your Host ApolloProvider
+
+If your host Next.js app already has an `<ApolloProvider>`, you can use it for WMS page
+components. The WMS page components call `useQuery`/`useMutation` from `@apollo/client/react`
+internally, which reads the nearest `ApolloProvider` in the React tree.
+
+**To use your own Apollo client for WMS pages**:
+
+1. Do not import `ApolloClient` from `@rytass/wms-module-react`.
+2. Configure your existing Apollo client to route WMS GraphQL calls to the WMS API endpoint.
+   If the WMS API is on a different host/port, you may need to use a split link or a separate
+   client instance:
+
+```ts
+import { split, HttpLink, ApolloClient, InMemoryCache } from '@apollo/client';
+
+const wmsLink = new HttpLink({ uri: 'http://wms-api.internal/graphql' });
+const appLink = new HttpLink({ uri: '/api/graphql' });
+
+// Route to WMS endpoint by operation name convention, or use a custom directive
+const client = new ApolloClient({
+  link: split(
+    (operation) => operation.getContext().client === 'wms',
+    wmsLink,
+    appLink,
+  ),
+  cache: new InMemoryCache(),
+});
+```
+
+Then wrap WMS page components in a context that sets `client: 'wms'` — or simply use a
+separate `<ApolloProvider client={wmsClient}>` that wraps only the WMS page trees.
+
+---
+
+### 13.7 Inserting the WMS Provider Chain into an Existing `_app.tsx`
+
+The three WMS providers (`InventoryActionsProvider`, `DialogProvider`, `ModalProvider`) need
+to wrap all WMS page components. In an existing `_app.tsx`, add them inside your existing
+provider stack. **Order is significant** — `InventoryActionsProvider` must be the outermost
+of the three:
+
+```tsx
+// Existing _app.tsx — add WMS providers around the relevant subtree
+import {
+  DialogProvider,
+  ModalProvider,
+  InventoryActionsProvider,
+} from '@rytass/wms-module-react';
+
+function App({ Component, pageProps }: AppProps): ReactNode {
+  return (
+    <YourExistingProviders>
+      {/* WMS provider chain — only needed for WMS routes */}
+      <InventoryActionsProvider>
+        <DialogProvider>
+          <ModalProvider>
+            <Component {...pageProps} />
+          </ModalProvider>
+        </DialogProvider>
+      </InventoryActionsProvider>
+    </YourExistingProviders>
+  );
+}
+```
+
+**Z-index and portal considerations**: `DialogProvider` and `ModalProvider` use Mezzanine UI
+portals that render at the document body. If your host app has modals or overlays with high
+`z-index` values, WMS dialogs may appear behind them. The `mezzanine.scss` overrides in §5.2
+set `.mzn-dropdown-popper--with-portal { z-index: 1004 !important }` — adjust these values
+to fit your host app's z-index scale.
+
+---
+
+### 13.8 Using `useRoutes()` with Your Own Navigation
+
+`useRoutes()` returns the full WMS navigation tree as a plain data structure. You do not need
+to use the reference `Navigation.tsx` component (which uses Mezzanine UI's `<Navigation>`).
+You can render the route tree with any navigation component:
+
+```tsx
+import { useRoutes } from '@rytass/wms-module-react';
+import { YourSidebar } from '../components/YourSidebar';
+
+function WmsLayout({ children }: { children: ReactNode }): ReactNode {
+  const routes = useRoutes();
+
+  return (
+    <div>
+      <YourSidebar items={routes.map((r) => ({ label: r.title, href: r.href }))} />
+      <main>{children}</main>
+    </div>
+  );
+}
+```
+
+The lib's page components do not require the WMS navigation shell to be present — they only
+require the three providers (§13.7) and an Apollo client (§13.6). You can completely replace
+the navigation chrome with your own.
+
+---
+
+### 13.9 i18n: Current Limitations and Workarounds
+
+**Status**: No i18n support in 0.1.x. All user-visible strings in the lib are hardcoded
+Traditional Chinese (zh-TW).
+
+Affected areas:
+- `useRoutes()` — route titles (`庫存查詢`, `載具管理`, etc.)
+- Internal button labels, form field labels, table column headers (all inside component source)
+- Status display utilities (`changeTypeName`, `shipInventoryOrderStatusName`, etc.) — these
+  functions are **not** barrel-exported and cannot be replaced
+
+**Workaround for route titles** (the only part accessible from outside the lib):
+
+Mirror `useRoutes()` output and replace titles:
+
+```ts
+import { useRoutes, NextPath } from '@rytass/wms-module-react';
+
+const TITLE_MAP: Partial<Record<NextPath, string>> = {
+  [NextPath.MATERIALSMANAGEMENT]: 'Materials',
+  [NextPath.LOADERSMANAGEMENT]:   'Loaders',
+  // ...
+};
+
+function useLocalizedRoutes() {
+  const routes = useRoutes();
+  return routes.map((r) => ({
+    ...r,
+    title: (r.href && TITLE_MAP[r.href]) ?? r.title,
+    children: r.children?.map((c) => ({
+      ...c,
+      title: TITLE_MAP[c.href] ?? c.title,
+    })),
+  }));
+}
+```
+
+For component-internal strings (form labels, buttons, column headers), there is currently no
+override mechanism. The only path is to fork the lib. This is a known gap targeted for 0.2.x.
+
+---
+
+### 13.10 Embedded / Sectional Mode Limitations
+
+WMS page components (`MaterialsManagement`, `InventoryList`, etc.) are designed for
+**full-viewport rendering**. They use `PageWrapper` and `SectionWrapper` internally which
+set `width: 100%` and `height: 100%` of the viewport.
+
+**Embedding in a tab, panel, or drawer is not officially supported in 0.1.x.** Known issues
+when embedded in a constrained container:
+- Mezzanine Table column-width calculations use the viewport width
+- Modal/dialog portals render at document body, not relative to the container
+- React Flow (used by Maps and LocationsManagement map tab) requires a fixed-height container
+
+There is no clean workaround in 0.1.x. If you need sectional embedding, fork the lib and
+modify the `PageWrapper`/`SectionWrapper` styles to be container-relative.
+
+---
+
+### 13.11 App Router: Why it is Incompatible
+
+**Status**: Not supported. The WMS frontend lib targets **Next.js Pages Router only**.
+
+The incompatibility has three root causes that compound each other:
+
+1. **Client-only context providers**: `InventoryActionsProvider`, `DialogProvider`,
+   `ModalProvider` use `useState`/`useContext` with browser-only side effects. In App Router,
+   all Server Components are rendered on the server, and these providers would need to be
+   wrapped in a `'use client'` boundary — but their children (the page components) also
+   transitively import many client-only hooks.
+
+2. **`nuqs` adapter**: `useTablePageState(true)` and `PageTabs` (internal) use `nuqs` for
+   URL query-string state sync. `nuqs` requires the `NuqsAdapter` which is Pages-Router
+   specific (`import { NuqsAdapter } from 'nuqs/adapters/next/pages'`).
+
+3. **`ssr: false` dynamic loading**: The reference `AuthGuard` wraps the entire layout with
+   `dynamic(..., { ssr: false })` to prevent SSR hydration mismatches from the Mezzanine UI
+   portal refs and Apollo client subscriptions. In App Router, `next/dynamic` with `ssr: false`
+   still works in Client Components but eliminates the benefits of Server Components.
+
+**Features that become unavailable for WMS routes if you attempt App Router:**
+- `getStaticProps` / ISR revalidate (`revalidate` option) — not available for pages rendered
+  by `ssr: false` dynamic import
+- Streaming SSR for WMS routes
+- React Server Component data fetching
+- Partial Prerendering (PPR) for WMS pages
+
+**Unofficial sketch workaround** (untested, unsupported):
+
+If you are building an App Router project and need to embed WMS pages, the only viable
+approach would be:
+
+```tsx
+// app/wms/[...path]/page.tsx
+'use client';
+
+import dynamic from 'next/dynamic';
+
+const WmsPageLoader = dynamic(() => import('../../../components/WmsPageLoader'), {
+  ssr: false,
+});
+
+export default function WmsPage() {
+  return <WmsPageLoader />;
+}
+```
+
+```tsx
+// components/WmsPageLoader.tsx
+'use client';
+import { ApolloProvider } from '@apollo/client/react';
+import { NuqsAdapter } from 'nuqs/adapters/next/pages';
+import {
+  ApolloClient,
+  InventoryActionsProvider,
+  DialogProvider,
+  ModalProvider,
+} from '@rytass/wms-module-react';
+// ... route the path segment to the right page component
+
+export default function WmsPageLoader() {
+  // render the right WMS page component based on current route
+  return (
+    <ApolloProvider client={ApolloClient}>
+      <NuqsAdapter>
+        <InventoryActionsProvider>
+          <DialogProvider>
+            <ModalProvider>
+              {/* WMS page component here */}
+            </ModalProvider>
+          </DialogProvider>
+        </InventoryActionsProvider>
+      </NuqsAdapter>
+    </ApolloProvider>
+  );
+}
+```
+
+This is **officially unsupported**. The `nuqs/adapters/next/pages` adapter is not designed
+for App Router; behaviour may be incorrect. Use Pages Router for WMS pages.
+
+---
+
+### 13.12 Vite and Other Bundlers
+
+**Status**: Partially supported. The lib is tested against Next.js / webpack 5. Vite support
+is not officially tested.
+
+**For Vite consumers:**
+
+1. The `transpilePackages` mechanism (Next.js specific) is not needed. Vite handles ESM
+   natively.
+2. Mirror the Next.js `/graphql` rewrite with a Vite proxy:
+
+```ts
+// vite.config.ts
+export default defineConfig({
+  server: {
+    proxy: {
+      '/graphql': {
+        target: 'http://localhost:7103',
+        changeOrigin: true,
+      },
+    },
+  },
+});
+```
+
+3. The `nuqs` adapter import (`nuqs/adapters/next/pages`) is Next.js specific. WMS page
+   components that use `nuqs` internally will break in a Vite + React app without a
+   compatible `nuqs` adapter. As of `nuqs@2`, use `nuqs/adapters/react` but you will need
+   to wrap WMS components appropriately.
+4. `@mezzanine-ui/react` imports `lodash/compact` without a `.js` extension, which may
+   require `resolve.alias` configuration in Vite.
+
+No official Vite setup guide exists for 0.1.x.
+
+---
+
+### 13.13 Existing Monorepo Considerations
+
+If you already have an Nx or Turborepo monorepo, you can add the WMS modules without
+creating a new monorepo. Key points:
+
+**What you must replicate:**
+
+- `transpilePackages` list in `next.config.ts` (§5.3) — required by any Next.js app
+  consuming the ESM lib, regardless of monorepo structure
+- The `/graphql` rewrite in `next.config.ts`
+- CSS imports in `_app.tsx` (§5.1)
+- The three provider wrappers (§13.7)
+
+**What you can skip:**
+
+- The worktree / Nx project structure — you do not need to use Nx. The lib is a plain npm
+  package.
+- The `libs/*` is-NOT-a-workspace rule — only applies to the Rytass monorepo's internal
+  build pipeline. Your monorepo can import `@rytass/wms-module-react` as a regular npm dep.
+- Any `tsconfig.base.json` path aliases to lib source — those are only needed if you want
+  to consume lib source directly (skipping `npm install`). Normal consumers use the published
+  package.
+
+**TypeScript path aliases**: if your monorepo uses path aliases that overlap with
+`@rytass/wms-module-*` package names, ensure they point to `node_modules` (the installed
+package), not local source, to avoid confusion.
+
+
+## 14. Reference implementation (`wms-standalone`)
 
 A complete, runnable integration sample lives at `~/Downloads/wms-standalone` on the maintainers' machines; the published equivalent is the original monorepo's `apps/api` and `apps/client`.
 
