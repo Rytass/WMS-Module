@@ -75,7 +75,7 @@ mkdir my-wms && cd my-wms
 pnpm init
 pnpm add @rytass/wms-module-core @rytass/wms-module-graphql @rytass/wms-module-react
 pnpm add @nestjs/common @nestjs/core @nestjs/graphql @nestjs/typeorm \
-        @nestjs/apollo @nestjs/config @apollo/server typeorm pg reflect-metadata graphql rxjs \
+        @nestjs/apollo @nestjs/config @apollo/server@^4 typeorm pg reflect-metadata graphql rxjs \
         @as-integrations/express5
 
 # 2. Wire NestJS in 17 + 52 lines (apps/api/src/main.ts and app/app.module.ts)
@@ -210,7 +210,7 @@ WMS_DB_SCHEMA=wms_demo
     "dev": "nest start --watch -p 7103"
   },
   "dependencies": {
-    "@apollo/server": "^5.0.0",
+    "@apollo/server": "^4.0.0",
     "@as-integrations/express5": "^1.0.0",
     "@nestjs/apollo": "^13.0.0",
     "@nestjs/common": "^11.0.0",
@@ -230,6 +230,11 @@ WMS_DB_SCHEMA=wms_demo
 ```
 
 The `@as-integrations/express5` package is required at runtime by `@nestjs/apollo@13` + Express 5; it is listed as a peer of `wms-module-graphql` since `0.1.1`.
+
+> **Apollo Server version**: `@nestjs/apollo@13` currently pairs with **Apollo Server 4** (not 5).
+> Use `"@apollo/server": "^4.0.0"`. Apollo Server 5 is a breaking release — the
+> `@as-integrations/express5` peer pairing and plugin import paths differ. Installing
+> `^5.0.0` will cause hard runtime errors with the current NestJS Apollo adapter.
 
 ### 4.5 Sanity check
 
