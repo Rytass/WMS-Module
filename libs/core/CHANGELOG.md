@@ -1,3 +1,13 @@
+## 0.1.2 (2026-05-30)
+
+### 🩹 Fixes
+
+- **core:** restore timestamptz/bool entity column types for PostgreSQL compatibility ([3a602bc](https://github.com/Rytass/WMS-Module/commit/3a602bc))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+
 ## 0.1.1 (2026-05-30)
 
 ### 🩹 Fixes
