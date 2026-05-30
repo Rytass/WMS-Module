@@ -75,7 +75,9 @@ mkdir my-wms && cd my-wms
 pnpm init
 pnpm add @rytass/wms-module-core @rytass/wms-module-graphql @rytass/wms-module-react
 pnpm add @nestjs/common @nestjs/core @nestjs/graphql @nestjs/typeorm \
-        @nestjs/apollo @nestjs/config @apollo/server@^4 typeorm pg reflect-metadata graphql rxjs \
+        @nestjs/apollo @nestjs/config @nestjs/platform-express @apollo/server@^4 \
+        typeorm pg reflect-metadata graphql rxjs \
+        class-transformer class-validator \
         @as-integrations/express5
 
 # 2. Wire NestJS in 17 + 52 lines (apps/api/src/main.ts and app/app.module.ts)
@@ -217,6 +219,7 @@ WMS_DB_SCHEMA=wms_demo
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
     "@nestjs/graphql": "^13.0.0",
+    "@nestjs/platform-express": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
     "@rytass/wms-module-core": "^0.1.2",
     "@rytass/wms-module-graphql": "^0.1.2",
@@ -224,6 +227,8 @@ WMS_DB_SCHEMA=wms_demo
     "pg": "^8.0.0",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.0.0",
+    "class-transformer": "^0.5.0",
+    "class-validator": "^0.14.0",
     "typeorm": "^0.3.0"
   }
 }
