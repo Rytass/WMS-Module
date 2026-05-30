@@ -1,5 +1,15 @@
 # WMSModule
 
+## Documentation
+
+If you are integrating `@rytass/wms-module-{core,graphql,react}` into a new consumer project, start with:
+
+- **[docs/integration-guide.md](./docs/integration-guide.md)** — step-by-step setup: NestJS + GraphQL backend, Next.js Pages Router frontend, AuthGuard stub, 19 thin page shells, deployment, known issues.
+- **[docs/api-reference.md](./docs/api-reference.md)** — complete export catalog: every module, entity, resolver, DTO, React component, hook, and utility, organized by role with source paths and examples.
+
+The full index is at [docs/README.md](./docs/README.md).
+
+
 <a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
 
 ✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
