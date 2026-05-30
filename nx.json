@@ -1,6 +1,8 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
-  "projectFilePatterns": ["project.json"],
+  "projectFilePatterns": [
+    "project.json"
+  ],
   "neverConnectToCloud": true,
   "tui": {
     "enabled": false
@@ -27,11 +29,16 @@
   },
   "targetDefaults": {
     "build": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
     }
   },
   "namedInputs": {
-    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
     "production": [
       "default",
       "!{projectRoot}/.eslintrc.json",
@@ -40,11 +47,15 @@
     "sharedGlobals": []
   },
   "release": {
-    "projects": ["core", "graphql", "react"],
+    "projects": [
+      "core",
+      "graphql",
+      "react"
+    ],
     "projectsRelationship": "independent",
     "releaseTagPattern": "{projectName}@{version}",
     "version": {
-      "preVersionCommand": "yarn nx run-many -t prepublish-check",
+      "preVersionCommand": "node .yarn/releases/yarn-4.12.0.cjs nx run-many -t prepublish-check",
       "conventionalCommits": true,
       "preserveLocalDependencyProtocols": true,
       "preserveMatchingDependencyRanges": false,
@@ -80,7 +91,10 @@
           "watchDepsName": "watch-deps"
         }
       },
-      "exclude": ["libs/core/*", "libs/graphql/*"]
+      "exclude": [
+        "libs/core/*",
+        "libs/graphql/*"
+      ]
     },
     {
       "plugin": "@nx/webpack/plugin",
@@ -95,7 +109,10 @@
     },
     {
       "plugin": "@nx/js/typescript",
-      "include": ["libs/core/*", "libs/graphql/*"],
+      "include": [
+        "libs/core/*",
+        "libs/graphql/*"
+      ],
       "options": {
         "typecheck": {
           "targetName": "typecheck"
