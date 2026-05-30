@@ -1028,27 +1028,60 @@ export class AppModule {}
 
 This applies your guard to every resolver, including WMS resolvers.
 
-**Option B**: Apollo context injection. Pass the authenticated user identity into the GraphQL
-context so that resolvers can access it if needed. In `WmsModuleGraphqlModule.forRootAsync`,
-the `gqlOptions.useFactory` can return a `context` factory:
+**Option B**: Read auth identity via `context.req.user` in custom resolvers. The Express `req`
+object is spread directly into the GraphQL context by the lib's internal DataLoader injection
+logic. Any field set on `req` by a NestJS guard or Passport strategy (e.g. `req.user`) is
+therefore accessible from resolvers as `ctx.req.user`.
+
+> **Why returning `context` from `gqlOptions.useFactory` does not work**: the lib's
+> `forRootAsync` calls `gqlOptions.useFactory(…)` to collect your Apollo options, then
+> unconditionally replaces the `context` key with its own factory that injects DataLoaders
+> (`{ loaders, ...contextArg }`). Any `context` you return from `useFactory` is silently
+> dropped. The resulting GraphQL context is always `{ req, res, loaders }` — there is no
+> `user` key.
+
+To access the authenticated user in a **custom** resolver, populate `req.user` in a guard
+or middleware and read it from `ctx.req.user`:
 
 ```ts
-WmsModuleGraphqlModule.forRootAsync(
-  { useFactory: async () => ({}), /* ... seed keys */ },
-  {
-    driver: ApolloDriver,
-    useFactory: async () => ({
-      // ...
-      context: ({ req }: { req: Request }) => ({
-        user: req.user,  // Populated by your Passport/JWT strategy
-      }),
-    }),
-  },
-);
+// auth.guard.ts — populate req.user before the resolver runs
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { GqlExecutionContext } from '@nestjs/graphql';
+
+@Injectable()
+export class JwtAuthGuard implements CanActivate {
+  canActivate(executionContext: ExecutionContext): boolean {
+    const ctx = GqlExecutionContext.create(executionContext);
+    const req = ctx.getContext<{ req: Request }>().req;
+    // Verify JWT and populate req.user — throw UnauthorizedException if invalid
+    (req as Request & { user?: unknown }).user = verifyToken(
+      req.headers['authorization'],
+    );
+    return true;
+  }
+}
+
+// my.resolver.ts — read req.user from the GraphQL context
+import { Resolver, Query, Context } from '@nestjs/graphql';
+import { Request, Response } from 'express';
+
+interface GqlContext {
+  req: Request & { user?: { id: string; roles: string[] } };
+  res: Response;
+  loaders: Record<string, unknown>;
+}
+
+@Resolver()
+export class MyResolver {
+  @Query(() => String)
+  whoAmI(@Context() ctx: GqlContext): string {
+    return ctx.req.user?.id ?? 'anonymous';
+  }
+}
 ```
 
-The WMS resolvers do not currently read from `context.user`, so this is purely additive for
-your own custom resolvers or guards.
+The built-in WMS lib resolvers do not read `req.user` — they execute without any identity
+check. Use **Option A** (global `APP_GUARD`) to enforce auth on WMS resolvers.
 
 ---
 
