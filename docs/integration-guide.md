@@ -1303,8 +1303,9 @@ The incompatibility has three root causes that compound each other:
    transitively import many client-only hooks.
 
 2. **`nuqs` adapter**: `useTablePageState(true)` and `PageTabs` (internal) use `nuqs` for
-   URL query-string state sync. `nuqs` requires the `NuqsAdapter` which is Pages-Router
-   specific (`import { NuqsAdapter } from 'nuqs/adapters/next/pages'`).
+   URL query-string state sync. `nuqs` requires the `NuqsAdapter` from the Pages Router
+   adapter (`import { NuqsAdapter } from 'nuqs/adapters/next/pages'`) — the lib was built
+   and tested against this adapter.
 
 3. **`ssr: false` dynamic loading**: The reference `AuthGuard` wraps the entire layout with
    `dynamic(..., { ssr: false })` to prevent SSR hydration mismatches from the Mezzanine UI
@@ -1341,8 +1342,12 @@ export default function WmsPage() {
 ```tsx
 // components/WmsPageLoader.tsx
 'use client';
+import CalendarConfigProviderDayjs from '@mezzanine-ui/react/Calendar/CalendarConfigProviderDayjs';
 import { ApolloProvider } from '@apollo/client/react';
-import { NuqsAdapter } from 'nuqs/adapters/next/pages';
+// Use nuqs/adapters/next (combined adapter), NOT nuqs/adapters/next/pages.
+// nuqs/adapters/next/pages uses next/router internally, which throws
+// "Error: NextRouter was not mounted." hard crash in App Router context.
+import { NuqsAdapter } from 'nuqs/adapters/next';
 import {
   ApolloClient,
   InventoryActionsProvider,
@@ -1354,23 +1359,29 @@ import {
 export default function WmsPageLoader() {
   // render the right WMS page component based on current route
   return (
-    <ApolloProvider client={ApolloClient}>
-      <NuqsAdapter>
-        <InventoryActionsProvider>
-          <DialogProvider>
-            <ModalProvider>
-              {/* WMS page component here */}
-            </ModalProvider>
-          </DialogProvider>
-        </InventoryActionsProvider>
-      </NuqsAdapter>
-    </ApolloProvider>
+    <CalendarConfigProviderDayjs>
+      <ApolloProvider client={ApolloClient}>
+        <NuqsAdapter>
+          <InventoryActionsProvider>
+            <DialogProvider>
+              <ModalProvider>
+                {/* WMS page component here */}
+              </ModalProvider>
+            </DialogProvider>
+          </InventoryActionsProvider>
+        </NuqsAdapter>
+      </ApolloProvider>
+    </CalendarConfigProviderDayjs>
   );
 }
 ```
 
-This is **officially unsupported**. The `nuqs/adapters/next/pages` adapter is not designed
-for App Router; behaviour may be incorrect. Use Pages Router for WMS pages.
+> **Warning**: This is **officially unsupported and untested**. Even with the correct
+> `nuqs/adapters/next` combined adapter, the runtime behaviour of `useQueryState` inside lib
+> components may be incorrect because the lib was built and tested exclusively against the
+> Pages Router adapter. Use Pages Router for all WMS pages.
+
+Use Pages Router for WMS pages.
 
 ---
 
