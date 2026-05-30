@@ -124,6 +124,23 @@ Track upstream progress via the [Mezzanine UI repo](https://github.com/mezzanine
 
 `useColumnWidthPersistence`, `useFormCancel`, `usePreviousValue`, `useRoutes`, `useFetchAllOptions`, `useFetchMoreOptions`, `useInsertOption`, `useSortTable`, `useTablePageState`, `useTablePageTotal` — useful for custom screens that follow the same conventions as the bundled pages.
 
+## Documentation
+
+Full documentation is shipped inside this package under the `docs/` directory (available after `npm install`):
+
+| Document | Description |
+|---|---|
+| [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
+| [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
+
+GitHub hosted links (always up-to-date):
+
+- [Integration Guide — §5 Frontend setup](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#5-frontend-setup-nextjs-pages-router)
+- [Integration Guide — §6 Pages Router shell pattern](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#6-pages-router-shell-pattern-the-19-thin-shells)
+- [Integration Guide — §7 Apollo client wiring](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#7-apollo-client-wiring)
+- [Integration Guide — §8 Authentication / authorization](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#8-authentication--authorization)
+- [API Reference — @rytass/wms-module-react](https://github.com/Rytass/WMS-Module/blob/main/docs/api-reference.md#rytasswms-module-react)
+
 ## License
 
 MIT

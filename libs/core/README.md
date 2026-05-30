@@ -75,6 +75,20 @@ WMS is built on `@rytass/wms-base-nestjs-module`'s entity-as-class pattern: each
 
 The three `default*` options are exposed via the `WMS_CORE_MODULE_OPTIONS` Symbol provider, which downstream services can `@Inject` if they need to read those values directly.
 
+## Documentation
+
+Full documentation is shipped inside this package under the `docs/` directory (available after `npm install`):
+
+| Document | Description |
+|---|---|
+| [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
+| [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
+
+GitHub hosted links (always up-to-date):
+
+- [Integration Guide — §4 Backend setup](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#4-backend-setup-nestjs--graphql--typeorm)
+- [API Reference — @rytass/wms-module-core](https://github.com/Rytass/WMS-Module/blob/main/docs/api-reference.md#rytasswms-module-core)
+
 ## License
 
 MIT
