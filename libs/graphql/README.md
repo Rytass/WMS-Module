@@ -72,6 +72,21 @@ Custom context factories from `gqlOptions.useFactory` are merged with the loader
 
 The schema is generated at boot via `autoSchemaFile` (above). Commit the resulting `schema.gql` to your repo if you want downstream codegen (e.g. for `@rytass/wms-module-react`) to consume a stable schema snapshot.
 
+## Documentation
+
+Full documentation is shipped inside this package under the `docs/` directory (available after `npm install`):
+
+| Document | Description |
+|---|---|
+| [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
+| [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
+
+GitHub hosted links (always up-to-date):
+
+- [Integration Guide — §4 Backend setup](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#4-backend-setup-nestjs--graphql--typeorm)
+- [Integration Guide — §13.1 Existing GraphQLModule co-existence](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#13-integrating-into-an-existing-nestjs--nextjs-project)
+- [API Reference — @rytass/wms-module-graphql](https://github.com/Rytass/WMS-Module/blob/main/docs/api-reference.md#rytasswms-module-graphql)
+
 ## License
 
 MIT
