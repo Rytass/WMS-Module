@@ -40,7 +40,8 @@
     "access": "public"
   },
   "dependencies": {
-    "dataloader": "^2.2.3"
+    "dataloader": "^2.2.3",
+    "lru-cache": "^10.0.0"
   },
   "peerDependencies": {
     "@as-integrations/express5": "^1.0.0",
