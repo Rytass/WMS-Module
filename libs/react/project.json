@@ -45,27 +45,36 @@
     },
     "pkg-quality": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "options": {
-        "command": "yarn dlx publint run libs/react --pack false",
+        "command": "npx -y publint run libs/react --pack false",
         "parallel": false
       }
     },
     "pkg-quality-attw": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "options": {
         "parallel": false,
         "commands": [
           "npm pack --pack-destination ./libs/react ./libs/react",
-          "yarn dlx @arethetypeswrong/cli ./libs/react/*.tgz",
+          "npx -y @arethetypeswrong/cli ./libs/react/*.tgz",
           "rm -f ./libs/react/*.tgz"
         ]
       }
     },
     "prepublish-check": {
       "executor": "nx:noop",
-      "dependsOn": ["typecheck", "lint", "build", "pkg-quality"]
+      "dependsOn": [
+        "typecheck",
+        "lint",
+        "build",
+        "pkg-quality"
+      ]
     }
   },
   "tags": []
