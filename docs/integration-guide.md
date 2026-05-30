@@ -22,6 +22,7 @@ Target audience: engineers integrating WMS into a new product who want a working
 11. [Deployment notes](#11-deployment-notes)
 12. [Known issues & roadmap](#12-known-issues--roadmap)
 13. [Integrating into an existing NestJS / Next.js project](#13-integrating-into-an-existing-nestjs--nextjs-project)
+    - [13.14 GraphQL type name conflicts](#1314-graphql-type-name-conflicts)
 14. [Reference implementation (`wms-standalone`)](#14-reference-implementation-wms-standalone)
 
 ---
@@ -925,7 +926,7 @@ imports `GraphQLModule`, you cannot simply add `WmsModuleGraphqlModule` to the s
    then registers a single `GraphQLModule` that includes the WMS resolver classes. This requires
    maintaining a fork and is not recommended unless you intend to take full ownership of the lib.
 
-**Tied to §13.1**: the `/graphql` endpoint name conflict (§13.14 in the Q list) is also
+**Tied to §13.1**: the `/graphql` endpoint name conflict (see §13.14 for GraphQL type name conflicts) is also
 fundamentally blocked by this same single-GraphQLModule constraint when running both APIs in
 the same process.
 
@@ -1470,6 +1471,36 @@ creating a new monorepo. Key points:
 **TypeScript path aliases**: if your monorepo uses path aliases that overlap with
 `@rytass/wms-module-*` package names, ensure they point to `node_modules` (the installed
 package), not local source, to avoid confusion.
+
+---
+
+### 13.14 GraphQL Type Name Conflicts
+
+WMS uses common DTO and type names such as `MaterialDto`, `LocationDto`, `BatchDto`,
+`LoaderDto`, `StockStatus` (enum), `ChangeType` (enum), and others. If a host
+application's existing GraphQL schema already declares types with the same names —
+common in retail and logistics domains — running both schemas in the same NestJS process
+would fail at schema registration with:
+
+```
+Error: Schema must contain uniquely named types but contains multiple types named "MaterialDto"
+```
+
+There is no name-prefixing or namespace configuration in the lib's DTOs. This constraint
+affects **all** GraphQL types in the WMS schema: ObjectTypes, InputTypes, Enums, and any
+union types.
+
+The viable options are the same as those described in §13.1:
+
+1. **Run WMS as a separate NestJS process** (recommended) — isolates schemas entirely;
+   no type name collisions possible.
+2. **Fork the lib and add a type prefix** — rename all DTO classes (e.g. `WmsMaterialDto`)
+   and regenerate the React lib's codegen. Requires maintaining a fork.
+3. **Wait for a future major release** — a type prefix configuration option is a candidate
+   for a future major version that introduces namespace support.
+
+This is the same fundamental single-`GraphQLModule` constraint discussed in §13.1. Running
+both APIs in the same process is not supported in 0.1.x.
 
 
 ## 14. Reference implementation (`wms-standalone`)
