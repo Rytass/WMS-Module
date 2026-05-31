@@ -68,6 +68,24 @@ The reference consumer ([`wms-standalone`](#13-reference-implementation-wms-stan
 
 The frontend package (`wms-module-react`) is **ESM-only** (`"type": "module"`). Bundlers that target Next.js / Vite / webpack 5 handle this transparently; classic CJS-only Node tools do not.
 
+### 2.1 pnpm build-script approval
+
+If you are on **pnpm 9 or newer**, the first `pnpm install` will refuse to run native build scripts for several transitive dependencies and surface `ERR_PNPM_IGNORED_BUILDS`. This is pnpm's supply-chain protection, not a WMS issue, but it is the very first error a fresh integrator hits.
+
+Resolve it once by approving the packages WMS transitively needs to build:
+
+```bash
+pnpm approve-builds
+# Or, in pnpm-workspace.yaml:
+# allowBuilds:
+#   '@apollo/protobufjs': true
+#   '@nestjs/core': true
+#   '@parcel/watcher': true
+#   sharp: true
+```
+
+After approval, `pnpm install` completes cleanly. The exact list pnpm asks you to approve depends on your other dependencies; the four above are the ones triggered by WMS's NestJS + Apollo + native-image stack.
+
 ---
 
 ## 3. Quick start (60 seconds)
@@ -207,6 +225,35 @@ WmsModuleGraphqlModule.forRootAsync(
 > second arg configures the underlying NestJS GraphQL module (driver, autoSchemaFile, plugins).
 
 See [API Reference - wms-module-graphql](./api-reference.md) for the full `forRootAsync` signature.
+
+### Adding your own resolvers alongside WMS
+
+`WmsModuleGraphqlModule` calls `GraphQLModule.forRootAsync(...)` internally — that registration is workspace-global, so you cannot register a second `GraphQLModule` (see §13.1). What you **can** do is put your own resolvers in **sibling NestJS modules** imported in `AppModule`:
+
+```ts
+// apps/api/src/modules/posts/posts.module.ts
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Post } from './post.entity';
+import { PostResolver } from './post.resolver';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Post])],
+  providers: [PostResolver],
+})
+export class PostsModule {}
+
+// apps/api/src/app/app.module.ts
+@Module({
+  imports: [
+    /* ... TypeOrm, Config, WmsModuleGraphqlModule ... */
+    PostsModule,   // your sibling module
+  ],
+})
+export class AppModule {}
+```
+
+NestJS's GraphQL module discovers every `@Resolver()` class from every imported module via DI and merges them into the **same** schema. So your `Post`/`User` resolvers coexist in one schema with the WMS resolvers automatically — no extra wiring needed. The §13.1 "one GraphQLModule" constraint only forbids a second `GraphQLModule.forRoot(...)` registration, not additional resolvers.
 
 ### 4.3 `.env`
 
