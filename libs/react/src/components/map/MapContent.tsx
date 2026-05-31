@@ -12,6 +12,7 @@ import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
 import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
 import { uploadFile } from '../../utils/upload';
+import classes from './MapContent.module.scss';
 
 interface MapContentProps {
   viewMode?: ViewMode;
@@ -117,29 +118,31 @@ function MapContent({
   }, []);
 
   return (
-    <WMSMapModalContent
-      editMode={editMode}
-      viewMode={viewMode}
-      drawingMode={drawingMode}
-      colorPalette={COLOR_PALETTE}
-      selectedColor={selectedColor}
-      onSave={async (mapData) => {
-        await onSave?.(mapData, currentMapKey);
-      }}
-      onBreadcrumbClick={onBreadcrumbClick}
-      showBreadcrumbEditButton={() => false}
-      onNodeClick={(nodeInfo) => {
-        onNodeClick?.(nodeInfo, editMode);
-      }}
-      onNodeDoubleClick={onNodeDoubleClick}
-      onEditModeChange={handleEditModeChange}
-      onToggleRectangleTool={handleToggleRectangleTool}
-      onTogglePenTool={handleTogglePenTool}
-      onColorChange={setSelectedColor}
-      onUpload={handleUpload}
-      initialNodes={initialNodes}
-      warehouseIds={breadcrumb}
-    />
+    <div className={classes.container}>
+      <WMSMapModalContent
+        editMode={editMode}
+        viewMode={viewMode}
+        drawingMode={drawingMode}
+        colorPalette={COLOR_PALETTE}
+        selectedColor={selectedColor}
+        onSave={async (mapData) => {
+          await onSave?.(mapData, currentMapKey);
+        }}
+        onBreadcrumbClick={onBreadcrumbClick}
+        showBreadcrumbEditButton={() => false}
+        onNodeClick={(nodeInfo) => {
+          onNodeClick?.(nodeInfo, editMode);
+        }}
+        onNodeDoubleClick={onNodeDoubleClick}
+        onEditModeChange={handleEditModeChange}
+        onToggleRectangleTool={handleToggleRectangleTool}
+        onTogglePenTool={handleTogglePenTool}
+        onColorChange={setSelectedColor}
+        onUpload={handleUpload}
+        initialNodes={initialNodes}
+        warehouseIds={breadcrumb}
+      />
+    </div>
   );
 }
 
