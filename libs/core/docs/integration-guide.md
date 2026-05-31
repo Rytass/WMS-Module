@@ -78,7 +78,7 @@ mkdir my-wms && cd my-wms
 pnpm init
 pnpm add @rytass/wms-module-core @rytass/wms-module-graphql @rytass/wms-module-react
 pnpm add @nestjs/common @nestjs/core @nestjs/graphql @nestjs/typeorm \
-        @nestjs/apollo @nestjs/config @nestjs/platform-express @apollo/server@^4 \
+        @nestjs/apollo@~13.1.0 @nestjs/config @nestjs/platform-express @apollo/server@^4 \
         typeorm pg reflect-metadata graphql rxjs \
         class-transformer class-validator \
         @as-integrations/express5
@@ -191,6 +191,21 @@ What you get from this single `forRootAsync`:
 - DataLoader N+1 prevention across every resolveField
 - Default seed rows (DEFAULT location, DEFAULT loaderType, DEFAULT loader) on first boot
 
+**`forRootAsync` TypeScript signature**:
+
+```ts
+WmsModuleGraphqlModule.forRootAsync(
+  options: WmsModuleCoreModuleAsyncOptions,
+  gqlOptions: GqlModuleAsyncOptions<ApolloDriverConfig>,
+): DynamicModule
+```
+
+> Note the **two positional arguments**. A common mistake is to pass a single options object
+> (matching NestJS's typical convention) which produces a misleading
+> `TypeError: Cannot read properties of undefined (reading 'imports')` from inside the lib.
+> The first arg configures the WMS core module (seed defaults, async factory, etc.); the
+> second arg configures the underlying NestJS GraphQL module (driver, autoSchemaFile, plugins).
+
 See [API Reference - wms-module-graphql](./api-reference.md) for the full `forRootAsync` signature.
 
 ### 4.3 `.env`
@@ -284,7 +299,7 @@ Tested combinations as of 0.1.2:
 |----------------------------------|-------------------------|--------------------------------------------------------------------|
 | NestJS (`@nestjs/*`)             | 11.x                    | 10.x untested; some Express-5-related APIs differ                  |
 | `@nestjs/graphql`                | 13.x                    | Required for `@nestjs/apollo@13`                                   |
-| `@nestjs/apollo`                 | 13.x                    | Pairs with Apollo Server 4 + Express 5                             |
+| `@nestjs/apollo`                 | 13.0.x – 13.1.x         | 13.2+ requires @apollo/server@^5 which breaks lib's v4 plugin usage |
 | `@apollo/server`                 | 4.x                     | v5 is breaking; not supported                                      |
 | `@as-integrations/express5`      | 1.x                     | Required runtime peer                                              |
 | TypeORM                          | 0.3.x                   | 0.2.x not supported (different DataSource API)                     |
@@ -1072,11 +1087,17 @@ logic. Any field set on `req` by a NestJS guard or Passport strategy (e.g. `req.
 therefore accessible from resolvers as `ctx.req.user`.
 
 > **Why returning `context` from `gqlOptions.useFactory` does not work**: the lib's
-> `forRootAsync` calls `gqlOptions.useFactory(…)` to collect your Apollo options, then
-> unconditionally replaces the `context` key with its own factory that injects DataLoaders
-> (`{ loaders, ...contextArg }`). Any `context` you return from `useFactory` is silently
-> dropped. The resulting GraphQL context is always `{ req, res, loaders }` — there is no
-> `user` key.
+> internal context factory replaces any `context` key you return from `gqlOptions.useFactory`,
+> but it spreads the raw `contextArg` (the `{ req, res }` provided by Apollo Server). So:
+>
+> | Approach                                           | Works? |
+> |----------------------------------------------------|--------|
+> | Return `context: () => ({ user })` from useFactory | ❌ overridden |
+> | Populate `req.user` via NestJS guard / Passport    | ✅ access via `context.req.user` |
+>
+> Always populate identity onto `req` (via a guard) and read it as `context.req.user` in
+> your resolvers. The resulting GraphQL context is `{ req, res, loaders }` — `req.user` IS
+> accessible as long as a guard or middleware has set it on the request object.
 
 To access the authenticated user in a **custom** resolver, populate `req.user` in a guard
 or middleware and read it from `ctx.req.user`:
@@ -1266,6 +1287,13 @@ function WmsLayout({ children }: { children: ReactNode }): ReactNode {
   );
 }
 ```
+
+> **Critical constraint**: WMS page components use the `NextPath` enum for all internal
+> navigation (`router.push(NextPath.MATERIALSMANAGEMENT)` etc.). Enum values are hardcoded
+> root-level paths (`/materials-management`, `/inventory-list`, etc.). **WMS pages cannot be
+> mounted under a custom path prefix like `/wms/*`** — internal links will break even though
+> the pages initially render. If your existing project requires path prefixing, you must mount
+> WMS at the root of a separate domain or subdomain.
 
 The lib's page components do not require the WMS navigation shell to be present — they only
 require the three providers (§13.7) and an Apollo client (§13.6). You can completely replace
@@ -1494,6 +1522,40 @@ creating a new monorepo. Key points:
 **TypeScript path aliases**: if your monorepo uses path aliases that overlap with
 `@rytass/wms-module-*` package names, ensure they point to `node_modules` (the installed
 package), not local source, to avoid confusion.
+
+### 13.13.1 pnpm peer-dep multi-instantiation hazard
+
+When a pnpm workspace contains apps that resolve `@nestjs/core` (or other peers
+of `@rytass/wms-module-core`) to different major versions, pnpm creates one
+**instance** of `@rytass/wms-module-core` per unique peer resolution. Both
+instances register their TypeORM entity decorators against the same global
+`getMetadataArgsStorage()`, producing:
+
+```
+TypeError: Cannot read properties of undefined (reading 'ownColumns')
+    at EntityMetadataBuilder.ts:548
+```
+
+**Required workaround**: every workspace app that imports `@rytass/wms-module-core`
+(directly or transitively via `@rytass/wms-module-graphql`) must resolve to the
+same `@nestjs/*` major version. Options:
+
+1. Upgrade the entire workspace to a single NestJS major (preferred)
+2. Force pnpm to deduplicate the WMS module instance:
+
+   ```yaml
+   # pnpm-workspace.yaml
+   overrides:
+     '@rytass/wms-module-core': '0.1.4'
+   ```
+
+3. Apply `public-hoist-pattern[]` for `@rytass/wms-module-*` in `.npmrc`
+
+This is a structural limitation of the pnpm peer-resolution model combined
+with TypeORM's global metadata storage; the WMS lib cannot deduplicate
+itself without rewriting TypeORM's entity registry. Yarn 4 and npm 10 do not
+hit this because their hoisting strategies differ — pnpm with strict mode is
+the only affected case.
 
 ---
 
