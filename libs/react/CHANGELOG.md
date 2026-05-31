@@ -1,3 +1,14 @@
+## 0.1.4 (2026-05-31)
+
+### 🩹 Fixes
+
+- **react:** declare @rytass/wms-map-react-components as optional peer dependency ([1583bc6](https://github.com/Rytass/WMS-Module/commit/1583bc6))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Sonnet 4.6
+
 ## 0.1.3 (2026-05-30)
 
 This was a version bump only for react to align it with other projects, there were no code changes.

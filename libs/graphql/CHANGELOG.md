@@ -1,3 +1,14 @@
+## 0.1.4 (2026-05-31)
+
+### 🩹 Fixes
+
+- **graphql:** tighten @nestjs/apollo peer range to avoid Apollo Server v5 mismatch ([40da215](https://github.com/Rytass/WMS-Module/commit/40da215))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Sonnet 4.6
+
 ## 0.1.3 (2026-05-30)
 
 This was a version bump only for graphql to align it with other projects, there were no code changes.
