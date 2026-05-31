@@ -46,7 +46,7 @@
   },
   "peerDependencies": {
     "@as-integrations/express5": "^1.0.0",
-    "@nestjs/apollo": "^13.0.0",
+    "@nestjs/apollo": ">=13.0.0 <13.2.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/graphql": "^13.0.0",
     "@rytass/wms-module-core": "^0.1.3",
