@@ -1,3 +1,14 @@
+## 0.1.5 (2026-05-31)
+
+### 🩹 Fixes
+
+- **react:** give Map container min-height to prevent empty-state collapse ([bf5e41f](https://github.com/Rytass/WMS-Module/commit/bf5e41f))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Sonnet 4.6
+
 ## 0.1.4 (2026-05-31)
 
 ### 🩹 Fixes
