@@ -18,6 +18,12 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Force-sync remote tags
+        run: git fetch --tags --force origin
 
       - id: tagging
         name: Bump version and push tag
