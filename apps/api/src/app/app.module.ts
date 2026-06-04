@@ -3,7 +3,12 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { VaultModule, VaultService } from '@rytass/secret-adapter-vault-nestjs';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+import { GraphQLModule } from '@nestjs/graphql';
+import {
+  LoaderService,
+  WmsModuleGraphqlModule,
+  createWmsLoaders,
+} from '@rytass/wms-module-graphql';
 import { ApolloDriver } from '@nestjs/apollo';
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { resolve } from 'path';
@@ -33,26 +38,28 @@ import { FilesModule } from './files/files.module';
       imports: [VaultModule],
       inject: [VaultService],
     }),
-    WmsModuleGraphqlModule.forRootAsync(
-      {
-        useFactory: async () => ({}),
-        defaultLoaderSerialId: 'DEFAULT',
-        defaultLoaderTypeKey: 'DEFAULT',
-        defaultLocationKey: 'DEFAULT',
-      },
-      {
-        driver: ApolloDriver,
-        useFactory: async () => ({
-          playground: false,
-          introspection: true,
-          cors: true,
-          csrfPrevention: false,
-          plugins: [ApolloServerPluginLandingPageLocalDefault()],
-          autoTransformHttpErrors: true,
-          autoSchemaFile: resolve(process.cwd(), 'schema.gql'),
+    WmsModuleGraphqlModule.forRootAsync({
+      useFactory: async () => ({}),
+      defaultLoaderSerialId: 'DEFAULT',
+      defaultLoaderTypeKey: 'DEFAULT',
+      defaultLocationKey: 'DEFAULT',
+    }),
+    GraphQLModule.forRootAsync({
+      driver: ApolloDriver,
+      inject: [LoaderService],
+      useFactory: (loaderService: LoaderService) => ({
+        playground: false,
+        introspection: true,
+        cors: true,
+        csrfPrevention: false,
+        plugins: [ApolloServerPluginLandingPageLocalDefault()],
+        autoTransformHttpErrors: true,
+        autoSchemaFile: resolve(process.cwd(), 'schema.gql'),
+        context: () => ({
+          ...createWmsLoaders(loaderService),
         }),
-      },
-    ),
+      }),
+    }),
     FilesModule,
   ],
   controllers: [AppController],
