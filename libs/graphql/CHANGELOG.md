@@ -1,3 +1,18 @@
+## 0.2.0 (2026-06-04)
+
+### 🚀 Features
+
+- **graphql:** expose providers for user-driven GraphQLModule composition ([325c019](https://github.com/Rytass/WMS-Module/commit/325c019))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.1.6
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.7
+
 ## 0.1.5 (2026-05-31)
 
 This was a version bump only for graphql to align it with other projects, there were no code changes.

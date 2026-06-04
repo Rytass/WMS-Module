@@ -1,6 +1,6 @@
 {
   "name": "@rytass/wms-module-react",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Rytass WMS Module — React components, hooks, Apollo client factory and GraphQL operations for warehouse management",
   "keywords": [
     "rytass",
