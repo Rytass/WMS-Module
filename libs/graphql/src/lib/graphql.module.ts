@@ -1,8 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { GqlModuleAsyncOptions, GraphQLModule } from '@nestjs/graphql';
 import { WmsModuleCoreModule } from '@rytass/wms-module-core';
 import type { WmsModuleCoreModuleAsyncOptions } from '@rytass/wms-module-core';
-import { HelperModule, LoaderService } from './helpers';
+import { HelperModule } from './helpers';
 import { LoaderMutation } from './mutations/loader.mutation';
 import { LoaderQuery } from './queries/loader.query';
 import { MaterialMutation } from './mutations/material.mutation';
@@ -133,47 +132,14 @@ const exportDependencies = [
 export class WmsModuleGraphqlModule {
   static forRootAsync(
     options: WmsModuleCoreModuleAsyncOptions,
-    gqlOptions: GqlModuleAsyncOptions,
   ): DynamicModule {
     const coreModule = WmsModuleCoreModule.forRootAsync(options);
 
     return {
       module: WmsModuleGraphqlModule,
-      imports: [
-        coreModule,
-        HelperModule,
-        GraphQLModule.forRootAsync({
-          ...gqlOptions,
-          imports: [HelperModule, ...(gqlOptions.imports || [])],
-          inject: [LoaderService, ...(gqlOptions.inject || [])],
-          useFactory: async (loaderService: LoaderService, ...args) => {
-            const loaders = {
-              batchSingle: loaderService.batchEntity(),
-              batchMany: loaderService.batchEntities(),
-              batchManyWithPagination:
-                loaderService.batchEntitiesWithPagination(),
-            };
-            const originalFactory = gqlOptions.useFactory
-              ? await gqlOptions.useFactory(...args)
-              : {};
-            return {
-              ...originalFactory,
-              context: async (contextArg: any) => {
-                const context =
-                  typeof gqlOptions.useFactory === 'function'
-                    ? {
-                        loaders,
-                        ...(typeof contextArg === 'object' ? contextArg : {}),
-                      }
-                    : { loaders, ...contextArg };
-                return context;
-              },
-            };
-          },
-        }),
-      ],
+      imports: [coreModule, HelperModule],
       providers: exportDependencies,
-      exports: [GraphQLModule, coreModule],
+      exports: [...exportDependencies, HelperModule, coreModule],
     };
   }
 }
