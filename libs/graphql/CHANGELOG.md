@@ -1,3 +1,14 @@
+## 0.3.0 (2026-06-08)
+
+### 🚀 Features
+
+- **graphql:** make createWmsLoaders return spreadable context fragment ([064865f](https://github.com/Rytass/WMS-Module/commit/064865f))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.7
+
 ## 0.2.0 (2026-06-04)
 
 ### 🚀 Features
