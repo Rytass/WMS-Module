@@ -56,7 +56,7 @@ import { FilesModule } from './files/files.module';
         autoTransformHttpErrors: true,
         autoSchemaFile: resolve(process.cwd(), 'schema.gql'),
         context: () => ({
-          ...createWmsLoaders(loaderService),
+          loaders: createWmsLoaders(loaderService),
         }),
       }),
     }),
