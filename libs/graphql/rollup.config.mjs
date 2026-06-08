@@ -47,7 +47,7 @@ export default [
     ],
   },
   {
-    input: 'src/index.ts',
+    input: ['src/index.ts', 'src/adapters/member-base.ts'],
     output: {
       dir: '.',
       format: 'esm',

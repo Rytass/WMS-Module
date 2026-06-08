@@ -11,6 +11,7 @@ libs/*/index.cjs.js
 libs/*/index.js
 libs/*/index.d.ts
 libs/*/lib
+libs/graphql/adapters
 libs/core/constants
 libs/core/models
 libs/core/services

@@ -28,6 +28,10 @@
       "require": "./index.cjs.js",
       "import": "./index.js"
     },
+    "./adapters/member-base": {
+      "types": "./adapters/member-base.d.ts",
+      "import": "./adapters/member-base.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

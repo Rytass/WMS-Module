@@ -13,7 +13,8 @@
         "{projectRoot}/index.cjs.js",
         "{projectRoot}/index.js",
         "{projectRoot}/index.d.ts",
-        "{projectRoot}/lib"
+        "{projectRoot}/lib",
+        "{projectRoot}/adapters"
       ],
       "options": {
         "cwd": "libs/graphql",
@@ -25,7 +26,7 @@
       "options": {
         "cwd": "libs/graphql",
         "commands": [
-          "rm -rf index.cjs.js index.js index.d.ts lib"
+          "rm -rf index.cjs.js index.js index.d.ts lib adapters"
         ],
         "parallel": false
       }
