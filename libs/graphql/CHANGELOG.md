@@ -1,3 +1,16 @@
+## 0.4.0 (2026-06-08)
+
+### 🚀 Features
+
+- **graphql:** annotate root operations with @WmsOperation ([0231fb3](https://github.com/Rytass/WMS-Module/commit/0231fb3))
+- **graphql:** add member-base authChecker adapter ([41d3540](https://github.com/Rytass/WMS-Module/commit/41d3540))
+- **graphql:** add host-neutral resolver authorization layer ([fdf2aeb](https://github.com/Rytass/WMS-Module/commit/fdf2aeb))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.8 (1M context)
+
 ## 0.3.0 (2026-06-08)
 
 ### 🚀 Features
