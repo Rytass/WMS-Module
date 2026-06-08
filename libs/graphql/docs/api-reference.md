@@ -301,16 +301,22 @@ enum ShipInventoryOrderStatus { PENDING, PARTIAL_SHIPPED, SHIPPED, REMOVED }
 **`forRootAsync(options): DynamicModule`** (since 0.3.0)
 ```ts
 static forRootAsync(
-  options: WmsModuleCoreModuleAsyncOptions,
+  options: WmsModuleGraphqlModuleAsyncOptions,
+  // = WmsModuleCoreModuleAsyncOptions & WmsAuthModuleOptions
+  //
   // WMSBaseModuleAsyncOptions（Vault/DB 選項）
   // + WmsModuleCoreModuleOptions:
   //     defaultLoaderSerialId: string  — 庫存作業預設載具序號
   //     defaultLoaderTypeKey: string   — 預設載具類型 key
   //     defaultLocationKey: string     — 預設儲存位置 key
+  // + WmsAuthModuleOptions:
+  //     authChecker?: WmsAuthChecker   — 選填；resolver 授權委派函式（見 Authorization）
 ): DynamicModule
 ```
 
 > **Breaking from 0.2.x**: 0.2.0 took a second `gqlOptions` argument and started Apollo Server internally; 0.3.0 dropped it. Consumers now own `GraphQLModule.forRootAsync(...)` and the GraphQL context factory. Use `createWmsLoaders(loaderService)` inside `context` to provide the WMS DataLoader trio (see below).
+
+> **Authorization (`authChecker`)**: optional. Omit it and the module stays fully permissive. Supply it to authorize every WMS root op against your permission system — see the dedicated [**Authorization**](#authorization) section below and [`docs/authorization.md`](./authorization.md).
 
 ### `LoaderService` (`@Injectable()`, since 0.3.0 publicly exported)
 - 用途: 提供 DataLoader 工廠方法（`batchEntity()`、`batchEntities()`、`batchEntitiesWithPagination()`）。每次呼叫產生新的 DataLoader instance — 須在 GraphQL context factory **per request** 呼叫，**勿** 在 module scope 重用。
@@ -387,6 +393,59 @@ material(
   });
 }
 ```
+
+---
+
+## Authorization
+
+Host-neutral, opt-in resolver authorization. Every WMS root `@Query`/`@Mutation` carries `@WmsOperation({ resource, action })`; `WmsAuthGuard` enforces it by delegating to the consumer-supplied `authChecker`. Full design & recipes: [`docs/authorization.md`](./authorization.md).
+
+### Root exports (`@rytass/wms-module-graphql`)
+
+| Export | Kind | Signature / shape |
+|---|---|---|
+| `WmsOperation` | decorator | `(requirement: WmsOperationRequirement) => MethodDecorator` — already applied across the library; add it to any new root op. |
+| `WmsAuthGuard` | `@Injectable()` guard | route-level `CanActivate`; reads the requirement, calls `authChecker`. Auto-registered by `forRootAsync`. |
+| `WmsAuthChecker` | type | `(context: ExecutionContext, requirement: WmsOperationRequirement) => boolean \| Promise<boolean>` |
+| `WmsOperationRequirement` | type | `{ readonly resource: string; readonly action: string }` |
+| `WmsAuthModuleOptions` | type | `{ readonly authChecker?: WmsAuthChecker }` |
+| `WmsModuleGraphqlModuleAsyncOptions` | type | `WmsModuleCoreModuleAsyncOptions & WmsAuthModuleOptions` (the `forRootAsync` arg) |
+| `WMS_AUTH_OPTIONS` | `symbol` | DI token holding the resolved auth options |
+| `WMS_OPERATION_METADATA` | `string` (`'wms:operation'`) | Reflector key carrying the requirement |
+| `HOST_SKIP_METADATA_KEY` | `string` (`'IS_ROUTE_PUBLIC'`) | host-skip metadata key stamped on each op so a global guard defers (default matches member-base) |
+
+### Adapter subpath (`@rytass/wms-module-graphql/adapters/member-base`)
+
+| Export | Kind | Signature / shape |
+|---|---|---|
+| `createMemberBaseWmsAuthChecker` | factory | `(options: MemberBaseWmsAuthCheckerOptions) => WmsAuthChecker` |
+| `MemberBaseWmsAuthCheckerOptions` | type | `{ readonly map: (requirement: WmsOperationRequirement) => CasbinAction[] }` |
+| `CasbinAction` | type | `[string, string]` — a `[subject, action]` tuple |
+
+```ts
+// member-base / Casbin
+import { createMemberBaseWmsAuthChecker } from '@rytass/wms-module-graphql/adapters/member-base';
+
+WmsModuleGraphqlModule.forRootAsync({
+  useFactory: async () => ({}),
+  defaultLoaderSerialId: 'DEFAULT',
+  defaultLoaderTypeKey: 'DEFAULT',
+  defaultLocationKey: 'DEFAULT',
+  authChecker: createMemberBaseWmsAuthChecker({
+    map: ({ resource, action }) => [[`wms:${resource}`, action]],
+  }),
+});
+
+// custom JWT / RBAC
+import type { WmsAuthChecker } from '@rytass/wms-module-graphql';
+
+const authChecker: WmsAuthChecker = (ctx, { resource, action }) => {
+  // read your session off ctx and decide
+  return true;
+};
+```
+
+The adapter imports nothing from member-base — it reads the `payload` / `enforcer` / `casbinPermissionChecker` that `CasbinGuard` attaches to the request at runtime. member-base is therefore **not** a dependency or peer dependency of this package.
 
 ---
 

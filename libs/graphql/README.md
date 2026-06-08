@@ -62,6 +62,32 @@ You register a **single** `GraphQLModule.forRootAsync(...)` of your own, mix you
 
 `WmsModuleGraphqlModule` internally wires `WmsModuleCoreModule.forRootAsync` so you do not need to import the core module separately when using this package.
 
+## Authorization
+
+Every WMS root `@Query` / `@Mutation` is annotated with `@WmsOperation({ resource, action })` — a **host-neutral** permission requirement enforced by the library's own route-level `WmsAuthGuard`, which delegates the allow/deny decision to an `authChecker` **you** supply. The library never imports your auth system; you map WMS's `resource`/`action` onto whatever you use (Casbin, RBAC, JWT scopes…).
+
+> ⚠️ **Using a global guard (e.g. member-base's `CasbinGuard` as `APP_GUARD`)?** A deny-by-default global guard blankets *every* resolver in the schema, including WMS's, and rejects them all because they carry no host-specific metadata — "every WMS operation is forbidden". WMS fixes this by stamping each operation with a host-skip marker so your global guard **defers**, while `WmsAuthGuard` does the real enforcement. **You do not touch your global guard.**
+
+```ts
+import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+import { createMemberBaseWmsAuthChecker } from '@rytass/wms-module-graphql/adapters/member-base';
+
+WmsModuleGraphqlModule.forRootAsync({
+  useFactory: async () => ({}),
+  defaultLoaderSerialId: 'DEFAULT',
+  defaultLoaderTypeKey: 'DEFAULT',
+  defaultLocationKey: 'DEFAULT',
+  // optional — omit to stay fully permissive (local dev / demos)
+  authChecker: createMemberBaseWmsAuthChecker({
+    map: ({ resource, action }) => [[`wms:${resource}`, action]],
+  }),
+});
+```
+
+The member-base adapter reuses everything `CasbinGuard` already put on the request (verified `payload`, `enforcer`, your custom `casbinPermissionChecker`) so WMS enforces with the **exact same** policy engine as your own resolvers — with **zero** member-base import on the WMS side. For custom JWT/RBAC, pass your own `authChecker: (ctx, { resource, action }) => boolean`.
+
+➡️ **Full design & recipes: [`docs/authorization.md`](./docs/authorization.md)** (the problem, execution order, member-base / custom-JWT / no-guard recipes, the single coupling point, public API, FAQ).
+
 ## DataLoader context
 
 The module ships a `HelperModule` (auto-registered) that provides a singleton `LoaderService`. To avoid N+1 queries, the WMS resolvers expect a per-request DataLoader trio at `context.loaders`:
@@ -97,12 +123,14 @@ Full documentation is shipped inside this package under the `docs/` directory (a
 | Document | Description |
 |---|---|
 | [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
+| [`docs/authorization.md`](./docs/authorization.md) | Complete resolver-authorization design & integration recipes (member-base / custom JWT / no-guard) |
 | [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
 
 GitHub hosted links (always up-to-date):
 
 - [Integration Guide — §4 Backend setup](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#4-backend-setup-nestjs--graphql--typeorm)
 - [Integration Guide — §13.1 Existing GraphQLModule co-existence](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#13-integrating-into-an-existing-nestjs--nextjs-project)
+- [Authorization — design & recipes](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/authorization.md)
 - [API Reference — @rytass/wms-module-graphql](https://github.com/Rytass/WMS-Module/blob/main/docs/api-reference.md#rytasswms-module-graphql)
 
 ## License

@@ -741,7 +741,7 @@ The full list of generated `Document` constants and their types is in
 
 ## 8. Authentication / authorization
 
-The lib **does not** ship an auth system. The page components assume they render in an authenticated context — they call queries on mount without checking session state.
+The lib ships **no frontend auth** — the page components assume they render in an authenticated context and call queries on mount without checking session state. On the **backend**, `@rytass/wms-module-graphql` ships an *opt-in, host-neutral authorization protocol* you wire to your own permission system (member-base / Casbin / JWT / anything). See [§8.5 Backend authorization](#85-backend-authorization-resolver-level).
 
 ### 8.1 Stub for demos
 
@@ -829,7 +829,43 @@ Replace the `AuthGuard` stub with your own logic that:
 2. Provides member identity to GraphQL via the Apollo client's `context` link.
 3. Handles 401 responses (logout / redirect).
 
-The lib's resolvers do not enforce auth themselves. If you need RBAC, layer your own guard/decorator on top of the resolvers or apply NestJS-level guards globally in `app.module.ts`.
+### 8.5 Backend authorization (resolver-level)
+
+> 📖 This is the condensed version. The full design — execution order, member-base / custom-JWT / no-guard recipes, the single coupling point, the exported API, and a troubleshooting FAQ — lives in [**`docs/authorization.md`**](./authorization.md).
+
+Every WMS root `@Query` / `@Mutation` is annotated with `@WmsOperation({ resource, action })` — a host-neutral permission requirement. The library enforces it through its own route-level `WmsAuthGuard`, which delegates the actual allow/deny decision to an `authChecker` **you** supply at module registration. The library never imports your auth system; you map WMS's `resource`/`action` onto whatever your system understands.
+
+> ⚠️ **The global-guard pitfall.** A deny-by-default global guard — e.g. the `CasbinGuard` that `@rytass/member-base-nestjs-module` registers as `APP_GUARD` — blankets *every* resolver in the compiled schema, including WMS's. Because WMS resolvers carry no host-specific permission metadata, such a guard rejects them all ("every WMS query/mutation is forbidden"). WMS solves this by stamping each operation with a host-skip marker (default: member-base's `IS_ROUTE_PUBLIC`) so the global guard defers, while `WmsAuthGuard` does the real enforcement. **You do not need to touch your global guard.**
+
+#### Wire it up (member-base / Casbin)
+
+```ts
+// app.module.ts
+import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+import { createMemberBaseWmsAuthChecker } from '@rytass/wms-module-graphql/adapters/member-base';
+
+WmsModuleGraphqlModule.forRootAsync({
+  // ...existing core options (defaultLoaderSerialId, useFactory, etc.)...
+  authChecker: createMemberBaseWmsAuthChecker({
+    // Map WMS resource/action onto your Casbin [subject, action] tuples.
+    // Return multiple tuples to mean "allow if ANY passes" (OR semantics).
+    map: ({ resource, action }) => [[`wms:${resource}`, action]],
+    //  e.g. material:read -> enforce(memberId, domain, 'wms:material', 'read')
+  }),
+});
+```
+
+The member-base adapter reuses everything `CasbinGuard` already prepared on the request (the verified `payload`, the `enforcer`, and your possibly-customized `casbinPermissionChecker`), so WMS enforces with the **exact same** policy engine as your own resolvers — with zero member-base import on the WMS side. Requirement: keep member-base's global guard enabled (default) and expose the request on the GraphQL context as `req` (Apollo's default).
+
+#### Other auth systems
+
+`authChecker` is a plain function — `(execContext, { resource, action }) => boolean | Promise<boolean>`. For JWT/RBAC without Casbin, read your session off the `ExecutionContext` and decide there. If your global guard uses a different "public/skip" metadata key than member-base's `IS_ROUTE_PUBLIC`, change the single `HOST_SKIP_METADATA_KEY` constant in `libs/graphql/src/lib/auth/host-skip.constant.ts`.
+
+#### No global guard at all
+
+If you omit `authChecker`, the module stays fully permissive (handy for local dev). If you protect your own resolvers with explicit `@UseGuards(...)` instead of a global `APP_GUARD`, the host-skip marker is simply inert and WMS still self-enforces through `authChecker`.
+
+The WMS `resource`/`action` strings are **internal metadata only** — they are not part of the GraphQL schema, so refining them later is not a breaking change for GraphQL consumers (it only affects your `map`).
 
 ---
 
