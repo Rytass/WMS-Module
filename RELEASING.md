@@ -9,16 +9,20 @@ This monorepo publishes the WMS libraries to npm using [Nx Release](https://nx.d
 
 ## How the pipeline works
 
-1. **Local**: a maintainer runs `yarn release` from a clean `main` checkout. Nx Release reads conventional commits, bumps versions, writes per-project `CHANGELOG.md`, updates inter-package `peerDependencies`, creates per-project git tags (`core@x.y.z`, `graphql@x.y.z`), and pushes everything to GitHub.
-2. **CI**: pushing the tags triggers `.github/workflows/publish.yml`, which builds the libs and runs `nx release publish` to push the tarballs to npm (with provenance attestation).
+Publishing is **fully manual** since PR #177 — the previous CI workflow (`.github/workflows/publish.yml`) was removed because it kept producing inconsistent provenance attestations on the self-hosted runner. The maintainer now runs both phases locally from a clean `main` checkout:
+
+1. **Bump + tag + push** — `yarn release` reads conventional commits, bumps versions, writes per-project `CHANGELOG.md`, updates inter-package `peerDependencies`, creates per-project git tags (`core@x.y.z`, `graphql@x.y.z`, `react@x.y.z`), commits, and pushes the commit + tags to GitHub.
+2. **Publish** — `yarn nx release publish --otp=XXXXXX` builds the libs, runs `npm publish` against each tagged tarball, and (if configured) emits provenance. Because the maintainer's npm account is 2FA-protected, you must pass the current 6-digit OTP — without `--otp`, npm will reject the publish.
 
 Versioning is **conventional-commits driven** — `feat:` commits bump minor, `fix:` bumps patch, footers containing `BREAKING CHANGE` bump major. Commit scopes determine which package picks up the change: `feat(core): ...` only bumps `core`, `fix(graphql): ...` only bumps `graphql`. Use scope `repo`/`ci`/`docs` for commits that should not trigger any release.
 
+> Per-project semver: in `0.x.y` we treat minor bumps as the breaking-change channel (consistent with SemVer's 0.x rule). The `0.3.0` graphql release was a breaking API surface change but did not bump to `1.0.0` because pre-1.0 lib consumers expect that contract.
+
 ## One-time setup
 
-1. **npm scope**: ensure the `@rytass` org on npmjs.com has the publishing user as a maintainer with **automation token** permissions.
-2. **GitHub secret**: add `NPM_TOKEN` to repository secrets (Settings → Secrets and variables → Actions). The token must be an automation token (not a personal token) so it survives 2FA prompts.
-3. **Self-hosted runner**: the `publish.yml` workflow uses `runs-on: self-hosted`, matching the existing `staging.yml` runner pool. No additional runner configuration is required.
+1. **npm scope**: ensure the `@rytass` org on npmjs.com has the publishing user as a maintainer with publish rights.
+2. **Local npm login**: `npm login --scope=@rytass --registry=https://registry.npmjs.org/` once, so subsequent publishes only need an OTP, not a full credential round-trip.
+3. **GPG signing**: commits are signed (`commit.gpgsign=true` in `~/.gitconfig`). Make sure your `gpg-agent` is unlocked **before** running `yarn release`, otherwise the underlying `git commit` will time out on the pinentry prompt. The release artefacts are then orphaned on disk — `git reset --hard HEAD` to discard, unlock GPG, and rerun `yarn release`.
 
 ## Local release flow
 
@@ -26,25 +30,36 @@ Versioning is **conventional-commits driven** — `feat:` commits bump minor, `f
 git checkout main
 git pull --ff-only
 
-# First release ever: add --first-release the first time only
-yarn release --first-release --dry-run
-yarn release --first-release            # commits, tags, pushes
+# Preview first
+yarn release --dry-run
 
-# Subsequent releases
-yarn release --dry-run                  # preview
-yarn release                            # for real
+# Real bump + commit + push tags
+yarn release
+
+# Publish — substitute the current 6-digit npm OTP
+yarn nx release publish --otp=XXXXXX
 ```
 
-`yarn release` is wired in `package.json` as `nx release --skip-publish`. It pushes commits and tags to the configured remote; the publish workflow takes it from there. If you ever need to manually re-publish a tagged version (for example, after fixing a CI outage), run `yarn release:publish` against the same checkout.
+`yarn release` is wired in `package.json` as `nx release --skip-publish`. It pushes the version-bump commit and tags; **it does not publish**. The publish step (`yarn nx release publish`) is a separate command and always requires the live `--otp=` value because the publishing account has 2FA enabled.
 
-## What happens on tag push
+## First-time release
 
-`.github/workflows/publish.yml` triggers on tags matching `core@*`, `graphql@*`, or `react@*`. The job:
+If a lib has never been published, pass `--first-release` to the bump step on its first cycle:
 
-1. Checks out the tagged commit with full history.
-2. Installs Node 20, enables Corepack (yarn 4.12.0), runs `yarn install --immutable`.
-3. Runs `yarn nx run-many -t build --projects=core,graphql` to produce the dual-format (`index.cjs.js` bundled CJS + per-file ESM + `index.d.ts`) artefacts inside each lib directory.
-4. Runs `yarn nx release publish`, which executes `npm publish` with `NPM_CONFIG_PROVENANCE=true` for supply-chain attestation; authentication uses `NODE_AUTH_TOKEN` from the `NPM_TOKEN` secret.
+```bash
+yarn release --first-release --dry-run
+yarn release --first-release
+yarn nx release publish --otp=XXXXXX
+```
+
+## Verifying a publish
+
+```bash
+curl -s https://registry.npmjs.org/@rytass/wms-module-graphql \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['dist-tags']['latest'])"
+```
+
+`npm view <pkg> version` caches aggressively (~5 min) so prefer hitting the registry JSON directly when verifying a fresh publish.
 
 ## Conventional commit scopes used in this repo
 
@@ -60,7 +75,9 @@ Cross-package consequences are handled automatically via `version.updateDependen
 
 ## Troubleshooting
 
-- **`publish.yml` fails with `403 Forbidden`**: the `NPM_TOKEN` is missing, expired, or lacks publish scope on `@rytass`. Regenerate the automation token on npmjs.com and update the GitHub secret.
+- **`npm publish` fails with `EOTP`**: the `--otp=` value expired (TOTPs rotate every 30 s). Refresh the authenticator app and rerun `yarn nx release publish --otp=NEW`.
+- **`npm publish` fails with `E403 Forbidden`**: the local npm login does not have publish rights on the `@rytass` scope. Run `npm whoami` to verify the account, then ask an owner to add you as a maintainer on npmjs.com.
+- **`yarn release` fails with `gpg: signing failed: 逾時`**: `gpg-agent` is locked. Unlock with `echo test | gpg --clearsign` (enter passphrase when pinentry pops), then `git reset --hard HEAD` to drop the half-written bump files, and rerun `yarn release`.
 - **Nx says "Unable to resolve current version from git tags"**: a project has never been released; pass `--first-release` once.
-- **GitHub Release creation fails**: the workflow needs `GITHUB_TOKEN` write access. The default token has it, but if you tightened repo permissions, ensure "Read and write permissions" is enabled under Settings → Actions → General → Workflow permissions.
-- **A release is missing changes you expected**: check that the relevant commits used the right scope (`feat(core)` vs `feat(api)`). Nx Release only picks up commits matching the project scope (or no scope at all).
+- **GitHub Release creation fails**: `yarn release` calls the GitHub Releases API using your local `gh` auth — ensure `gh auth status` is green before retrying.
+- **A release is missing changes you expected**: check that the relevant commits used the right scope (`feat(core)` vs `feat(api)`). Nx Release only picks up commits matching the project scope (or no scope at all). Commits whose scope is `repo`/`ci`/`docs` deliberately do not trigger a bump.

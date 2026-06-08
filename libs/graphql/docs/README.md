@@ -7,7 +7,7 @@ Reference material for consumers of `@rytass/wms-module-{core,graphql,react}`.
 | Document                                       | Description                                                                                       |
 |------------------------------------------------|---------------------------------------------------------------------------------------------------|
 | [Integration Guide](./integration-guide.md)    | Step-by-step instructions for wiring the three packages into a new consumer project (NestJS + Next.js + PostgreSQL). Includes ready-to-paste `_app.tsx`, `app.module.ts`, `next.config.ts`, the 19 Pages Router shell pattern, AuthGuard stub, seed script template, deployment notes, and known issues. |
-| [API Reference](./api-reference.md)            | Complete export catalog for all three packages — every NestJS module, TypeORM entity, GraphQL resolver, DTO, React component, hook, and utility, organized by role with source paths and usage examples. Mirrors the actual `src/index.ts` barrel exports of v0.1.2. |
+| [API Reference](./api-reference.md)            | Complete export catalog for all three packages — every NestJS module, TypeORM entity, GraphQL resolver, DTO, React component, hook, and utility, organized by role with source paths and usage examples. Mirrors the actual `src/index.ts` barrel exports of `@rytass/wms-module-graphql@0.3.0` and `@rytass/wms-module-{core,react}@0.1.6`. |
 
 ## Quick links
 
@@ -28,6 +28,6 @@ Reference material for consumers of `@rytass/wms-module-{core,graphql,react}`.
 
 ## Versioning
 
-These documents track the **latest published `0.1.x` release**. Anything in `main` that has not yet been released is marked clearly inline; otherwise assume the documented signature matches the current npm-published library.
+These documents track the **latest published versions** — `@rytass/wms-module-graphql@0.3.0` and `@rytass/wms-module-{core,react}@0.1.6` as of this writing. Anything in `main` that has not yet been released is marked clearly inline; otherwise assume the documented signature matches the current npm-published library.
 
-When you upgrade the lib, check each package's `CHANGELOG.md` for breaking changes that may affect the snippets here.
+`@rytass/wms-module-graphql@0.3.0` introduced **breaking changes** to `WmsModuleGraphqlModule.forRootAsync` (single argument; consumer now registers their own `GraphQLModule.forRootAsync`). The integration guide and API reference reflect the post-0.3.0 surface — see each package's `CHANGELOG.md` for the full breaking change list when upgrading.

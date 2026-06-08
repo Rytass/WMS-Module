@@ -40,8 +40,8 @@ WMS is packaged as three layered npm libraries:
                v
 +-------------------------------+
 | wms-module-graphql            |   Resolvers, DTOs, DataLoader helpers
-| (one forRootAsync wires up    |   ---------------------------------------
-|  the entire GraphQL surface)  |   Wires the schema, depends on core for
+| (composable providers + your  |   ---------------------------------------
+|  own GraphQLModule.forRoot)   |   Exposes resolvers; depends on core for
 +--------------+----------------+   entities + services.
                v
 +-------------------------------+
@@ -138,13 +138,18 @@ bootstrap();
 
 ### 4.2 `apps/api/src/app/app.module.ts`
 
-The entire backend domain is wired in a single `forRootAsync` call on `WmsModuleGraphqlModule`. The module cascades into `WmsModuleCoreModule` automatically — the consumer **does not** import `wms-module-core` directly.
+Two registrations: `WmsModuleGraphqlModule.forRootAsync(...)` wires the WMS resolvers, entities, services and `LoaderService`; your own `GraphQLModule.forRootAsync(...)` starts Apollo Server and owns the context factory. The two participate in **one** schema — NestJS's schema builder discovers every `@Resolver()` provider across all imported modules.
 
 ```ts
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+import { GraphQLModule } from '@nestjs/graphql';
+import {
+  WmsModuleGraphqlModule,
+  LoaderService,
+  createWmsLoaders,
+} from '@rytass/wms-module-graphql';
 import { ApolloDriver } from '@nestjs/apollo';
 import {
   ApolloServerPluginLandingPageLocalDefault,
@@ -173,40 +178,46 @@ import { resolve } from 'path';
       }),
     }),
 
-    // WMS GraphQL - one call wires the entire domain
-    WmsModuleGraphqlModule.forRootAsync(
-      {
-        useFactory: async () => ({}),
-        // Module-init seed values; the keys you pass here are created
-        // on first boot for `location`, `loaderType`, and `loader`.
-        defaultLoaderSerialId: 'DEFAULT',
-        defaultLoaderTypeKey: 'DEFAULT',
-        defaultLocationKey: 'DEFAULT',
-      },
-      {
-        driver: ApolloDriver,
-        useFactory: async () => ({
-          playground: false,
-          introspection: true,
-          cors: true,
-          csrfPrevention: false,
-          plugins: [ApolloServerPluginLandingPageLocalDefault()],
-          autoTransformHttpErrors: true,
-          autoSchemaFile: resolve(process.cwd(), 'schema.gql'),
+    // WMS resolvers + LoaderService — no Apollo Server is started here
+    WmsModuleGraphqlModule.forRootAsync({
+      useFactory: async () => ({}),
+      // Module-init seed values; the keys you pass here are created
+      // on first boot for `location`, `loaderType`, and `loader`.
+      defaultLoaderSerialId: 'DEFAULT',
+      defaultLoaderTypeKey: 'DEFAULT',
+      defaultLocationKey: 'DEFAULT',
+    }),
+
+    // YOUR Apollo / Schema / Context registration
+    GraphQLModule.forRootAsync({
+      driver: ApolloDriver,
+      inject: [LoaderService],
+      useFactory: (loaderService: LoaderService) => ({
+        playground: false,
+        introspection: true,
+        cors: true,
+        csrfPrevention: false,
+        plugins: [ApolloServerPluginLandingPageLocalDefault()],
+        autoTransformHttpErrors: true,
+        autoSchemaFile: resolve(process.cwd(), 'schema.gql'),
+        context: ({ req }) => ({
+          ...createWmsLoaders(loaderService),  // per-request DataLoaders
+          // your own context fields — fully preserved
+          user: req.user,
         }),
-      },
-    ),
+      }),
+    }),
   ],
 })
 export class AppModule {}
 ```
 
-What you get from this single `forRootAsync`:
+What this registration wires:
 
 - 50 TypeORM entities (material, batch, loader, location, every order kind, change logs, signatures, etc.)
 - ~100 GraphQL types
 - ~65 queries and mutations
-- DataLoader N+1 prevention across every resolveField
+- DataLoader N+1 prevention across every `resolveField` (via the `loaders` key in context)
 - Default seed rows (DEFAULT location, DEFAULT loaderType, DEFAULT loader) on first boot
 
 **`forRootAsync` TypeScript signature**:
@@ -214,21 +225,16 @@ What you get from this single `forRootAsync`:
 ```ts
 WmsModuleGraphqlModule.forRootAsync(
   options: WmsModuleCoreModuleAsyncOptions,
-  gqlOptions: GqlModuleAsyncOptions<ApolloDriverConfig>,
 ): DynamicModule
 ```
 
-> Note the **two positional arguments**. A common mistake is to pass a single options object
-> (matching NestJS's typical convention) which produces a misleading
-> `TypeError: Cannot read properties of undefined (reading 'imports')` from inside the lib.
-> The first arg configures the WMS core module (seed defaults, async factory, etc.); the
-> second arg configures the underlying NestJS GraphQL module (driver, autoSchemaFile, plugins).
+A single argument — the WMS core module options (seed defaults, async factory). All GraphQL-server concerns (driver, schema file, context factory, plugins) live in your own `GraphQLModule.forRootAsync(...)` next to it.
 
-See [API Reference - wms-module-graphql](./api-reference.md) for the full `forRootAsync` signature.
+See [API Reference - wms-module-graphql](./api-reference.md) for the full export catalog including `LoaderService`, `createWmsLoaders`, `LoaderType<T>` and `WmsLoaders`.
 
 ### Adding your own resolvers alongside WMS
 
-`WmsModuleGraphqlModule` calls `GraphQLModule.forRootAsync(...)` internally — that registration is workspace-global, so you cannot register a second `GraphQLModule` (see §13.1). What you **can** do is put your own resolvers in **sibling NestJS modules** imported in `AppModule`:
+Your `GraphQLModule.forRootAsync(...)` registration **is** the single workspace-wide GraphQL module — no constraint from `WmsModuleGraphqlModule` (the lib intentionally does **not** call `GraphQLModule.forRoot` internally). Put your resolvers in normal NestJS modules and import them next to `WmsModuleGraphqlModule`:
 
 ```ts
 // apps/api/src/modules/posts/posts.module.ts
@@ -246,14 +252,14 @@ export class PostsModule {}
 // apps/api/src/app/app.module.ts
 @Module({
   imports: [
-    /* ... TypeOrm, Config, WmsModuleGraphqlModule ... */
+    /* ... TypeOrm, Config, WmsModuleGraphqlModule, GraphQLModule ... */
     PostsModule,   // your sibling module
   ],
 })
 export class AppModule {}
 ```
 
-NestJS's GraphQL module discovers every `@Resolver()` class from every imported module via DI and merges them into the **same** schema. So your `Post`/`User` resolvers coexist in one schema with the WMS resolvers automatically — no extra wiring needed. The §13.1 "one GraphQLModule" constraint only forbids a second `GraphQLModule.forRoot(...)` registration, not additional resolvers.
+NestJS's GraphQL module discovers every `@Resolver()` class from every imported module via DI and merges them into the **same** schema. So your `Post`/`User` resolvers coexist in one schema with the WMS resolvers automatically — no extra wiring needed.
 
 ### 4.3 `.env`
 
@@ -960,37 +966,59 @@ This section covers the real-world scenarios where the WMS modules are added to 
 that already has its own NestJS backend, GraphQL setup, or Next.js frontend. The greenfield
 setup in sections 4-7 is the baseline; read this section for the delta.
 
-> **Scope**: 0.1.x. Many limitations listed here are known gaps — roadmap notes are included
-> where improvements are planned.
+> **Scope**: 0.3.0+. Earlier 0.1.x / 0.2.0 limitations around `GraphQLModule` co-existence have
+> been removed by the user-driven composition refactor — see §13.1.
 
 ### 13.1 Coexisting with an existing `GraphQLModule`
 
-**Status**: Not supported in 0.1.x without forking the library.
+**Status**: Fully supported since 0.3.0.
 
-`WmsModuleGraphqlModule.forRootAsync(...)` internally calls `GraphQLModule.forRootAsync(...)`.
-NestJS does not allow two `GraphQLModule` registrations in the same application — the second
-registration throws `Error: Cannot register 2 GraphQL modules`. If your host app already
-imports `GraphQLModule`, you cannot simply add `WmsModuleGraphqlModule` to the same
-`imports: [...]` array.
+`WmsModuleGraphqlModule.forRootAsync(...)` only registers providers (resolvers, `LoaderService`,
+core module) — it does **not** call `GraphQLModule.forRoot` internally. The host application
+registers a **single** `GraphQLModule.forRootAsync(...)` of its own. NestJS's schema builder
+walks the DI container at boot, collects every `@Resolver()` class from every imported module,
+and merges them into one schema.
 
-**Recommended workarounds** (in order of practicality):
+This means a host app with an existing GraphQL server just adds `WmsModuleGraphqlModule` next to
+its existing `GraphQLModule.forRootAsync(...)`. To preserve N+1 prevention for the WMS resolvers,
+the host must inject `LoaderService` into its own context factory and call `createWmsLoaders(...)`
+per request:
 
-1. **Separate NestJS process** — run the WMS API as its own NestJS server on a different port
-   (e.g. 7103) and have the host API proxy or federate as needed. This is the architecture
-   used by `wms-standalone` and is the safest path.
+```ts
+import {
+  WmsModuleGraphqlModule,
+  LoaderService,
+  createWmsLoaders,
+} from '@rytass/wms-module-graphql';
 
-2. **NestJS sub-app (monorepo)** — if you use the Nx or NestJS CLI monorepo pattern, you can
-   host the WMS app as a separate application inside the same repo that shares code with your
-   existing app but runs as a distinct process.
+@Module({
+  imports: [
+    // ... your existing modules ...
+    WmsModuleGraphqlModule.forRootAsync({
+      useFactory: async () => ({}),
+      defaultLoaderSerialId: 'DEFAULT',
+      defaultLoaderTypeKey: 'DEFAULT',
+      defaultLocationKey: 'DEFAULT',
+    }),
+    GraphQLModule.forRootAsync({
+      driver: ApolloDriver,
+      inject: [LoaderService, /* your existing deps */],
+      useFactory: (loaderService: LoaderService /* , ... */) => ({
+        autoSchemaFile: 'schema.gql',
+        context: ({ req }) => ({
+          ...createWmsLoaders(loaderService),   // WMS DataLoader trio
+          user: req.user,                       // your existing context fields
+          // ... any other context shape you already had ...
+        }),
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+```
 
-3. **Fork and merge** — advanced consumers can fork `libs/graphql` and extract the resolver
-   registrations, removing the internal `GraphQLModule.forRootAsync(...)` call. The host app
-   then registers a single `GraphQLModule` that includes the WMS resolver classes. This requires
-   maintaining a fork and is not recommended unless you intend to take full ownership of the lib.
-
-**Tied to §13.1**: the `/graphql` endpoint name conflict (see §13.14 for GraphQL type name conflicts) is also
-fundamentally blocked by this same single-GraphQLModule constraint when running both APIs in
-the same process.
+**Type name conflicts**: still a separate concern — see §13.14. The shared-schema model means
+your `type Material`, `type Location`, etc. must not collide with the WMS counterparts.
 
 ---
 
@@ -1128,26 +1156,34 @@ export class AppModule {}
 
 This applies your guard to every resolver, including WMS resolvers.
 
-**Option B**: Read auth identity via `context.req.user` in custom resolvers. The Express `req`
-object is spread directly into the GraphQL context by the lib's internal DataLoader injection
-logic. Any field set on `req` by a NestJS guard or Passport strategy (e.g. `req.user`) is
-therefore accessible from resolvers as `ctx.req.user`.
+**Option B**: Surface the authenticated user through your **own** GraphQL context factory. Since 0.3.0 you own the entire `GraphQLModule.forRootAsync(...)` registration, including `context`. Both `context.user` (returned directly from your factory) and `context.req.user` (set by a guard / Passport on Express) work — pick whichever your resolvers prefer:
 
-> **Why returning `context` from `gqlOptions.useFactory` does not work**: the lib's
-> internal context factory replaces any `context` key you return from `gqlOptions.useFactory`,
-> but it spreads the raw `contextArg` (the `{ req, res }` provided by Apollo Server). So:
->
-> | Approach                                           | Works? |
-> |----------------------------------------------------|--------|
-> | Return `context: () => ({ user })` from useFactory | ❌ overridden |
-> | Populate `req.user` via NestJS guard / Passport    | ✅ access via `context.req.user` |
->
-> Always populate identity onto `req` (via a guard) and read it as `context.req.user` in
-> your resolvers. The resulting GraphQL context is `{ req, res, loaders }` — `req.user` IS
-> accessible as long as a guard or middleware has set it on the request object.
+```ts
+GraphQLModule.forRootAsync({
+  driver: ApolloDriver,
+  inject: [LoaderService],
+  useFactory: (loaderService: LoaderService) => ({
+    autoSchemaFile: 'schema.gql',
+    context: ({ req }) => ({
+      ...createWmsLoaders(loaderService),  // WMS DataLoader trio
+      user: req.user,                      // directly accessible as ctx.user
+      // ...any other fields you want on context
+    }),
+  }),
+})
+```
 
-To access the authenticated user in a **custom** resolver, populate `req.user` in a guard
-or middleware and read it from `ctx.req.user`:
+| Approach                                                | Works? |
+|---------------------------------------------------------|--------|
+| Return `context: () => ({ user, ...createWmsLoaders(svc) })` | ✅ user fully controls context |
+| Populate `req.user` via NestJS guard / Passport             | ✅ access via `context.req.user`  |
+
+> **0.1.x behavior gone**: earlier releases of this lib silently replaced any `context` factory
+> you supplied because `WmsModuleGraphqlModule` registered Apollo Server itself. Since 0.3.0,
+> the lib only exposes providers and your `GraphQLModule.forRootAsync(...)` is the single
+> registration — there is no internal override anymore.
+
+To access the authenticated user in a **custom** resolver, either read it directly from `ctx.user` (if you put it there in your factory) or from `ctx.req.user` (if a guard set it on the request):
 
 ```ts
 // auth.guard.ts — populate req.user before the resolver runs
@@ -1631,8 +1667,7 @@ The viable options are the same as those described in §13.1:
 3. **Wait for a future major release** — a type prefix configuration option is a candidate
    for a future major version that introduces namespace support.
 
-This is the same fundamental single-`GraphQLModule` constraint discussed in §13.1. Running
-both APIs in the same process is not supported in 0.1.x.
+Unlike the §13.1 `GraphQLModule` co-existence story (fixed in 0.3.0), the type-name collision is a **shared-schema** problem: every `@Resolver()` provider in the DI container, WMS or host-app, contributes to the same `GraphQLSchema` instance. Renaming the host app's types away from WMS-occupied names is the only fix without splitting processes.
 
 
 ## 14. Reference implementation (`wms-standalone`)
@@ -1647,7 +1682,7 @@ wms-standalone/
     api/
       src/
         main.ts                       17 LOC   NestJS bootstrap
-        app/app.module.ts             52 LOC   WmsModuleGraphqlModule.forRootAsync
+        app/app.module.ts             60 LOC   WmsModuleGraphqlModule + GraphQLModule.forRootAsync
       .env                             6 LOC   PG credentials
       package.json
     client/
