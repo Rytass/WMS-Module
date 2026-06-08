@@ -17,56 +17,74 @@ yarn add @nestjs/common @nestjs/graphql @nestjs/apollo @apollo/server graphql da
 ```ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver } from '@nestjs/apollo';
 import { resolve } from 'node:path';
-import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+import {
+  WmsModuleGraphqlModule,
+  LoaderService,
+  createWmsLoaders,
+} from '@rytass/wms-module-graphql';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({ /* ...db config... */ }),
-    WmsModuleGraphqlModule.forRootAsync(
-      {
-        useFactory: async () => ({}),
-        defaultLoaderSerialId: 'DEFAULT',
-        defaultLoaderTypeKey: 'DEFAULT',
-        defaultLocationKey: 'DEFAULT',
-      },
-      {
-        driver: ApolloDriver,
-        useFactory: async () => ({
-          autoSchemaFile: resolve(process.cwd(), 'schema.gql'),
-          playground: false,
-          introspection: true,
-          cors: true,
-          autoTransformHttpErrors: true,
+    WmsModuleGraphqlModule.forRootAsync({
+      useFactory: async () => ({}),
+      defaultLoaderSerialId: 'DEFAULT',
+      defaultLoaderTypeKey: 'DEFAULT',
+      defaultLocationKey: 'DEFAULT',
+    }),
+    GraphQLModule.forRootAsync({
+      driver: ApolloDriver,
+      inject: [LoaderService],
+      useFactory: (loaderService: LoaderService) => ({
+        autoSchemaFile: resolve(process.cwd(), 'schema.gql'),
+        playground: false,
+        introspection: true,
+        cors: true,
+        autoTransformHttpErrors: true,
+        context: ({ req }) => ({
+          ...createWmsLoaders(loaderService),
+          // your own context fields stay yours — no silent overwrite
+          user: req.user,
         }),
-      },
-    ),
+      }),
+    }),
   ],
 })
 export class AppModule {}
 ```
 
-The first argument is `WmsModuleCoreModuleAsyncOptions` (merged from `@rytass/wms-module-core` — same shape as `WMSBaseModuleAsyncOptions` plus the three `default*` keys). The second is a standard `@nestjs/graphql` `GqlModuleAsyncOptions` — extend the `useFactory` to override the Apollo config (cors, plugins, custom scalars, etc.).
+`WmsModuleGraphqlModule.forRootAsync` takes a single argument (`WmsModuleCoreModuleAsyncOptions`, re-exported from `@rytass/wms-module-core` — same shape as `WMSBaseModuleAsyncOptions` plus the three `default*` keys). It registers the resolvers/queries/mutations as composable NestJS providers and exposes `LoaderService` as a `@Global()` DI token; it does **not** start Apollo Server.
+
+You register a **single** `GraphQLModule.forRootAsync(...)` of your own, mix your resolvers with the WMS resolvers in the same schema, and own the Apollo / context configuration end-to-end.
 
 `WmsModuleGraphqlModule` internally wires `WmsModuleCoreModule.forRootAsync` so you do not need to import the core module separately when using this package.
 
 ## DataLoader context
 
-The module ships a `HelperModule` that provides DataLoader instances for batched entity lookups, automatically injected into the GraphQL context so resolvers can avoid N+1 queries:
+The module ships a `HelperModule` (auto-registered) that provides a singleton `LoaderService`. To avoid N+1 queries, the WMS resolvers expect a per-request DataLoader trio at `context.loaders`:
 
 ```ts
-context: async (contextArg) => ({
-  loaders: {
-    batchSingle: ...,
-    batchMany: ...,
-    batchManyWithPagination: ...,
-  },
-  ...contextArg,
-})
+type WmsLoaders = {
+  batchSingle: DataLoader<...>;
+  batchMany: DataLoader<...>;
+  batchManyWithPagination: DataLoader<...>;
+};
 ```
 
-Custom context factories from `gqlOptions.useFactory` are merged with the loaders — your existing context fields survive the wrap.
+Inject `LoaderService` into your `GraphQLModule.forRootAsync` factory and call `createWmsLoaders(loaderService)` **per request** inside `context`. The helper returns a `{ loaders: WmsLoaders }` fragment that is safe to spread:
+
+```ts
+context: ({ req }) => ({
+  ...createWmsLoaders(loaderService),   // adds `loaders: { batchSingle, ... }`
+  user: req.user,                       // your fields preserved
+  csrfToken: req.headers['x-csrf'],
+}),
+```
+
+Per-request is non-negotiable — DataLoader caches results inside the instance, so reusing one across requests leaks data between callers. `createWmsLoaders` is a thin factory you call from inside `context`, never at module scope.
 
 ## Schema artefacts
 
