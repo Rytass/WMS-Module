@@ -1,7 +1,12 @@
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, Module, type Provider } from '@nestjs/common';
 import { WmsModuleCoreModule } from '@rytass/wms-module-core';
 import type { WmsModuleCoreModuleAsyncOptions } from '@rytass/wms-module-core';
 import { HelperModule } from './helpers';
+import {
+  WMS_AUTH_OPTIONS,
+  WmsAuthGuard,
+  type WmsAuthModuleOptions,
+} from './auth';
 import { LoaderMutation } from './mutations/loader.mutation';
 import { LoaderQuery } from './queries/loader.query';
 import { MaterialMutation } from './mutations/material.mutation';
@@ -126,20 +131,37 @@ const exportDependencies = [
   WarehouseMapDataQuery,
   MapRangeUnionResolver,
 ];
+/**
+ * Options for `WmsModuleGraphqlModule.forRootAsync`. Extends the core module
+ * options with an optional {@link WmsAuthModuleOptions.authChecker}; when the
+ * checker is omitted the module stays fully permissive (pre-auth behaviour).
+ */
+export type WmsModuleGraphqlModuleAsyncOptions = WmsModuleCoreModuleAsyncOptions &
+  WmsAuthModuleOptions;
+
 @Module({
   providers: exportDependencies,
 })
 export class WmsModuleGraphqlModule {
   static forRootAsync(
-    options: WmsModuleCoreModuleAsyncOptions,
+    options: WmsModuleGraphqlModuleAsyncOptions,
   ): DynamicModule {
-    const coreModule = WmsModuleCoreModule.forRootAsync(options);
+    const { authChecker, ...coreOptions } = options;
+    const coreModule = WmsModuleCoreModule.forRootAsync(coreOptions);
+
+    const authOptions: WmsAuthModuleOptions = { authChecker };
+
+    const providers: Provider[] = [
+      ...exportDependencies,
+      WmsAuthGuard,
+      { provide: WMS_AUTH_OPTIONS, useValue: authOptions },
+    ];
 
     return {
       module: WmsModuleGraphqlModule,
       imports: [coreModule, HelperModule],
-      providers: exportDependencies,
-      exports: [...exportDependencies, HelperModule, coreModule],
+      providers,
+      exports: [...exportDependencies, WmsAuthGuard, HelperModule, coreModule],
     };
   }
 }

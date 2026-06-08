@@ -9,4 +9,15 @@ export {
   createWmsLoaders,
   type WmsLoaders,
 } from './lib/helpers/create-wms-loaders';
+export {
+  HOST_SKIP_METADATA_KEY,
+  WmsAuthGuard,
+  WmsOperation,
+  WMS_AUTH_OPTIONS,
+  WMS_OPERATION_METADATA,
+  type WmsAuthChecker,
+  type WmsAuthModuleOptions,
+  type WmsOperationRequirement,
+} from './lib/auth';
+export type { WmsModuleGraphqlModuleAsyncOptions } from './lib/graphql.module';
 
