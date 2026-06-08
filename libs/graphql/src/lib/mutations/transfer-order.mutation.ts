@@ -8,6 +8,7 @@ import {
 } from '../inputs/create-transfer-order.args';
 import { TransferOrderArgs } from '../inputs/transfer-order.args';
 import { CancelTransferOrderArgs } from '../inputs/cancel-transfer-order.args';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class TransferOrderMutation {
@@ -17,6 +18,7 @@ export class TransferOrderMutation {
   ) {}
 
   @Mutation(() => TransferOrderDto)
+  @WmsOperation({ resource: 'transfer-order', action: 'create' })
   async createTransferOrder(
     @Args() args: CreateTransferOrderArgs,
   ): Promise<TransferOrderDto> {
@@ -33,6 +35,7 @@ export class TransferOrderMutation {
   }
 
   @Mutation(() => TransferOrderDto)
+  @WmsOperation({ resource: 'transfer-order', action: 'update' })
   async updateTransferOrder(
     @Args() args: UpdateTransferOrderArgs,
   ): Promise<TransferOrderDto> {
@@ -51,6 +54,7 @@ export class TransferOrderMutation {
   }
 
   @Mutation(() => Boolean)
+  @WmsOperation({ resource: 'transfer-order', action: 'transfer' })
   async transfer(
     @Args('items', { type: () => [TransferOrderArgs] })
     args: TransferOrderArgs[],
@@ -59,6 +63,7 @@ export class TransferOrderMutation {
   }
 
   @Mutation(() => Boolean)
+  @WmsOperation({ resource: 'transfer-order', action: 'cancel' })
   async cancelTransfer(
     @Args('items', { type: () => [CancelTransferOrderArgs] })
     args: CancelTransferOrderArgs[],

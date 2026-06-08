@@ -5,6 +5,7 @@ import { Args, Mutation } from '@nestjs/graphql';
 import { UpdateWarehouseMapArgs } from '../inputs/update-warehouse-map.args';
 import { WarehouseMapDataService } from '@rytass/wms-module-core';
 import { In } from 'typeorm';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class WarehouseMapMutation {
@@ -14,6 +15,7 @@ export class WarehouseMapMutation {
   ) {}
 
   @Mutation(() => MapDataDto)
+  @WmsOperation({ resource: 'warehouse-map', action: 'update' })
   async updateWarehouseMap(
     @Args() args: UpdateWarehouseMapArgs,
   ): Promise<MapDataDto> {

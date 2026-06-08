@@ -3,6 +3,7 @@ import { Args, Mutation } from '@nestjs/graphql';
 import { ScrapeService, StockService } from '@rytass/wms-module-core';
 import { ScrapeOrderDto } from '../dto/scrape-order.dto';
 import { ScrapeOrderArgs } from '../inputs/scrape-order.args';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class ScrapeMutation {
@@ -12,6 +13,7 @@ export class ScrapeMutation {
   ) {}
 
   @Mutation(() => ScrapeOrderDto)
+  @WmsOperation({ resource: 'scrape-order', action: 'scrape' })
   async scrapeMaterials(
     @Args() args: ScrapeOrderArgs,
   ): Promise<ScrapeOrderDto> {

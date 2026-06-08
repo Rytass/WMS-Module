@@ -3,6 +3,7 @@ import { Args, ID, Query } from '@nestjs/graphql';
 import { ReceiveInventoryOrderService } from '@rytass/wms-module-core';
 import { ReceiveInventoryOrderDto, ReceiveInventoryOrders } from '../dto';
 import { FindReceiveInventoryOrderArgs } from '../inputs/find-receive-inventory-order.args';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class ReceiveInventoryOrderQuery {
@@ -11,6 +12,7 @@ export class ReceiveInventoryOrderQuery {
   ) {}
 
   @Query(() => ReceiveInventoryOrderDto)
+  @WmsOperation({ resource: 'receive-inventory-order', action: 'read' })
   async receiveInventoryOrder(
     @Args('id', { type: () => ID }) id: string,
   ): Promise<ReceiveInventoryOrderDto> {
@@ -21,6 +23,7 @@ export class ReceiveInventoryOrderQuery {
   }
 
   @Query(() => ReceiveInventoryOrders)
+  @WmsOperation({ resource: 'receive-inventory-order', action: 'read' })
   async receiveInventoryOrders(
     @Args() args: FindReceiveInventoryOrderArgs,
   ): Promise<ReceiveInventoryOrders> {

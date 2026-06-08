@@ -8,6 +8,7 @@ import {
 } from '../inputs/create-receive-inventory-order.args';
 import { DataSource } from 'typeorm';
 import { ReceiveOrderArgs } from '../inputs/receive-order.args';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class ReceiveInventoryOrderMutation {
@@ -17,6 +18,7 @@ export class ReceiveInventoryOrderMutation {
   ) {}
 
   @Mutation(() => ReceiveInventoryOrderDto)
+  @WmsOperation({ resource: 'receive-inventory-order', action: 'create' })
   async createReceiveInventoryOrder(
     @Args() args: CreateReceiveInventoryOrderArgs,
   ): Promise<ReceiveInventoryOrderDto> {
@@ -34,6 +36,7 @@ export class ReceiveInventoryOrderMutation {
   }
 
   @Mutation(() => ReceiveInventoryOrderDto)
+  @WmsOperation({ resource: 'receive-inventory-order', action: 'update' })
   async updateReceiveInventoryOrder(
     @Args() args: UpdateReceiveInventoryOrderArgs,
   ): Promise<ReceiveInventoryOrderDto> {
@@ -51,6 +54,7 @@ export class ReceiveInventoryOrderMutation {
   }
 
   @Mutation(() => Boolean)
+  @WmsOperation({ resource: 'receive-inventory-order', action: 'receive' })
   async receive(
     @Args('items', { type: () => [ReceiveOrderArgs] })
     items: ReceiveOrderArgs[],

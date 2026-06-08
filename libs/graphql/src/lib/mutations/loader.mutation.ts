@@ -12,16 +12,19 @@ import {
   UpdateLoaderArgs,
 } from '../inputs/create-loader.args';
 import { In } from 'typeorm';
+import { WmsOperation } from '../auth';
 @Injectable()
 export class LoaderMutation {
   constructor(private readonly loaderService: LoaderService) {}
 
   @Mutation(() => [LoaderDto])
+  @WmsOperation({ resource: 'loader', action: 'create' })
   async createLoader(@Args() args: CreateLoaderArgs): Promise<LoaderDto[]> {
     return this.loaderService.createLoader(args);
   }
 
   @Mutation(() => [LoaderDto])
+  @WmsOperation({ resource: 'loader', action: 'create' })
   async createBatchLoader(
     @Args('items', { type: () => [CreateLoadersArgs] })
     args: CreateLoadersArgs[],
@@ -41,16 +44,19 @@ export class LoaderMutation {
   }
 
   @Mutation(() => LoaderDto)
+  @WmsOperation({ resource: 'loader', action: 'update' })
   async updateLoader(@Args() args: UpdateLoaderArgs): Promise<LoaderDto> {
     return this.loaderService.updateLoader(args);
   }
 
   @Mutation(() => LoaderTypeDto)
+  @WmsOperation({ resource: 'loader', action: 'create' })
   createLoaderType(@Args() args: CreateLoaderTypeArgs): Promise<LoaderTypeDto> {
     return this.loaderService.createLoaderType(args);
   }
 
   @Mutation(() => LoaderTypeDto)
+  @WmsOperation({ resource: 'loader', action: 'update' })
   async updateLoaderType(
     @Args() args: UpdateLoaderTypeArgs,
   ): Promise<LoaderTypeDto> {

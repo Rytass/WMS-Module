@@ -3,11 +3,13 @@ import { Args, Query } from '@nestjs/graphql';
 import { Batches } from '../dto/batch.dto';
 import { BatchService } from '@rytass/wms-module-core';
 import { FindBatchArgs } from '../inputs/find-batch.args';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class BatchQuery {
   constructor(private readonly batchService: BatchService) {}
   @Query(() => Batches)
+  @WmsOperation({ resource: 'batch', action: 'read' })
   async batches(@Args() args: FindBatchArgs): Promise<Batches> {
     const [items, total] = await this.batchService.findMany({
       ...args,
