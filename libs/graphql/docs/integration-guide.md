@@ -16,7 +16,9 @@ Target audience: engineers integrating WMS into a new product who want a working
 5. [Frontend setup (Next.js Pages Router)](#5-frontend-setup-nextjs-pages-router)
 6. [Pages Router shell pattern (the 19 thin shells)](#6-pages-router-shell-pattern-the-19-thin-shells)
 7. [Apollo client wiring](#7-apollo-client-wiring)
-8. [Authentication / authorization](#8-authentication--authorization)
+8. [Authentication, authorization & events](#8-authentication-authorization--events)
+   - [8.5 Backend authorization (resolver-level)](#85-backend-authorization-resolver-level)
+   - [8.6 Mutation events & hooks](#86-mutation-events--hooks)
 9. [Database support matrix](#9-database-support-matrix)
 10. [Seed data for demos](#10-seed-data-for-demos)
 11. [Deployment notes](#11-deployment-notes)
@@ -739,7 +741,7 @@ The full list of generated `Document` constants and their types is in
 
 ---
 
-## 8. Authentication / authorization
+## 8. Authentication, authorization & events
 
 The lib ships **no frontend auth** — the page components assume they render in an authenticated context and call queries on mount without checking session state. On the **backend**, `@rytass/wms-module-graphql` ships an *opt-in, host-neutral authorization protocol* you wire to your own permission system (member-base / Casbin / JWT / anything). See [§8.5 Backend authorization](#85-backend-authorization-resolver-level).
 
@@ -866,6 +868,85 @@ The member-base adapter reuses everything `CasbinGuard` already prepared on the 
 If you omit `authChecker`, the module stays fully permissive (handy for local dev). If you protect your own resolvers with explicit `@UseGuards(...)` instead of a global `APP_GUARD`, the host-skip marker is simply inert and WMS still self-enforces through `authChecker`.
 
 The WMS `resource`/`action` strings are **internal metadata only** — they are not part of the GraphQL schema, so refining them later is not a breaking change for GraphQL consumers (it only affects your `map`).
+
+---
+
+### 8.6 Mutation events & hooks
+
+> 📖 Condensed version. The full design, the complete list of 38 operation + 18 stock domain events, payloads, and limitations live in [**`docs/events.md`**](./events.md).
+
+Every WMS mutation can be **intervened in** and **observed** through two opt-in hook points wired on the same `WmsModuleGraphqlModule.forRootAsync({ ... })` call as everything else:
+
+- **`beforeHooks`** run *before any DB work* — `throw` to **veto** the mutation (zero side effects).
+- **`afterListeners`** run *after the outermost transaction commits* — you are never notified about a rolled-back change.
+
+```ts
+// apps/api/src/app/app.module.ts
+import { ForbiddenException } from '@nestjs/common';
+import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+
+WmsModuleGraphqlModule.forRootAsync({
+  // ...the same core options as §4.2 (defaultLoaderSerialId, useFactory, etc.)...
+
+  beforeHooks: {
+    // intent payload = the raw GraphQL args; throw to abort
+    'ship-inventory-order.shipped': async ({ args, executionContext }) => {
+      if (!(await canShip(args, executionContext))) {
+        throw new ForbiddenException('shipment blocked');
+      }
+    },
+  },
+
+  afterListeners: {
+    // operation event — fires once per mutation, with the result
+    'ship-inventory-order.shipped': async ({ payload }) => {
+      await erp.markShipped(payload.id, payload.result);
+    },
+    // stock domain event — fires once per affected item (post-commit)
+    'stock.allocated': async ({ payload }) => {
+      await erp.reserve(payload.orderId, payload.itemId, payload.quantityDelta);
+    },
+  },
+});
+```
+
+Two tiers of events you can listen to:
+
+- **Operation events** — one per mutation: `material.created`, `receive-inventory-order.received`, `ship-inventory-order.shipped`, … (38 total). Payload: `{ id, result }`.
+- **Stock domain events** — driven by the `ChangeType` state machine: `stock.allocated`, `stock.shipped`, `stock.held`, … (18 total). Payload: `{ orderId, itemId, quantityDelta, changeType, inspectionResult? }`. `orderId` matches the operation event's `id`, so you can correlate the two tiers.
+
+Both maps are fully typed — the payload is inferred from the event-name key. With neither configured, the interceptor passes through with **zero overhead** (no behaviour change).
+
+#### Optional: `@OnEvent` via `@nestjs/event-emitter`
+
+Prefer decoupled subscribers? Install `@nestjs/event-emitter` (an optional peer dependency) and opt into the bridge — every event is then also emitted as `wms.<event-name>`:
+
+```ts
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { wmsEventEmitterBridgeProvider } from '@rytass/wms-module-graphql/adapters/event-emitter';
+
+@Module({
+  imports: [
+    EventEmitterModule.forRoot(),
+    WmsModuleGraphqlModule.forRootAsync({
+      ...coreOptions,
+      eventEmitterBridge: wmsEventEmitterBridgeProvider, // <- enables the bridge
+    }),
+  ],
+})
+export class AppModule {}
+
+// elsewhere
+@Injectable()
+class StockSync {
+  @OnEvent('wms.stock.allocated')
+  handle(payload: WmsStockEventPayload) { /* ... */ }
+}
+```
+
+The bridge is the only thing that imports `@nestjs/event-emitter`, so it stays an entirely optional dependency — the core module never requires it. `afterListeners` and the bridge can be used together.
+
+> ⚠️ Delivery is **in-process and post-commit**, not a durable outbox: if the process crashes after commit but before dispatch, those events are lost. See [`docs/events.md` §7](./events.md#7-guarantees--limitations) for the full guarantees.
 
 ---
 

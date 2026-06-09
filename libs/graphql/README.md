@@ -88,6 +88,31 @@ The member-base adapter reuses everything `CasbinGuard` already put on the reque
 
 ➡️ **Full design & recipes: [`docs/authorization.md`](./docs/authorization.md)** (the problem, execution order, member-base / custom-JWT / no-guard recipes, the single coupling point, public API, FAQ).
 
+## Events & Hooks
+
+Intervene in and get notified about mutations. Every root mutation carries a typed **operation event** (`material.created`, `ship-inventory-order.shipped`, …) and fans out **stock domain events** (`stock.allocated`, `stock.shipped`, …) driven by the `ChangeType` state machine. Wire two opt-in hook points via `forRootAsync`:
+
+- **`beforeHooks`** run before any DB work — **throw to veto** the mutation (zero side effects).
+- **`afterListeners`** run **after the outermost transaction commits** — never notified about rolled-back changes.
+
+```ts
+WmsModuleGraphqlModule.forRootAsync({
+  ...coreOptions,
+  beforeHooks: {
+    'ship-inventory-order.shipped': async ({ args }) => {
+      if (!allowed(args)) throw new ForbiddenException('blocked');
+    },
+  },
+  afterListeners: {
+    'stock.allocated': async ({ payload }) => { await erp.reserve(payload); },
+  },
+});
+```
+
+Post-commit delivery is guaranteed by an `AsyncLocalStorage` dispatch scope (events buffer during the request and flush only after commit). Prefer `@OnEvent`? Opt into the optional [`@nestjs/event-emitter`](https://docs.nestjs.com/techniques/events) bridge from `@rytass/wms-module-graphql/adapters/event-emitter` — every event also emits as `wms.<event>`. Nothing configured ⇒ no events, zero overhead.
+
+➡️ **Full design, the complete 56-event list & limitations: [`docs/events.md`](./docs/events.md)**.
+
 ## DataLoader context
 
 The module ships a `HelperModule` (auto-registered) that provides a singleton `LoaderService`. To avoid N+1 queries, the WMS resolvers expect a per-request DataLoader trio at `context.loaders`:
@@ -124,6 +149,7 @@ Full documentation is shipped inside this package under the `docs/` directory (a
 |---|---|
 | [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
 | [`docs/authorization.md`](./docs/authorization.md) | Complete resolver-authorization design & integration recipes (member-base / custom JWT / no-guard) |
+| [`docs/events.md`](./docs/events.md) | Mutation event/hook system — before-hooks (veto), post-commit after-listeners, complete event list, event-emitter bridge |
 | [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
 
 GitHub hosted links (always up-to-date):
@@ -131,6 +157,7 @@ GitHub hosted links (always up-to-date):
 - [Integration Guide — §4 Backend setup](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#4-backend-setup-nestjs--graphql--typeorm)
 - [Integration Guide — §13.1 Existing GraphQLModule co-existence](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#13-integrating-into-an-existing-nestjs--nextjs-project)
 - [Authorization — design & recipes](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/authorization.md)
+- [Events & Hooks — design & event list](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/events.md)
 - [API Reference — @rytass/wms-module-graphql](https://github.com/Rytass/WMS-Module/blob/main/docs/api-reference.md#rytasswms-module-graphql)
 
 ## License

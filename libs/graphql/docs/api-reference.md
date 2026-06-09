@@ -449,6 +449,46 @@ The adapter imports nothing from member-base — it reads the `payload` / `enfor
 
 ---
 
+## Events & Hooks
+
+Opt-in `beforeHooks` (veto) and post-commit `afterListeners` for every mutation. Each root mutation carries `@WmsMutationEvent({ event })` (already applied); a per-mutation interceptor runs the before-hook, opens an `AsyncLocalStorage` dispatch scope, and flushes collected events after the transaction commits. Stock domain events are collected centrally by a TypeORM subscriber on `*_order_change` inserts. Full design & the complete event list: [`docs/events.md`](./events.md).
+
+### Root exports (`@rytass/wms-module-graphql`, re-exported from `@rytass/wms-module-core`)
+
+| Export | Kind | Signature / shape |
+|---|---|---|
+| `WmsMutationEvent` | decorator | `({ event: WmsOperationEventName, resolveId? }) => MethodDecorator` |
+| `WmsEventModuleOptions` | type | `{ beforeHooks?: WmsBeforeHookMap; afterListeners?: WmsAfterListenerMap }` — part of `forRootAsync` options |
+| `WmsBeforeHookMap` | type | `{ [N in WmsEventName]?: (ctx: WmsBeforeHookContext<N>) => void \| Promise<void> }` |
+| `WmsAfterListenerMap` | type | `{ [N in WmsEventName]?: (ctx: WmsAfterEventContext<N>) => void \| Promise<void> }` |
+| `WmsBeforeHookContext` | type | `{ event; args: Record<string, unknown>; executionContext: ExecutionContext }` |
+| `WmsAfterEventContext` | type | `{ event; payload: WmsEventPayloadMap[event] }` |
+| `WmsDomainEvent` | type | `{ name: WmsEventName; payload }` |
+| `WmsEventName` / `WmsOperationEventName` / `WmsStockEventName` | type | event-name unions (38 operation + 18 stock) |
+| `WmsEventPayloadMap` | type | event name → payload |
+| `WmsOperationEventPayload` | type | `{ id: string \| null; result: unknown }` |
+| `WmsStockEventPayload` | type | `{ orderId; itemId; quantityDelta; changeType: ChangeType \| null; inspectionResult? }` |
+
+### Adapter subpath (`@rytass/wms-module-graphql/adapters/event-emitter`)
+
+| Export | Kind | Purpose |
+|---|---|---|
+| `wmsEventEmitterBridgeProvider` | `Provider` | Pass to `forRootAsync({ eventEmitterBridge })`; fans every event onto `EventEmitter2` as `wms.<event>` for `@OnEvent`. Requires `@nestjs/event-emitter` (optional peer) + `EventEmitterModule.forRoot()`. |
+
+```ts
+WmsModuleGraphqlModule.forRootAsync({
+  ...coreOptions,
+  beforeHooks: { 'ship-inventory-order.shipped': async ({ args }) => { if (!ok(args)) throw new ForbiddenException(); } },
+  afterListeners: { 'stock.allocated': async ({ payload }) => { await sync(payload); } },
+  // optional @OnEvent bridge:
+  // eventEmitterBridge: wmsEventEmitterBridgeProvider,
+});
+```
+
+`beforeHooks` / `afterListeners` are **not** part of the GraphQL schema — they are runtime hooks. With none configured the interceptor passes through with zero overhead.
+
+---
+
 ## Resolvers（`@Resolver()` decorator class）
 
 以下 Resolver 類別處理 GraphQL `@ResolveField`，解析關聯欄位（防止 N+1）：
