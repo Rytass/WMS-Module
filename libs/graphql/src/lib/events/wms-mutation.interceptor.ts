@@ -1,0 +1,102 @@
+import {
+  type CallHandler,
+  type ExecutionContext,
+  Injectable,
+  type NestInterceptor,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { GqlExecutionContext } from '@nestjs/graphql';
+import {
+  collectToScope,
+  runInDispatchScope,
+  WmsEventDispatcher,
+  type WmsDomainEvent,
+  type WmsOperationEventName,
+} from '@rytass/wms-module-core';
+import { type Observable, firstValueFrom, of } from 'rxjs';
+import {
+  WMS_MUTATION_EVENT_METADATA,
+  type WmsMutationEventConfig,
+} from './wms-mutation-event.constants';
+
+const defaultResolveId = (
+  result: unknown,
+  args: Readonly<Record<string, unknown>>,
+): string | null => {
+  if (
+    result &&
+    typeof result === 'object' &&
+    'id' in result &&
+    typeof (result as { id: unknown }).id === 'string'
+  ) {
+    return (result as { id: string }).id;
+  }
+
+  const argId = args['id'];
+
+  return typeof argId === 'string' ? argId : null;
+};
+
+/**
+ * Wraps each `@WmsMutationEvent` mutation in a dispatch scope:
+ * 1. runs the before-hook (throw -> veto, before any transaction);
+ * 2. executes the resolver (services collect stock events into the scope);
+ * 3. emits the operation event after the handler resolves (post-commit);
+ * 4. flushes the whole buffer to after-listeners + emitter bridge.
+ *
+ * When no hook/listener/bridge is configured it passes through untouched.
+ */
+@Injectable()
+export class WmsMutationInterceptor implements NestInterceptor {
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly dispatcher: WmsEventDispatcher,
+  ) {}
+
+  async intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Promise<Observable<unknown>> {
+    const config = this.reflector.get<WmsMutationEventConfig | undefined>(
+      WMS_MUTATION_EVENT_METADATA,
+      context.getHandler(),
+    );
+
+    if (!config || !this.dispatcher.isActive()) {
+      return next.handle();
+    }
+
+    const args =
+      GqlExecutionContext.create(context).getArgs<Record<string, unknown>>() ??
+      {};
+
+    // Before-hook runs before any DB work; a throw vetoes with zero side effects.
+    await this.dispatcher.runBeforeHook({
+      event: config.event,
+      args,
+      executionContext: context,
+    });
+
+    const { result, events } = await runInDispatchScope(async () => {
+      const handlerResult = await firstValueFrom(next.handle());
+
+      const id = config.resolveId
+        ? config.resolveId(handlerResult, args)
+        : defaultResolveId(handlerResult, args);
+
+      const operationEvent: WmsDomainEvent<WmsOperationEventName> = {
+        name: config.event,
+        payload: { id, result: handlerResult },
+      };
+      collectToScope(operationEvent);
+
+      return handlerResult;
+    });
+
+    if (events) {
+      await this.dispatcher.flush(events);
+    }
+
+    return of(result);
+  }
+}

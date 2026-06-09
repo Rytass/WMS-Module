@@ -1,12 +1,17 @@
 import { DynamicModule, Module, type Provider } from '@nestjs/common';
-import { WmsModuleCoreModule } from '@rytass/wms-module-core';
-import type { WmsModuleCoreModuleAsyncOptions } from '@rytass/wms-module-core';
+import { WmsModuleCoreModule, WmsEventDispatcher } from '@rytass/wms-module-core';
+import {
+  WMS_EVENT_OPTIONS,
+  type WmsModuleCoreModuleAsyncOptions,
+  type WmsEventModuleOptions,
+} from '@rytass/wms-module-core';
 import { HelperModule } from './helpers';
 import {
   WMS_AUTH_OPTIONS,
   WmsAuthGuard,
   type WmsAuthModuleOptions,
 } from './auth';
+import { WmsMutationInterceptor } from './events';
 import { LoaderMutation } from './mutations/loader.mutation';
 import { LoaderQuery } from './queries/loader.query';
 import { MaterialMutation } from './mutations/material.mutation';
@@ -133,11 +138,22 @@ const exportDependencies = [
 ];
 /**
  * Options for `WmsModuleGraphqlModule.forRootAsync`. Extends the core module
- * options with an optional {@link WmsAuthModuleOptions.authChecker}; when the
- * checker is omitted the module stays fully permissive (pre-auth behaviour).
+ * options with:
+ * - {@link WmsAuthModuleOptions.authChecker} — opt-in resolver authorization;
+ * - {@link WmsEventModuleOptions} — `beforeHooks` (veto) / `afterListeners`
+ *   (post-commit notify) for the mutation event/hook system;
+ * - `eventEmitterBridge` — pass `wmsEventEmitterBridgeProvider` from
+ *   `@rytass/wms-module-graphql/adapters/event-emitter` to also fan events out
+ *   to `@nestjs/event-emitter` (`@OnEvent('wms.<event>')`).
+ *
+ * Everything is optional; with nothing configured the module behaves exactly as
+ * before (no events emitted, fully permissive).
  */
 export type WmsModuleGraphqlModuleAsyncOptions = WmsModuleCoreModuleAsyncOptions &
-  WmsAuthModuleOptions;
+  WmsAuthModuleOptions &
+  WmsEventModuleOptions & {
+    readonly eventEmitterBridge?: Provider;
+  };
 
 @Module({
   providers: exportDependencies,
@@ -146,15 +162,21 @@ export class WmsModuleGraphqlModule {
   static forRootAsync(
     options: WmsModuleGraphqlModuleAsyncOptions,
   ): DynamicModule {
-    const { authChecker, ...coreOptions } = options;
+    const { authChecker, beforeHooks, afterListeners, eventEmitterBridge, ...coreOptions } =
+      options;
     const coreModule = WmsModuleCoreModule.forRootAsync(coreOptions);
 
     const authOptions: WmsAuthModuleOptions = { authChecker };
+    const eventOptions: WmsEventModuleOptions = { beforeHooks, afterListeners };
 
     const providers: Provider[] = [
       ...exportDependencies,
       WmsAuthGuard,
       { provide: WMS_AUTH_OPTIONS, useValue: authOptions },
+      { provide: WMS_EVENT_OPTIONS, useValue: eventOptions },
+      WmsEventDispatcher,
+      WmsMutationInterceptor,
+      ...(eventEmitterBridge ? [eventEmitterBridge] : []),
     ];
 
     return {
