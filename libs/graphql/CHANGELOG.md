@@ -1,3 +1,20 @@
+## 0.5.0 (2026-06-09)
+
+### 🚀 Features
+
+- **graphql:** annotate mutations with @WmsMutationEvent ([f04c9f7](https://github.com/Rytass/WMS-Module/commit/f04c9f7))
+- **graphql:** add @nestjs/event-emitter bridge entrypoint ([2debfe9](https://github.com/Rytass/WMS-Module/commit/2debfe9))
+- **graphql:** add mutation event interceptor and forRootAsync wiring ([c31e6dd](https://github.com/Rytass/WMS-Module/commit/c31e6dd))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.2.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.8 (1M context)
+
 ## 0.4.0 (2026-06-08)
 
 ### 🚀 Features

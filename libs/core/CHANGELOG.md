@@ -1,3 +1,15 @@
+## 0.2.0 (2026-06-09)
+
+### 🚀 Features
+
+- **core:** collect stock domain events via TypeORM subscriber ([346e7cb](https://github.com/Rytass/WMS-Module/commit/346e7cb))
+- **core:** add mutation event dispatch core ([c927239](https://github.com/Rytass/WMS-Module/commit/c927239))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.8 (1M context)
+
 ## 0.1.6 (2026-06-04)
 
 This was a version bump only for core to align it with other projects, there were no code changes.
