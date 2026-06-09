@@ -8,6 +8,7 @@ import {
 } from '../inputs/create-allocate-inventory-order.args';
 import { DeallocateOrderArgs } from '../inputs/deallocate-order.args';
 import { WmsOperation } from '../auth';
+import { WmsMutationEvent } from '../events';
 
 @Injectable()
 export class AllocateInventoryOrderMutation {
@@ -18,6 +19,7 @@ export class AllocateInventoryOrderMutation {
 
   @Mutation(() => AllocateInventoryOrderDto)
   @WmsOperation({ resource: 'allocate-inventory-order', action: 'create' })
+  @WmsMutationEvent({ event: 'allocate-inventory-order.created' })
   async createAllocateInventoryOrder(
     @Args() args: CreateAllocateInventoryOrderArgs,
   ): Promise<AllocateInventoryOrderDto> {
@@ -35,6 +37,7 @@ export class AllocateInventoryOrderMutation {
 
   @Mutation(() => AllocateInventoryOrderDto)
   @WmsOperation({ resource: 'allocate-inventory-order', action: 'update' })
+  @WmsMutationEvent({ event: 'allocate-inventory-order.updated' })
   async updateAllocateInventoryOrder(
     @Args() args: UpdateAllocateInventoryOrderArgs,
   ): Promise<AllocateInventoryOrderDto> {
@@ -54,6 +57,7 @@ export class AllocateInventoryOrderMutation {
 
   @Mutation(() => Boolean)
   @WmsOperation({ resource: 'allocate-inventory-order', action: 'deallocate' })
+  @WmsMutationEvent({ event: 'allocate-inventory-order.deallocated' })
   async deallocate(
     @Args('items', { type: () => [DeallocateOrderArgs] })
     args: DeallocateOrderArgs[],

@@ -7,6 +7,7 @@ import {
 import { ReclassifyInventoryOrderArgs } from '../inputs/reclassify-inventory-order.args';
 import { ReclassifyInventoryOrderDto } from '../dto/reclassify-inventory-order.dto';
 import { WmsOperation } from '../auth';
+import { WmsMutationEvent } from '../events';
 
 @Injectable()
 @Resolver()
@@ -18,6 +19,7 @@ export class ReclassifyInventoryOrderMutation {
 
   @Mutation(() => ReclassifyInventoryOrderDto)
   @WmsOperation({ resource: 'reclassify-inventory-order', action: 'reclassify' })
+  @WmsMutationEvent({ event: 'reclassify-inventory-order.reclassified' })
   async reclassifyInventoryOrder(
     @Args() args: ReclassifyInventoryOrderArgs,
   ): Promise<ReclassifyInventoryOrderDto> {

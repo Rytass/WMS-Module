@@ -9,6 +9,7 @@ import {
 import { ShipOrderArgs } from '../inputs/ship-order.args';
 import { CancelShipOrderArgs } from '../inputs/cancel-ship-order.args';
 import { WmsOperation } from '../auth';
+import { WmsMutationEvent } from '../events';
 
 @Injectable()
 export class ShipInventoryOrderMutation {
@@ -19,6 +20,7 @@ export class ShipInventoryOrderMutation {
 
   @Mutation(() => ShipInventoryOrderDto)
   @WmsOperation({ resource: 'ship-inventory-order', action: 'create' })
+  @WmsMutationEvent({ event: 'ship-inventory-order.created' })
   async createShipInventoryOrder(
     @Args() args: CreateShipInventoryOrderArgs,
   ): Promise<ShipInventoryOrderDto> {
@@ -33,6 +35,7 @@ export class ShipInventoryOrderMutation {
 
   @Mutation(() => ShipInventoryOrderDto)
   @WmsOperation({ resource: 'ship-inventory-order', action: 'update' })
+  @WmsMutationEvent({ event: 'ship-inventory-order.updated' })
   async updateShipInventoryOrder(
     @Args() args: UpdateShipInventoryOrderArgs,
   ): Promise<ShipInventoryOrderDto> {
@@ -58,6 +61,7 @@ export class ShipInventoryOrderMutation {
 
   @Mutation(() => Boolean)
   @WmsOperation({ resource: 'ship-inventory-order', action: 'ship' })
+  @WmsMutationEvent({ event: 'ship-inventory-order.shipped' })
   async ship(
     @Args('items', { type: () => [ShipOrderArgs] })
     items: ShipOrderArgs[],
@@ -69,6 +73,7 @@ export class ShipInventoryOrderMutation {
 
   @Mutation(() => Boolean)
   @WmsOperation({ resource: 'ship-inventory-order', action: 'cancel' })
+  @WmsMutationEvent({ event: 'ship-inventory-order.ship-cancelled' })
   async cancelShip(
     @Args('items', { type: () => [CancelShipOrderArgs] })
     items: CancelShipOrderArgs[],

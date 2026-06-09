@@ -8,6 +8,7 @@ import {
 } from '../inputs/create-hold-inventory-order.args';
 import { ReleaseOrderArgs } from '../inputs/release-order.args';
 import { WmsOperation } from '../auth';
+import { WmsMutationEvent } from '../events';
 
 @Injectable()
 export class HoldInventoryOrderMutation {
@@ -18,6 +19,7 @@ export class HoldInventoryOrderMutation {
 
   @Mutation(() => HoldInventoryOrderDto)
   @WmsOperation({ resource: 'hold-inventory-order', action: 'create' })
+  @WmsMutationEvent({ event: 'hold-inventory-order.created' })
   async createHoldInventoryOrder(
     @Args() args: CreateHoldInventoryOrderArgs,
   ): Promise<HoldInventoryOrderDto> {
@@ -35,6 +37,7 @@ export class HoldInventoryOrderMutation {
 
   @Mutation(() => HoldInventoryOrderDto)
   @WmsOperation({ resource: 'hold-inventory-order', action: 'update' })
+  @WmsMutationEvent({ event: 'hold-inventory-order.updated' })
   async updateHoldInventoryOrder(
     @Args() args: UpdateHoldInventoryOrderArgs,
   ): Promise<HoldInventoryOrderDto> {
@@ -54,6 +57,7 @@ export class HoldInventoryOrderMutation {
 
   @Mutation(() => Boolean)
   @WmsOperation({ resource: 'hold-inventory-order', action: 'release' })
+  @WmsMutationEvent({ event: 'hold-inventory-order.released' })
   async release(
     @Args('items', { type: () => [ReleaseOrderArgs] }) args: ReleaseOrderArgs[],
   ) {
