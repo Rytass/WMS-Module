@@ -135,11 +135,11 @@ Full documentation is shipped inside this package under the `docs/` directory (a
 
 GitHub hosted links (always up-to-date):
 
-- [Integration Guide — §5 Frontend setup](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#5-frontend-setup-nextjs-pages-router)
-- [Integration Guide — §6 Pages Router shell pattern](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#6-pages-router-shell-pattern-the-19-thin-shells)
-- [Integration Guide — §7 Apollo client wiring](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#7-apollo-client-wiring)
-- [Integration Guide — §8 Authentication / authorization](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#8-authentication--authorization)
-- [API Reference — @rytass/wms-module-react](https://github.com/Rytass/WMS-Module/blob/main/docs/api-reference.md#rytasswms-module-react)
+- [Integration Guide — §5 Frontend setup](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/integration-guide.md#5-frontend-setup-nextjs-pages-router)
+- [Integration Guide — §6 Pages Router shell pattern](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/integration-guide.md#6-pages-router-shell-pattern-the-19-thin-shells)
+- [Integration Guide — §7 Apollo client wiring](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/integration-guide.md#7-apollo-client-wiring)
+- [Integration Guide — §8 Authentication / authorization](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/integration-guide.md#8-authentication-authorization--events)
+- [API Reference — @rytass/wms-module-react](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/api-reference.md#rytasswms-module-react)
 
 ## License
 

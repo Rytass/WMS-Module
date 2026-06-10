@@ -86,8 +86,8 @@ Full documentation is shipped inside this package under the `docs/` directory (a
 
 GitHub hosted links (always up-to-date):
 
-- [Integration Guide — §4 Backend setup](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#4-backend-setup-nestjs--graphql--typeorm)
-- [API Reference — @rytass/wms-module-core](https://github.com/Rytass/WMS-Module/blob/main/docs/api-reference.md#rytasswms-module-core)
+- [Integration Guide — §4 Backend setup](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/integration-guide.md#4-backend-setup-nestjs--graphql--typeorm)
+- [API Reference — @rytass/wms-module-core](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/api-reference.md#rytasswms-module-core)
 
 ## License
 
