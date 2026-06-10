@@ -1,6 +1,8 @@
 export {
+  WMS_ACTOR_EXTRACTOR,
   WMS_EVENT_EMITTER_BRIDGE,
   WMS_EVENT_OPTIONS,
+  WMS_STOCK_ENRICH,
 } from './wms-event.tokens';
 export { WmsEventCollector } from './wms-event.collector';
 export { WmsEventDispatcher } from './wms-event.dispatcher';
@@ -10,6 +12,8 @@ export {
   type DispatchScopeResult,
 } from './dispatch-scope';
 export type {
+  WmsActor,
+  WmsActorExtractor,
   WmsAfterEventContext,
   WmsAfterListener,
   WmsAfterListenerMap,

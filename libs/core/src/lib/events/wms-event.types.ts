@@ -85,17 +85,43 @@ export type WmsStockEventName =
 
 export type WmsEventName = WmsOperationEventName | WmsStockEventName;
 
+// --- Actor ----------------------------------------------------------------
+
+/**
+ * The authenticated identity that performed a mutation, in a host-neutral shape.
+ * Populated by a consumer-supplied {@link WmsActorExtractor}; `null` when no
+ * extractor is configured or the request is unauthenticated.
+ */
+export interface WmsActor {
+  readonly id: string;
+  readonly domain?: string;
+  /** Host-specific extras (e.g. the raw token payload), if the extractor adds them. */
+  readonly raw?: unknown;
+}
+
+/**
+ * Host-neutral function that derives the current {@link WmsActor} from the
+ * NestJS execution context. Wired via `forRootAsync({ actorExtractor })`; the
+ * `@rytass/wms-module-graphql/adapters/member-base` entrypoint ships a default.
+ */
+export type WmsActorExtractor = (
+  context: ExecutionContext,
+) => WmsActor | null;
+
 // --- Payloads -------------------------------------------------------------
 
 /**
  * Payload for an operation event. `id` is the primary key of the operation's
  * main entity/order (correlation id shared with the stock events it fans out
  * to); `result` is the mutation's return value (a DTO, or `boolean` for action
- * mutations).
+ * mutations); `args` is the raw GraphQL input (the intent — useful for action
+ * mutations whose `result` is just `boolean`); `actor` is who performed it.
  */
 export interface WmsOperationEventPayload<TResult = unknown> {
   readonly id: string | null;
   readonly result: TResult;
+  readonly args: Readonly<Record<string, unknown>>;
+  readonly actor: WmsActor | null;
 }
 
 /**
@@ -115,6 +141,13 @@ export interface WmsStockEventPayload {
   readonly changeType: ChangeType | null;
   /** Quality-inspection result, present only on `stock.inspection-resolved`. */
   readonly inspectionResult?: boolean | null;
+  // --- enrichment fields (present only when `enrichStockEvents` is enabled) ---
+  // Loaded from the change's order item. split/merge/reclassify items have no
+  // material/batch (that metadata lives on the parent order), so those stay null.
+  readonly materialId?: string | null;
+  readonly batchId?: string | null;
+  readonly locationId?: string | null;
+  readonly loaderId?: string | null;
 }
 
 /** Maps every event name to its payload type. */
@@ -141,6 +174,7 @@ export interface WmsBeforeHookContext<N extends WmsEventName = WmsEventName> {
   readonly event: N;
   readonly args: Readonly<Record<string, unknown>>;
   readonly executionContext: ExecutionContext;
+  readonly actor: WmsActor | null;
 }
 
 /** Context handed to an after-listener. Runs post-commit with the event payload. */
@@ -172,6 +206,13 @@ export type WmsAfterListenerMap = {
 export interface WmsEventModuleOptions {
   readonly beforeHooks?: WmsBeforeHookMap;
   readonly afterListeners?: WmsAfterListenerMap;
+  /**
+   * When `true`, stock events are enriched (in the same transaction, one PK
+   * lookup per event) with `materialId / batchId / locationId / loaderId` from
+   * the change's order item. Off by default (lazy: ids only). See
+   * {@link WmsActorExtractor} for the separately-wired actor.
+   */
+  readonly enrichStockEvents?: boolean;
 }
 
 /**

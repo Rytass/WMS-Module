@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WmsEventCollector } from '../events/wms-event.collector';
-import { StockChangeSubscriber } from '../events/stock-change.subscriber';
 import { WarehouseMapEntity as WarehouseMapEntityClass } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
 import {
   BatchEntity,
@@ -167,11 +166,7 @@ export const ResolvedEntitiesProviders = entities.map(([token, entity]) => ({
 
 @Module({
   imports: [TypeOrmModule.forFeature(entities.map(([_, entity]) => entity))],
-  providers: [
-    ...ResolvedEntitiesProviders,
-    WmsEventCollector,
-    StockChangeSubscriber,
-  ],
+  providers: [...ResolvedEntitiesProviders, WmsEventCollector],
   exports: [TypeOrmModule, ...ResolvedEntitiesProviders, WmsEventCollector],
 })
 export class ModelsModule {}

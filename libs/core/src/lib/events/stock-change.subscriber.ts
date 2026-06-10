@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import {
   DataSource,
@@ -7,6 +7,8 @@ import {
 } from 'typeorm';
 import { ChangeType } from '../constants/stock-status';
 import { WmsEventCollector } from './wms-event.collector';
+import { WMS_STOCK_ENRICH } from './wms-event.tokens';
+import type { WmsStockEventPayload } from './wms-event.types';
 import type { WmsStockEventName } from './wms-event.types';
 
 /** A `*_order_change` row as seen in `afterInsert` (relations not loaded). */
@@ -16,6 +18,21 @@ interface ChangeRowLike {
   readonly quantityChanged: number | string;
   readonly result?: boolean | null;
 }
+
+/** The subset of order-item columns used to enrich a stock event. */
+interface OrderItemFieldsLike {
+  readonly id: string;
+  readonly materialId?: string | null;
+  readonly batchId?: string | null;
+  readonly locationId?: string | null;
+  readonly loaderId?: string | null;
+}
+
+/** The optional id fields appended to a stock payload when enrichment is on. */
+type StockEnrichment = Pick<
+  WmsStockEventPayload,
+  'materialId' | 'batchId' | 'locationId' | 'loaderId'
+>;
 
 /**
  * Resolve the `ChangeType` for a change table. Tables whose semantics depend on
@@ -97,11 +114,14 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
   constructor(
     @InjectDataSource() dataSource: DataSource,
     private readonly collector: WmsEventCollector,
+    @Optional()
+    @Inject(WMS_STOCK_ENRICH)
+    private readonly enrich = false,
   ) {
     dataSource.subscribers.push(this);
   }
 
-  afterInsert(event: InsertEvent<unknown>): void {
+  async afterInsert(event: InsertEvent<unknown>): Promise<void> {
     const tableName = event.metadata.tableName;
     const entity = event.entity as ChangeRowLike | undefined;
 
@@ -112,12 +132,17 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
     const quantityDelta = Number(entity.quantityChanged);
 
     if (tableName === QUALITY_INSPECTION_TABLE) {
+      const enrichment = this.enrich
+        ? await this.loadItemFields(event, entity.itemId)
+        : undefined;
+
       this.collector.collect('stock.inspection-resolved', {
         orderId: entity.id,
         itemId: entity.itemId,
         quantityDelta,
         changeType: null,
         inspectionResult: entity.result ?? null,
+        ...enrichment,
       });
       return;
     }
@@ -125,16 +150,63 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
     const resolveChangeType = TABLE_TO_CHANGE_TYPE.get(tableName);
 
     if (!resolveChangeType) {
+      // Not a stock change table — enrich nothing, emit nothing.
       return;
     }
 
     const changeType = resolveChangeType(quantityDelta);
+    const enrichment = this.enrich
+      ? await this.loadItemFields(event, entity.itemId)
+      : undefined;
 
     this.collector.collect(CHANGE_TYPE_TO_EVENT[changeType], {
       orderId: entity.id,
       itemId: entity.itemId,
       quantityDelta,
       changeType,
+      ...enrichment,
     });
+  }
+
+  /**
+   * Load `materialId / batchId / locationId / loaderId` from the change's order
+   * item (one PK lookup, same transaction). Generic across all 12 change tables
+   * via the `item` relation metadata. Returns `undefined` on any miss so the
+   * event still fires with the lazy payload. split/merge/reclassify items carry
+   * no material/batch — those stay null.
+   */
+  private async loadItemFields(
+    event: InsertEvent<unknown>,
+    itemId: string,
+  ): Promise<StockEnrichment | undefined> {
+    try {
+      const itemRelation = event.metadata.relations.find(
+        (relation) => relation.propertyName === 'item',
+      );
+
+      if (!itemRelation) {
+        return undefined;
+      }
+
+      const item = await event.manager
+        .getRepository<OrderItemFieldsLike>(
+          itemRelation.inverseEntityMetadata.target,
+        )
+        .findOne({ where: { id: itemId } });
+
+      if (!item) {
+        return undefined;
+      }
+
+      return {
+        materialId: item.materialId ?? null,
+        batchId: item.batchId ?? null,
+        locationId: item.locationId ?? null,
+        loaderId: item.loaderId ?? null,
+      };
+    } catch {
+      // Enrichment is best-effort; never break the mutation over it.
+      return undefined;
+    }
   }
 }

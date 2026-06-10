@@ -27,6 +27,8 @@ import {
   WarehouseMapDataService,
 } from './services';
 import { BatchService } from './services/batch.service';
+import { StockChangeSubscriber } from './events/stock-change.subscriber';
+import { WMS_STOCK_ENRICH } from './events/wms-event.tokens';
 import { WMS_CORE_MODULE_OPTIONS } from './typings/core-module-options';
 import type {
   WmsModuleCoreModuleAsyncOptions,
@@ -71,7 +73,9 @@ export class WmsModuleCoreModule {
       imports: [coreModule, ModelsModule],
       providers: [
         ...exportDependencies,
+        StockChangeSubscriber,
         { provide: WMS_CORE_MODULE_OPTIONS, useValue: coreOptions },
+        { provide: WMS_STOCK_ENRICH, useValue: !!coreOptions.enrichStockEvents },
       ],
       exports: [
         ...exportDependencies,
@@ -87,6 +91,7 @@ export class WmsModuleCoreModule {
       defaultLoaderSerialId,
       defaultLoaderTypeKey,
       defaultLocationKey,
+      enrichStockEvents,
       ...baseOptions
     } = options;
     const coreModule = WMSBaseModule.forRootAsync(baseOptions);
@@ -95,6 +100,7 @@ export class WmsModuleCoreModule {
       imports: [coreModule, ModelsModule],
       providers: [
         ...exportDependencies,
+        StockChangeSubscriber,
         {
           provide: WMS_CORE_MODULE_OPTIONS,
           useValue: {
@@ -103,6 +109,7 @@ export class WmsModuleCoreModule {
             defaultLocationKey,
           },
         },
+        { provide: WMS_STOCK_ENRICH, useValue: !!enrichStockEvents },
       ],
       exports: [
         ...exportDependencies,
