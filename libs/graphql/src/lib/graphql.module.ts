@@ -1,7 +1,9 @@
 import { DynamicModule, Module, type Provider } from '@nestjs/common';
 import { WmsModuleCoreModule, WmsEventDispatcher } from '@rytass/wms-module-core';
 import {
+  WMS_ACTOR_EXTRACTOR,
   WMS_EVENT_OPTIONS,
+  type WmsActorExtractor,
   type WmsModuleCoreModuleAsyncOptions,
   type WmsEventModuleOptions,
 } from '@rytass/wms-module-core';
@@ -11,7 +13,11 @@ import {
   WmsAuthGuard,
   type WmsAuthModuleOptions,
 } from './auth';
-import { WmsMutationInterceptor } from './events';
+import {
+  WmsMutationInterceptor,
+  type WmsTypedAfterListenerMap,
+  type WmsTypedBeforeHookMap,
+} from './events';
 import { LoaderMutation } from './mutations/loader.mutation';
 import { LoaderQuery } from './queries/loader.query';
 import { MaterialMutation } from './mutations/material.mutation';
@@ -140,8 +146,13 @@ const exportDependencies = [
  * Options for `WmsModuleGraphqlModule.forRootAsync`. Extends the core module
  * options with:
  * - {@link WmsAuthModuleOptions.authChecker} — opt-in resolver authorization;
- * - {@link WmsEventModuleOptions} — `beforeHooks` (veto) / `afterListeners`
- *   (post-commit notify) for the mutation event/hook system;
+ * - `beforeHooks` (veto) / `afterListeners` (post-commit notify) — the mutation
+ *   event/hook system, **typed per event** (operation events carry their concrete
+ *   DTO via {@link WmsTypedAfterListenerMap});
+ * - `actorExtractor` — populates `payload.actor` on every event (pass
+ *   `memberBaseActorExtractor` from the member-base adapter, or your own);
+ * - `enrichStockEvents` — when `true`, stock events also carry
+ *   `materialId/batchId/locationId/loaderId` (inherited from the core options);
  * - `eventEmitterBridge` — pass `wmsEventEmitterBridgeProvider` from
  *   `@rytass/wms-module-graphql/adapters/event-emitter` to also fan events out
  *   to `@nestjs/event-emitter` (`@OnEvent('wms.<event>')`).
@@ -150,8 +161,10 @@ const exportDependencies = [
  * before (no events emitted, fully permissive).
  */
 export type WmsModuleGraphqlModuleAsyncOptions = WmsModuleCoreModuleAsyncOptions &
-  WmsAuthModuleOptions &
-  WmsEventModuleOptions & {
+  WmsAuthModuleOptions & {
+    readonly beforeHooks?: WmsTypedBeforeHookMap;
+    readonly afterListeners?: WmsTypedAfterListenerMap;
+    readonly actorExtractor?: WmsActorExtractor;
     readonly eventEmitterBridge?: Provider;
   };
 
@@ -162,18 +175,32 @@ export class WmsModuleGraphqlModule {
   static forRootAsync(
     options: WmsModuleGraphqlModuleAsyncOptions,
   ): DynamicModule {
-    const { authChecker, beforeHooks, afterListeners, eventEmitterBridge, ...coreOptions } =
-      options;
+    const {
+      authChecker,
+      beforeHooks,
+      afterListeners,
+      actorExtractor,
+      eventEmitterBridge,
+      ...coreOptions
+    } = options;
+    // coreOptions still carries `enrichStockEvents`, forwarded to the core module.
     const coreModule = WmsModuleCoreModule.forRootAsync(coreOptions);
 
     const authOptions: WmsAuthModuleOptions = { authChecker };
-    const eventOptions: WmsEventModuleOptions = { beforeHooks, afterListeners };
+    // The typed hook maps are a compile-time refinement of the core maps; at
+    // runtime the dispatched payload IS the concrete result type, so handing the
+    // refined maps to the (looser) core option contract is sound.
+    const eventOptions: WmsEventModuleOptions = {
+      beforeHooks: beforeHooks as WmsEventModuleOptions['beforeHooks'],
+      afterListeners: afterListeners as WmsEventModuleOptions['afterListeners'],
+    };
 
     const providers: Provider[] = [
       ...exportDependencies,
       WmsAuthGuard,
       { provide: WMS_AUTH_OPTIONS, useValue: authOptions },
       { provide: WMS_EVENT_OPTIONS, useValue: eventOptions },
+      { provide: WMS_ACTOR_EXTRACTOR, useValue: actorExtractor ?? null },
       WmsEventDispatcher,
       WmsMutationInterceptor,
       ...(eventEmitterBridge ? [eventEmitterBridge] : []),

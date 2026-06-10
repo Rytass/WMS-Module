@@ -4,3 +4,11 @@ export {
   type WmsMutationEventConfig,
 } from './wms-mutation-event.constants';
 export { WmsMutationInterceptor } from './wms-mutation.interceptor';
+export type { WmsOperationResultMap } from './operation-result-map';
+export type {
+  WmsEventPayloadFor,
+  WmsTypedAfterEventContext,
+  WmsTypedAfterListenerMap,
+  WmsTypedBeforeHookContext,
+  WmsTypedBeforeHookMap,
+} from './typed-maps';

@@ -25,9 +25,17 @@ export {
   WmsMutationInterceptor,
   WMS_MUTATION_EVENT_METADATA,
   type WmsMutationEventConfig,
+  type WmsOperationResultMap,
+  type WmsEventPayloadFor,
+  type WmsTypedAfterEventContext,
+  type WmsTypedAfterListenerMap,
+  type WmsTypedBeforeHookContext,
+  type WmsTypedBeforeHookMap,
 } from './lib/events';
 // Re-export the event contracts from core for convenience (single import site).
 export type {
+  WmsActor,
+  WmsActorExtractor,
   WmsAfterEventContext,
   WmsAfterListener,
   WmsAfterListenerMap,

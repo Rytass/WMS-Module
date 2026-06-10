@@ -1,5 +1,6 @@
 import type { ExecutionContext } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
+import type { WmsActorExtractor } from '@rytass/wms-module-core';
 import type {
   WmsAuthChecker,
   WmsOperationRequirement,
@@ -108,4 +109,23 @@ export const createMemberBaseWmsAuthChecker = (
       actions,
     });
   };
+};
+
+/**
+ * A {@link WmsActorExtractor} for `@rytass/member-base-nestjs-module`. Reads the
+ * verified JWT payload that `CasbinGuard` attaches to the request and surfaces it
+ * as the event/hook `actor`. Returns `null` for unauthenticated requests.
+ *
+ * Pass to `WmsModuleGraphqlModule.forRootAsync({ actorExtractor })` so every
+ * operation event and before-hook carries `{ id, domain }`. Imports nothing from
+ * member-base — it only reads the runtime request fields.
+ */
+export const memberBaseActorExtractor: WmsActorExtractor = (context) => {
+  const payload = extractRequest(context)?.payload;
+
+  if (!payload?.id) {
+    return null;
+  }
+
+  return { id: payload.id, domain: payload.domain, raw: payload };
 };

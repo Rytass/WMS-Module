@@ -1,15 +1,20 @@
 import {
   type CallHandler,
   type ExecutionContext,
+  Inject,
   Injectable,
   type NestInterceptor,
+  Optional,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import {
   collectToScope,
   runInDispatchScope,
+  WMS_ACTOR_EXTRACTOR,
   WmsEventDispatcher,
+  type WmsActor,
+  type WmsActorExtractor,
   type WmsDomainEvent,
   type WmsOperationEventName,
 } from '@rytass/wms-module-core';
@@ -51,7 +56,23 @@ export class WmsMutationInterceptor implements NestInterceptor {
   constructor(
     private readonly reflector: Reflector,
     private readonly dispatcher: WmsEventDispatcher,
+    @Optional()
+    @Inject(WMS_ACTOR_EXTRACTOR)
+    private readonly actorExtractor: WmsActorExtractor | null = null,
   ) {}
+
+  private resolveActor(context: ExecutionContext): WmsActor | null {
+    if (!this.actorExtractor) {
+      return null;
+    }
+
+    try {
+      return this.actorExtractor(context);
+    } catch {
+      // Fail-open on actor resolution: never break a mutation over audit metadata.
+      return null;
+    }
+  }
 
   async intercept(
     context: ExecutionContext,
@@ -69,12 +90,14 @@ export class WmsMutationInterceptor implements NestInterceptor {
     const args =
       GqlExecutionContext.create(context).getArgs<Record<string, unknown>>() ??
       {};
+    const actor = this.resolveActor(context);
 
     // Before-hook runs before any DB work; a throw vetoes with zero side effects.
     await this.dispatcher.runBeforeHook({
       event: config.event,
       args,
       executionContext: context,
+      actor,
     });
 
     const { result, events } = await runInDispatchScope(async () => {
@@ -86,7 +109,7 @@ export class WmsMutationInterceptor implements NestInterceptor {
 
       const operationEvent: WmsDomainEvent<WmsOperationEventName> = {
         name: config.event,
-        payload: { id, result: handlerResult },
+        payload: { id, result: handlerResult, args, actor },
       };
       collectToScope(operationEvent);
 
