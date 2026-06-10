@@ -30,12 +30,12 @@ npx nx lint <project>          # e.g., npx nx lint api
 npx nx build <project>         # core, graphql, react, api, client
 npx nx run-many -t build --projects=core,graphql,react,api,client
 
-# Release (publishable libs only)
-yarn release                   # bumps + tags + pushes via Nx Release
-yarn release:publish           # CI normally runs this on tag push
+# Release (publishable libs only) — publishing is fully manual (no CI publish workflow)
+yarn release                        # bump + tag + push (nx release --skip-publish); no auto-publish
+yarn release:publish --otp=NNNNNN   # publish to npm — run locally; npm 2FA OTP required
 ```
 
-See `RELEASING.md` for the full release flow including the chicken-and-egg first publish.
+See `RELEASING.md` for the full manual release flow. The automated `.github/workflows/publish.yml` was removed in PR #177 (it kept producing inconsistent provenance attestations on the self-hosted runner); the maintainer now runs both phases locally from a clean `main`.
 
 ## Architecture
 
@@ -65,8 +65,8 @@ libs/
 `apps/client/src/` is **shell-only** after the lib extraction. It contains exactly three things:
 
 - `pages/*/index.tsx` — 3-13 line Pages-Router shells that import a default page component from `@rytass/wms-module-react`. New routes follow this exact pattern.
-- `pages/_app.tsx` — Apollo Provider + Mezzanine `CalendarConfigProviderDayjs` + `NuqsAdapter` + provider stack (`DialogProvider`, `InventoryActionsProvider`, `ModalProvider` from the lib) wrapping `AuthGuard`.
-- `auth/` — app-specific session handling (`AuthGuard.tsx`, `AuthorizedAdminPage/`).
+- `pages/_app.tsx` — Apollo Provider + Mezzanine `CalendarConfigProviderDayjs` + `NuqsAdapter` wrapping `AuthGuard`. The lib-level `DialogProvider` / `InventoryActionsProvider` / `ModalProvider` stack is **not** here — it lives in `auth/AuthorizedAdminPage/`, around the authorized page content.
+- `auth/` — app-specific session handling: `AuthGuard.tsx` (session gate) and `AuthorizedAdminPage/` (wraps the authorized page in the lib's `InventoryActionsProvider` → `DialogProvider` → `ModalProvider` stack).
 - `styles/` — global SCSS (mezzanine.scss, global.scss).
 
 **Real frontend work happens in `libs/react/src/`** — components, hooks, Apollo factory, GraphQL operations all live there. Resist the reflex to add new logic under `apps/client/src/`; it only belongs there if it's the Next.js shell, the AuthGuard, or app-global styles.
@@ -88,9 +88,10 @@ Touch all of these or the publish pipeline silently misbehaves:
 3. `libs/<name>/rollup.config.mjs` — `@rollup/plugin-typescript`; mark every peer dep and node builtin as `external`
 4. `libs/<name>/project.json` — `build` target invokes Rollup, `clean` target wipes emitted paths
 5. `tsconfig.base.json` `paths` — add `"@rytass/wms-module-<name>": ["libs/<name>/src/index.ts"]` for the dev loop
-6. `nx.json` `release.projects` — add `"<name>"`
-7. `.github/workflows/publish.yml` `on.push.tags` — add `<name>@*`
-8. `.gitignore` — exclude the per-file build artefacts (`libs/<name>/<emit-dirs>`) so a local build does not pollute git status
+6. `nx.json` `release.projects` — add `"<name>"` (Nx Release uses the global tag pattern `{projectName}@{version}`, so there is no per-lib tag config)
+7. `.gitignore` — exclude the per-file build artefacts (`libs/<name>/<emit-dirs>`) so a local build does not pollute git status
+
+(There is **no** publish CI workflow to touch — publishing is manual via `yarn release` + `yarn release:publish`; the old `.github/workflows/publish.yml` was removed in PR #177. See `RELEASING.md`.)
 
 #### Module return types must be explicit
 
