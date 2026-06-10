@@ -36,6 +36,23 @@ Two hook points per event:
 Everything is optional. With nothing configured the module behaves exactly as
 before — no events, zero overhead.
 
+### v2 payload enrichment (upcoming minor)
+
+Operation event payloads will gain two new fields — `args` (the GraphQL input
+that triggered the mutation) and `actor` (who performed it, obtained via an
+injectable `actorExtractor`) — turning the shape from `{ id, result }` into
+`{ id, result, args, actor }`. The `result` field will also become **per-event
+typed** via `WmsOperationResultMap` so subscribers receive the concrete DTO
+instead of `unknown`. Nine action mutations (`received`, `deallocated`, …) still
+return `boolean`; their real information comes from `args` and the stock events
+they fan out.
+
+Stock event payloads gain an opt-in `enrichStockEvents: true` flag on
+`forRootAsync` that appends `materialId / batchId / locationId / loaderId` (one
+indexed PK lookup per event, same transaction). Without the flag the lazy shape
+is unchanged. See [§6 Payloads](#6-payloads) for the full shapes and the
+split/merge/reclassify partial-enrichment caveat.
+
 ---
 
 ## 2. Architecture — post-commit guarantee
@@ -82,6 +99,7 @@ is inferred from the key.
 
 ```ts
 import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+import { memberBaseActorExtractor } from '@rytass/wms-module-graphql/adapters/member-base';
 import { ForbiddenException } from '@nestjs/common';
 
 WmsModuleGraphqlModule.forRootAsync({
@@ -89,6 +107,12 @@ WmsModuleGraphqlModule.forRootAsync({
   defaultLoaderSerialId: 'DEFAULT',
   defaultLoaderTypeKey: 'DEFAULT',
   defaultLocationKey: 'DEFAULT',
+
+  // (v2) extract the actor from the request; member-base reads req.payload → { id, domain }
+  actorExtractor: memberBaseActorExtractor,
+
+  // (v2) append materialId/batchId/locationId/loaderId to stock event payloads
+  enrichStockEvents: true,
 
   // intervene — runs before any DB work; throw to veto
   beforeHooks: {
@@ -101,10 +125,12 @@ WmsModuleGraphqlModule.forRootAsync({
 
   // notify — runs after commit
   afterListeners: {
+    // v2: payload.args carries the items[] input; payload.actor carries { id, domain }
     'ship-inventory-order.shipped': async ({ payload }) => {
-      await erp.markShipped(payload.id, payload.result);
+      await erp.markShipped(payload.id, payload.result, payload.actor);
     },
     'stock.allocated': async ({ payload }) => {
+      // v2 with enrichStockEvents: materialId/batchId/locationId/loaderId also available
       await erp.reserve(payload.orderId, payload.itemId, payload.quantityDelta);
     },
   },
@@ -117,6 +143,39 @@ WmsModuleGraphqlModule.forRootAsync({
 - An `afterListener` receives `{ event, payload }` — the committed result (see
   [§6](#6-payloads)). It may be async; a thrown error is logged and isolated, it
   never affects the committed mutation or other listeners.
+- **(v2)** `payload.args` carries the full GraphQL input that triggered the mutation
+  — particularly useful for the 9 boolean action events whose `result` is
+  `true`/`false` only.
+- **(v2)** `payload.actor` is `WmsActor | null` — populated when `actorExtractor`
+  is configured, `null` otherwise. Shape: `{ id: string; domain?: string; raw?:
+  unknown }`. The `memberBaseActorExtractor` helper (exported from the
+  `@rytass/wms-module-graphql/adapters/member-base` subpath) reads
+  `req.payload` and returns `{ id, domain }`.
+
+### 3.1 The 9 boolean action events
+
+Nine mutations return `boolean` and cannot carry a rich DTO `result` without a
+breaking GraphQL schema change. For subscribers, the meaningful signal is:
+
+1. **`args`** — the exact items input (see §5 for each event's args shape).
+2. **Stock events** — the operation fans out one `stock.*` event per affected item
+   (see the "Fans out to stock event" column in §5).
+
+The operation event itself only confirms success (`result: true`).
+
+| Event                                    | args key items shape                                         |
+|------------------------------------------|--------------------------------------------------------------|
+| `receive-inventory-order.received`       | `{ itemId, quantity, batchKey?, locationKey?, loaderKey?, inspectionResult? }` |
+| `ship-inventory-order.shipped`           | `{ itemId, quantity }`                                       |
+| `ship-inventory-order.ship-cancelled`    | `{ itemId, quantity? }`                                      |
+| `transfer-order.transferred`             | `{ itemId, quantity }`                                       |
+| `transfer-order.transfer-cancelled`      | `{ itemId, quantity? }`                                      |
+| `hold-inventory-order.released`          | `{ aggregatedKey, quantity, unitId? }`                       |
+| `allocate-inventory-order.deallocated`   | `{ aggregatedKey, quantity, unitId? }`                       |
+| `transfer-customer-order.returned`       | `{ aggregatedKey, quantity, unitId?, locationKey, loaderKey? }` |
+| `transfer-vendor-order.returned`         | `{ aggregatedKey, quantity, unitId?, locationKey, loaderKey? }` |
+
+All are passed as `@Args('items', …) items: T[]`, so `args.items` is the array.
 
 ---
 
@@ -158,52 +217,62 @@ and the bridge can be used together — both fire.
 
 ### Operation events (38) — `<domain>.<past-tense-action>`
 
-| Event | Mutation | Fans out to stock event |
-|---|---|---|
-| `receive-inventory-order.created` | createReceiveInventoryOrder | — |
-| `receive-inventory-order.updated` | updateReceiveInventoryOrder | — |
-| `receive-inventory-order.received` | receive | `stock.received` |
-| `ship-inventory-order.created` | createShipInventoryOrder | — |
-| `ship-inventory-order.updated` | updateShipInventoryOrder | `stock.in-shipment` |
-| `ship-inventory-order.shipped` | ship | `stock.shipped` |
-| `ship-inventory-order.ship-cancelled` | cancelShip | `stock.shipped` (negative) |
-| `transfer-order.created` | createTransferOrder | `stock.in-transfer` |
-| `transfer-order.updated` | updateTransferOrder | `stock.in-transfer` |
-| `transfer-order.transferred` | transfer | `stock.transferred` |
-| `transfer-order.transfer-cancelled` | cancelTransfer | `stock.in-transfer` (reversal) |
-| `hold-inventory-order.created` | createHoldInventoryOrder | `stock.held` |
-| `hold-inventory-order.updated` | updateHoldInventoryOrder | `stock.held` |
-| `hold-inventory-order.released` | release | `stock.released` |
-| `allocate-inventory-order.created` | createAllocateInventoryOrder | `stock.allocated` |
-| `allocate-inventory-order.updated` | updateAllocateInventoryOrder | `stock.allocated` |
-| `allocate-inventory-order.deallocated` | deallocate | `stock.deallocated` |
-| `transfer-vendor-order.created` | createTransferVendorOrder | `stock.vendor-transferred` |
-| `transfer-vendor-order.updated` | updateTransferVendorOrder | `stock.vendor-transferred` |
-| `transfer-vendor-order.returned` | returnTransferVendorOrder | `stock.vendor-returned` |
-| `transfer-customer-order.created` | createTransferCustomerOrder | `stock.customer-held` |
-| `transfer-customer-order.updated` | updateTransferCustomerOrder | `stock.customer-held` |
-| `transfer-customer-order.returned` | returnTransferCustomerOrder | `stock.customer-returned` |
-| `quality-inspection-order.inspected` | inspectMaterials | `stock.inspection-resolved` |
-| `scrape-order.scraped` | scrapeMaterials | `stock.scraped` |
-| `reclassify-inventory-order.reclassified` | reclassifyInventoryOrder | `stock.reclassified` |
-| `batch.merged` | mergeBatch | `stock.merged` |
-| `batch.splitted` | splitBatch | `stock.splitted` |
-| `material.created` | createMaterial | — |
-| `material.updated` | updateMaterial | — |
-| `loader.created` | createLoader | — |
-| `loader.batch-created` | createBatchLoader | — |
-| `loader.updated` | updateLoader | — |
-| `loader.type-created` | createLoaderType | — |
-| `loader.type-updated` | updateLoaderType | — |
-| `location.created` | createLocation | — |
-| `location.updated` | updateLocation | — |
-| `warehouse-map.updated` | updateWarehouseMap | — |
+The **v2 `result` type** column shows the concrete type subscribers receive via
+`WmsOperationResultMap`. Events marked ⚠️ **boolean** are the 9 action mutations
+whose `result` is always `true`/`false`; their real signal is `args` + the stock
+events they fan out (see §3.1).
+
+| Event                                       | Mutation                      | v2 `result` type                  | Fans out to stock event       |
+|---------------------------------------------|-------------------------------|-----------------------------------|-------------------------------|
+| `receive-inventory-order.created`           | createReceiveInventoryOrder   | `ReceiveInventoryOrderDto`        | —                             |
+| `receive-inventory-order.updated`           | updateReceiveInventoryOrder   | `ReceiveInventoryOrderDto`        | —                             |
+| `receive-inventory-order.received`          | receive                       | ⚠️ `boolean`                     | `stock.received`              |
+| `ship-inventory-order.created`              | createShipInventoryOrder      | `ShipInventoryOrderDto`           | —                             |
+| `ship-inventory-order.updated`              | updateShipInventoryOrder      | `ShipInventoryOrderDto`           | `stock.in-shipment`           |
+| `ship-inventory-order.shipped`              | ship                          | ⚠️ `boolean`                     | `stock.shipped`               |
+| `ship-inventory-order.ship-cancelled`       | cancelShip                    | ⚠️ `boolean`                     | `stock.shipped` (negative)    |
+| `transfer-order.created`                    | createTransferOrder           | `TransferOrderDto`                | `stock.in-transfer`           |
+| `transfer-order.updated`                    | updateTransferOrder           | `TransferOrderDto`                | `stock.in-transfer`           |
+| `transfer-order.transferred`                | transfer                      | ⚠️ `boolean`                     | `stock.transferred`           |
+| `transfer-order.transfer-cancelled`         | cancelTransfer                | ⚠️ `boolean`                     | `stock.in-transfer` (reversal)|
+| `hold-inventory-order.created`              | createHoldInventoryOrder      | `HoldInventoryOrderDto`           | `stock.held`                  |
+| `hold-inventory-order.updated`              | updateHoldInventoryOrder      | `HoldInventoryOrderDto`           | `stock.held`                  |
+| `hold-inventory-order.released`             | release                       | ⚠️ `boolean`                     | `stock.released`              |
+| `allocate-inventory-order.created`          | createAllocateInventoryOrder  | `AllocateInventoryOrderDto`       | `stock.allocated`             |
+| `allocate-inventory-order.updated`          | updateAllocateInventoryOrder  | `AllocateInventoryOrderDto`       | `stock.allocated`             |
+| `allocate-inventory-order.deallocated`      | deallocate                    | ⚠️ `boolean`                     | `stock.deallocated`           |
+| `transfer-vendor-order.created`             | createTransferVendorOrder     | `TransferVendorOrderDto`          | `stock.vendor-transferred`    |
+| `transfer-vendor-order.updated`             | updateTransferVendorOrder     | `TransferVendorOrderDto`          | `stock.vendor-transferred`    |
+| `transfer-vendor-order.returned`            | returnTransferVendorOrder     | ⚠️ `boolean`                     | `stock.vendor-returned`       |
+| `transfer-customer-order.created`           | createTransferCustomerOrder   | `TransferCustomerOrderDto`        | `stock.customer-held`         |
+| `transfer-customer-order.updated`           | updateTransferCustomerOrder   | `TransferCustomerOrderDto`        | `stock.customer-held`         |
+| `transfer-customer-order.returned`          | returnTransferCustomerOrder   | ⚠️ `boolean`                     | `stock.customer-returned`     |
+| `quality-inspection-order.inspected`        | inspectMaterials              | `QualityInspectionOrderDto`       | `stock.inspection-resolved`   |
+| `scrape-order.scraped`                      | scrapeMaterials               | `ScrapeOrderDto`                  | `stock.scraped`               |
+| `reclassify-inventory-order.reclassified`   | reclassifyInventoryOrder      | `ReclassifyInventoryOrderDto`     | `stock.reclassified`          |
+| `batch.merged`                              | mergeBatch                    | `MergeBatchOrderDto`              | `stock.merged`                |
+| `batch.splitted`                            | splitBatch                    | `SplitBatchOrderDto`              | `stock.splitted`              |
+| `material.created`                          | createMaterial                | `MaterialDto`                     | —                             |
+| `material.updated`                          | updateMaterial                | `MaterialDto`                     | —                             |
+| `loader.created`                            | createLoader                  | `LoaderDto[]`                     | —                             |
+| `loader.batch-created`                      | createBatchLoader             | `LoaderDto[]`                     | —                             |
+| `loader.updated`                            | updateLoader                  | `LoaderDto`                       | —                             |
+| `loader.type-created`                       | createLoaderType              | `LoaderTypeDto`                   | —                             |
+| `loader.type-updated`                       | updateLoaderType              | `LoaderTypeDto`                   | —                             |
+| `location.created`                          | createLocation                | `LocationDto`                     | —                             |
+| `location.updated`                          | updateLocation                | `LocationDto`                     | —                             |
+| `warehouse-map.updated`                     | updateWarehouseMap            | `MapDataDto`                      | —                             |
 
 > The "Fans out to stock event" column is **indicative**, not a hard binding. A
 > mutation never names a stock event directly — `StockChangeSubscriber` derives
 > it from the `*_order_change` table that was written and the sign of
 > `quantityChanged`. So a mutation emits a stock event only on the code paths
 > that actually write a change row (e.g. an `update*` only when it adds items).
+>
+> The "v2 `result` type" column refers to the typed overlay provided by
+> `WmsOperationResultMap` (exported from `@rytass/wms-module-graphql`). In v1
+> `result` is typed `unknown`; consumer code using the typed maps gets the
+> concrete DTO automatically.
 
 ### Stock domain events (18) — `stock.<change-type>`
 
@@ -227,27 +296,141 @@ with a negative `quantityDelta` (`cancelShip` -> `stock.shipped`,
 
 ## 6. Payloads
 
-**Operation event** — `WmsOperationEventPayload`:
+### Operation event — `WmsOperationEventPayload`
+
+**v1 shape** (currently shipped):
 
 ```ts
-{ id: string | null;   // primary id of the operation's order/entity
-  result: unknown }     // the mutation's return value (DTO, or boolean for actions)
+{
+  id: string | null;   // primary id of the operation's order/entity
+  result: unknown;     // the mutation's return value (DTO, or boolean for actions)
+}
 ```
 
-**Stock event** — `WmsStockEventPayload`:
+**v2 shape** (upcoming minor — `core@0.3.0` / `graphql@0.6.0`):
 
 ```ts
-{ orderId: string;            // = change.id; correlation id with the operation event
-  itemId: string;             // = change.itemId
-  quantityDelta: number;      // = change.quantityChanged (sign = direction)
-  changeType: ChangeType | null;          // null only for stock.inspection-resolved
-  inspectionResult?: boolean | null }     // present only on stock.inspection-resolved
+{
+  readonly id: string | null;                          // (unchanged) primary id
+  readonly result: TResult;                            // now per-event typed via WmsOperationResultMap
+  readonly args: Readonly<Record<string, unknown>>;    // NEW — the GraphQL input (intent)
+  readonly actor: WmsActor | null;                     // NEW — who performed the mutation
+}
 ```
+
+**`WmsActor`** shape:
+
+```ts
+interface WmsActor {
+  readonly id: string;       // subject identifier
+  readonly domain?: string;  // optional domain / tenant discriminator
+  readonly raw?: unknown;    // host-specific extras; opaque to the lib
+}
+```
+
+`actor` is `null` when no `actorExtractor` is configured. The
+`memberBaseActorExtractor` helper (from
+`@rytass/wms-module-graphql/adapters/member-base`) reads `req.payload` and
+returns `{ id, domain }` — the same fields `CasbinGuard` already puts on the
+JWT payload.
+
+`WmsBeforeHookContext` also gains `actor` (so before-hooks can veto by identity):
+
+```ts
+interface WmsBeforeHookContext<N extends WmsEventName> {
+  event: N;
+  args: Record<string, unknown>;
+  executionContext: ExecutionContext;
+  actor: WmsActor | null;           // v2 addition
+}
+```
+
+### Typed result overlay — `WmsOperationResultMap`
+
+The v2 graphql package exports a `WmsOperationResultMap` interface that maps
+every operation event name to its concrete `result` type. Consumers who use the
+typed `beforeHooks` / `afterListeners` maps automatically receive the resolved
+DTO instead of `unknown`:
+
+```ts
+// listener receives ShipInventoryOrderDto, not unknown
+afterListeners: {
+  'ship-inventory-order.updated': async ({ payload }) => {
+    console.log(payload.result.id);    // typed as string
+  },
+  // listener receives boolean
+  'ship-inventory-order.shipped': async ({ payload }) => {
+    console.log(payload.result);       // typed as boolean
+    console.log(payload.args);         // { items: [{ itemId, quantity }, ...] }
+    console.log(payload.actor?.id);    // actor id if actorExtractor is set
+  },
+}
+```
+
+---
+
+### Stock event — `WmsStockEventPayload`
+
+**Lazy shape** (default — unchanged):
+
+```ts
+{
+  readonly orderId: string;                // = change.id; correlation id with the operation event
+  readonly itemId: string;                 // = change.itemId
+  readonly quantityDelta: number;          // = change.quantityChanged (sign = direction)
+  readonly changeType: ChangeType | null;  // null only for stock.inspection-resolved
+  readonly inspectionResult?: boolean | null; // present only on stock.inspection-resolved
+}
+```
+
+**Enriched shape** (opt-in, `enrichStockEvents: true`):
+
+The following fields are appended when the flag is enabled. They are loaded in
+the **same transaction** via a single indexed PK lookup on the change's item row:
+
+```ts
+  readonly materialId?: string | null;
+  readonly batchId?: string | null;
+  readonly locationId?: string | null;
+  readonly loaderId?: string | null;
+```
+
+> All four fields are optional/nullable — a `null` value means the column is
+> nullable in the underlying order-item row and happened to be null at the time
+> of the change. On any lookup error the system degrades to the lazy payload.
+
+**Per-domain enrichment completeness** (`enrichStockEvents: true`):
+
+| Domain (stock event)                              | materialId | batchId | locationId | loaderId |
+|---------------------------------------------------|:----------:|:-------:|:----------:|:--------:|
+| receive (`stock.received`)                        | yes        | yes *   | yes *      | yes *    |
+| ship (`stock.in-shipment` / `stock.shipped`)      | yes        | yes     | yes *      | yes *    |
+| transfer-order (`stock.in-transfer` / `.transferred`) | yes    | yes     | yes        | yes *    |
+| transfer-vendor (`stock.vendor-*`)                | yes        | yes     | yes *      | yes *    |
+| transfer-customer (`stock.customer-*`)            | yes        | yes     | yes *      | yes *    |
+| hold (`stock.held` / `stock.released`)            | yes        | yes     | yes *      | yes *    |
+| allocate (`stock.allocated` / `.deallocated`)     | yes        | yes     | yes *      | yes *    |
+| scrape (`stock.scraped`)                          | yes        | yes     | yes *      | yes *    |
+| quality-inspection (`stock.inspection-resolved`)  | yes        | yes     | yes *      | yes *    |
+| **split (`stock.splitted`)**                      | **no**     | **no**  | yes *      | yes *    |
+| **merge (`stock.merged`)**                        | **no**     | **no**  | yes        | yes *    |
+| **reclassify (`stock.reclassified`)**             | **no**     | **no**  | yes        | yes *    |
+
+`*` = column is nullable; may be `null` even when enrichment is on.
+
+> **Important**: split / merge / reclassify order-items have **no `materialId` /
+> `batchId`** — those domains operate at batch-aggregation level and keep that
+> metadata on the parent order, not the item. With `enrichStockEvents: true`
+> these three event types only receive `locationId` / `loaderId`. If you need
+> `materialId` / `batchId` for these domains, look them up from the parent order
+> by `orderId` inside your after-listener.
+
+---
 
 `orderId` is the same on the operation event (`payload.id`) and the stock events
 it fans out to, so listeners can correlate the two tiers. For richer
-batch/material/location details, look them up by `orderId` / `itemId` inside the
-after-listener — the data is committed by then.
+batch/material/location details when `enrichStockEvents` is off, look them up by
+`orderId` / `itemId` inside the after-listener — the data is committed by then.
 
 ---
 
@@ -279,25 +462,38 @@ after-listener — the data is committed by then.
 From the package root (`@rytass/wms-module-graphql`, re-exported from
 `@rytass/wms-module-core`):
 
-| Export | Kind | Purpose |
-|---|---|---|
-| `WmsMutationEvent({ event })` | decorator | Annotates a mutation (already applied across the library). |
-| `WmsBeforeHookMap` / `WmsAfterListenerMap` | type | The `beforeHooks` / `afterListeners` option shapes. |
-| `WmsEventModuleOptions` | type | `{ beforeHooks?, afterListeners? }` (part of `forRootAsync`). |
-| `WmsBeforeHookContext` / `WmsAfterEventContext` | type | Hook/listener argument shapes. |
-| `WmsDomainEvent` | type | `{ name, payload }`. |
-| `WmsEventName` / `WmsOperationEventName` / `WmsStockEventName` | type | Event-name unions. |
-| `WmsEventPayloadMap` | type | Event name -> payload mapping. |
-| `WmsOperationEventPayload` / `WmsStockEventPayload` | type | Payload shapes. |
+| Export                                                            | Kind      | Purpose                                                                                                      |
+|-------------------------------------------------------------------|-----------|--------------------------------------------------------------------------------------------------------------|
+| `WmsMutationEvent({ event })`                                     | decorator | Annotates a mutation (already applied across the library).                                                    |
+| `WmsBeforeHookMap` / `WmsAfterListenerMap`                        | type      | The `beforeHooks` / `afterListeners` option shapes.                                                           |
+| `WmsEventModuleOptions`                                           | type      | `{ beforeHooks?, afterListeners?, actorExtractor?, enrichStockEvents? }` (part of `forRootAsync`).            |
+| `WmsBeforeHookContext` / `WmsAfterEventContext`                    | type      | Hook/listener argument shapes (v2: `WmsBeforeHookContext` gains `actor`).                                     |
+| `WmsDomainEvent`                                                  | type      | `{ name, payload }`.                                                                                          |
+| `WmsEventName` / `WmsOperationEventName` / `WmsStockEventName`    | type      | Event-name unions.                                                                                            |
+| `WmsEventPayloadMap`                                              | type      | Event name -> payload mapping.                                                                                |
+| `WmsOperationEventPayload`                                        | type      | `{ id, result, args, actor }` (v2); `{ id, result }` in v1.                                                  |
+| `WmsStockEventPayload`                                            | type      | `{ orderId, itemId, quantityDelta, changeType, inspectionResult? }` + optional enrich fields (v2).           |
+| `WmsActor`                                                        | type      | `{ id: string; domain?: string; raw?: unknown }` — actor identity shape (v2).                                |
+| `WmsActorExtractor`                                               | type      | `(context: ExecutionContext) => WmsActor \| null` — injected via `forRootAsync({ actorExtractor })` (v2).    |
+| `WmsOperationResultMap`                                           | type      | Event name → concrete `result` DTO mapping; enables per-event typed listeners (v2, lives in graphql lib).    |
 
 From the adapter subpath (`@rytass/wms-module-graphql/adapters/event-emitter`):
 
-| Export | Kind | Purpose |
-|---|---|---|
-| `wmsEventEmitterBridgeProvider` | provider | Pass to `forRootAsync({ eventEmitterBridge })` to fan events onto `@nestjs/event-emitter`. |
+| Export                        | Kind     | Purpose                                                                                               |
+|-------------------------------|----------|-------------------------------------------------------------------------------------------------------|
+| `wmsEventEmitterBridgeProvider` | provider | Pass to `forRootAsync({ eventEmitterBridge })` to fan events onto `@nestjs/event-emitter`.          |
 
-`forRootAsync` accepts `beforeHooks`, `afterListeners` and `eventEmitterBridge`
-on its single options object — all optional.
+From the adapter subpath (`@rytass/wms-module-graphql/adapters/member-base`):
+
+| Export                      | Kind      | Purpose                                                                                                   |
+|-----------------------------|-----------|-----------------------------------------------------------------------------------------------------------|
+| `memberBaseActorExtractor`  | extractor | `WmsActorExtractor` that reads `req.payload` → `{ id, domain }` (v2). Pass to `forRootAsync({ actorExtractor })`. |
+
+`forRootAsync` accepts `beforeHooks`, `afterListeners`, `eventEmitterBridge`,
+`actorExtractor`, and `enrichStockEvents` on its single options object — all
+optional. Omitting `actorExtractor` leaves `actor: null` on every payload;
+omitting `enrichStockEvents` (or setting it `false`) keeps the lazy stock
+payload shape.
 
 ---
 

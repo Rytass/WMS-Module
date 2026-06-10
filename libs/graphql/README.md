@@ -96,18 +96,44 @@ Intervene in and get notified about mutations. Every root mutation carries a typ
 - **`afterListeners`** run **after the outermost transaction commits** — never notified about rolled-back changes.
 
 ```ts
+import { memberBaseActorExtractor } from '@rytass/wms-module-graphql/adapters/member-base';
+
 WmsModuleGraphqlModule.forRootAsync({
   ...coreOptions,
+
+  // (v2) populate payload.actor on every event — reads req.payload → { id, domain }
+  actorExtractor: memberBaseActorExtractor,
+
+  // (v2) append materialId/batchId/locationId/loaderId to stock event payloads
+  enrichStockEvents: true,
+
   beforeHooks: {
-    'ship-inventory-order.shipped': async ({ args }) => {
-      if (!allowed(args)) throw new ForbiddenException('blocked');
+    'ship-inventory-order.shipped': async ({ args, actor }) => {
+      if (!allowed(args, actor)) throw new ForbiddenException('blocked');
     },
   },
   afterListeners: {
+    // v2: payload.args carries items[]; payload.actor carries { id, domain }
+    'ship-inventory-order.shipped': async ({ payload }) => {
+      await erp.markShipped(payload.id, payload.result, payload.actor);
+    },
+    // v2 with enrichStockEvents: materialId/batchId/locationId/loaderId also available
     'stock.allocated': async ({ payload }) => { await erp.reserve(payload); },
   },
 });
 ```
+
+**v2 payload enrichment** (upcoming minor — `core@0.3.0` / `graphql@0.6.0`):
+
+- Operation events gain `args` (the GraphQL input that triggered the mutation) and `actor`
+  (`WmsActor | null`). Nine action mutations return `boolean`; their real information is in
+  `args` and the stock events they fan out.
+- Stock events gain opt-in `materialId / batchId / locationId / loaderId` when
+  `enrichStockEvents: true` is set. **Caveat**: split / merge / reclassify order-items have
+  no `materialId` / `batchId` at the item level — only `locationId` / `loaderId` are
+  available for those three domains even with eager enrichment.
+- `WmsOperationResultMap` provides a per-event typed overlay so subscribers receive the
+  concrete DTO (`MaterialDto`, `ShipInventoryOrderDto`, …) instead of `unknown`.
 
 Post-commit delivery is guaranteed by an `AsyncLocalStorage` dispatch scope (events buffer during the request and flush only after commit). Prefer `@OnEvent`? Opt into the optional [`@nestjs/event-emitter`](https://docs.nestjs.com/techniques/events) bridge from `@rytass/wms-module-graphql/adapters/event-emitter` — every event also emits as `wms.<event>`. Nothing configured ⇒ no events, zero overhead.
 
@@ -154,11 +180,11 @@ Full documentation is shipped inside this package under the `docs/` directory (a
 
 GitHub hosted links (always up-to-date):
 
-- [Integration Guide — §4 Backend setup](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#4-backend-setup-nestjs--graphql--typeorm)
-- [Integration Guide — §13.1 Existing GraphQLModule co-existence](https://github.com/Rytass/WMS-Module/blob/main/docs/integration-guide.md#13-integrating-into-an-existing-nestjs--nextjs-project)
+- [Integration Guide — §4 Backend setup](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/integration-guide.md#4-backend-setup-nestjs--graphql--typeorm)
+- [Integration Guide — §13.1 Existing GraphQLModule co-existence](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/integration-guide.md#13-integrating-into-an-existing-nestjs--nextjs-project)
 - [Authorization — design & recipes](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/authorization.md)
 - [Events & Hooks — design & event list](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/events.md)
-- [API Reference — @rytass/wms-module-graphql](https://github.com/Rytass/WMS-Module/blob/main/docs/api-reference.md#rytasswms-module-graphql)
+- [API Reference — @rytass/wms-module-graphql](https://github.com/Rytass/WMS-Module/blob/main/libs/graphql/docs/api-reference.md#rytasswms-module-graphql)
 
 ## License
 

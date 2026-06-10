@@ -455,37 +455,57 @@ Opt-in `beforeHooks` (veto) and post-commit `afterListeners` for every mutation.
 
 ### Root exports (`@rytass/wms-module-graphql`, re-exported from `@rytass/wms-module-core`)
 
-| Export | Kind | Signature / shape |
-|---|---|---|
-| `WmsMutationEvent` | decorator | `({ event: WmsOperationEventName, resolveId? }) => MethodDecorator` |
-| `WmsEventModuleOptions` | type | `{ beforeHooks?: WmsBeforeHookMap; afterListeners?: WmsAfterListenerMap }` — part of `forRootAsync` options |
-| `WmsBeforeHookMap` | type | `{ [N in WmsEventName]?: (ctx: WmsBeforeHookContext<N>) => void \| Promise<void> }` |
-| `WmsAfterListenerMap` | type | `{ [N in WmsEventName]?: (ctx: WmsAfterEventContext<N>) => void \| Promise<void> }` |
-| `WmsBeforeHookContext` | type | `{ event; args: Record<string, unknown>; executionContext: ExecutionContext }` |
-| `WmsAfterEventContext` | type | `{ event; payload: WmsEventPayloadMap[event] }` |
-| `WmsDomainEvent` | type | `{ name: WmsEventName; payload }` |
-| `WmsEventName` / `WmsOperationEventName` / `WmsStockEventName` | type | event-name unions (38 operation + 18 stock) |
-| `WmsEventPayloadMap` | type | event name → payload |
-| `WmsOperationEventPayload` | type | `{ id: string \| null; result: unknown }` |
-| `WmsStockEventPayload` | type | `{ orderId; itemId; quantityDelta; changeType: ChangeType \| null; inspectionResult? }` |
+| Export                                                          | Kind      | Signature / shape                                                                                                                |
+|-----------------------------------------------------------------|-----------|----------------------------------------------------------------------------------------------------------------------------------|
+| `WmsMutationEvent`                                              | decorator | `({ event: WmsOperationEventName, resolveId? }) => MethodDecorator`                                                              |
+| `WmsEventModuleOptions`                                         | type      | `{ beforeHooks?, afterListeners?, actorExtractor?, enrichStockEvents? }` — part of `forRootAsync` options                        |
+| `WmsBeforeHookMap`                                              | type      | `{ [N in WmsEventName]?: (ctx: WmsBeforeHookContext<N>) => void \| Promise<void> }`                                              |
+| `WmsAfterListenerMap`                                           | type      | `{ [N in WmsEventName]?: (ctx: WmsAfterEventContext<N>) => void \| Promise<void> }`                                              |
+| `WmsBeforeHookContext`                                          | type      | `{ event; args: Record<string, unknown>; executionContext: ExecutionContext; actor: WmsActor \| null }` (v2 adds `actor`)         |
+| `WmsAfterEventContext`                                          | type      | `{ event; payload: WmsEventPayloadMap[event] }`                                                                                  |
+| `WmsDomainEvent`                                                | type      | `{ name: WmsEventName; payload }`                                                                                                |
+| `WmsEventName` / `WmsOperationEventName` / `WmsStockEventName`  | type      | event-name unions (38 operation + 18 stock)                                                                                      |
+| `WmsEventPayloadMap`                                            | type      | event name → payload                                                                                                             |
+| `WmsOperationEventPayload`                                      | type      | v1: `{ id: string \| null; result: unknown }` — v2: `{ id; result; args: Readonly<Record<string, unknown>>; actor: WmsActor \| null }` |
+| `WmsStockEventPayload`                                          | type      | `{ orderId; itemId; quantityDelta; changeType: ChangeType \| null; inspectionResult? }` — v2 adds optional `materialId?`, `batchId?`, `locationId?`, `loaderId?` when `enrichStockEvents: true` |
+| `WmsActor`                                                      | type      | `{ readonly id: string; readonly domain?: string; readonly raw?: unknown }` — actor identity (v2)                                |
+| `WmsActorExtractor`                                             | type      | `(context: ExecutionContext) => WmsActor \| null` — injectable extractor (v2); token `WMS_ACTOR_EXTRACTOR`                       |
+| `WmsOperationResultMap`                                         | type      | Maps each `WmsOperationEventName` to its concrete `result` DTO (e.g. `'material.created' → MaterialDto`); powers typed listeners (v2) |
 
 ### Adapter subpath (`@rytass/wms-module-graphql/adapters/event-emitter`)
 
-| Export | Kind | Purpose |
-|---|---|---|
+| Export                        | Kind       | Purpose                                                                                                                                  |
+|-------------------------------|------------|------------------------------------------------------------------------------------------------------------------------------------------|
 | `wmsEventEmitterBridgeProvider` | `Provider` | Pass to `forRootAsync({ eventEmitterBridge })`; fans every event onto `EventEmitter2` as `wms.<event>` for `@OnEvent`. Requires `@nestjs/event-emitter` (optional peer) + `EventEmitterModule.forRoot()`. |
 
+### Adapter subpath (`@rytass/wms-module-graphql/adapters/member-base`) — event extras (v2)
+
+| Export                      | Kind      | Purpose                                                                                                                             |
+|-----------------------------|-----------|-------------------------------------------------------------------------------------------------------------------------------------|
+| `memberBaseActorExtractor`  | extractor | `WmsActorExtractor` that reads `GqlExecutionContext.create(ctx).getContext().req?.payload` → `{ id, domain }`. Pass to `forRootAsync({ actorExtractor })`. |
+
 ```ts
+import { memberBaseActorExtractor } from '@rytass/wms-module-graphql/adapters/member-base';
+import { wmsEventEmitterBridgeProvider } from '@rytass/wms-module-graphql/adapters/event-emitter';
+
 WmsModuleGraphqlModule.forRootAsync({
   ...coreOptions,
-  beforeHooks: { 'ship-inventory-order.shipped': async ({ args }) => { if (!ok(args)) throw new ForbiddenException(); } },
-  afterListeners: { 'stock.allocated': async ({ payload }) => { await sync(payload); } },
+  actorExtractor: memberBaseActorExtractor,   // v2: populates payload.actor
+  enrichStockEvents: true,                    // v2: appends ids to stock payloads
+  beforeHooks: {
+    'ship-inventory-order.shipped': async ({ args, actor }) => {
+      if (!ok(args, actor)) throw new ForbiddenException();
+    },
+  },
+  afterListeners: {
+    'stock.allocated': async ({ payload }) => { await sync(payload); },
+  },
   // optional @OnEvent bridge:
   // eventEmitterBridge: wmsEventEmitterBridgeProvider,
 });
 ```
 
-`beforeHooks` / `afterListeners` are **not** part of the GraphQL schema — they are runtime hooks. With none configured the interceptor passes through with zero overhead.
+`beforeHooks` / `afterListeners` are **not** part of the GraphQL schema — they are runtime hooks. With none configured the interceptor passes through with zero overhead. All v2 options (`actorExtractor`, `enrichStockEvents`) are fully optional; omitting them preserves the v1 behaviour exactly.
 
 ---
 

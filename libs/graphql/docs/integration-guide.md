@@ -884,14 +884,23 @@ Every WMS mutation can be **intervened in** and **observed** through two opt-in 
 // apps/api/src/app/app.module.ts
 import { ForbiddenException } from '@nestjs/common';
 import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+import { memberBaseActorExtractor } from '@rytass/wms-module-graphql/adapters/member-base';
 
 WmsModuleGraphqlModule.forRootAsync({
   // ...the same core options as §4.2 (defaultLoaderSerialId, useFactory, etc.)...
 
+  // (v2) extract actor from the request: memberBaseActorExtractor reads
+  //      req.payload → { id, domain } (the same JWT payload CasbinGuard uses)
+  actorExtractor: memberBaseActorExtractor,
+
+  // (v2) append materialId/batchId/locationId/loaderId to stock event payloads
+  //      via a single indexed PK lookup per event, inside the same transaction
+  enrichStockEvents: true,
+
   beforeHooks: {
-    // intent payload = the raw GraphQL args; throw to abort
-    'ship-inventory-order.shipped': async ({ args, executionContext }) => {
-      if (!(await canShip(args, executionContext))) {
+    // intent payload = the raw GraphQL args; v2 also receives actor
+    'ship-inventory-order.shipped': async ({ args, actor, executionContext }) => {
+      if (!(await canShip(args, actor, executionContext))) {
         throw new ForbiddenException('shipment blocked');
       }
     },
@@ -899,10 +908,12 @@ WmsModuleGraphqlModule.forRootAsync({
 
   afterListeners: {
     // operation event — fires once per mutation, with the result
+    // v2: payload also carries args (the items[] input) and actor
     'ship-inventory-order.shipped': async ({ payload }) => {
-      await erp.markShipped(payload.id, payload.result);
+      await erp.markShipped(payload.id, payload.result, payload.actor);
     },
     // stock domain event — fires once per affected item (post-commit)
+    // v2 with enrichStockEvents: materialId/batchId/locationId/loaderId also present
     'stock.allocated': async ({ payload }) => {
       await erp.reserve(payload.orderId, payload.itemId, payload.quantityDelta);
     },
@@ -912,10 +923,25 @@ WmsModuleGraphqlModule.forRootAsync({
 
 Two tiers of events you can listen to:
 
-- **Operation events** — one per mutation: `material.created`, `receive-inventory-order.received`, `ship-inventory-order.shipped`, … (38 total). Payload: `{ id, result }`.
-- **Stock domain events** — driven by the `ChangeType` state machine: `stock.allocated`, `stock.shipped`, `stock.held`, … (18 total). Payload: `{ orderId, itemId, quantityDelta, changeType, inspectionResult? }`. `orderId` matches the operation event's `id`, so you can correlate the two tiers.
+- **Operation events** — one per mutation: `material.created`, `receive-inventory-order.received`, `ship-inventory-order.shipped`, … (38 total). v1 payload: `{ id, result }`. v2 payload: `{ id, result, args, actor }`.
+- **Stock domain events** — driven by the `ChangeType` state machine: `stock.allocated`, `stock.shipped`, `stock.held`, … (18 total). Payload: `{ orderId, itemId, quantityDelta, changeType, inspectionResult? }`. `orderId` matches the operation event's `id`, so you can correlate the two tiers. With `enrichStockEvents: true` the payload also carries `materialId?`, `batchId?`, `locationId?`, `loaderId?`.
 
 Both maps are fully typed — the payload is inferred from the event-name key. With neither configured, the interceptor passes through with **zero overhead** (no behaviour change).
+
+#### v2: The 9 boolean action events
+
+Nine mutations — `received`, `deallocated`, `released`, `shipped`, `ship-cancelled`,
+`transferred`, `transfer-cancelled`, customer/vendor `returned` — return `boolean` and
+cannot carry a richer `result` without a breaking GraphQL schema change. For subscribers,
+the full signal comes from **`payload.args`** (the exact items input) and the **stock events
+they fan out** (one per affected item). The operation event confirms success; `args` carries
+the intent.
+
+> ⚠️ **`enrichStockEvents` partial coverage**: split / merge / reclassify order-items have
+> **no `materialId` / `batchId`** at the item level (these domains keep that metadata on the
+> parent order). With `enrichStockEvents: true`, `stock.splitted`, `stock.merged`, and
+> `stock.reclassified` only receive `locationId` / `loaderId` — look up `materialId` /
+> `batchId` from the parent order by `orderId` if you need them.
 
 #### Optional: `@OnEvent` via `@nestjs/event-emitter`
 
@@ -930,7 +956,9 @@ import { wmsEventEmitterBridgeProvider } from '@rytass/wms-module-graphql/adapte
     EventEmitterModule.forRoot(),
     WmsModuleGraphqlModule.forRootAsync({
       ...coreOptions,
-      eventEmitterBridge: wmsEventEmitterBridgeProvider, // <- enables the bridge
+      actorExtractor: memberBaseActorExtractor,   // v2 — optional
+      enrichStockEvents: true,                    // v2 — optional
+      eventEmitterBridge: wmsEventEmitterBridgeProvider,
     }),
   ],
 })
