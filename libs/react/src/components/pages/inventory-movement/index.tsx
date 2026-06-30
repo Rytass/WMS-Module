@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { useRouter } from 'next/router';
+import { parseAsString, useQueryState } from 'nuqs';
 import PageWrapper from '../../PageWrapper';
 import PageTabs from '../../PageTabs';
 import InventoryMovementTransfer from './Transfer';
@@ -8,8 +7,7 @@ import InventoryMovementReceive from './Receive';
 import { PageTab } from './typing';
 
 function InventoryMovement() {
-  const { query } = useRouter();
-  const tab = useMemo(() => (query?.tab as PageTab) ?? '', [query.tab]);
+  const [tab] = useQueryState('tab', parseAsString.withDefault(''));
 
   return (
     <PageWrapper title="庫存異動">

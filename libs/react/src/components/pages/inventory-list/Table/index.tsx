@@ -1,6 +1,5 @@
 import { Dispatch, SetStateAction, useMemo, useState, useEffect } from 'react';
 import { Button, Radio, RadioGroup } from '@mezzanine-ui/react';
-// import { useRouter } from 'next/router';
 import TableWrapper from '../../../TableWrapper';
 import InventoryGroupTable from './GroupTable';
 import InventoryListTable from './ListTable';
@@ -35,7 +34,6 @@ function InventoryTable({
   haveInventoryActionsSystem = true,
 }: InventoryTableProps) {
   const { openDialog } = useDialog();
-  // const { replace, pathname } = useRouter();
   const { targetAction, targetInventoryIds } = useInventoryActions();
 
   const [mode, setMode] = useState<Mode>(onlyListMode ? Mode.list : Mode.group);

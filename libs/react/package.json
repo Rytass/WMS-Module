@@ -38,6 +38,14 @@
       "types": "./apollo/index.d.ts",
       "import": "./apollo/index.js"
     },
+    "./router/pages": {
+      "types": "./router/pages.d.ts",
+      "import": "./router/pages.js"
+    },
+    "./router/app": {
+      "types": "./router/app.d.ts",
+      "import": "./router/app.js"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
@@ -47,6 +55,12 @@
       ],
       "apollo": [
         "./apollo/index.d.ts"
+      ],
+      "router/pages": [
+        "./router/pages.d.ts"
+      ],
+      "router/app": [
+        "./router/app.d.ts"
       ]
     }
   },

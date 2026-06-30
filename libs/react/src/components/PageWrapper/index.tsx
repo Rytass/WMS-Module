@@ -1,15 +1,14 @@
 import { ReactElement, ReactNode } from 'react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../router/context';
 import { Breadcrumb, PageFooter, ButtonProps, cx } from '@mezzanine-ui/react';
 import ContentHeader from '@mezzanine-ui/react/ContentHeader';
-import { Url } from 'next/dist/shared/lib/router/router';
 import classes from './index.module.scss';
 
 interface PageWrapperProps {
   title: string;
   titleButtons?: ReactElement<ButtonProps> | ReactElement<ButtonProps>[];
   children: ReactNode;
-  breadcrumb?: { label: string; href?: Url }[];
+  breadcrumb?: { label: string; href?: string }[];
   haveBack?: boolean;
   onBack?: (() => void) | (() => Promise<void>);
   haveFooter?: boolean;
@@ -26,7 +25,7 @@ function PageWrapper({
   haveFooter = false,
   moreGap = false,
 }: PageWrapperProps) {
-  const { back, replace } = useRouter();
+  const { back, replace } = useWmsRouter();
 
   return (
     <>

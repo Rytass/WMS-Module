@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../../../../router/context';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Message } from '@mezzanine-ui/react';
@@ -29,7 +29,7 @@ function TransferOrderForm({
   receiver,
   createdAt,
 }: TransferOrderFormProps) {
-  const { back } = useRouter();
+  const { back } = useWmsRouter();
   const { updateTransferOrder } = useUpdateTransferOrder();
   const methods = useForm<FormValues>({
     resolver: yupResolver(formSchema),

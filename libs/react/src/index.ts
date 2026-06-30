@@ -1,3 +1,5 @@
+'use client';
+
 // Side-effect import that loads ambient global declarations
 // (FC alias, *.scss / *.svg module declarations) consumed by
 // the migrated components.

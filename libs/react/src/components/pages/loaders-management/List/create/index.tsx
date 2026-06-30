@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from 'react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../../../../router/context';
 import { Message } from '@mezzanine-ui/react';
 import LoaderForm from '../Form';
 import { FormValues } from '../Form/typing';
 import { useCreateBatchLoader } from '../../useApi';
 
 function CreateLoader() {
-  const { back } = useRouter();
+  const { back } = useWmsRouter();
   const { createBatchLoader } = useCreateBatchLoader();
 
   const onSubmit = useCallback(

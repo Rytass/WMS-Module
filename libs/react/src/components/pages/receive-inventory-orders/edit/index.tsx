@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../../../router/context';
 import { Message } from '@mezzanine-ui/react';
 import Loading from '../../../Loading';
 import ReceiveInventoryOrderForm from '../Form';
@@ -12,8 +12,8 @@ import { fragmentToDefaultValues } from '../Form/utils';
 import { YesOrNo, BASE_UNIT } from '../../../../utils/share';
 
 function EditReceiveInventoryOrder() {
-  const { query, back } = useRouter();
-  const id = useMemo(() => (query?.id as string) ?? '', [query.id]);
+  const { params, back } = useWmsRouter();
+  const id = useMemo(() => (params?.id as string) ?? '', [params.id]);
 
   const { data, loading } = useQueryReceiveInventoryOrder(id);
   const { updateReceiveInventoryOrder } = useUpdateReceiveInventoryOrder();

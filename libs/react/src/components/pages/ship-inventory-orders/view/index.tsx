@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../../../router/context';
 import Loading from '../../../Loading';
 import ShipInventoryOrderForm from '../Form';
 import { FormValues } from '../Form/typing';
@@ -7,8 +7,8 @@ import { useQueryShipInventoryOrder } from '../useApi';
 import { fragmentToDefaultValues } from '../Form/utils';
 
 function ViewShipInventoryOrder() {
-  const { query } = useRouter();
-  const id = useMemo(() => (query?.id as string) ?? '', [query.id]);
+  const { params } = useWmsRouter();
+  const id = useMemo(() => (params?.id as string) ?? '', [params.id]);
 
   const { data, loading } = useQueryShipInventoryOrder(id);
 
