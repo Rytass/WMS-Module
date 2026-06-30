@@ -22,6 +22,7 @@ libs/react/globals.d.ts
 libs/react/graphql
 libs/react/hooks
 libs/react/icons
+libs/react/router
 libs/react/utils
 
 # dependencies
