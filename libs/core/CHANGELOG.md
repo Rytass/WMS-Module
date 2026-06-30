@@ -1,3 +1,14 @@
+## 0.3.0 (2026-06-30)
+
+### 🚀 Features
+
+- **core:** enrich event payloads with actor and stock item ids ([55bad0b](https://github.com/Rytass/WMS-Module/commit/55bad0b))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.8
+
 ## 0.2.0 (2026-06-09)
 
 ### 🚀 Features

@@ -1,3 +1,18 @@
+## 0.6.0 (2026-06-30)
+
+### 🚀 Features
+
+- **graphql:** add typed event result map and actor extractor wiring ([1b17299](https://github.com/Rytass/WMS-Module/commit/1b17299))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.3.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.8
+
 ## 0.5.0 (2026-06-09)
 
 ### 🚀 Features

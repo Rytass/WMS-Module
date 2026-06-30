@@ -1,3 +1,14 @@
+## 0.2.0 (2026-06-30)
+
+### 🚀 Features
+
+- **react:** inject navigation via WmsRouterProvider for App Router support ([2b30bcf](https://github.com/Rytass/WMS-Module/commit/2b30bcf))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.8 (1M context)
+
 ## 0.1.7 (2026-06-09)
 
 This was a version bump only for react to align it with other projects, there were no code changes.
