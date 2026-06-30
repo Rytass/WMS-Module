@@ -2,7 +2,7 @@
 
 Drop-in React UI for the Rytass Warehouse Management System (WMS) — full admin screens (loaders, materials, locations, inventory list / count / movement, receive / ship orders, change history, maps, label search), context providers, generic hooks, an Apollo Client factory and pre-generated typed GraphQL operations.
 
-Pair with [`@rytass/wms-module-graphql`](https://www.npmjs.com/package/@rytass/wms-module-graphql) on the server side. Designed for Next.js 15 Pages Router consumers.
+Pair with [`@rytass/wms-module-graphql`](https://www.npmjs.com/package/@rytass/wms-module-graphql) on the server side. Works with both the Next.js 15 **Pages Router** and **App Router** — you pick the matching router bridge at the app root (see below).
 
 ## Install
 
@@ -14,7 +14,12 @@ yarn add react react-dom next @apollo/client graphql \
   react-hook-form @hookform/error-message @hookform/resolvers yup nuqs lodash luxon
 ```
 
-> **Heads up — Pages Router only for v0.1.x.** 100+ migrated components call `useRouter` from `next/router`. App Router support is on the roadmap.
+> **Router support — Pages **and** App Router since v0.2.0.** Components no longer import `next/router` directly; navigation is injected through a `WmsRouterProvider`. Mount the bridge that matches your app:
+>
+> - Pages Router → `@rytass/wms-module-react/router/pages` (`WmsPagesRouterProvider`)
+> - App Router → `@rytass/wms-module-react/router/app` (`WmsAppRouterProvider`)
+>
+> **Migrating from v0.1.x (breaking):** v0.1.x reached into `next/router` automatically. From v0.2.0 you must wrap the tree in one of the two bridges (below) — without it, components throw `useWmsRouter must be used within a WmsRouterProvider`. Also pick the matching `NuqsAdapter` (`nuqs/adapters/next/pages` vs `.../app`).
 
 ## Next.js setup
 
@@ -41,6 +46,10 @@ module.exports = {
 
 ## Mounting the providers
 
+The provider stack is identical across both routers — only the **router bridge** and the **`NuqsAdapter` import path** differ.
+
+### Pages Router
+
 ```tsx
 // pages/_app.tsx
 import '@mezzanine-ui/core/style/index.css';
@@ -48,6 +57,7 @@ import { AppProps } from 'next/app';
 import { ApolloProvider } from '@apollo/client/react';
 import CalendarConfigProviderDayjs from '@mezzanine-ui/react/Calendar/CalendarConfigProviderDayjs';
 import { NuqsAdapter } from 'nuqs/adapters/next/pages';
+import WmsPagesRouterProvider from '@rytass/wms-module-react/router/pages';
 import {
   ApolloClient,
   DialogProvider,
@@ -60,13 +70,15 @@ export default function App({ Component, pageProps }: AppProps) {
     <ApolloProvider client={ApolloClient}>
       <CalendarConfigProviderDayjs>
         <NuqsAdapter>
-          <InventoryActionsProvider>
-            <DialogProvider>
-              <ModalProvider>
-                <Component {...pageProps} />
-              </ModalProvider>
-            </DialogProvider>
-          </InventoryActionsProvider>
+          <WmsPagesRouterProvider>
+            <InventoryActionsProvider>
+              <DialogProvider>
+                <ModalProvider>
+                  <Component {...pageProps} />
+                </ModalProvider>
+              </DialogProvider>
+            </InventoryActionsProvider>
+          </WmsPagesRouterProvider>
         </NuqsAdapter>
       </CalendarConfigProviderDayjs>
     </ApolloProvider>
@@ -74,19 +86,87 @@ export default function App({ Component, pageProps }: AppProps) {
 }
 ```
 
+### App Router
+
+Put the whole stack in a single `'use client'` providers component and render it from the root layout. Swap the bridge for `WmsAppRouterProvider` and the adapter for `nuqs/adapters/next/app`:
+
+```tsx
+// app/providers.tsx
+'use client';
+
+import { ReactNode } from 'react';
+import { ApolloProvider } from '@apollo/client/react';
+import CalendarConfigProviderDayjs from '@mezzanine-ui/react/Calendar/CalendarConfigProviderDayjs';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import WmsAppRouterProvider from '@rytass/wms-module-react/router/app';
+import {
+  ApolloClient,
+  DialogProvider,
+  InventoryActionsProvider,
+  ModalProvider,
+} from '@rytass/wms-module-react';
+
+export default function Providers({ children }: { children: ReactNode }) {
+  return (
+    <ApolloProvider client={ApolloClient}>
+      <CalendarConfigProviderDayjs>
+        <NuqsAdapter>
+          <WmsAppRouterProvider>
+            <InventoryActionsProvider>
+              <DialogProvider>
+                <ModalProvider>{children}</ModalProvider>
+              </DialogProvider>
+            </InventoryActionsProvider>
+          </WmsAppRouterProvider>
+        </NuqsAdapter>
+      </CalendarConfigProviderDayjs>
+    </ApolloProvider>
+  );
+}
+```
+
+```tsx
+// app/layout.tsx
+import '@mezzanine-ui/core/style/index.css';
+import { ReactNode } from 'react';
+import Providers from './providers';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}
+```
+
+A runnable reference lives in [`apps/example-app-router`](https://github.com/Rytass/WMS-Module/tree/main/apps/example-app-router).
+
 `ApolloClient` is a ready-to-use singleton that POSTs to `/graphql` (use the rewrite above to forward to your backend). Need a custom configuration? Call `createApolloClient()` instead and wire your own links / cache.
 
 ## Mounting pages
 
-Each WMS screen is exported as a default-named component. Drop them into any Pages-Router route:
+Each WMS screen is exported as a default-named component. Drop them into a route shell:
 
 ```tsx
-// pages/loaders-management/index.tsx
+// Pages Router — pages/loaders-management/index.tsx
 import { LoadersManagement } from '@rytass/wms-module-react';
 export default function LoadersManagementPage() {
   return <LoadersManagement />;
 }
 ```
+
+```tsx
+// App Router — app/loaders-management/page.tsx
+import { LoadersManagement } from '@rytass/wms-module-react';
+export default function LoadersManagementPage() {
+  return <LoadersManagement />;
+}
+```
+
+The barrel ships a `'use client'` directive, so importing a page into an App Router server component automatically marks the re-exported subtree as a client boundary — no extra `'use client'` needed in your shell. Dynamic detail screens read their route param (`[id]`) through the active bridge, so the App Router file lives at e.g. `app/receive-inventory-orders/[id]/edit/page.tsx`.
 
 Available top-level pages: `ChangeHistory`, `InventoryCount`, `InventoryList`, `InventoryMovement`, `LabelSearch`, `LoadersManagement`, `LocationsManagement`, `Maps`, `MaterialsManagement`, `ReceiveInventoryOrders`, `ShipInventoryOrders`. Dynamic-route detail screens: `CreateLoader`, `EditReceiveInventoryOrder`, `ViewReceiveInventoryOrder`, `EditShipInventoryOrder`, `ViewShipInventoryOrder`, `EditTransferOrder`.
 
