@@ -8,6 +8,7 @@ import { ApolloProvider } from '@apollo/client/react';
 import CalendarConfigProviderDayjs from '@mezzanine-ui/react/Calendar/CalendarConfigProviderDayjs';
 import { NuqsAdapter } from 'nuqs/adapters/next/pages';
 import { ApolloClient } from '@rytass/wms-module-react';
+import WmsPagesRouterProvider from '@rytass/wms-module-react/router/pages';
 import AuthGuard from '../auth/AuthGuard';
 
 function CustomApp({ Component, pageProps }: AppProps) {
@@ -19,9 +20,11 @@ function CustomApp({ Component, pageProps }: AppProps) {
       <ApolloProvider client={ApolloClient}>
         <CalendarConfigProviderDayjs>
           <NuqsAdapter>
-            <AuthGuard>
-              <Component {...pageProps} />
-            </AuthGuard>
+            <WmsPagesRouterProvider>
+              <AuthGuard>
+                <Component {...pageProps} />
+              </AuthGuard>
+            </WmsPagesRouterProvider>
           </NuqsAdapter>
         </CalendarConfigProviderDayjs>
       </ApolloProvider>
