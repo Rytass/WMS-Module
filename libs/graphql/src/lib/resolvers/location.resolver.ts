@@ -31,8 +31,24 @@ export class LocationResolver {
     });
   }
 
+  /**
+   * `children` must never be read off the parent entity: only
+   * `LocationQuery.location` and `LocationService.findMany` eager-load the tree
+   * relation. Every other producer of a `LocationDto` (stock/loader/change-log/
+   * transfer/ship/receive/warehouse-map resolvers, the `parent` field above and
+   * the create/update mutations) hands back an entity whose `children` is
+   * `undefined`, which breaks the non-nullable list. Always resolve through the
+   * request-scoped loader instead.
+   */
   @ResolveField(() => [LocationDto])
-  children(@Parent() { children }: LocationEntityClass) {
-    return children;
+  children(
+    @Parent() { id }: LocationEntityClass,
+    @Context() { loaders }: LoaderType<LocationEntityClass>,
+  ): Promise<LocationDto[]> {
+    return loaders.batchMany.load({
+      __entity: LocationEntityClass,
+      __from: { parentId: id },
+      __conditions: (qb) => qb.orderBy('entity."key"', 'ASC'),
+    });
   }
 }

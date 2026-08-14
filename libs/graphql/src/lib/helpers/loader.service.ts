@@ -6,7 +6,9 @@ import { createHash } from 'crypto';
 import _ from 'lodash';
 import { LRUCache } from 'lru-cache';
 import {
+  Brackets,
   DataSource,
+  EntityMetadata,
   EntityTarget,
   FindOptionsWhere,
   In,
@@ -77,6 +79,92 @@ export class LoaderService {
   }
 
   /**
+   * resolve a `__from` property name to the physical column it is stored in.
+   *
+   * TypeORM's `FindOptionsWhere` only accepts real column properties. A
+   * `@RelationId()` property — e.g. `LocationEntityClass.parentId`, which mirrors
+   * the `parent` tree relation — is virtual and is rejected with
+   * `EntityPropertyNotFoundError`, even though it is backed by the relation's
+   * join column. Map those back to their join column so they stay batchable.
+   * @param EntityMetadata
+   * @param string
+   * @returns string | null
+   */
+  private resolveColumnName(
+    metadata: EntityMetadata,
+    propertyName: string,
+  ): string | null {
+    const column = metadata.findColumnWithPropertyName(propertyName);
+
+    if (column) return column.databaseName;
+
+    const relationId = metadata.relationIds.find(
+      (candidate) => candidate.propertyName === propertyName,
+    );
+    const joinColumns = relationId?.relation.joinColumns ?? [];
+
+    return joinColumns.length === 1 ? joinColumns[0].databaseName : null;
+  }
+
+  /**
+   * build the where clause for `__from` keys that TypeORM's find options cannot
+   * express (see {@link resolveColumnName}), by addressing the columns directly.
+   * @param SelectQueryBuilder
+   * @param EntityMetadata
+   * @param LoaderOptions[]
+   * @param (keyof T)[]
+   */
+  private applyColumnWhere<T>(
+    qb: SelectQueryBuilder<ObjectLiteral>,
+    metadata: EntityMetadata,
+    options: LoaderOptions<T>[],
+    primaryKeys: (keyof T)[],
+  ): void {
+    const columns = primaryKeys.map((primaryKey) => {
+      const columnName = this.resolveColumnName(metadata, String(primaryKey));
+
+      if (!columnName)
+        throw new Error(
+          `Loader cannot resolve property "${String(primaryKey)}" to a column of "${metadata.name}".`,
+        );
+
+      return {
+        primaryKey,
+        column: `entity.${this.dataSource.driver.escape(columnName)}`,
+      };
+    });
+
+    if (columns.length === 1) {
+      const [{ primaryKey, column }] = columns;
+
+      qb.andWhere(`${column} IN (:...wmsLoaderValues)`, {
+        wmsLoaderValues: options.map(({ __from }) => __from[primaryKey]),
+      });
+
+      return;
+    }
+
+    qb.andWhere(
+      new Brackets((where) => {
+        options.forEach(({ __from }, optionIndex) => {
+          const parameters: ObjectLiteral = {};
+          const predicate = columns
+            .map(({ primaryKey, column }, columnIndex) => {
+              const parameter = `wmsLoaderValue_${optionIndex}_${columnIndex}`;
+
+              parameters[parameter] = __from[primaryKey];
+
+              return `${column} = :${parameter}`;
+            })
+            .join(' AND ');
+
+          where.orWhere(`(${predicate})`, parameters);
+        });
+      }),
+    );
+  }
+
+  /**
    * query data by collecting primary keys from options with same `__entity`
    * @param LoaderOptions[]
    * @returns object[]
@@ -88,8 +176,14 @@ export class LoaderService {
     );
     let qb = repo.createQueryBuilder('entity');
     const primaryKeys = Object.keys(__from) as [keyof T];
+    const hasVirtualKey = primaryKeys.some(
+      (primaryKey) =>
+        !repo.metadata.findColumnWithPropertyName(String(primaryKey)),
+    );
 
-    if (primaryKeys.length > 1)
+    if (hasVirtualKey)
+      this.applyColumnWhere(qb, repo.metadata, options, primaryKeys);
+    else if (primaryKeys.length > 1)
       qb.setFindOptions({ where: options.map(({ __from }) => __from) });
     else {
       const [primaryKey] = primaryKeys;
