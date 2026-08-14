@@ -1,3 +1,18 @@
+## 0.6.1 (2026-08-14)
+
+### 🩹 Fixes
+
+- **graphql:** resolve location children through the request-scoped loader ([8b9f8cb](https://github.com/Rytass/WMS-Module/commit/8b9f8cb))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.3.1
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.6.0 (2026-06-30)
 
 ### 🚀 Features

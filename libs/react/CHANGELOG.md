@@ -1,3 +1,7 @@
+## 0.2.1 (2026-08-14)
+
+This was a version bump only for react to align it with other projects, there were no code changes.
+
 ## 0.2.0 (2026-06-30)
 
 ### 🚀 Features
