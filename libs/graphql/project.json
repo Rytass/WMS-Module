@@ -6,9 +6,7 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "^build"
-      ],
+      "dependsOn": ["^build"],
       "outputs": [
         "{projectRoot}/index.cjs.js",
         "{projectRoot}/index.js",
@@ -25,17 +23,23 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "libs/graphql",
-        "commands": [
-          "rm -rf index.cjs.js index.js index.d.ts lib adapters"
-        ],
+        "commands": ["rm -rf index.cjs.js index.js index.d.ts lib adapters"],
         "parallel": false
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "parallel": false,
+        "commands": [
+          "tsc -p libs/graphql/tsconfig.spec.json",
+          "jest -c libs/graphql/jest.config.mjs"
+        ]
       }
     },
     "pkg-quality": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "options": {
         "command": "npx -y publint run libs/graphql --pack false",
         "parallel": false
@@ -43,9 +47,7 @@
     },
     "pkg-quality-attw": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "options": {
         "parallel": false,
         "commands": [
@@ -57,12 +59,7 @@
     },
     "prepublish-check": {
       "executor": "nx:noop",
-      "dependsOn": [
-        "typecheck",
-        "lint",
-        "build",
-        "pkg-quality"
-      ]
+      "dependsOn": ["typecheck", "lint", "build", "pkg-quality"]
     }
   },
   "tags": []
