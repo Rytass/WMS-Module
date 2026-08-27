@@ -311,6 +311,12 @@ static forRootAsync(
   //     defaultLocationKey: string     — 預設儲存位置 key
   // + WmsAuthModuleOptions:
   //     authChecker?: WmsAuthChecker   — 選填；resolver 授權委派函式（見 Authorization）
+  //
+  // since 0.7.0（需 wms-base-nestjs-module >= 0.3.0）：
+  //   WMSBaseModuleOptions.materialEntity 會一路作用到所有 resolver 的
+  //   material DataLoader。傳入 MaterialEntityClass 的 @ChildEntity() 即可，
+  //   forRoot 與 async factory 皆支援；entity 需自行註冊給 TypeORM。
+  //   詳見 core 的 docs/custom-entities.md。
 ): DynamicModule
 ```
 

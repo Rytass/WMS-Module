@@ -8,6 +8,7 @@ Reference material for consumers of `@rytass/wms-module-{core,graphql,react}`.
 |------------------------------------------------|---------------------------------------------------------------------------------------------------|
 | [Integration Guide](./integration-guide.md)    | Step-by-step instructions for wiring the three packages into a new consumer project (NestJS + Next.js + PostgreSQL). Includes ready-to-paste `_app.tsx`, `app.module.ts`, `next.config.ts`, the 19 Pages Router shell pattern, AuthGuard stub, seed script template, deployment notes, and known issues. |
 | [API Reference](./api-reference.md)            | Complete export catalog for all three packages — every NestJS module, TypeORM entity, GraphQL resolver, DTO, React component, hook, and utility, organized by role with source paths and usage examples. Mirrors the actual `src/index.ts` barrel exports of v0.1.2. |
+| [Custom Entities](./custom-entities.md)        | How to make a downstream project's own table serve as the WMS's own — the `materialEntity` override, why entity classes are configured synchronously, what single-table inheritance means for existing rows, and an audit of the entity options that are not honoured above the base layer yet. |
 
 ## Quick links
 
@@ -25,6 +26,7 @@ Reference material for consumers of `@rytass/wms-module-{core,graphql,react}`.
 | Replace the `AuthGuard` stub with real auth             | [Integration Guide section 8.4](./integration-guide.md#84-real-auth-integration) |
 | Decide between PostgreSQL and SQLite                    | [Integration Guide section 9](./integration-guide.md#9-database-support-matrix) |
 | Build a custom UI on top of the lib's GraphQL operations| [Integration Guide section 7.3](./integration-guide.md#73-graphql-operations--typed-hooks) |
+| Use your own item master as the WMS material entity     | [Custom Entities](./custom-entities.md)                                |
 
 ## Versioning
 

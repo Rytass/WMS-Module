@@ -62,6 +62,22 @@ You register a **single** `GraphQLModule.forRootAsync(...)` of your own, mix you
 
 `WmsModuleGraphqlModule` internally wires `WmsModuleCoreModule.forRootAsync` so you do not need to import the core module separately when using this package.
 
+## Custom material entity
+
+`materialEntity` is an ordinary `WMSBaseModuleOptions` field that reaches all the way down, so a downstream project's own item master can *be* the WMS material master — every resolver's `material` DataLoader resolves against it too:
+
+```ts
+WmsModuleGraphqlModule.forRootAsync({
+  // a @ChildEntity() of MaterialEntityClass
+  useFactory: async () => ({ materialEntity: ItemMasterEntity }),
+  defaultLoaderSerialId: 'DEFAULT',
+  defaultLoaderTypeKey: 'DEFAULT',
+  defaultLocationKey: 'DEFAULT',
+});
+```
+
+Register the entity with TypeORM yourself (`TypeOrmModule.forFeature([ItemMasterEntity])`); the module checks at startup and refuses to boot if it is missing. Requires `@rytass/wms-base-nestjs-module` >= 0.3.0. See [`@rytass/wms-module-core`'s custom-entities guide](https://github.com/Rytass/WMS-Module/blob/main/libs/core/docs/custom-entities.md) for the single-table-inheritance caveats and which other entity options are not honoured yet.
+
 ## Authorization
 
 Every WMS root `@Query` / `@Mutation` is annotated with `@WmsOperation({ resource, action })` — a **host-neutral** permission requirement enforced by the library's own route-level `WmsAuthGuard`, which delegates the allow/deny decision to an `authChecker` **you** supply. The library never imports your auth system; you map WMS's `resource`/`action` onto whatever you use (Casbin, RBAC, JWT scopes…).

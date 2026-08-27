@@ -69,7 +69,33 @@ Exported services include `LoaderService`, `MaterialService`, `BatchService`, `S
 
 ## Extending entities
 
-WMS is built on `@rytass/wms-base-nestjs-module`'s entity-as-class pattern: each entity is exported in two forms — `BatchEntity` (the concrete class) and `BatchEntityClass` (the constructor type). Pass custom classes via `WMSBaseModuleOptions` to add columns or override behavior. See `@rytass/wms-base-nestjs-module` docs for the override mechanism.
+Each entity is exported in two forms — `MaterialEntity` (a `Symbol` DI token) and `MaterialEntityClass` (the entity class the token is bound to). Everything inside the module resolves entities through the token, so rebinding the token swaps the entity everywhere at once.
+
+`materialEntity` is the override that is wired all the way through today. Give it a `@ChildEntity()` of `MaterialEntityClass` and your own table *is* the WMS material master — no second table, no double writes:
+
+```ts
+import { ChildEntity, Column } from 'typeorm';
+import { MaterialEntityClass, WmsModuleCoreModule } from '@rytass/wms-module-core';
+
+@ChildEntity()
+export class ItemMasterEntity extends MaterialEntityClass {
+  @Column({ type: 'varchar', nullable: true })
+  erpCode!: string | null;
+}
+
+WmsModuleCoreModule.forRootAsync({
+  useFactory: async () => ({ materialEntity: ItemMasterEntity }),
+  defaultLoaderSerialId: 'DEFAULT',
+  defaultLoaderTypeKey: 'DEFAULT',
+  defaultLocationKey: 'DEFAULT',
+});
+```
+
+It is an ordinary `WMSBaseModuleOptions` field, so `forRoot` and the async factory both work. The base module resolves its repository from it and this package binds its `MaterialEntity` Symbol from the same `PROVIDE_MATERIAL_ENTITY` token at injection time — one option, two consumers, no way for them to drift. This needs `@rytass/wms-base-nestjs-module` >= 0.3.0, the release that exports those tokens.
+
+**You register the entity with TypeORM yourself** (`TypeOrmModule.forFeature([ItemMasterEntity])`, or the DataSource's `entities`). The module cannot: `forFeature()` runs while Nest assembles the module graph, before the options resolve. Forgetting it almost works — TypeORM still creates your columns in `materials` — so the module checks at startup and refuses to boot with a message telling you what to add.
+
+The remaining entity options on `WMSBaseModuleOptions` (`batchEntity`, `locationEntity`, `stockEntity`, `orderEntity`, `warehouseMapEntity`) still resolve only a base-module repository this package does not read — setting them has no effect above the base layer. [`docs/custom-entities.md`](./docs/custom-entities.md) has the full picture, the single-table-inheritance caveats for pre-existing rows, and the per-option audit.
 
 ## Module options token
 
@@ -83,6 +109,7 @@ Full documentation is shipped inside this package under the `docs/` directory (a
 |---|---|
 | [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
 | [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
+| [`docs/custom-entities.md`](./docs/custom-entities.md) | Using your own entity as the WMS material master, and the audit of the other entity options |
 
 GitHub hosted links (always up-to-date):
 
