@@ -699,7 +699,7 @@ describe('materialEntity configuration errors', () => {
     }
 
     await expect(bootWith(UnregisteredMaterialEntity, false)).rejects.toThrow(
-      /is not registered with TypeORM/,
+      /are not registered with TypeORM \(materialEntity: UnregisteredMaterialEntity\)/,
     );
   });
 });
