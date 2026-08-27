@@ -1,4 +1,7 @@
-import { LocationEntityClass } from '@rytass/wms-module-core';
+import {
+  LocationEntityClass,
+  type WmsEntities,
+} from '@rytass/wms-module-core';
 import { LocationResolver } from './location.resolver';
 import type { LoaderOptions, LoaderType } from '../helpers';
 
@@ -37,10 +40,17 @@ const createLocation = (
     ...overrides,
   });
 
+/**
+ * The resolver reads its entities from the registry now, so the expectations
+ * below still name `LocationEntityClass` — this is the default binding, which is
+ * exactly what an unconfigured app resolves to.
+ */
+const entities = { location: LocationEntityClass } as WmsEntities;
+
 describe('LocationResolver', () => {
   describe('children', () => {
     it('resolves children through the request-scoped batchMany loader', async () => {
-      const resolver = new LocationResolver();
+      const resolver = new LocationResolver(entities);
       const { context, batchMany } = createLoaderMocks();
       const children = [
         createLocation({ id: 'child-a', key: 'A', parentId: 'parent-1' }),
@@ -66,7 +76,7 @@ describe('LocationResolver', () => {
     });
 
     it('returns an empty array for a leaf location without erroring', async () => {
-      const resolver = new LocationResolver();
+      const resolver = new LocationResolver(entities);
       const { context, batchMany } = createLoaderMocks();
 
       batchMany.mockResolvedValue([]);
@@ -77,7 +87,7 @@ describe('LocationResolver', () => {
     });
 
     it('queries the loader even when the entity carries no children relation', async () => {
-      const resolver = new LocationResolver();
+      const resolver = new LocationResolver(entities);
       const { context, batchMany } = createLoaderMocks();
       const loaded = [createLocation({ id: 'child', parentId: 'parent-2' })];
 
@@ -96,7 +106,7 @@ describe('LocationResolver', () => {
     });
 
     it('ignores an eagerly loaded children relation in favour of the loader', async () => {
-      const resolver = new LocationResolver();
+      const resolver = new LocationResolver(entities);
       const { context, batchMany } = createLoaderMocks();
       const fresh = [createLocation({ id: 'fresh', parentId: 'parent-3' })];
 
@@ -113,7 +123,7 @@ describe('LocationResolver', () => {
     });
 
     it('orders children deterministically by key', async () => {
-      const resolver = new LocationResolver();
+      const resolver = new LocationResolver(entities);
       const { context, batchMany } = createLoaderMocks();
 
       batchMany.mockResolvedValue([]);
@@ -136,7 +146,7 @@ describe('LocationResolver', () => {
 
   describe('parent', () => {
     it('returns null when the location is a root', () => {
-      const resolver = new LocationResolver();
+      const resolver = new LocationResolver(entities);
       const { context, batchSingle } = createLoaderMocks();
 
       expect(
@@ -149,7 +159,7 @@ describe('LocationResolver', () => {
     });
 
     it('loads the parent through batchSingle', async () => {
-      const resolver = new LocationResolver();
+      const resolver = new LocationResolver(entities);
       const { context, batchSingle } = createLoaderMocks();
       const parent = createLocation({ id: 'parent-5' });
 

@@ -1,4 +1,3 @@
-import { Inject } from '@nestjs/common';
 import {
   Context,
   ID,
@@ -24,6 +23,7 @@ import {
   ShipInventoryOrderEntityClass,
   ShipInventoryOrderItemEntityClass,
   ShipInventoryOrderReferenceEntityClass,
+  WmsEntities,
 } from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 import { BatchDto } from '../dto/batch.dto';
@@ -59,16 +59,13 @@ export class ShipInventoryOrderResolver {
 @Resolver(() => ShipInventoryOrderItemDto)
 export class ShipInventoryOrderItemResolver {
   /**
-   * Bound to the `MaterialEntity` Symbol, so the DataLoader queries whichever
-   * material entity the consumer configured — the built-in `MaterialEntityClass`
-   * unless `materialEntity` was passed to `forRoot`/`forRootAsync`. Loading the
-   * built-in class outright would filter on its single-table-inheritance
-   * discriminator and resolve nothing for a custom entity.
+   * The configured entities, not the built-in classes: `__entity` decides which
+   * repository the DataLoader opens, so it has to follow whatever the consumer
+   * passed to `WMSBaseModuleOptions`. Loading a built-in class outright filters
+   * on its single-table-inheritance discriminator and resolves nothing for an
+   * override.
    */
-  constructor(
-    @Inject(MaterialEntity)
-    private readonly materialEntity: new () => MaterialEntityClass,
-  ) {}
+  constructor(private readonly entities: WmsEntities) {}
 
   @ResolveField(() => MaterialDto)
   material(
@@ -76,7 +73,7 @@ export class ShipInventoryOrderItemResolver {
     @Context() { loaders }: LoaderType<MaterialEntityClass>,
   ): Promise<MaterialDto> {
     return loaders.batchSingle.load({
-      __entity: this.materialEntity,
+      __entity: this.entities.material,
       __from: { id: materialId },
     });
   }
@@ -88,7 +85,7 @@ export class ShipInventoryOrderItemResolver {
   ): Promise<BatchDto | null> {
     if (!batchId) return null;
     const { groupId } = await loaders.batchSingle.load({
-      __entity: BatchEntityClass,
+      __entity: this.entities.batch,
       __from: { id: batchId },
     });
 
@@ -105,7 +102,7 @@ export class ShipInventoryOrderItemResolver {
   ): Promise<string | null> {
     if (!batchId) return null;
     const { groupId } = await loaders.batchSingle.load({
-      __entity: BatchEntityClass,
+      __entity: this.entities.batch,
       __from: { id: batchId },
     });
 
@@ -124,7 +121,7 @@ export class ShipInventoryOrderItemResolver {
   ): Promise<string | null> {
     if (!batchId) return null;
     const { groupId } = await loaders.batchSingle.load({
-      __entity: BatchEntityClass,
+      __entity: this.entities.batch,
       __from: { id: batchId },
     });
 
@@ -143,7 +140,7 @@ export class ShipInventoryOrderItemResolver {
   ): Promise<LocationDto | null> {
     if (!locationId) return null;
     return loaders.batchSingle.load({
-      __entity: LocationEntityClass,
+      __entity: this.entities.location,
       __from: { id: locationId },
     });
   }
@@ -180,16 +177,13 @@ export class ShipInventoryOrderItemResolver {
 @Resolver(() => ShipInventoryOrderReferenceDto)
 export class ShipInventoryOrderReferenceResolver {
   /**
-   * Bound to the `MaterialEntity` Symbol, so the DataLoader queries whichever
-   * material entity the consumer configured — the built-in `MaterialEntityClass`
-   * unless `materialEntity` was passed to `forRoot`/`forRootAsync`. Loading the
-   * built-in class outright would filter on its single-table-inheritance
-   * discriminator and resolve nothing for a custom entity.
+   * The configured entities, not the built-in classes: `__entity` decides which
+   * repository the DataLoader opens, so it has to follow whatever the consumer
+   * passed to `WMSBaseModuleOptions`. Loading a built-in class outright filters
+   * on its single-table-inheritance discriminator and resolves nothing for an
+   * override.
    */
-  constructor(
-    @Inject(MaterialEntity)
-    private readonly materialEntity: new () => MaterialEntityClass,
-  ) {}
+  constructor(private readonly entities: WmsEntities) {}
 
   @ResolveField(() => Int)
   async shippedQuantity(
@@ -215,7 +209,7 @@ export class ShipInventoryOrderReferenceResolver {
     @Context() { loaders }: LoaderType<MaterialEntityClass>,
   ): Promise<MaterialDto> {
     return loaders.batchSingle.load({
-      __entity: this.materialEntity,
+      __entity: this.entities.material,
       __from: { id: materialId },
     });
   }
@@ -227,7 +221,7 @@ export class ShipInventoryOrderReferenceResolver {
   ): Promise<BatchDto | null> {
     if (!batchId) return null;
     const { groupId } = await loaders.batchSingle.load({
-      __entity: BatchEntityClass,
+      __entity: this.entities.batch,
       __from: { id: batchId },
     });
 

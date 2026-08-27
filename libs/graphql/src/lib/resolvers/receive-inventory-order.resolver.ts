@@ -1,4 +1,3 @@
-import { Inject } from '@nestjs/common';
 import { Context, Int, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import {
   LoaderDto,
@@ -16,6 +15,7 @@ import {
   MaterialEntityClass,
   ReceiveInventoryOrderChangeEntityClass,
   ReceiveInventoryOrderItemEntityClass,
+  WmsEntities,
 } from '@rytass/wms-module-core';
 import { BatchDto } from '../dto/batch.dto';
 import { LocationDto } from '../dto/location.dto';
@@ -38,16 +38,13 @@ export class ReceiveInventoryOrderResolver {
 @Resolver(() => ReceiveInventoryOrderItemDto)
 export class ReceiveInventoryOrderItemResolver {
   /**
-   * Bound to the `MaterialEntity` Symbol, so the DataLoader queries whichever
-   * material entity the consumer configured — the built-in `MaterialEntityClass`
-   * unless `materialEntity` was passed to `forRoot`/`forRootAsync`. Loading the
-   * built-in class outright would filter on its single-table-inheritance
-   * discriminator and resolve nothing for a custom entity.
+   * The configured entities, not the built-in classes: `__entity` decides which
+   * repository the DataLoader opens, so it has to follow whatever the consumer
+   * passed to `WMSBaseModuleOptions`. Loading a built-in class outright filters
+   * on its single-table-inheritance discriminator and resolves nothing for an
+   * override.
    */
-  constructor(
-    @Inject(MaterialEntity)
-    private readonly materialEntity: new () => MaterialEntityClass,
-  ) {}
+  constructor(private readonly entities: WmsEntities) {}
 
   @ResolveField(() => MaterialDto)
   material(
@@ -55,7 +52,7 @@ export class ReceiveInventoryOrderItemResolver {
     @Context() { loaders }: LoaderType<MaterialEntityClass>,
   ): Promise<MaterialDto> {
     return loaders.batchSingle.load({
-      __entity: this.materialEntity,
+      __entity: this.entities.material,
       __from: { id: materialId },
     });
   }
@@ -67,7 +64,7 @@ export class ReceiveInventoryOrderItemResolver {
   ): Promise<BatchDto | null> {
     if (!batchId) return null;
     const { groupId } = await loaders.batchSingle.load({
-      __entity: BatchEntityClass,
+      __entity: this.entities.batch,
       __from: { id: batchId },
     });
 
@@ -84,7 +81,7 @@ export class ReceiveInventoryOrderItemResolver {
   ): Promise<LocationDto | null> {
     if (!locationId) return null;
     return loaders.batchSingle.load({
-      __entity: LocationEntityClass,
+      __entity: this.entities.location,
       __from: { id: locationId },
     });
   }

@@ -1,10 +1,11 @@
 import { Context, Int, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { LoaderDto, LoaderTypeDto } from '../dto';
 import {
-  LoadersEntityClass,
   LoaderTypeEntityClass,
+  LoadersEntityClass,
   LocationEntityClass,
   StockService,
+  WmsEntities,
 } from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 import { LocationDto } from '../dto/location.dto';
@@ -12,7 +13,17 @@ import _ from 'lodash';
 
 @Resolver(() => LoaderDto)
 export class LoaderResolver {
-  constructor(private readonly stockService: StockService) {}
+  /**
+   * The configured entities, not the built-in classes: `__entity` decides which
+   * repository the DataLoader opens, so it has to follow whatever the consumer
+   * passed to `WMSBaseModuleOptions`. Loading a built-in class outright filters
+   * on its single-table-inheritance discriminator and resolves nothing for an
+   * override.
+   */
+  constructor(
+    private readonly entities: WmsEntities,
+    private readonly stockService: StockService,
+  ) {}
 
   @ResolveField(() => LoaderTypeDto)
   type(
@@ -31,7 +42,7 @@ export class LoaderResolver {
     @Context() { loaders }: LoaderType<LocationEntityClass>,
   ) {
     return loaders.batchSingle.load({
-      __entity: LocationEntityClass,
+      __entity: this.entities.location,
       __from: { id: locationId },
     });
   }

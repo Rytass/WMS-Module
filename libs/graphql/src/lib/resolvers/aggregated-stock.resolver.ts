@@ -1,4 +1,3 @@
-import { Inject } from '@nestjs/common';
 import { Context, ID, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { AggregatedStockDto, LoaderDto, MaterialDto } from '../dto';
 import { type LoaderType } from '../helpers';
@@ -10,24 +9,16 @@ import {
   MaterialEntity,
   MaterialEntityClass,
   StockService,
+  WmsEntities,
 } from '@rytass/wms-module-core';
 import { BatchDto } from '../dto/batch.dto';
 import { LocationDto } from '../dto/location.dto';
 
 @Resolver(() => AggregatedStockDto)
 export class AggregatedStockResolver {
-  /**
-   * `materialEntity` is bound to the `MaterialEntity` Symbol, so the DataLoader
-   * queries whichever material entity the consumer configured — the built-in
-   * `MaterialEntityClass` unless `materialEntity` was passed to
-   * `forRoot`/`forRootAsync`. Loading the built-in class outright would filter on
-   * its single-table-inheritance discriminator and resolve nothing for a custom
-   * entity.
-   */
   constructor(
     private readonly stockService: StockService,
-    @Inject(MaterialEntity)
-    private readonly materialEntity: new () => MaterialEntityClass,
+    private readonly entities: WmsEntities,
   ) {}
 
   @ResolveField(() => ID)
@@ -41,7 +32,7 @@ export class AggregatedStockResolver {
     @Context() { loaders }: LoaderType<MaterialEntityClass>,
   ): Promise<MaterialDto> {
     return loaders.batchSingle.load({
-      __entity: this.materialEntity,
+      __entity: this.entities.material,
       __from: { id: materialId },
     });
   }
@@ -52,7 +43,7 @@ export class AggregatedStockResolver {
     @Context() { loaders }: LoaderType<BatchEntityClass>,
   ): Promise<BatchDto> {
     const { groupId } = await loaders.batchSingle.load({
-      __entity: BatchEntityClass,
+      __entity: this.entities.batch,
       __from: { id: batchId },
     });
 
@@ -68,7 +59,7 @@ export class AggregatedStockResolver {
     @Context() { loaders }: LoaderType<LocationEntityClass>,
   ): Promise<LocationDto> {
     return loaders.batchSingle.load({
-      __entity: LocationEntityClass,
+      __entity: this.entities.location,
       __from: { id: locationId },
     });
   }
