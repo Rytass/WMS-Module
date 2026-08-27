@@ -27,6 +27,7 @@ import {
 } from '../models';
 import { WMS_CORE_MODULE_OPTIONS } from '../typings/core-module-options';
 import type { WmsModuleCoreModuleOptions } from '../typings/core-module-options';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class StockService<
@@ -64,6 +65,7 @@ export class StockService<
   };
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     @Inject(StockEntity) private readonly stockEntity: EntityTarget<T>,
     // Declared as a class rather than the wider `EntityTarget<K>`: `ModelsModule`
     // only ever binds this Symbol to an entity class, and `materialKey` needs a
@@ -121,7 +123,7 @@ export class StockService<
 
   async onModuleInit() {
     const loaderTypeRepo = this.dataSource.getRepository(LoaderTypeEntityClass);
-    const locationRepo = this.dataSource.getRepository(LocationEntityClass);
+    const locationRepo = this.dataSource.getRepository(this.entities.location);
     const loaderRepo = this.dataSource.getRepository(LoadersEntityClass);
 
     // Ensure default loader type exists
@@ -283,7 +285,7 @@ export class StockService<
 
     if (options.batchKey)
       queryBuilder.innerJoin(
-        BatchEntity,
+        this.entities.batch,
         'bk',
         'bk.id = stock."batchId" AND bk.key ILIKE :batchKey',
         {
@@ -293,7 +295,7 @@ export class StockService<
 
     if (options.locationKey)
       queryBuilder.innerJoin(
-        LocationEntityClass,
+        this.entities.location,
         'lk',
         'lk.id = stock."locationId" AND lk.key ILIKE :locationKey',
         {

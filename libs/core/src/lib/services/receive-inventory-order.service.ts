@@ -38,6 +38,7 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 /**
  * Service for managing receive inventory orders and their items
@@ -54,6 +55,7 @@ export class ReceiveInventoryOrderService<
   readonly selectQueryBuilder: (alias: string) => SelectQueryBuilder<T>;
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly helperService: HelperService,
@@ -131,7 +133,7 @@ export class ReceiveInventoryOrderService<
       this.materialService.materialEntity,
     );
     const locationRepository =
-      manager.getRepository<LocationEntityClass>(LocationEntityClass);
+      manager.getRepository<LocationEntityClass>(this.entities.location);
     const loaderRepository =
       manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
 
@@ -191,7 +193,7 @@ export class ReceiveInventoryOrderService<
   }: CreateReceiveInventoryOrderInput & {
     manager?: EntityManager;
   }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
     const receiveInventoryOrderRepository =
       manager.getRepository<ReceiveInventoryOrderEntityClass>(
         this.receiveInventoryOrderEntity,
@@ -415,13 +417,13 @@ export class ReceiveInventoryOrderService<
         manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
           this.receiveInventoryOrderItemEntity,
         );
-      const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+      const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
       const locationRepository =
-        manager.getRepository<LocationEntityClass>(LocationEntityClass);
+        manager.getRepository<LocationEntityClass>(this.entities.location);
       const loaderRepository =
         manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
       const stockRepository =
-        manager.getRepository<StockEntityClass>(StockEntityClass);
+        manager.getRepository<StockEntityClass>(this.entities.stock);
 
       const items = await itemRepository.find({
         where: { id: In(options.map((o) => o.itemId)) },

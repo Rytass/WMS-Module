@@ -13,6 +13,7 @@ import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { BatchService } from './batch.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class QualityInspectionOrderService<
@@ -23,6 +24,7 @@ export class QualityInspectionOrderService<
 > {
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     @Inject(QualityInspectionOrderEntity)
     readonly qualityInspectionOrderEntity: EntityTarget<T>,
     @Inject(QualityInspectionOrderItemEntity)
@@ -39,7 +41,7 @@ export class QualityInspectionOrderService<
     manager?: EntityManager;
     options: CreateInspectionOrderInput;
   }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
     const qualityInspectionOrderRepository =
       manager.getRepository<QualityInspectionOrderEntityClass>(
         this.qualityInspectionOrderEntity,
@@ -52,7 +54,7 @@ export class QualityInspectionOrderService<
       manager.getRepository<QualityInspectionOrderChangeEntityClass>(
         QualityInspectionOrderChangeEntityClass,
       );
-    const stockRepository = manager.getRepository(StockEntityClass);
+    const stockRepository = manager.getRepository(this.entities.stock);
 
     const order = await qualityInspectionOrderRepository.save(
       qualityInspectionOrderRepository.create({

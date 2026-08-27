@@ -116,7 +116,7 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     manager = this.dataSource.manager,
     ...options
   }: GetBatchInput & { manager?: EntityManager }): Promise<T> {
-    const batchRepository = manager.getRepository(BatchEntityClass);
+    const batchRepository = manager.getRepository<BatchEntityClass>(this.batchEntity);
     const batchGroupRepository = manager.getRepository(this.batchGroupEntity);
     const unsplittedCondition: FindOptionsWhere<BatchEntityClass> = {
       saleId: IsNull(),
@@ -158,7 +158,7 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     id: string;
     manager?: EntityManager;
   } & SplitBatchInput): Promise<BatchEntityClass> {
-    const batchRepository = manager.getRepository(BatchEntityClass);
+    const batchRepository = manager.getRepository<BatchEntityClass>(this.batchEntity);
     const batch = await batchRepository.findOneOrFail({
       where: { id: options.id },
       relations: ['batchGroup'],

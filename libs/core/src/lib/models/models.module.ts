@@ -160,16 +160,22 @@ const entities = [
 ] as [symbol, new () => object][];
 
 /**
- * `MaterialEntity` is deliberately absent: `WmsModuleCoreModule` binds it to
- * whatever `WMSBaseModuleOptions.materialEntity` resolved to, which only a module
- * importing `WMSBaseModule` can read. Binding it here as well would leave two
- * live bindings for one token, and the loser would be whichever module the
- * injector happened to reach first.
+ * The overridable entities are deliberately absent: `WmsModuleCoreModule` binds
+ * each of them to whatever the matching `WMSBaseModuleOptions` entity resolved
+ * to, which only a module importing `WMSBaseModule` can read. Binding them here
+ * as well would leave two live bindings for one token, and the loser would be
+ * whichever module the injector happened to reach first.
  *
- * The class stays in `entities` above so TypeORM still registers it — it is the
- * root of the single-table hierarchy a consumer's override extends.
+ * Their classes stay in `entities` above so TypeORM still registers them — each
+ * is the root of the single-table hierarchy a consumer's override extends.
  */
-const EXTERNALLY_BOUND_ENTITIES = new Set<symbol>([MaterialEntity]);
+const EXTERNALLY_BOUND_ENTITIES = new Set<symbol>([
+  MaterialEntity,
+  BatchEntity,
+  LocationEntity,
+  StockEntity,
+  WarehouseMapEntity,
+]);
 
 export const ResolvedEntitiesProviders = entities
   .filter(([token]) => !EXTERNALLY_BOUND_ENTITIES.has(token))

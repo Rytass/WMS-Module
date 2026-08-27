@@ -42,6 +42,7 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -59,6 +60,7 @@ export class ShipInventoryOrderService<
 
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly stockService: StockService,
@@ -189,9 +191,9 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderChangeEntityClass>(
         ShipInventoryOrderChangeEntityClass,
       );
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
     const stockRepository =
-      manager.getRepository<StockEntityClass>(StockEntityClass);
+      manager.getRepository<StockEntityClass>(this.entities.stock);
 
     await Promise.all(
       items.map(async (data) => {
@@ -265,7 +267,7 @@ export class ShipInventoryOrderService<
     manager = this.dataSource.manager,
     ...options
   }: CreateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
     const shipInventoryOrderRepository =
       manager.getRepository<ShipInventoryOrderEntityClass>(
         this.shipInventoryOrderEntity,
@@ -515,9 +517,9 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderItemEntityClass>(
         this.shipInventoryOrderItemEntity,
       );
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
     const stockRepository =
-      manager.getRepository<StockEntityClass>(StockEntityClass);
+      manager.getRepository<StockEntityClass>(this.entities.stock);
 
     const items = await itemRepository.find({
       where: { id: In(options.map((o) => o.itemId)) },
@@ -755,9 +757,9 @@ export class ShipInventoryOrderService<
           this.shipInventoryOrderItemEntity,
         );
 
-      const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+      const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
       const stockRepository =
-        manager.getRepository<StockEntityClass>(StockEntityClass);
+        manager.getRepository<StockEntityClass>(this.entities.stock);
 
       const items = await itemRepository.find({
         where: { id: In(options.map((option) => option.itemId)) },

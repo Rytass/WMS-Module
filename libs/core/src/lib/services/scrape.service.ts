@@ -13,6 +13,7 @@ import { ScrapeInput } from '../typings/scrape.input';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class ScrapeService<
@@ -22,6 +23,7 @@ export class ScrapeService<
 
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly stockService: StockService,
@@ -39,7 +41,7 @@ export class ScrapeService<
         ScrapeOrderItemEntityClass,
       ),
       scrapeOrderChange: manager.getRepository(ScrapeOrderChangeEntityClass),
-      order: manager.getRepository<OrderEntity>(OrderEntity),
+      order: manager.getRepository<OrderEntity>(this.entities.order),
       stock: manager.getRepository<StockEntityClass>(this.stockEntity),
     };
   }

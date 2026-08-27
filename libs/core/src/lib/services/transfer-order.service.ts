@@ -30,6 +30,7 @@ import { CancelTransferOrderInput } from '../typings/cancel-transfer-order.input
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class TransferOrderService<
@@ -40,6 +41,7 @@ export class TransferOrderService<
   readonly transferOrderRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
@@ -66,7 +68,7 @@ export class TransferOrderService<
       transferOrderChange: manager.getRepository(
         TransferOrderChangeEntityClass,
       ),
-      order: manager.getRepository(OrderEntity),
+      order: manager.getRepository(this.entities.order),
       stock: manager.getRepository<StockEntityClass>(this.stockEntity),
       loader: manager.getRepository(LoadersEntityClass),
     };
@@ -775,7 +777,7 @@ export class TransferOrderService<
           });
 
           // Record the transfer change
-          const base = await manager.getRepository(OrderEntity).save({});
+          const base = await manager.getRepository(this.entities.order).save({});
 
           // Availability check at the IN_TRANSFER coord — must have ≥ qty to drain
           await this.stockService.validateStockAvailability(

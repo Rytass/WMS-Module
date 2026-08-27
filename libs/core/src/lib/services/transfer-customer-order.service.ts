@@ -28,6 +28,7 @@ import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 export type TransferCustomerOrderItemInput = {
   materialId: string;
@@ -49,6 +50,7 @@ export class TransferCustomerOrderService<
 
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
@@ -73,9 +75,9 @@ export class TransferCustomerOrderService<
       transferCustomerOrderChange: manager.getRepository(
         TransferCustomerOrderChangeEntityClass,
       ),
-      order: manager.getRepository<OrderEntity>(OrderEntity),
+      order: manager.getRepository<OrderEntity>(this.entities.order),
       stock: manager.getRepository<StockEntityClass>(this.stockEntity),
-      location: manager.getRepository(LocationEntityClass),
+      location: manager.getRepository(this.entities.location),
       loader: manager.getRepository(LoadersEntityClass),
     };
   }

@@ -20,6 +20,7 @@ import { ReleaseInventoryOrderItemInput } from '../typings/release-inventory-ord
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class HoldInventoryOrderService<
@@ -31,6 +32,7 @@ export class HoldInventoryOrderService<
 
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
@@ -55,7 +57,7 @@ export class HoldInventoryOrderService<
         HoldInventoryOrderChangeEntityClass,
       ),
       stock: manager.getRepository<StockEntityClass>(this.stockEntity),
-      order: manager.getRepository(OrderEntity),
+      order: manager.getRepository(this.entities.order),
     };
   }
 

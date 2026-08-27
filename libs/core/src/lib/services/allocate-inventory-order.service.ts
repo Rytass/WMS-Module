@@ -28,6 +28,7 @@ import { MaterialService } from './material.service';
 import { FindAllocateInventoryOrderInput } from '../typings/find-allocate-inventory-order.input';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class AllocateInventoryOrderService<
@@ -40,6 +41,7 @@ export class AllocateInventoryOrderService<
 
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
@@ -64,7 +66,7 @@ export class AllocateInventoryOrderService<
       allocateInventoryOrderChange: manager.getRepository(
         AllocateInventoryOrderChangeEntityClass,
       ),
-      order: manager.getRepository<OrderEntity>(OrderEntity),
+      order: manager.getRepository<OrderEntity>(this.entities.order),
       stock: manager.getRepository<StockEntityClass>(this.stockEntity),
     };
   }
