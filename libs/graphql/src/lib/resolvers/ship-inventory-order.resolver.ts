@@ -1,3 +1,4 @@
+import { Inject } from '@nestjs/common';
 import {
   Context,
   ID,
@@ -17,6 +18,7 @@ import {
   BatchGroupEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
+  MaterialEntity,
   MaterialEntityClass,
   ShipInventoryOrderChangeEntityClass,
   ShipInventoryOrderEntityClass,
@@ -56,13 +58,25 @@ export class ShipInventoryOrderResolver {
 
 @Resolver(() => ShipInventoryOrderItemDto)
 export class ShipInventoryOrderItemResolver {
+  /**
+   * Bound to the `MaterialEntity` Symbol, so the DataLoader queries whichever
+   * material entity the consumer configured — the built-in `MaterialEntityClass`
+   * unless `materialEntity` was passed to `forRoot`/`forRootAsync`. Loading the
+   * built-in class outright would filter on its single-table-inheritance
+   * discriminator and resolve nothing for a custom entity.
+   */
+  constructor(
+    @Inject(MaterialEntity)
+    private readonly materialEntity: new () => MaterialEntityClass,
+  ) {}
+
   @ResolveField(() => MaterialDto)
   material(
     @Parent() { materialId }: ShipInventoryOrderItemEntityClass,
     @Context() { loaders }: LoaderType<MaterialEntityClass>,
   ): Promise<MaterialDto> {
     return loaders.batchSingle.load({
-      __entity: MaterialEntityClass,
+      __entity: this.materialEntity,
       __from: { id: materialId },
     });
   }
@@ -165,6 +179,18 @@ export class ShipInventoryOrderItemResolver {
 
 @Resolver(() => ShipInventoryOrderReferenceDto)
 export class ShipInventoryOrderReferenceResolver {
+  /**
+   * Bound to the `MaterialEntity` Symbol, so the DataLoader queries whichever
+   * material entity the consumer configured — the built-in `MaterialEntityClass`
+   * unless `materialEntity` was passed to `forRoot`/`forRootAsync`. Loading the
+   * built-in class outright would filter on its single-table-inheritance
+   * discriminator and resolve nothing for a custom entity.
+   */
+  constructor(
+    @Inject(MaterialEntity)
+    private readonly materialEntity: new () => MaterialEntityClass,
+  ) {}
+
   @ResolveField(() => Int)
   async shippedQuantity(
     @Parent() { orderId, serialId }: ShipInventoryOrderReferenceEntityClass,
@@ -189,7 +215,7 @@ export class ShipInventoryOrderReferenceResolver {
     @Context() { loaders }: LoaderType<MaterialEntityClass>,
   ): Promise<MaterialDto> {
     return loaders.batchSingle.load({
-      __entity: MaterialEntityClass,
+      __entity: this.materialEntity,
       __from: { id: materialId },
     });
   }

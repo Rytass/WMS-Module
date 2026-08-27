@@ -18,7 +18,13 @@ import {
 import DataLoader from 'dataloader';
 
 export interface LoaderOptions<K> {
-  __entity: ObjectLiteral;
+  /**
+   * Widened from `ObjectLiteral` so a resolver can pass the entity it had
+   * injected from the `MaterialEntity` / `…Entity` Symbols — those are typed as
+   * `EntityTarget`, which is also exactly what `core()` hands to
+   * `getRepository()`.
+   */
+  __entity: EntityTarget<ObjectLiteral>;
   __from: FindOptionsWhere<K>;
   __conditions?: (
     qb: SelectQueryBuilder<ObjectLiteral>,
@@ -171,9 +177,7 @@ export class LoaderService {
    */
   async core<T>(options: LoaderOptions<T>[]) {
     const [{ __entity, __from, __conditions }] = options;
-    const repo = this.dataSource.getRepository(
-      __entity as EntityTarget<ObjectLiteral>,
-    );
+    const repo = this.dataSource.getRepository(__entity);
     let qb = repo.createQueryBuilder('entity');
     const primaryKeys = Object.keys(__from) as [keyof T];
     const hasVirtualKey = primaryKeys.some(

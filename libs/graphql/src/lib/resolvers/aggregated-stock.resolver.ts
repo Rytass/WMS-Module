@@ -1,3 +1,4 @@
+import { Inject } from '@nestjs/common';
 import { Context, ID, Parent, ResolveField, Resolver } from '@nestjs/graphql';
 import { AggregatedStockDto, LoaderDto, MaterialDto } from '../dto';
 import { type LoaderType } from '../helpers';
@@ -6,6 +7,7 @@ import {
   BatchGroupEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
+  MaterialEntity,
   MaterialEntityClass,
   StockService,
 } from '@rytass/wms-module-core';
@@ -14,7 +16,19 @@ import { LocationDto } from '../dto/location.dto';
 
 @Resolver(() => AggregatedStockDto)
 export class AggregatedStockResolver {
-  constructor(private readonly stockService: StockService) {}
+  /**
+   * `materialEntity` is bound to the `MaterialEntity` Symbol, so the DataLoader
+   * queries whichever material entity the consumer configured — the built-in
+   * `MaterialEntityClass` unless `materialEntity` was passed to
+   * `forRoot`/`forRootAsync`. Loading the built-in class outright would filter on
+   * its single-table-inheritance discriminator and resolve nothing for a custom
+   * entity.
+   */
+  constructor(
+    private readonly stockService: StockService,
+    @Inject(MaterialEntity)
+    private readonly materialEntity: new () => MaterialEntityClass,
+  ) {}
 
   @ResolveField(() => ID)
   async id(@Parent() stock: AggregatedStockDto): Promise<string> {
@@ -27,7 +41,7 @@ export class AggregatedStockResolver {
     @Context() { loaders }: LoaderType<MaterialEntityClass>,
   ): Promise<MaterialDto> {
     return loaders.batchSingle.load({
-      __entity: MaterialEntityClass,
+      __entity: this.materialEntity,
       __from: { id: materialId },
     });
   }
