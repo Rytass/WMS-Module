@@ -1,3 +1,14 @@
+## 0.4.0 (2026-08-27)
+
+### 🚀 Features
+
+- **core:** honour the materialEntity option across services and entity symbols ([4fcf7ed](https://github.com/Rytass/WMS-Module/commit/4fcf7ed))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.3.1 (2026-08-14)
 
 This was a version bump only for core to align it with other projects, there were no code changes.

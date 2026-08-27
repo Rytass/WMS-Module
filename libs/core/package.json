@@ -1,6 +1,6 @@
 {
   "name": "@rytass/wms-module-core",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Rytass WMS Module — NestJS services and TypeORM entities for warehouse management",
   "keywords": [
     "rytass",

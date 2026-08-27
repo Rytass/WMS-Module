@@ -1,3 +1,18 @@
+## 0.7.0 (2026-08-27)
+
+### 🚀 Features
+
+- **graphql:** resolve material dataloaders through the configured entity ([0344ebc](https://github.com/Rytass/WMS-Module/commit/0344ebc))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.4.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.6.1 (2026-08-14)
 
 ### 🩹 Fixes
