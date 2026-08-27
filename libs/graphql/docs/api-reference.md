@@ -312,11 +312,11 @@ static forRootAsync(
   // + WmsAuthModuleOptions:
   //     authChecker?: WmsAuthChecker   — 選填；resolver 授權委派函式（見 Authorization）
   //
-  // since 0.7.0（需 wms-base-nestjs-module >= 0.3.0）：
-  //   WMSBaseModuleOptions.materialEntity 會一路作用到所有 resolver 的
-  //   material DataLoader。傳入 MaterialEntityClass 的 @ChildEntity() 即可，
-  //   forRoot 與 async factory 皆支援；entity 需自行註冊給 TypeORM。
-  //   詳見 core 的 docs/custom-entities.md。
+  // since 0.8.0（需 wms-base-nestjs-module >= 0.4.0）：
+  //   WMSBaseModuleOptions 的六個 entity 選項（material / batch / location /
+  //   stock / order / warehouseMap）會一路作用到所有 resolver 的 DataLoader。
+  //   傳入對應 class 的 @ChildEntity() 即可，forRoot 與 async factory 皆支援；
+  //   entity 需自行註冊給 TypeORM。詳見 core 的 docs/custom-entities.md。
 ): DynamicModule
 ```
 

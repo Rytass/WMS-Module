@@ -71,11 +71,15 @@ Exported services include `LoaderService`, `MaterialService`, `BatchService`, `S
 
 Each entity is exported in two forms — `MaterialEntity` (a `Symbol` DI token) and `MaterialEntityClass` (the entity class the token is bound to). Everything inside the module resolves entities through the token, so rebinding the token swaps the entity everywhere at once.
 
-`materialEntity` is the override that is wired all the way through today. Give it a `@ChildEntity()` of `MaterialEntityClass` and your own table *is* the WMS material master — no second table, no double writes:
+All six entity options `WMSBaseModuleOptions` exposes — `materialEntity`, `batchEntity`, `locationEntity`, `stockEntity`, `orderEntity`, `warehouseMapEntity` — are wired all the way through. Give one a `@ChildEntity()` of the class it replaces and your own table *is* the WMS table — no second table, no double writes:
 
 ```ts
 import { ChildEntity, Column } from 'typeorm';
-import { MaterialEntityClass, WmsModuleCoreModule } from '@rytass/wms-module-core';
+import {
+  BatchEntityClass,
+  MaterialEntityClass,
+  WmsModuleCoreModule,
+} from '@rytass/wms-module-core';
 
 @ChildEntity()
 export class ItemMasterEntity extends MaterialEntityClass {
@@ -83,19 +87,35 @@ export class ItemMasterEntity extends MaterialEntityClass {
   erpCode!: string | null;
 }
 
+@ChildEntity()
+export class LotEntity extends BatchEntityClass {
+  @Column({ type: 'date', nullable: true })
+  expiresOn!: Date | null;
+}
+
 WmsModuleCoreModule.forRootAsync({
-  useFactory: async () => ({ materialEntity: ItemMasterEntity }),
+  useFactory: async () => ({
+    materialEntity: ItemMasterEntity,
+    batchEntity: LotEntity,
+  }),
   defaultLoaderSerialId: 'DEFAULT',
   defaultLoaderTypeKey: 'DEFAULT',
   defaultLocationKey: 'DEFAULT',
 });
 ```
 
-It is an ordinary `WMSBaseModuleOptions` field, so `forRoot` and the async factory both work. The base module resolves its repository from it and this package binds its `MaterialEntity` Symbol from the same `PROVIDE_MATERIAL_ENTITY` token at injection time — one option, two consumers, no way for them to drift. This needs `@rytass/wms-base-nestjs-module` >= 0.3.0, the release that exports those tokens.
+They are ordinary `WMSBaseModuleOptions` fields, so `forRoot` and the async factory both work, and you can override as few or as many as you like. The base module resolves its repositories from them and this package binds its entity Symbols from the same `PROVIDE_*_ENTITY` tokens at injection time — one option, two consumers, no way for them to drift. Needs `@rytass/wms-base-nestjs-module` >= 0.4.0.
 
-**You register the entity with TypeORM yourself** (`TypeOrmModule.forFeature([ItemMasterEntity])`, or the DataSource's `entities`). The module cannot: `forFeature()` runs while Nest assembles the module graph, before the options resolve. Forgetting it almost works — TypeORM still creates your columns in `materials` — so the module checks at startup and refuses to boot with a message telling you what to add.
+`WmsEntities` is exported for consumers who need the resolved classes themselves:
 
-The remaining entity options on `WMSBaseModuleOptions` (`batchEntity`, `locationEntity`, `stockEntity`, `orderEntity`, `warehouseMapEntity`) still resolve only a base-module repository this package does not read — setting them has no effect above the base layer. [`docs/custom-entities.md`](./docs/custom-entities.md) has the full picture, the single-table-inheritance caveats for pre-existing rows, and the per-option audit.
+```ts
+constructor(private readonly entities: WmsEntities) {}
+// this.entities.material / .batch / .location / .stock / .order / .warehouseMap
+```
+
+**You register the entities with TypeORM yourself** (`TypeOrmModule.forFeature([...])`, or the DataSource's `entities`). The module cannot: `forFeature()` runs while Nest assembles the module graph, before the options resolve. Forgetting almost works — TypeORM still creates your columns in the parent table — so the module checks at startup and refuses to boot with a message naming what to add.
+
+[`docs/custom-entities.md`](./docs/custom-entities.md) has the full picture, including what single-table inheritance means for rows written before the override existed.
 
 ## Module options token
 

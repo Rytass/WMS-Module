@@ -4,11 +4,8 @@ How to make a downstream project's own table the WMS's table, instead of keeping
 a second one in sync.
 
 > Applies to `@rytass/wms-module-core` and `@rytass/wms-module-graphql`.
-> Currently supported for **materials**; see the [audit](#6-audit-of-the-remaining-entity-options)
-> for where the other entities stand.
->
-> Requires `@rytass/wms-base-nestjs-module` >= 0.3.0, which is the release that
-> exports the resolved entity tokens this depends on.
+> All six entities `WMSBaseModuleOptions` exposes are supported. Requires
+> `@rytass/wms-base-nestjs-module` >= 0.4.0.
 
 ## Table of Contents
 
@@ -17,67 +14,103 @@ a second one in sync.
 3. [Passing it to the module](#3-passing-it-to-the-module)
 4. [Registering the entity with TypeORM](#4-registering-the-entity-with-typeorm)
 5. [What single-table inheritance means for your data](#5-what-single-table-inheritance-means-for-your-data)
-6. [Audit of the remaining entity options](#6-audit-of-the-remaining-entity-options)
+6. [Overriding more than one](#6-overriding-more-than-one)
 
 ---
 
 ## 1. What the option does
 
-`@rytass/wms-base-nestjs-module` has always accepted a `materialEntity` in
-`WMSBaseModuleOptions`, but it kept the resolved entity to itself: the token was
-never exported, so `@rytass/wms-module-core` could not read it and bound its
-`MaterialEntity` Symbol to the built-in `MaterialEntityClass` unconditionally.
-The option therefore changed nothing above the base layer.
+`@rytass/wms-base-nestjs-module` has always accepted entity overrides in
+`WMSBaseModuleOptions`, but it kept the resolved entities to itself: the tokens
+were never exported, so `@rytass/wms-module-core` could not read them and bound
+its own entity Symbols to the built-in classes unconditionally. The options
+therefore changed nothing above the base layer.
 
-`wms-base` 0.3.0 exports `PROVIDE_MATERIAL_ENTITY` and `RESOLVED_MATERIAL_REPO`
-(the same shape `@rytass/member-base-nestjs-module` has always used for
-`memberEntity`), and the core module now binds its Symbol from that token at
-injection time.
+`wms-base` 0.3.0 exports `PROVIDE_*_ENTITY` and `RESOLVED_*_REPO` (the same
+shape `@rytass/member-base-nestjs-module` has always used for `memberEntity`),
+and the core module binds its Symbols from those tokens at injection time.
 
-Passing `materialEntity` now rebinds every place the module reads or writes
-materials:
+| Option               | Table            | Replaces               | Also reached by                                            |
+|----------------------|------------------|------------------------|------------------------------------------------------------|
+| `materialEntity`     | `materials`      | `MaterialEntityClass`  | `MaterialService`, receive / ship / reclassify, stock filters |
+| `batchEntity`        | `batches`        | `BatchEntityClass`     | `BatchService`, split / merge / reclassify                 |
+| `locationEntity`     | `locations`      | `LocationEntityClass`  | `LocationService`, receive, transfers, startup seeding      |
+| `stockEntity`        | `stocks`         | `StockEntityClass`     | `StockService` and every path that moves stock              |
+| `orderEntity`        | `orders`         | `OrderEntityClass`     | every order service — one row per stock movement            |
+| `warehouseMapEntity` | `warehouse_maps` | `WarehouseMapEntity`   | `WarehouseMapDataService` and the map mutation              |
 
-| Consumer of the material entity                        | Where it lives                                            |
-|--------------------------------------------------------|-----------------------------------------------------------|
-| `MaterialEntity` Symbol (and its TypeORM registration) | `libs/core/src/lib/models/models.module.ts`               |
-| `MaterialService` (create / update / find)             | `libs/core/src/lib/services/material.service.ts`          |
-| Receive order item resolution                          | `libs/core/src/lib/services/receive-inventory-order.service.ts` |
-| Ship order reference resolution (create and update)    | `libs/core/src/lib/services/ship-inventory-order.service.ts` |
-| Reclassify target resolution                           | `libs/core/src/lib/services/reclassify-inventory-order.service.ts` |
-| `materialKey` stock filter and material grouping       | `libs/core/src/lib/services/stock.service.ts`             |
-| Every GraphQL `material` DataLoader                    | `libs/graphql/src/lib/resolvers/*.resolver.ts`            |
-| `RESOLVED_MATERIAL_REPO` in the base module            | resolved from the same option — cannot drift               |
+Nothing in either package imports these classes as values any more. Every
+service, DataLoader and query reaches them through a `Symbol`, so rebinding one
+swaps that entity everywhere at once — including the GraphQL DataLoaders, which
+would otherwise resolve `null` for an override and fail their non-nullable
+fields.
+
+`WmsEntities` is the injectable holding the resolved classes, exported for
+consumers who need the same answer:
+
+```ts
+import { WmsEntities } from '@rytass/wms-module-core';
+
+@Injectable()
+export class MyService {
+  constructor(private readonly entities: WmsEntities) {}
+
+  find(): Promise<unknown[]> {
+    return this.dataSource.getRepository(this.entities.material).find();
+  }
+}
+```
 
 ## 2. Writing the entity
 
-The entity must be a TypeORM `@ChildEntity()` extending `MaterialEntityClass`.
-It joins the existing `materials` table through single-table inheritance; it does
-not move the data anywhere.
+Each override must be a TypeORM `@ChildEntity()` extending the class it replaces.
+It joins the existing table through single-table inheritance; it does not move
+the data anywhere.
 
 ```ts
 import { ChildEntity, Column, Index } from 'typeorm';
-import { MaterialEntityClass } from '@rytass/wms-module-core';
+import {
+  BatchEntityClass,
+  LocationEntityClass,
+  MaterialEntityClass,
+} from '@rytass/wms-module-core';
 
 @ChildEntity()
 export class ItemMasterEntity extends MaterialEntityClass {
   @Column({ type: 'varchar', nullable: true })
   @Index()
   erpCode!: string | null;
+}
 
+@ChildEntity()
+export class LotEntity extends BatchEntityClass {
+  @Column({ type: 'date', nullable: true })
+  expiresOn!: Date | null;
+}
+
+@ChildEntity()
+export class BinEntity extends LocationEntityClass {
   @Column({ type: 'varchar', nullable: true })
-  vendorPartNumber!: string | null;
+  zone!: string | null;
 }
 ```
 
 Rules:
 
-- **Extend `MaterialEntityClass`, not the base `MaterialEntity`.** The module's
-  services and the `MaterialDto` GraphQL type read `description`, `baseUnit` and
-  `isActive`, which `MaterialEntityClass` declares.
+- **Extend the class this package exports, not the base one.** `MaterialEntityClass`,
+  `BatchEntityClass`, `LocationEntityClass` and `StockEntityClass` add the columns
+  the services and DTOs read; the base classes do not declare them. `OrderEntityClass`
+  and the warehouse map entity are the base classes — this package adds nothing to
+  those two — and are re-exported so every override reads the same way.
 - **New columns must be nullable or have a default.** Rows written before the
   override existed carry the old discriminator and have no value for them.
 - **Do not re-declare `@Entity()` or `@TableInheritance()`.** Both belong to the
-  base `MaterialEntity`; `@ChildEntity()` is the whole decoration you need.
+  class you are extending; `@ChildEntity()` is the whole decoration you need. The
+  same goes for `@Tree()` on a location override — inherit it, do not repeat it.
+- The module refuses to boot if an override does not extend the right class.
+  `WMSBaseModuleOptions` only asks for a child of the *base* entity, and
+  TypeScript's structural typing will happily accept a sibling that never
+  declares the columns this package reads.
 
 ## 3. Passing it to the module
 
@@ -93,6 +126,8 @@ WmsModuleGraphqlModule.forRootAsync({
   useFactory: async (vault: VaultService) => ({
     allowNegativeStock: await vault.get<boolean>('ALLOW_NEGATIVE_STOCK'),
     materialEntity: ItemMasterEntity,
+    batchEntity: LotEntity,
+    locationEntity: BinEntity,
   }),
 
   defaultLoaderSerialId: 'DEFAULT',
@@ -101,11 +136,14 @@ WmsModuleGraphqlModule.forRootAsync({
 });
 ```
 
+Override as few or as many as you like; anything left out keeps its built-in
+class.
+
 ### `forRoot`
 
 ```ts
 WmsModuleCoreModule.forRoot(
-  { materialEntity: ItemMasterEntity },
+  { materialEntity: ItemMasterEntity, batchEntity: LotEntity },
   {
     defaultLoaderSerialId: 'DEFAULT',
     defaultLoaderTypeKey: 'DEFAULT',
@@ -118,8 +156,8 @@ You pass it once. The base module resolves its repository from it and the core
 module binds its `MaterialEntity` Symbol from it; both read the same option, so
 there is no forwarding step that could get them out of step.
 
-If the class does not extend `MaterialEntityClass`, the module refuses to boot —
-`WMSBaseModuleOptions` only asks for a child of the *base* `MaterialEntity`, and
+If a class does not extend the one it replaces, the module refuses to boot —
+`WMSBaseModuleOptions` only asks for a child of the *base* entity, and
 TypeScript's structural typing will not catch a sibling that happens to look
 right.
 
@@ -133,7 +171,7 @@ options resolve.
 @Module({
   imports: [
     TypeOrmModule.forRoot({ /* ... */ autoLoadEntities: true }),
-    TypeOrmModule.forFeature([ItemMasterEntity]),
+    TypeOrmModule.forFeature([ItemMasterEntity, LotEntity, BinEntity]),
     WmsModuleGraphqlModule.forRootAsync({ /* ... */ }),
   ],
 })
@@ -149,10 +187,10 @@ module checks for it at startup and refuses to boot rather than letting an
 `EntityMetadataNotFoundError` surface later from inside a resolver:
 
 ```
-WmsModuleCoreModule: the configured materialEntity "ItemMasterEntity" is not
-registered with TypeORM. Add it to your DataSource "entities", or import
-TypeOrmModule.forFeature([ItemMasterEntity]) somewhere in your app when using
-autoLoadEntities.
+WmsModuleCoreModule: configured entities are not registered with TypeORM
+(materialEntity: ItemMasterEntity, batchEntity: LotEntity). Add them to your
+DataSource "entities", or import TypeOrmModule.forFeature([ItemMasterEntity,
+LotEntity]) somewhere in your app when using autoLoadEntities.
 ```
 
 ## 5. What single-table inheritance means for your data
@@ -169,24 +207,23 @@ class wrote each one.
 - Reading through `MaterialEntityClass` still returns your rows, because your
   class is a descendant of it. The asymmetry only bites in the other direction.
 
-## 6. Audit of the remaining entity options
+## 6. Overriding more than one
 
-`WMSBaseModuleOptions` exposes six entity overrides. Only `materialEntity` is
-honoured above the base layer today. The rest resolve a base-module repository
-that `@rytass/wms-module-core` never reads, so setting them has no effect on core
-or graphql:
+The overrides are independent — take one, take all six, mix and match. They are
+resolved from the same options object and validated together at startup, so a
+partial configuration is a normal state rather than a special case.
 
-| Option                | Base token                    | Core Symbol         | Status | Hard-coded call sites remaining                                  |
-|-----------------------|-------------------------------|---------------------|--------|------------------------------------------------------------------|
-| `materialEntity`      | `RESOLVED_MATERIAL_REPO`      | `MaterialEntity`    | supported | 0                                                             |
-| `batchEntity`         | `RESOLVED_BATCH_REPO`         | `BatchEntity`       | not supported | 5 `getRepository(BatchEntityClass)` in core, 11 resolver `__entity` |
-| `locationEntity`      | `RESOLVED_TREE_LOCATION_REPO` | `LocationEntity`    | not supported | 5 in core, 12 resolver `__entity`                            |
-| `stockEntity`         | `RESOLVED_STOCK_REPO`         | `StockEntity`       | not supported | 8 in core (services inject the Symbol *and* hard-code the class) |
-| `orderEntity`         | `RESOLVED_ORDER_REPO`         | none                | not supported | 17 `getRepository(OrderEntity)` on the base class directly   |
-| `warehouseMapEntity`  | `RESOLVED_WAREHOUSE_MAP_REPO` | `WarehouseMapEntity`| not supported | `WarehouseMapDataService` resolves the base class directly   |
+One caveat worth knowing when overriding `warehouseMapEntity`: its table gained
+its `entityName` discriminator column in `wms-base` 0.4.0, and it is **nullable**
+precisely so existing rows survive the upgrade. A single-table root is queried
+without a discriminator filter, so rows written before the upgrade stay readable
+through the built-in class. They are *not* visible to an override, for the same
+reason described in section 5 — backfill them if you need them:
 
-All six tokens are exported by `wms-base` 0.3.0, so extending support to another
-entity no longer needs a base-module change: bind its Symbol from the matching
-`PROVIDE_*_ENTITY` in `WmsModuleCoreModule` the way `MaterialEntity` is bound,
-then sweep the call sites listed above. `orderEntity` is the largest job and the
-only one with no core Symbol at all.
+```sql
+UPDATE warehouse_maps SET "entityName" = 'YourMapEntity' WHERE "entityName" IS NULL;
+```
+
+The other five tables have carried a discriminator since long before this
+feature, so only `warehouse_maps` needs the column added. If you run migrations
+rather than `synchronize`, generate one for it.

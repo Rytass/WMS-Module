@@ -38,28 +38,44 @@ static forRootAsync(
 ): DynamicModule
 ```
 
-**Entity override（since 0.4.0，需 `@rytass/wms-base-nestjs-module` >= 0.3.0）**
+**Entity override（since 0.5.0，需 `@rytass/wms-base-nestjs-module` >= 0.4.0）**
 
-`WMSBaseModuleOptions.materialEntity` 現在會一路作用到 core 與 graphql。傳入的 class 必須是 `MaterialEntityClass` 的 `@ChildEntity()`：
+`WMSBaseModuleOptions` 的六個 entity 選項現在會一路作用到 core 與 graphql。每個都必須是它所取代的 class 的 `@ChildEntity()`：
+
+| 選項 | 資料表 | 取代 |
+|---|---|---|
+| `materialEntity` | `materials` | `MaterialEntityClass` |
+| `batchEntity` | `batches` | `BatchEntityClass` |
+| `locationEntity` | `locations` | `LocationEntityClass` |
+| `stockEntity` | `stocks` | `StockEntityClass` |
+| `orderEntity` | `orders` | `OrderEntityClass` |
+| `warehouseMapEntity` | `warehouse_maps` | `WarehouseMapEntity`（基座） |
 
 ```ts
 WmsModuleCoreModule.forRootAsync({
-  useFactory: async () => ({ materialEntity: ItemMasterEntity }),
+  useFactory: async () => ({
+    materialEntity: ItemMasterEntity,
+    batchEntity: LotEntity,
+  }),
   defaultLoaderSerialId: 'DEFAULT',
   defaultLoaderTypeKey: 'DEFAULT',
   defaultLocationKey: 'DEFAULT',
 });
 ```
 
-- `forRoot` 與 async factory 皆可，因為 `MaterialEntity` Symbol 是在 **DI 時**由基座 export 的 `PROVIDE_MATERIAL_ENTITY` 綁定，不是在 module graph 組裝時。
-- 基座的 `RESOLVED_MATERIAL_REPO` 與 core 的 `MaterialEntity` 由**同一個 option** 推導，結構上不可能不一致。
-- **entity 需自行註冊給 TypeORM**（`TypeOrmModule.forFeature([ItemMasterEntity])` 或 DataSource `entities`）；模組無法代勞，漏掉時會在啟動階段丟出明確錯誤。
-- 非 `MaterialEntityClass` 子類會在啟動時被拒絕（TypeScript 結構型別擋不住兄弟類別）。
-- 其餘 entity 選項（`batchEntity` / `locationEntity` / `stockEntity` / `orderEntity` / `warehouseMapEntity`）目前仍只作用於 base module。詳見 [`custom-entities.md`](./custom-entities.md)。
+- `forRoot` 與 async factory 皆可，因為各 Symbol 是在 **DI 時**由基座 export 的 `PROVIDE_*_ENTITY` 綁定，不是在 module graph 組裝時。
+- 基座的 `RESOLVED_*_REPO` 與 core 的 Symbol 由**同一個 option** 推導，結構上不可能不一致。
+- **entity 需自行註冊給 TypeORM**（`TypeOrmModule.forFeature([...])` 或 DataSource `entities`）；模組無法代勞，漏掉時會在啟動階段列出缺哪幾個。
+- 未繼承正確 class 者會在啟動時被拒絕（TypeScript 結構型別擋不住兄弟類別）。
+- 可只覆寫其中幾個，其餘沿用內建 class。詳見 [`custom-entities.md`](./custom-entities.md)。
+
+### `WmsEntities`
+- 用途: 套用覆寫後**實際**被讀寫的 entity class 集合。`material` / `batch` / `location` / `stock` / `order` / `warehouseMap` 六個唯讀屬性。消費端需要同一份答案時可直接注入。建構時會驗證每個 entity 都已註冊給 TypeORM。
+- 來源: `lib/models/wms-entities.ts`
 
 ### `ModelsModule`
 - 用途: 內部模組，向 TypeORM 註冊所有 WMS 實體（via DI token 形式），並透過 `ResolvedEntitiesProviders` 提供 DI。**消費端不直接 import**；它由 `WmsModuleCoreModule.forRoot` 自動引入並 re-export。
-- `MaterialEntity` Symbol **不由此模組綁定**：它在 `WmsModuleCoreModule` 內由 `PROVIDE_MATERIAL_ENTITY` 推導，避免同一個 token 出現兩個繫結。`MaterialEntityClass` 仍註冊進 `forFeature()`（它是單表繼承的根）。
+- 六個可覆寫的 Symbol **不由此模組綁定**：它們在 `WmsModuleCoreModule` 內由對應的 `PROVIDE_*_ENTITY` 推導，避免同一個 token 出現兩個繫結。內建 class 仍註冊進 `forFeature()`（它們是各自單表繼承的根）。
 - 來源: `lib/models/models.module.ts`
 
 ---
@@ -72,6 +88,7 @@ WmsModuleCoreModule.forRootAsync({
 |---|---|---|---|
 | `UnitEntity` | `UnitEntityClass` | 單位主檔（kg / pcs 等） | `lib/models/metadata/unit.entity.ts` |
 | `MaterialEntity` | `MaterialEntityClass` | 料號主檔，繼承 `BaseMaterialEntity` | `lib/models/metadata/material.entity.ts` |
+| `OrderEntity` | `OrderEntityClass` | 訂單基底（本套件未加欄位，`OrderEntityClass` 即基座 class） | `lib/models/metadata/order.entity.ts` |
 | `MaterialUnitEntity` | `MaterialUnitEntityClass` | 料號換算單位（含換算係數） | `lib/models/metadata/material-unit.entity.ts` |
 | `BatchEntity` | `BatchEntityClass` | 批號主檔，繼承 `BaseBatchEntity` | `lib/models/metadata/batch.entity.ts` |
 | `BatchGroupEntity` | `BatchGroupEntityClass` | 批號群組，支援多批合併情境 | `lib/models/metadata/batch-group.entity.ts` |
