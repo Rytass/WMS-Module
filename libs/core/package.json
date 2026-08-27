@@ -41,7 +41,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@rytass/wms-base-nestjs-module": "0.1.11"
+    "@rytass/wms-base-nestjs-module": "0.3.0"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.0.0",

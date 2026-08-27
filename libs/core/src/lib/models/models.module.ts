@@ -159,10 +159,24 @@ const entities = [
   [ScrapeOrderChangeEntity, ScrapeOrderChangeEntityClass],
 ] as [symbol, new () => object][];
 
-export const ResolvedEntitiesProviders = entities.map(([token, entity]) => ({
-  provide: token,
-  useValue: entity,
-}));
+/**
+ * `MaterialEntity` is deliberately absent: `WmsModuleCoreModule` binds it to
+ * whatever `WMSBaseModuleOptions.materialEntity` resolved to, which only a module
+ * importing `WMSBaseModule` can read. Binding it here as well would leave two
+ * live bindings for one token, and the loser would be whichever module the
+ * injector happened to reach first.
+ *
+ * The class stays in `entities` above so TypeORM still registers it — it is the
+ * root of the single-table hierarchy a consumer's override extends.
+ */
+const EXTERNALLY_BOUND_ENTITIES = new Set<symbol>([MaterialEntity]);
+
+export const ResolvedEntitiesProviders = entities
+  .filter(([token]) => !EXTERNALLY_BOUND_ENTITIES.has(token))
+  .map(([token, entity]) => ({
+    provide: token,
+    useValue: entity,
+  }));
 
 @Module({
   imports: [TypeOrmModule.forFeature(entities.map(([_, entity]) => entity))],

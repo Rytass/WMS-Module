@@ -137,8 +137,9 @@ export class ShipInventoryOrderService<
     references: Partial<CreateShipInventoryOrderReferenceInput>[],
     manager: EntityManager,
   ): Promise<DeepPartial<ShipInventoryOrderReferenceEntityClass>[]> {
-    const materialRepository =
-      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
+    const materialRepository = manager.getRepository<MaterialEntityClass>(
+      this.materialService.materialEntity,
+    );
     const saleOrderRepository = manager.getRepository<SaleOrderEntityClass>(
       this.saleOrderEntity,
     );
@@ -325,8 +326,9 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderItemEntityClass>(
         this.shipInventoryOrderItemEntity,
       );
-    const materialRepository =
-      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
+    const materialRepository = manager.getRepository<MaterialEntityClass>(
+      this.materialService.materialEntity,
+    );
 
     const order = await shipInventoryOrderRepository.findOneByOrFail({
       id,

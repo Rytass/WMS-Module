@@ -127,8 +127,9 @@ export class ReceiveInventoryOrderService<
     orderId: string,
     manager: EntityManager,
   ): Promise<DeepPartial<ReceiveInventoryOrderItemEntityClass>[]> {
-    const materialRepository =
-      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
+    const materialRepository = manager.getRepository<MaterialEntityClass>(
+      this.materialService.materialEntity,
+    );
     const locationRepository =
       manager.getRepository<LocationEntityClass>(LocationEntityClass);
     const loaderRepository =

@@ -92,7 +92,7 @@
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
     "@rytass/secret-adapter-vault-nestjs": "^0.4.4",
-    "@rytass/wms-base-nestjs-module": "0.1.11",
+    "@rytass/wms-base-nestjs-module": "0.3.0",
     "@rytass/wms-map-react-components": "0.1.10",
     "axios": "^1.6.0",
     "dataloader": "^2.2.3",

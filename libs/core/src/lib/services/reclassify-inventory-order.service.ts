@@ -52,7 +52,9 @@ export class ReclassifyInventoryOrderService<
       const orderRepository = manager.getRepository(OrderEntity);
       const stockRepository = manager.getRepository(StockEntityClass);
       const batchRepository = manager.getRepository(BatchEntityClass);
-      const materialRepository = manager.getRepository(MaterialEntityClass);
+      const materialRepository = manager.getRepository<MaterialEntityClass>(
+        this.materialService.materialEntity,
+      );
 
       // Ensure new material exists
       const material = await materialRepository.findOneOrFail({

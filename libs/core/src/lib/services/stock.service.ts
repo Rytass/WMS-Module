@@ -65,7 +65,10 @@ export class StockService<
   constructor(
     private readonly dataSource: DataSource,
     @Inject(StockEntity) private readonly stockEntity: EntityTarget<T>,
-    @Inject(MaterialEntity) private readonly materialEntity: EntityTarget<K>,
+    // Declared as a class rather than the wider `EntityTarget<K>`: `ModelsModule`
+    // only ever binds this Symbol to an entity class, and `materialKey` needs a
+    // `Function` to join against.
+    @Inject(MaterialEntity) private readonly materialEntity: new () => K,
     @Inject(WMS_CORE_MODULE_OPTIONS)
     private readonly coreOptions: WmsModuleCoreModuleOptions,
   ) {
@@ -264,7 +267,13 @@ export class StockService<
 
     if (options.materialKey)
       queryBuilder.innerJoin(
-        MaterialEntityClass,
+        // The configured entity, not the built-in class: this follows whatever
+        // table that entity is mapped to. (TypeORM resolves an entity in a
+        // hand-written join to its table name and does not append the
+        // single-table discriminator, so for a child of `MaterialEntityClass` the
+        // emitted SQL is unchanged — this keeps the service from reaching past
+        // its own configuration, it is not a behaviour fix on its own.)
+        this.materialEntity,
         'mk',
         'mk.id = stock."materialId" AND mk.key ILIKE :materialKey',
         {

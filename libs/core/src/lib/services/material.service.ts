@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   CreateMaterialInput,
   UpdateMaterialInput,
@@ -30,7 +30,8 @@ import { UnitEntityClass } from '../models';
 export class MaterialService<
   T extends MaterialEntityClass = MaterialEntityClass,
   K extends MaterialUnitEntityClass = MaterialUnitEntityClass,
-> {
+> implements OnModuleInit
+{
   readonly materialRepository: Repository<T>;
   readonly materialUnitRepository: Repository<K>;
   constructor(
@@ -43,6 +44,31 @@ export class MaterialService<
     );
     this.materialUnitRepository = this.dataSource.getRepository<K>(
       this.materialUnitEntity,
+    );
+  }
+
+  /**
+   * Fail at boot if the configured `materialEntity` was never registered with
+   * TypeORM.
+   *
+   * The module cannot register it: `TypeOrmModule.forFeature()` runs while the
+   * module graph is assembled, and the entity is only known once the options
+   * resolve. Registering the base class does bring the override's *columns* into
+   * the `materials` schema (TypeORM copies a single-table child's columns into
+   * its parent), which makes the omission easy to miss — everything looks right
+   * until the first query fails with a bare `EntityMetadataNotFoundError` from
+   * somewhere deep in a resolver.
+   */
+  onModuleInit(): void {
+    if (this.dataSource.hasMetadata(this.materialEntity)) return;
+
+    const name =
+      typeof this.materialEntity === 'function'
+        ? this.materialEntity.name
+        : String(this.materialEntity);
+
+    throw new Error(
+      `WmsModuleCoreModule: the configured materialEntity "${name}" is not registered with TypeORM. Add it to your DataSource "entities", or import TypeOrmModule.forFeature([${name}]) somewhere in your app when using autoLoadEntities.`,
     );
   }
 
