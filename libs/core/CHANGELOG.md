@@ -1,3 +1,14 @@
+## 0.5.0 (2026-08-27)
+
+### 🚀 Features
+
+- **core:** honour every entity override, not just materialEntity ([9fe691d](https://github.com/Rytass/WMS-Module/commit/9fe691d))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.4.0 (2026-08-27)
 
 ### 🚀 Features

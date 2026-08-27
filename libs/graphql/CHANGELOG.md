@@ -1,3 +1,18 @@
+## 0.8.0 (2026-08-27)
+
+### 🚀 Features
+
+- **graphql:** resolve every dataloader through the configured entities ([e2859aa](https://github.com/Rytass/WMS-Module/commit/e2859aa))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.5.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.7.0 (2026-08-27)
 
 ### 🚀 Features
