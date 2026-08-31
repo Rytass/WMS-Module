@@ -1,3 +1,19 @@
+## 0.9.0 (2026-08-31)
+
+### 🚀 Features
+
+- **graphql:** expose the inventory count API ([419e2a5](https://github.com/Rytass/WMS-Module/commit/419e2a5))
+- **graphql:** let a deployment unregister operations ([dc55f77](https://github.com/Rytass/WMS-Module/commit/dc55f77))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.6.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.8.0 (2026-08-27)
 
 ### 🚀 Features

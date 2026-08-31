@@ -1,3 +1,19 @@
+## 0.6.0 (2026-08-31)
+
+### 🚀 Features
+
+- **core:** add the inventory count domain ([472db44](https://github.com/Rytass/WMS-Module/commit/472db44))
+- **core:** publish the operation-name vocabulary ([ea7313e](https://github.com/Rytass/WMS-Module/commit/ea7313e))
+
+### 🩹 Fixes
+
+- **core:** await the warehouse map seed transaction ([a99e913](https://github.com/Rytass/WMS-Module/commit/a99e913))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.5.0 (2026-08-27)
 
 ### 🚀 Features

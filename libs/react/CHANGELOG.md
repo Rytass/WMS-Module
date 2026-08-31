@@ -1,3 +1,16 @@
+## 0.3.0 (2026-08-31)
+
+### 🚀 Features
+
+- **react:** implement the inventory count pages ([270712b](https://github.com/Rytass/WMS-Module/commit/270712b))
+- **react:** let Maps drop its inventory-action toolbar ([d6fa657](https://github.com/Rytass/WMS-Module/commit/d6fa657))
+- **react:** let a deployment switch inventory actions off, and report failures ([2c79706](https://github.com/Rytass/WMS-Module/commit/2c79706))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.2.3 (2026-08-27)
 
 This was a version bump only for react to align it with other projects, there were no code changes.
