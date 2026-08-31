@@ -110,9 +110,91 @@ The member-base adapter reuses everything `CasbinGuard` already put on the reque
 
 ➡️ **Full design & recipes: [`docs/authorization.md`](./docs/authorization.md)** (the problem, execution order, member-base / custom-JWT / no-guard recipes, the single coupling point, public API, FAQ).
 
+## Turning operations off per deployment
+
+`authChecker` **refuses** an operation; these options stop it being **registered at all**.
+The difference matters once someone reads the schema: a refused mutation still appears in
+introspection, in your frontend's codegen and in a security review, as a mutation that is
+guaranteed to fail.
+
+```ts
+WmsModuleGraphqlModule.forRootAsync({
+  ...coreOptions,
+
+  // deny-list — these never enter the schema
+  disabledOperations: ['quality-inspection-order:inspect', 'material:create'],
+
+  // or an allow-list instead (the two are mutually exclusive; passing both throws)
+  // enabledOperations: ['material:read', 'stock:read'],
+
+  // escape hatch by GraphQL field name, for when a requirement is too coarse
+  disabledFields: ['availableLoaders'],
+});
+```
+
+Names are the same `` `${resource}:${action}` `` strings `@WmsOperation` declares and your
+`authChecker` receives, exported as the `WmsOperationName` union and the
+`WMS_OPERATION_NAMES` array so you can iterate or diff them.
+
+Two things to know before you use it:
+
+- **A name is not one field.** Several queries share a requirement — `loader:read` covers
+  6 fields, `stock:read` 5, `material:read` and `loader:create` 3 each. Disabling a name
+  disables every field carrying it; use `disabledFields` when you need one.
+- **Disabling a resolver does not disable the domain.** The services stay injectable, so a
+  host that owns that step of the workflow itself can still drive
+  `ReceiveInventoryOrderService` (or any other) directly. That is the intended pattern.
+
+Because the switches mutate process-global registration state, a process may register
+`WmsModuleGraphqlModule` **once**.
+
+## Inventory counting
+
+Compare the ledger against what is physically on the shelf, then adjust the ledger to
+match. Eleven operations (`inventory-count-order:{read,create,update,start,count,add-item,remove-item,reset,cancel,settle}`)
+back the flow:
+
+```
+建立盤點 ──▶ PENDING ──開始盤點──▶ COUNTING ──執行盤差──▶ COMPLETED
+                │                    │
+                └───── 取消盤點 ─────┴────────▶ CANCELLED
+```
+
+- **Scope is by location, expanded downwards.** Counting an aisle counts every shelf under
+  it; `createInventoryCountOrder` stores the expansion.
+- **Counting never moves stock between locations.** A line in the wrong place is a
+  transfer, not a count — `transfer-order:create` already does that. Counting only ever
+  adjusts quantity in place.
+- **Nothing touches stock until `settleInventoryCount`.** Counted quantities are working
+  notes; settlement runs in one transaction and writes the difference as `+`/`-` rows,
+  which surface as `stock.count-gained` / `stock.count-lost`.
+- **Uncounted lines are left alone.** "Not counted" is not "counted as zero".
+- **Surpluses may name a batch that does not exist yet**; it is created during settlement.
+- **`countDate` is the business date.** The variance is reported under the date the count
+  was created for, not the day settlement happened to run. `createdAt` keeps the real
+  wall-clock time.
+
+### ⚠️ Starting a count locks its locations
+
+This is the one part that changes the behaviour of operations you already use. While an
+order is `COUNTING`, **any** stock movement touching a location in its scope is refused
+with a `409 Conflict` naming the count:
+
+```
+Location <id> is locked by inventory count order IC2508300001;
+finish or cancel that count before moving this stock.
+```
+
+The check sits on the insert of every `*_order_change` row — the same choke point the
+stock events use — so it covers resolvers **and** direct service calls, including your own
+integration code. Without it the book snapshot the variance is measured against would go
+stale and settlement would silently write off somebody else's legitimate movement.
+
+Settling or cancelling the count releases the lock.
+
 ## Events & Hooks
 
-Intervene in and get notified about mutations. Every root mutation carries a typed **operation event** (`material.created`, `ship-inventory-order.shipped`, …) and fans out **stock domain events** (`stock.allocated`, `stock.shipped`, …) driven by the `ChangeType` state machine. Wire two opt-in hook points via `forRootAsync`:
+Intervene in and get notified about mutations. Every root mutation carries a typed **operation event** (`material.created`, `ship-inventory-order.shipped`, `inventory-count-order.settled`, …) and fans out **stock domain events** (`stock.allocated`, `stock.shipped`, `stock.count-gained`, …) driven by the `ChangeType` state machine. Wire two opt-in hook points via `forRootAsync`:
 
 - **`beforeHooks`** run before any DB work — **throw to veto** the mutation (zero side effects).
 - **`afterListeners`** run **after the outermost transaction commits** — never notified about rolled-back changes.

@@ -71,6 +71,13 @@ static forRootAsync(
 
 同樣每個都有 Symbol + EntityClass 雙匯出，共 37 個：
 
+**盤點單 (Inventory Count Order)**
+- `InventoryCountOrderEntity` / `InventoryCountOrderEntityClass` — 盤點單主檔（`countDate` 為盤差記帳基準日）
+- `InventoryCountOrderLocationEntity` / `InventoryCountOrderLocationEntityClass` — 盤點範圍，已展開至所有下層儲位（`isRoot` 標示使用者實際選的節點）
+- `InventoryCountOrderItemEntity` / `InventoryCountOrderItemEntityClass` — 盤點單身（`isAddition` 標示盤盈新增列）
+- `InventoryCountOrderChangeEntity` / `InventoryCountOrderChangeEntityClass` — 盤差異動（正=盤盈、負=盤虧）
+- 來源: `lib/models/extensions/inventory-count-order/`
+
 **入庫訂單 (Receive Inventory Order)**
 - `ReceiveInventoryOrderEntity` / `ReceiveInventoryOrderEntityClass` — 入庫單主檔
 - `ReceiveInventoryOrderItemEntity` / `ReceiveInventoryOrderItemEntityClass` — 入庫單明細
@@ -171,6 +178,7 @@ static forRootAsync(
 | `MergeBatchOrderService<T>` | `merge` | 批號合併 | `lib/services/merge-batch-order.service.ts` |
 | `ReclassifyInventoryOrderService<T>` | `reclassify` | 庫存轉料號 | `lib/services/reclassify-inventory-order.service.ts` |
 | `ScrapeService<T>` | `scrape` | 庫存報廢 | `lib/services/scrape.service.ts` |
+| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法 | `lib/services/inventory-count-order.service.ts` |
 | `QualityInspectionOrderService<T>` | `inspect` | 品質檢驗 | `lib/services/quality-inspection-order.service.ts` |
 | `SaleOrderService` | （DataSource 直接操作） | 銷售訂單查詢 | `lib/services/sale-order.service.ts` |
 | `HelperService` | `getSeq` | 序號產生工具 | `lib/services/helper.service.ts` |
@@ -262,10 +270,31 @@ enum ChangeType {
   RECEIVED, IN_SHIPMENT, SHIPPED, IN_TRANSFER, TRANSFERRED,
   VENDOR_TRANSFERRED, VENDOR_RETURNED, HELD, RELEASED,
   CUSTOMER_HELD, CUSTOMER_RETURNED, SPLITTED, MERGED,
-  ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED
+  ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED,
+  COUNT_GAINED, COUNT_LOST
 }
 ```
 來源: `lib/constants/stock-status.ts`
+
+### `InventoryCountStatus` (enum)
+```ts
+enum InventoryCountStatus { PENDING, COUNTING, COMPLETED, CANCELLED }
+```
+盤點單狀態：尚未執行 / 盤點中 / 已完成 / 已取消。只有 `COUNTING` 接受盤點數量，也只有
+`COUNTING` 會鎖定範圍內儲位；`COMPLETED` 只能由執行盤差達成。
+來源: `lib/constants/inventory-count-status.ts`
+
+### `WmsOperationName` (type) / `WMS_OPERATION_NAMES` (const)
+```ts
+type WmsOperationName = 'material:read' | 'material:create' | /* …58 項… */;
+const WMS_OPERATION_NAMES: readonly WmsOperationName[];
+```
+本套件所有 root operation 的 `` `${resource}:${action}` `` 名稱。同一組字串有三個用途：
+`authChecker` 收到的 requirement、`@rytass/wms-module-graphql` 的
+`enabledOperations` / `disabledOperations`、以及
+`@rytass/wms-module-react` 的 `INVENTORY_ACTION_OPERATIONS` 對照表。
+**注意名稱不等於欄位**：多支 query 共用同一組 requirement（`loader:read` 對應 6 支）。
+來源: `lib/constants/operations.ts`
 
 ### `ReceiveInventoryOrderStatus` (enum)
 ```ts
@@ -311,6 +340,12 @@ static forRootAsync(
   //     defaultLocationKey: string     — 預設儲存位置 key
   // + WmsAuthModuleOptions:
   //     authChecker?: WmsAuthChecker   — 選填；resolver 授權委派函式（見 Authorization）
+  // + WmsOperationRegistrationOptions（since 0.9.0）:
+  //     enabledOperations?:  readonly WmsOperationName[]  — 白名單，只註冊列出的 operation
+  //     disabledOperations?: readonly WmsOperationName[]  — 黑名單；與白名單互斥，同時給會 throw
+  //     disabledFields?:     readonly string[]            — 以 GraphQL 欄位名精準停用單一欄位
+  //   被停用者「不會進 schema」（introspection 與 SDL 皆無），
+  //   但對應的 service 仍可注入 — 宿主可繼續直呼。詳見下方 Operation registration。
   //
   // since 0.8.0（需 wms-base-nestjs-module >= 0.4.0）：
   //   WMSBaseModuleOptions 的六個 entity 選項（material / batch / location /
@@ -321,6 +356,8 @@ static forRootAsync(
 ```
 
 > **Breaking from 0.2.x**: 0.2.0 took a second `gqlOptions` argument and started Apollo Server internally; 0.3.0 dropped it. Consumers now own `GraphQLModule.forRootAsync(...)` and the GraphQL context factory. Use `createWmsLoaders(loaderService)` inside `context` to provide the WMS DataLoader trio (see below).
+
+> **Operation registration (`enabledOperations` / `disabledOperations` / `disabledFields`)**: optional. Omit them and every operation is registered as before. They mutate process-global registration state, so a process may register `WmsModuleGraphqlModule` **once**.
 
 > **Authorization (`authChecker`)**: optional. Omit it and the module stays fully permissive. Supply it to authorize every WMS root op against your permission system — see the dedicated [**Authorization**](#authorization) section below and [`docs/authorization.md`](./authorization.md).
 
@@ -455,6 +492,42 @@ The adapter imports nothing from member-base — it reads the `payload` / `enfor
 
 ---
 
+## Operation registration
+
+以部署為單位決定「哪些 operation 根本不進 schema」。`authChecker` 是**拒絕執行**，
+這組選項是**不註冊**——差別在於被拒絕的 mutation 仍會出現在 introspection、前端 codegen
+與安全稽核清單裡，看起來像一支保證會失敗的 API。
+
+### Root exports (`@rytass/wms-module-graphql`)
+
+| 匯出 | 種類 | 說明 |
+|---|---|---|
+| `WmsOperationRegistrationOptions` | type | `enabledOperations` / `disabledOperations` / `disabledFields` 三個選填欄位 |
+| `pruneDisabledOperations(resolverClasses, options)` | function | `forRootAsync` 內部使用；公開匯出供進階情境（自組 provider 清單）使用 |
+| `PrunedOperations` | type | `{ queries, mutations }` — 實際被移除的欄位名 |
+| `WmsOperationName` | type | 從 `@rytass/wms-module-core` 轉出 |
+| `WMS_OPERATION_NAMES` | const | 從 `@rytass/wms-module-core` 轉出 |
+
+### 語意
+
+- **名稱不等於欄位。** 多支 query 共用同一組 requirement（`loader:read` 6 支、
+  `stock:read` 5 支、`material:read` 與 `loader:create` 各 3 支），停用名稱會一次移除全部；
+  需要更細的粒度時用 `disabledFields`。
+- **停用 resolver 不會停用 domain。** service 照常可注入，這是刻意的：自有流程的宿主
+  仍能直呼 `ReceiveInventoryOrderService` 等服務。
+- **`@ResolveField` 不受影響**——它們只能透過已註冊的 root 欄位抵達。
+
+### 實作備註
+
+resolver metadata 在 `@nestjs/graphql` 是 **lazy** 的（`@Query()` 只登記 thunk，真正寫入
+要等 schema build），所以停用同時做兩件事：`forRootAsync` 當下刪掉 resolver prototype 上
+的方法（`ResolversExplorerService` 掃 prototype，且早於 metadata 載入），並包裝
+`TypeMetadataStorage.addQueryMetadata` / `addMutationMetadata` 擋掉該筆。兩者必須成對，
+否則 schema 會留下沒有 resolver 的死欄位，或 `makeExecutableSchema` 因 resolver 與
+typeDefs 不符而拒絕整份 schema。
+
+---
+
 ## Events & Hooks
 
 Opt-in `beforeHooks` (veto) and post-commit `afterListeners` for every mutation. Each root mutation carries `@WmsMutationEvent({ event })` (already applied); a per-mutation interceptor runs the before-hook, opens an `AsyncLocalStorage` dispatch scope, and flushes collected events after the transaction commits. Stock domain events are collected centrally by a TypeORM subscriber on `*_order_change` inserts. Full design & the complete event list: [`docs/events.md`](./events.md).
@@ -554,6 +627,7 @@ WmsModuleGraphqlModule.forRootAsync({
 | `MaterialQuery` | `material`, `materials` | `MaterialDto`, `Materials` | `lib/queries/material.query.ts` |
 | `StockQuery` | `stock`, `stocks`, `stocksGroupedByMaterial`, `aggregatedStocks`, `changeLogs` | `StockDto`, `Stocks`, `Materials`, `AggregatedStocks`, `ChangeLogs` | `lib/queries/stock.query.ts` |
 | `BatchQuery` | `batches` | `Batches` | `lib/queries/batch.query.ts` |
+| `InventoryCountOrderQuery` | `inventoryCountOrders`, `inventoryCountOrder` | `InventoryCountOrders`, `InventoryCountOrderDto` | `lib/queries/inventory-count-order.query.ts` |
 | `LocationQuery` | `location`, `locations` | `LocationDto`, `Locations` | `lib/queries/location.query.ts` |
 | `ReceiveInventoryOrderQuery` | `receiveInventoryOrder`, `receiveInventoryOrders` | `ReceiveInventoryOrderDto`, `ReceiveInventoryOrders` | `lib/queries/recieve-inventory-order.query.ts` |
 | `ShipInventoryOrderQuery` | `shipInventoryOrder`, `shipInventoryOrders` | `ShipInventoryOrderDto`, `ShipInventoryOrders` | `lib/queries/ship-inventory-order.query.ts` |
@@ -572,6 +646,7 @@ WmsModuleGraphqlModule.forRootAsync({
 | `LoaderMutation` | `createLoader`, `createBatchLoader`, `updateLoader`, `createLoaderType`（方法名未確認）, `updateLoaderType` | 載具與類型 | `lib/mutations/loader.mutation.ts` |
 | `LocationMutation` | `createLocation`, `updateLocation` | 庫位 | `lib/mutations/location.mutation.ts` |
 | `MaterialMutation` | `createMaterial`, `updateMaterial` | 料號 | `lib/mutations/material.mutation.ts` |
+| `InventoryCountOrderMutation` | `createInventoryCountOrder`, `updateInventoryCountOrder`, `startInventoryCount`, `countInventory`, `addInventoryCountItem`, `removeInventoryCountItem`, `resetInventoryCount`, `cancelInventoryCount`, `settleInventoryCount` | 盤點單。`startInventoryCount` 會鎖定範圍內儲位；`settleInventoryCount` 是唯一會改動庫存的一支 | `lib/mutations/inventory-count-order.mutation.ts` |
 | `ReceiveInventoryOrderMutation` | `createReceiveInventoryOrder`, `updateReceiveInventoryOrder`, `receive` | 入庫單 | `lib/mutations/receive-inventory-order.mutation.ts` |
 | `ShipInventoryOrderMutation` | `createShipInventoryOrder`, `updateShipInventoryOrder`, `ship`, `cancelShip` | 出庫單 | `lib/mutations/ship-inventory-order.mutation.ts` |
 | `TransferOrderMutation` | `createTransferOrder`, `updateTransferOrder`, `transfer`, `cancelTransfer` | 調撥單 | `lib/mutations/transfer-order.mutation.ts` |

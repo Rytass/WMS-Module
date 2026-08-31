@@ -215,7 +215,7 @@ and the bridge can be used together — both fire.
 
 ## 5. Complete event list
 
-### Operation events (38) — `<domain>.<past-tense-action>`
+### Operation events (45) — `<domain>.<past-tense-action>`
 
 The **v2 `result` type** column shows the concrete type subscribers receive via
 `WmsOperationResultMap`. Events marked ⚠️ **boolean** are the 9 action mutations
@@ -269,23 +269,42 @@ events they fan out (see §3.1).
 > `quantityChanged`. So a mutation emits a stock event only on the code paths
 > that actually write a change row (e.g. an `update*` only when it adds items).
 >
+
+Inventory counting adds seven. Only `settled` moves stock; the rest record progress
+through the count, which is what makes them useful for an audit trail of who counted
+what and when.
+
+| Event                                | Mutation                   | v2 `result` type                     | Fans out to stock event                     |
+|--------------------------------------|----------------------------|--------------------------------------|---------------------------------------------|
+| `inventory-count-order.created`      | createInventoryCountOrder  | `InventoryCountOrderDto`             | —                                           |
+| `inventory-count-order.updated`      | updateInventoryCountOrder / addInventoryCountItem / removeInventoryCountItem | `InventoryCountOrderDto` \| `InventoryCountOrderItemDto` | —                        |
+| `inventory-count-order.started`      | startInventoryCount        | `InventoryCountOrderDto`             | — (snapshots the ledger, locks the scope)   |
+| `inventory-count-order.counted`      | countInventory             | `InventoryCountOrderDto`             | —                                           |
+| `inventory-count-order.reset`        | resetInventoryCount        | `InventoryCountOrderDto`             | —                                           |
+| `inventory-count-order.cancelled`    | cancelInventoryCount       | `InventoryCountOrderDto`             | — (releases the lock)                       |
+| `inventory-count-order.settled`      | settleInventoryCount       | `InventoryCountOrderDto`             | `stock.count-gained` / `stock.count-lost`   |
+
 > The "v2 `result` type" column refers to the typed overlay provided by
 > `WmsOperationResultMap` (exported from `@rytass/wms-module-graphql`). In v1
 > `result` is typed `unknown`; consumer code using the typed maps gets the
 > concrete DTO automatically.
 
-### Stock domain events (18) — `stock.<change-type>`
+### Stock domain events (20) — `stock.<change-type>`
 
 `stock.received`, `stock.in-shipment`, `stock.shipped`, `stock.in-transfer`,
 `stock.transferred`, `stock.vendor-transferred`, `stock.vendor-returned`,
 `stock.held`, `stock.released`, `stock.customer-held`,
 `stock.customer-returned`, `stock.splitted`, `stock.merged`, `stock.allocated`,
 `stock.deallocated`, `stock.reclassified`, `stock.scraped`,
-`stock.inspection-resolved`.
+`stock.count-gained`, `stock.count-lost`, `stock.inspection-resolved`.
 
-The first 17 map 1:1 to `ChangeType`. `stock.inspection-resolved` has no
+19 of them map 1:1 to `ChangeType`. `stock.inspection-resolved` has no
 `ChangeType` (quality inspection only flips the `inspectionResult` flag) and
 carries `changeType: null` plus `inspectionResult`.
+
+`stock.count-gained` / `stock.count-lost` are emitted only by
+`settleInventoryCount`, one per line whose counted quantity differed from the
+books — a line that matched writes no change row and therefore no event.
 
 A single operation can emit **several** stock events — one per `*_order_change`
 row written, i.e. one per affected item. Cancellations re-use the forward event
