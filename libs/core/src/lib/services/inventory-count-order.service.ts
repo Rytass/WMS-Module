@@ -14,6 +14,8 @@ import {
 } from 'typeorm';
 import { InventoryCountStatus } from '../constants/inventory-count-status';
 import {
+  LoadersEntityClass,
+  MaterialUnitEntityClass,
   InventoryCountOrderChangeEntityClass,
   InventoryCountOrderEntity,
   InventoryCountOrderEntityClass,
@@ -34,6 +36,22 @@ interface StockPosition {
   readonly locationId: string | null;
   readonly loaderId: string | null;
   readonly quantity: number;
+  readonly attributes: BatchAttributes;
+}
+
+/**
+ * The batch attributes the count sheet displays. They all live on the batch and
+ * keep changing after a count settles, so they are snapshotted onto the line.
+ */
+interface BatchAttributes {
+  readonly held: boolean | null;
+  readonly inShipment: boolean | null;
+  readonly inspectionResult: boolean | null;
+  readonly transferId: string | null;
+  readonly vendorId: string | null;
+  readonly customerId: string | null;
+  readonly saleId: string | null;
+  readonly saleSerialId: string | null;
 }
 
 export interface FindInventoryCountOrderInput {
@@ -43,6 +61,30 @@ export interface FindInventoryCountOrderInput {
   readonly countDateFrom?: string | null;
   readonly countDateTo?: string | null;
   readonly locationIds?: readonly string[] | null;
+  readonly offset?: number;
+  readonly limit?: number;
+}
+
+/**
+ * Filters for the count sheet. All optional; combined with AND.
+ *
+ * The key filters match on the related entity's human-readable key rather than
+ * its id, because that is what the operator types and what the sheet shows.
+ * The vendor / customer / sale filters read the line's own snapshot columns, so
+ * they keep matching what the sheet displays even after the batch has moved on.
+ */
+export interface FindInventoryCountOrderItemInput {
+  readonly materialKey?: string | null;
+  readonly materialDescription?: string | null;
+  readonly batchKey?: string | null;
+  readonly locationKey?: string | null;
+  readonly loaderSerialId?: string | null;
+  readonly vendorId?: string | null;
+  readonly customerId?: string | null;
+  readonly saleId?: string | null;
+  readonly saleSerialId?: string | null;
+  /** Only lines whose counted quantity differs from the books (顯示盤差項目). */
+  readonly onlyVariance?: boolean | null;
   readonly offset?: number;
   readonly limit?: number;
 }
@@ -172,17 +214,35 @@ export class InventoryCountOrderService<
       return [];
     }
 
+    // The batch table is joined by name rather than through its repository
+    // because it is only read for its attribute columns — the same thing
+    // `StockService.selectQueryBuilder` does. Single-table inheritance means
+    // every configured batch entity shares this table, so the join is override
+    // safe; the name still comes from the configured entity's metadata rather
+    // than being hard-coded.
+    const batchTable = manager.getRepository(this.entities.batch).metadata
+      .tableName;
+
     // Through the repository, not raw SQL on the table: the stock entity is
     // overridable, and the repository is what applies the right
     // single-table-inheritance discriminator.
     const rows = await manager
       .getRepository<StockEntityClass>(this.entities.stock)
       .createQueryBuilder('stock')
+      .leftJoin(batchTable, 'batch', 'batch.id = stock."batchId"')
       .select('stock.materialId', 'materialId')
       .addSelect('stock.batchId', 'batchId')
       .addSelect('stock.locationId', 'locationId')
       .addSelect('stock.loaderId', 'loaderId')
       .addSelect('SUM(stock.quantity)', 'quantity')
+      .addSelect('batch.held', 'held')
+      .addSelect('batch."inShipment"', 'inShipment')
+      .addSelect('batch."inspectionResult"', 'inspectionResult')
+      .addSelect('batch."transferId"', 'transferId')
+      .addSelect('batch."vendorId"', 'vendorId')
+      .addSelect('batch."customerId"', 'customerId')
+      .addSelect('batch."saleId"', 'saleId')
+      .addSelect('batch."saleSerialId"', 'saleSerialId')
       .where('stock.locationId IN (:...locationIds)', {
         locationIds: [...locationIds],
       })
@@ -190,14 +250,26 @@ export class InventoryCountOrderService<
       .addGroupBy('stock.batchId')
       .addGroupBy('stock.locationId')
       .addGroupBy('stock.loaderId')
+      // Functionally dependent on batchId, but PostgreSQL only infers that from
+      // the grouped table's own primary key, so they have to be listed.
+      .addGroupBy('batch.held')
+      .addGroupBy('batch."inShipment"')
+      .addGroupBy('batch."inspectionResult"')
+      .addGroupBy('batch."transferId"')
+      .addGroupBy('batch."vendorId"')
+      .addGroupBy('batch."customerId"')
+      .addGroupBy('batch."saleId"')
+      .addGroupBy('batch."saleSerialId"')
       .having('SUM(stock.quantity) > 0')
-      .getRawMany<{
-        materialId: string;
-        batchId: string;
-        locationId: string | null;
-        loaderId: string | null;
-        quantity: string;
-      }>();
+      .getRawMany<
+        {
+          materialId: string;
+          batchId: string;
+          locationId: string | null;
+          loaderId: string | null;
+          quantity: string;
+        } & BatchAttributes
+      >();
 
     return rows.map((row) => ({
       materialId: row.materialId,
@@ -205,6 +277,16 @@ export class InventoryCountOrderService<
       locationId: row.locationId,
       loaderId: row.loaderId,
       quantity: Number(row.quantity),
+      attributes: {
+        held: row.held ?? null,
+        inShipment: row.inShipment ?? null,
+        inspectionResult: row.inspectionResult ?? null,
+        transferId: row.transferId ?? null,
+        vendorId: row.vendorId ?? null,
+        customerId: row.customerId ?? null,
+        saleId: row.saleId ?? null,
+        saleSerialId: row.saleSerialId ?? null,
+      },
     }));
   }
 
@@ -290,6 +372,7 @@ export class InventoryCountOrderService<
 
       if (item) {
         item.bookQuantity = position.quantity;
+        Object.assign(item, position.attributes);
         await repos.item.save(item);
 
         continue;
@@ -306,6 +389,7 @@ export class InventoryCountOrderService<
           countedQuantity: null,
           unitId: null,
           isAddition: false,
+          ...position.attributes,
         }),
       );
     }
@@ -393,6 +477,118 @@ export class InventoryCountOrderService<
     manager = this.dataSource.manager,
   ): Promise<InventoryCountOrderEntityClass> {
     return this.loadOrderOrFail(id, manager);
+  }
+
+  /**
+   * The count sheet, filtered and paginated.
+   *
+   * Server-side rather than handing the whole sheet to the client: a count over
+   * a whole warehouse is thousands of lines, and the operator's job is to narrow
+   * to the shelf in front of them.
+   */
+  async findItems(
+    orderId: string,
+    options: FindInventoryCountOrderItemInput = {},
+    manager = this.dataSource.manager,
+  ): Promise<[InventoryCountOrderItemEntityClass[], number]> {
+    const tableOf = (entity: EntityTarget<object>): string =>
+      manager.getRepository(entity).metadata.tableName;
+
+    const query = this.getRepositories(manager)
+      .item.createQueryBuilder('item')
+      .leftJoin(
+        tableOf(this.entities.material),
+        'material',
+        'material.id = item."materialId"',
+      )
+      .leftJoin(
+        tableOf(this.entities.batch),
+        'batch',
+        'batch.id = item."batchId"',
+      )
+      .leftJoin(
+        tableOf(this.entities.location),
+        'location',
+        'location.id = item."locationId"',
+      )
+      .leftJoin(LoadersEntityClass, 'loader', 'loader.id = item."loaderId"')
+      .where('item."orderId" = :orderId', { orderId });
+
+    const like = (
+      column: string,
+      value: string | null | undefined,
+      parameter: string,
+    ): void => {
+      if (!value) return;
+
+      query.andWhere(`${column} ILIKE :${parameter}`, {
+        [parameter]: `%${value}%`,
+      });
+    };
+
+    like('material.key', options.materialKey, 'materialKey');
+    like(
+      'material.description',
+      options.materialDescription,
+      'materialDescription',
+    );
+    like('batch.key', options.batchKey, 'batchKey');
+    like('location.key', options.locationKey, 'locationKey');
+    like('loader."serialId"', options.loaderSerialId, 'loaderSerialId');
+
+    const exact = (
+      column: string,
+      value: string | null | undefined,
+      parameter: string,
+    ): void => {
+      if (!value) return;
+
+      query.andWhere(`${column} = :${parameter}`, { [parameter]: value });
+    };
+
+    exact('item."vendorId"', options.vendorId, 'vendorId');
+    exact('item."customerId"', options.customerId, 'customerId');
+    exact('item."saleId"', options.saleId, 'saleId');
+    exact('item."saleSerialId"', options.saleSerialId, 'saleSerialId');
+
+    if (options.onlyVariance) {
+      // The counted quantity is expressed in the line's unit, so it has to be
+      // converted before it can be compared with the base-unit book quantity —
+      // the same conversion settlement applies.
+      query
+        .leftJoin(MaterialUnitEntityClass, 'unit', 'unit.id = item."unitId"')
+        .andWhere('item."countedQuantity" IS NOT NULL')
+        .andWhere(
+          'item."countedQuantity" * COALESCE(unit."conversionFactor", 1) <> item."bookQuantity"',
+        );
+    }
+
+    // Counted before ordering and paginating: `getCount()` rewrites the query
+    // into a COUNT, and an ORDER BY on a joined column it does not select makes
+    // that rewrite fail.
+    const total = await query.getCount();
+
+    // Additions first — they are what the operator just typed — then a stable
+    // order so paging cannot repeat or skip a line.
+    query
+      .orderBy('item."isAddition"', 'DESC')
+      .addOrderBy('material.key', 'ASC')
+      .addOrderBy('batch.key', 'ASC')
+      .addOrderBy('item.id', 'ASC');
+
+    // `limit`/`offset` rather than `take`/`skip`: the latter wraps the query in a
+    // DISTINCT subquery to survive one-to-many joins, and then cannot map an
+    // ORDER BY on a joined column into it. Every join here is many-to-one, so no
+    // row multiplication and no need for that machinery.
+    if (options.offset !== undefined && options.offset >= 0) {
+      query.offset(options.offset);
+    }
+
+    if (options.limit !== undefined && options.limit > 0) {
+      query.limit(options.limit);
+    }
+
+    return [await query.getMany(), total];
   }
 
   async create(
@@ -593,6 +789,18 @@ export class InventoryCountOrderService<
         bookQuantity: 0,
         countedQuantity: input.countedQuantity,
         isAddition: true,
+        // Snapshotted from the batch the same way a scoped line is, so an added
+        // line renders through the identical columns. A brand-new batch carries
+        // the defaults, which is exactly right: unbooked stock is not held, not
+        // in transfer and not inspected.
+        held: batch.held ?? null,
+        inShipment: batch.inShipment ?? null,
+        inspectionResult: batch.inspectionResult ?? null,
+        transferId: batch.transferId ?? null,
+        vendorId: batch.vendorId ?? null,
+        customerId: batch.customerId ?? null,
+        saleId: batch.saleId ?? null,
+        saleSerialId: batch.saleSerialId ?? null,
       }),
     );
   }

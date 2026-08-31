@@ -413,6 +413,14 @@ type InventoryCountOrderItemDto {
   bookQuantity: Float!
   countedQuantity: Float
   isAddition: Boolean!
+  held: Boolean
+  inShipment: Boolean
+  inspectionResult: Boolean
+  transferId: ID
+  vendorId: String
+  customerId: String
+  saleId: String
+  saleSerialId: String
   material: MaterialDto!
   batch: BatchDto!
   location: LocationDto
@@ -442,6 +450,12 @@ enum InventoryCountStatus {
   COUNTING
   COMPLETED
   CANCELLED
+}
+
+type InventoryCountOrderItems {
+  id: ID!
+  items: [InventoryCountOrderItemDto!]!
+  total: Int!
 }
 
 type InventoryCountOrders {
@@ -617,6 +631,7 @@ type Query {
   saleOrders(id: ID!): [String!]!
   mapData(key: String!): MapDataDto!
   inventoryCountOrders(offset: Int, limit: Int, name: String, statuses: [InventoryCountStatus!], createdBy: String, countDateFrom: String, countDateTo: String, locationIds: [ID!]): InventoryCountOrders!
+  inventoryCountOrderItems(offset: Int, limit: Int, id: ID!, materialKey: String, materialDescription: String, batchKey: String, locationKey: String, loaderSerialId: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String, onlyVariance: Boolean): InventoryCountOrderItems!
   inventoryCountOrder(id: ID!): InventoryCountOrderDto!
 }
 

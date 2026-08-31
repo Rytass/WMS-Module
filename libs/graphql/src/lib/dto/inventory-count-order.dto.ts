@@ -56,6 +56,37 @@ export class InventoryCountOrderItemDto {
   /** `true` for a line added during counting for stock the books never had. */
   @Field(() => Boolean)
   isAddition!: boolean;
+
+  // ── Batch attributes as they were when counting started ────────────────── //
+  //
+  // Snapshotted rather than resolved live: the batch keeps moving after a count
+  // settles, and a sheet that silently rewrites itself months later stops being
+  // a record of what was found. `null` before counting has started.
+
+  @Field(() => Boolean, { nullable: true })
+  held!: boolean | null;
+
+  @Field(() => Boolean, { nullable: true })
+  inShipment!: boolean | null;
+
+  /** `null` = awaiting inspection, `false` = failed, `true` = passed. */
+  @Field(() => Boolean, { nullable: true })
+  inspectionResult!: boolean | null;
+
+  @Field(() => ID, { nullable: true })
+  transferId!: string | null;
+
+  @Field(() => String, { nullable: true })
+  vendorId!: string | null;
+
+  @Field(() => String, { nullable: true })
+  customerId!: string | null;
+
+  @Field(() => String, { nullable: true })
+  saleId!: string | null;
+
+  @Field(() => String, { nullable: true })
+  saleSerialId!: string | null;
 }
 
 /**
@@ -99,6 +130,11 @@ export class InventoryCountOrderDto {
   @Field(() => Date)
   createdAt!: Date;
 }
+
+@ObjectType()
+export class InventoryCountOrderItems extends PaginatedResponse(
+  InventoryCountOrderItemDto,
+) {}
 
 @ObjectType()
 export class InventoryCountOrders extends PaginatedResponse(

@@ -74,6 +74,43 @@ export class InventoryCountOrderItemEntityClass {
   @Column({ type: 'boolean', default: false })
   isAddition!: boolean;
 
+  // ── Batch attributes, snapshotted when counting starts ─────────────────── //
+  //
+  // The count sheet shows whether each position was awaiting inspection, held or
+  // in transfer, and which vendor / customer / sale order it belonged to. All of
+  // those live on the batch, which keeps moving after the count is settled — so
+  // they are copied here rather than resolved live. A count completed in June has
+  // to keep showing what June looked like, otherwise the sheet stops being an
+  // audit record of what was found.
+  //
+  // Filled by `start()` for scoped lines and by `addItem()` for additions;
+  // `null` before counting has started.
+
+  @Column({ type: 'boolean', nullable: true })
+  held!: boolean | null;
+
+  @Column({ type: 'boolean', nullable: true })
+  inShipment!: boolean | null;
+
+  /** `null` = 待檢驗, `false` = 檢驗失敗, `true` = passed. */
+  @Column({ type: 'boolean', nullable: true })
+  inspectionResult!: boolean | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  transferId!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  vendorId!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  customerId!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  saleId!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  saleSerialId!: string | null;
+
   @ManyToOne('locations')
   @JoinColumn({ name: 'locationId', referencedColumnName: 'id' })
   location!: LocationEntityClass;
