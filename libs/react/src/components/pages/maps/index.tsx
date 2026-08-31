@@ -9,7 +9,23 @@ import { FilterType } from '../../FilterWrapper/typing';
 import InventoryTable from '../inventory-list/Table';
 import { FilterValues } from './typing';
 
-function Maps() {
+export interface MapsProps {
+  /**
+   * Whether the embedded inventory table exposes the inventory-action toolbar.
+   *
+   * `/maps` reads as "look at the warehouse map", but the table it embeds is a
+   * full inventory write surface — hosts that gate this page on a `warehouse-map`
+   * resource end up granting all 15 stock actions through it. Pass `false` to
+   * make the page read-only.
+   *
+   * @default true
+   * Kept `true` so this prop is purely additive; the default flips to `false`
+   * in the next major.
+   */
+  readonly haveInventoryActionsSystem?: boolean;
+}
+
+function Maps({ haveInventoryActionsSystem = true }: MapsProps) {
   const [currentFilter, setCurrentFilter] = useState<FilterValues>();
 
   return (
@@ -51,7 +67,11 @@ function Maps() {
           setCurrentFilter(values);
         }}
       />
-      <InventoryTable currentFilter={currentFilter} onlyListMode />
+      <InventoryTable
+        currentFilter={currentFilter}
+        onlyListMode
+        haveInventoryActionsSystem={haveInventoryActionsSystem}
+      />
     </PageWrapper>
   );
 }
