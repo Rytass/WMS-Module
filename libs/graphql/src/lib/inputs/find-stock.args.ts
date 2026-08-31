@@ -36,4 +36,21 @@ export class FindStockArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   loaderKey?: string;
+
+  /**
+   * Commercial attributes carried by the stock's batch. Matched exactly — they
+   * are identifiers from the host system, and a partial match on 「SO-1」 would
+   * quietly sweep in 「SO-10」.
+   */
+  @Field(() => String, { nullable: true })
+  vendorId?: string;
+
+  @Field(() => String, { nullable: true })
+  customerId?: string;
+
+  @Field(() => String, { nullable: true })
+  saleId?: string;
+
+  @Field(() => String, { nullable: true })
+  saleSerialId?: string;
 }

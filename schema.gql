@@ -613,10 +613,10 @@ type Query {
   materials(offset: Int, limit: Int, key: String, description: String): Materials!
   batches(offset: Int, limit: Int, key: String, materialId: ID): Batches!
   stock(id: ID!): StockDto!
-  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): Stocks!
-  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): Materials!
-  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): AggregatedStocks!
-  changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): ChangeLogs!
+  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Stocks!
+  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Materials!
+  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): AggregatedStocks!
+  changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): ChangeLogs!
   receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, statuses: [ReceiveInventoryOrderStatus!], dateRange: DateRangeArgs, description: String, key: String, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
