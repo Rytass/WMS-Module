@@ -1,0 +1,163 @@
+import { useCallback } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as Yup from 'yup';
+import { Message, SelectValue } from '@mezzanine-ui/react';
+import { FormModalWrapper } from '../../../fields/FormModalWrapper';
+import MaterialsField from '../../../fields/MaterialsField';
+import BatchesField from '../../../fields/BatchesField';
+import LocationsField from '../../../fields/LocationsField';
+import AvailableLoadersField from '../../../fields/AvailableLoadersField';
+import NumberInputField from '../../../fields/NumberInputField';
+import { useInventoryCountMutations } from '../useApi';
+import classes from './AddStockModal.module.scss';
+
+interface AddStockFormValues {
+  material: SelectValue<string> | null;
+  batch: SelectValue<string> | null;
+  location: SelectValue<string> | null;
+  loader: SelectValue<string> | null;
+  countedQuantity: number | string;
+}
+
+const schema: Yup.ObjectSchema<AddStockFormValues> = Yup.object({
+  material: Yup.object({
+    id: Yup.string().required(),
+    name: Yup.string().required(),
+  })
+    .nullable()
+    .required('必填'),
+  batch: Yup.object({
+    id: Yup.string().required(),
+    name: Yup.string().required(),
+  })
+    .nullable()
+    .required('必填'),
+  location: Yup.object({
+    id: Yup.string().required(),
+    name: Yup.string().required(),
+  })
+    .nullable()
+    .required('必填'),
+  loader: Yup.object({
+    id: Yup.string().required(),
+    name: Yup.string().required(),
+  })
+    .nullable()
+    .required('必填'),
+  countedQuantity: Yup.mixed<number | string>()
+    .test('positive', '需為大於 0 的數字', (value) => Number(value) > 0)
+    .required('必填'),
+}) as Yup.ObjectSchema<AddStockFormValues>;
+
+interface AddStockModalProps {
+  orderId: string;
+  open: boolean;
+  closeModal: VoidFunction;
+}
+
+/**
+ * "新增庫存" — book a line for stock the ledger has no record of.
+ *
+ * The batch field takes a *key*, not an id: the design allows editing the
+ * suggested default, and a key that does not exist yet is exactly how a surplus
+ * of a never-recorded batch gets onto the sheet. The backend creates it during
+ * settlement.
+ */
+const AddStockModal: FC<AddStockModalProps> = ({
+  orderId,
+  open,
+  closeModal,
+}) => {
+  const { addInventoryCountItem } = useInventoryCountMutations();
+
+  const methods = useForm<AddStockFormValues>({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      material: null,
+      batch: null,
+      location: null,
+      loader: null,
+      countedQuantity: '',
+    },
+  });
+
+  const material = useWatch({
+    control: methods.control,
+    name: 'material',
+  });
+  const location = useWatch({
+    control: methods.control,
+    name: 'location',
+  });
+
+  const onSubmit = useCallback(
+    async (values: AddStockFormValues) => {
+      await addInventoryCountItem({
+        variables: {
+          id: orderId,
+          materialId: values.material?.id ?? '',
+          // The batch selector carries the key in `name`; a hand-typed value
+          // arrives the same way, which is what lets a new batch through.
+          batchKey: values.batch?.name ?? '',
+          locationId: values.location?.id ?? '',
+          loaderId: values.loader?.id ?? null,
+          countedQuantity: Number(values.countedQuantity),
+        },
+      });
+
+      Message.success('新增庫存成功');
+      closeModal();
+    },
+    [addInventoryCountItem, closeModal, orderId],
+  );
+
+  return (
+    <FormModalWrapper<AddStockFormValues>
+      methods={methods}
+      title="新增庫存"
+      confirmText="新增"
+      onSubmit={onSubmit}
+      closeModal={closeModal}
+      open={open}
+      confirmMode="create"
+      cancelWithConfirm={methods.formState.isDirty}
+    >
+      <div className={classes.host}>
+        <MaterialsField name="material" label="料號" selectValueMode required />
+        {/* The batch list is scoped to the chosen material, so it stays disabled
+            until there is one — same order the design prescribes. */}
+        <BatchesField
+          name="batch"
+          label="批號"
+          addable
+          selectValueMode
+          disabled={!material}
+          required
+        />
+        <LocationsField
+          name="location"
+          label="儲存位置"
+          selectValueMode
+          required
+        />
+        <AvailableLoadersField
+          name="loader"
+          label="載具"
+          selectValueMode
+          relativeLocationId={location?.id}
+          disabled={!location}
+          required
+        />
+        <NumberInputField
+          name="countedQuantity"
+          label="盤點數量"
+          placeholder="輸入盤點數量"
+          required
+        />
+      </div>
+    </FormModalWrapper>
+  );
+};
+
+export default AddStockModal;

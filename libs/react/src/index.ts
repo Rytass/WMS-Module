@@ -13,7 +13,7 @@ export { default as InventoryMovement } from './components/pages/inventory-movem
 export { default as LabelSearch } from './components/pages/label-search';
 export { default as LoadersManagement } from './components/pages/loaders-management';
 export { default as LocationsManagement } from './components/pages/locations-management';
-export { default as Maps } from './components/pages/maps';
+export { default as Maps, type MapsProps } from './components/pages/maps';
 export { default as MaterialsManagement } from './components/pages/materials-management';
 export { default as ReceiveInventoryOrders } from './components/pages/receive-inventory-orders';
 export { default as ShipInventoryOrders } from './components/pages/ship-inventory-orders';
@@ -25,6 +25,7 @@ export { default as ViewReceiveInventoryOrder } from './components/pages/receive
 export { default as EditShipInventoryOrder } from './components/pages/ship-inventory-orders/edit';
 export { default as ViewShipInventoryOrder } from './components/pages/ship-inventory-orders/view';
 export { default as EditTransferOrder } from './components/pages/inventory-movement/transfer-order';
+export { default as ViewInventoryCount } from './components/pages/inventory-count/view';
 
 // Apollo client factory + default singleton.
 export { createApolloClient, default as ApolloClient } from './apollo';
@@ -32,7 +33,32 @@ export { createApolloClient, default as ApolloClient } from './apollo';
 // Providers consumed by app shells.
 export { default as DialogProvider } from './components/dialog/DialogProvider';
 export { default as ModalProvider } from './components/modal/ModalProvider';
-export { default as InventoryActionsProvider } from './components/inventoryActions/InventoryActionsProvider';
+export {
+  default as InventoryActionsProvider,
+  type InventoryActionsProviderProps,
+} from './components/inventoryActions/InventoryActionsProvider';
+
+// Inventory actions: the enum a deployment switches on/off, the action↔operation
+// mapping that keeps the frontend and backend switches derived from one source,
+// and the context hook exposing the filtered option list.
+export {
+  InventoryActions,
+  type InventoryActionItem,
+} from './components/inventoryActions/utils';
+export {
+  INVENTORY_ACTION_OPERATIONS,
+  INVENTORY_ACTION_DOCUMENT_NAMES,
+  inventoryActionsForOperation,
+  type InventoryActionOperation,
+} from './components/inventoryActions/operations';
+export {
+  useInventoryActions,
+  useAddInventories,
+} from './components/inventoryActions/useInventoryActions';
+export {
+  DEFAULT_INVENTORY_ACTION_ERROR_MESSAGE,
+  type InventoryActionsContextValues,
+} from './components/inventoryActions/InventoryActionsContext';
 
 // Generic hooks.
 export { useColumnWidthPersistence } from './hooks/useColumnWidthPersistence';

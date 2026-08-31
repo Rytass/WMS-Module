@@ -1,0 +1,93 @@
+mutation CreateInventoryCountOrder(
+  $name: String!
+  $countDate: String!
+  $locationIds: [ID!]!
+) {
+  createInventoryCountOrder(
+    name: $name
+    countDate: $countDate
+    locationIds: $locationIds
+  ) {
+    id
+    key
+  }
+}
+
+mutation UpdateInventoryCountOrder(
+  $id: ID!
+  $name: String
+  $countDate: String
+  $locationIds: [ID!]
+) {
+  updateInventoryCountOrder(
+    id: $id
+    name: $name
+    countDate: $countDate
+    locationIds: $locationIds
+  ) {
+    id
+  }
+}
+
+mutation StartInventoryCount($id: ID!) {
+  startInventoryCount(id: $id) {
+    id
+    status
+  }
+}
+
+mutation CountInventory($id: ID!, $items: [CountInventoryItemInput!]!) {
+  countInventory(id: $id, items: $items) {
+    id
+  }
+}
+
+mutation AddInventoryCountItem(
+  $id: ID!
+  $materialId: ID!
+  $batchKey: String!
+  $locationId: ID!
+  $loaderId: ID
+  $countedQuantity: Float!
+  $unitId: ID
+) {
+  addInventoryCountItem(
+    id: $id
+    materialId: $materialId
+    batchKey: $batchKey
+    locationId: $locationId
+    loaderId: $loaderId
+    countedQuantity: $countedQuantity
+    unitId: $unitId
+  ) {
+    id
+  }
+}
+
+mutation RemoveInventoryCountItem($id: ID!, $itemId: ID!) {
+  removeInventoryCountItem(id: $id, itemId: $itemId) {
+    id
+  }
+}
+
+mutation ResetInventoryCount($id: ID!) {
+  resetInventoryCount(id: $id) {
+    id
+    status
+  }
+}
+
+mutation CancelInventoryCount($id: ID!) {
+  cancelInventoryCount(id: $id) {
+    id
+    status
+  }
+}
+
+mutation SettleInventoryCount($id: ID!) {
+  settleInventoryCount(id: $id) {
+    id
+    status
+    settledAt
+  }
+}

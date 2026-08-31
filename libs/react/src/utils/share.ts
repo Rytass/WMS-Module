@@ -1,6 +1,7 @@
 import {
   ShipInventoryOrderStatus,
   ReceiveInventoryOrderStatus,
+  InventoryCountStatus,
   ChangeType,
 } from '../graphql/generated/.graphql';
 
@@ -100,6 +101,25 @@ export function changeTypeName(type: ChangeType): string {
 
     default:
       return type;
+  }
+}
+
+export function inventoryCountStatusName(status: InventoryCountStatus): string {
+  switch (status) {
+    case InventoryCountStatus.PENDING:
+      return '尚未執行';
+
+    case InventoryCountStatus.COUNTING:
+      return '盤點中';
+
+    case InventoryCountStatus.COMPLETED:
+      return '已完成';
+
+    case InventoryCountStatus.CANCELLED:
+      return '已取消';
+
+    default:
+      return '';
   }
 }
 
