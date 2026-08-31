@@ -286,6 +286,16 @@ Counted quantities are editable only while counting, and **nothing touches stock
 執行盤差**. Up to that point the numbers are working notes; the page keeps them in local
 state and 暫存結果 persists them.
 
+While the count is still 尚未執行, the header fields 名稱 / 盤點日期 / 盤點範圍 are editable in
+place — moving focus out of the block saves them. 開始盤點 freezes them, because that is the
+moment the book snapshot is taken and the variance is measured against it.
+
+The sheet is paginated and filtered **on the server**: 料號 / 物料說明 / 批號 / 儲存位置 / 載具 on
+the bar, and 供應商 / 客戶 / 銷售訂單號碼 / 銷售訂單項次 behind 進階搜尋. Clicking a value in the
+table sets that one filter (it replaces, it does not stack). The 檢驗 / 凍結 / 調撥 icons and the
+four commercial columns are snapshots taken at 開始盤點, so they keep showing the world the count
+was measured against rather than today's stock.
+
 > ⚠️ **開始盤點 locks the counted locations.** While a count is `COUNTING`, every other
 > stock movement in its scope — including one your own code drives by calling a service
 > directly — is refused with a 409 naming the count. See the backend note in
@@ -300,6 +310,9 @@ row per sheet line, with the 盤點數量 column left blank for the floor to fil
 盤點單號,項目識別碼,料號,物料說明,批號,儲存位置,載具,帳面數量,單位,盤點數量
 IC2508300001,3f9a…c1,WATER2B003,200ml 礦泉水,2510310042,1000A1BC,BY0093,100,BOT,
 ```
+
+Both 下載盤點清單 and 上傳盤點結果 work on the **whole** sheet, not the page on screen — a
+truncated export would come back filled in and settle every missing line as a shortage.
 
 上傳盤點結果 reads the file back and fills the inputs — it does **not** submit. Matching
 prefers `項目識別碼`; when that column has been mangled or dropped it falls back to

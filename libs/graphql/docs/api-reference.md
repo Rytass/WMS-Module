@@ -74,7 +74,8 @@ static forRootAsync(
 **盤點單 (Inventory Count Order)**
 - `InventoryCountOrderEntity` / `InventoryCountOrderEntityClass` — 盤點單主檔（`countDate` 為盤差記帳基準日）
 - `InventoryCountOrderLocationEntity` / `InventoryCountOrderLocationEntityClass` — 盤點範圍，已展開至所有下層儲位（`isRoot` 標示使用者實際選的節點）
-- `InventoryCountOrderItemEntity` / `InventoryCountOrderItemEntityClass` — 盤點單身（`isAddition` 標示盤盈新增列）
+- `InventoryCountOrderItemEntity` / `InventoryCountOrderItemEntityClass` — 盤點單身（`isAddition` 標示盤盈新增列）。
+  開始盤點時另外快照 8 個當下屬性：`held`、`inShipment`、`inspectionResult`、`transferId`、`vendorId`、`customerId`、`saleId`、`saleSerialId`
 - `InventoryCountOrderChangeEntity` / `InventoryCountOrderChangeEntityClass` — 盤差異動（正=盤盈、負=盤虧）
 - 來源: `lib/models/extensions/inventory-count-order/`
 
@@ -178,7 +179,7 @@ static forRootAsync(
 | `MergeBatchOrderService<T>` | `merge` | 批號合併 | `lib/services/merge-batch-order.service.ts` |
 | `ReclassifyInventoryOrderService<T>` | `reclassify` | 庫存轉料號 | `lib/services/reclassify-inventory-order.service.ts` |
 | `ScrapeService<T>` | `scrape` | 庫存報廢 | `lib/services/scrape.service.ts` |
-| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法 | `lib/services/inventory-count-order.service.ts` |
+| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `findItems`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法。`findItems` 是單身的分頁查詢 | `lib/services/inventory-count-order.service.ts` |
 | `QualityInspectionOrderService<T>` | `inspect` | 品質檢驗 | `lib/services/quality-inspection-order.service.ts` |
 | `SaleOrderService` | （DataSource 直接操作） | 銷售訂單查詢 | `lib/services/sale-order.service.ts` |
 | `HelperService` | `getSeq` | 序號產生工具 | `lib/services/helper.service.ts` |
@@ -286,7 +287,7 @@ enum InventoryCountStatus { PENDING, COUNTING, COMPLETED, CANCELLED }
 
 ### `WmsOperationName` (type) / `WMS_OPERATION_NAMES` (const)
 ```ts
-type WmsOperationName = 'material:read' | 'material:create' | /* …58 項… */;
+type WmsOperationName = 'material:read' | 'material:create' | /* …59 項… */;
 const WMS_OPERATION_NAMES: readonly WmsOperationName[];
 ```
 本套件所有 root operation 的 `` `${resource}:${action}` `` 名稱。同一組字串有三個用途：
@@ -627,7 +628,7 @@ WmsModuleGraphqlModule.forRootAsync({
 | `MaterialQuery` | `material`, `materials` | `MaterialDto`, `Materials` | `lib/queries/material.query.ts` |
 | `StockQuery` | `stock`, `stocks`, `stocksGroupedByMaterial`, `aggregatedStocks`, `changeLogs` | `StockDto`, `Stocks`, `Materials`, `AggregatedStocks`, `ChangeLogs` | `lib/queries/stock.query.ts` |
 | `BatchQuery` | `batches` | `Batches` | `lib/queries/batch.query.ts` |
-| `InventoryCountOrderQuery` | `inventoryCountOrders`, `inventoryCountOrder` | `InventoryCountOrders`, `InventoryCountOrderDto` | `lib/queries/inventory-count-order.query.ts` |
+| `InventoryCountOrderQuery` | `inventoryCountOrders`, `inventoryCountOrder`, `inventoryCountOrderItems` | `InventoryCountOrders`, `InventoryCountOrderDto`, `InventoryCountOrderItems` | `lib/queries/inventory-count-order.query.ts` |
 | `LocationQuery` | `location`, `locations` | `LocationDto`, `Locations` | `lib/queries/location.query.ts` |
 | `ReceiveInventoryOrderQuery` | `receiveInventoryOrder`, `receiveInventoryOrders` | `ReceiveInventoryOrderDto`, `ReceiveInventoryOrders` | `lib/queries/recieve-inventory-order.query.ts` |
 | `ShipInventoryOrderQuery` | `shipInventoryOrder`, `shipInventoryOrders` | `ShipInventoryOrderDto`, `ShipInventoryOrders` | `lib/queries/ship-inventory-order.query.ts` |
@@ -735,6 +736,9 @@ WmsModuleGraphqlModule.forRootAsync({
 
 **庫存**
 - `FindStockArgs` (extends `PaginationArgs`) — 來源: `lib/inputs/find-stock.args.ts`
+  - `materialKey` / `batchKey` / `locationKey` / `loaderKey` 為 ILIKE 模糊比對。
+  - `vendorId` / `customerId` / `saleId` / `saleSerialId` 取自批號，為**完全比對**：它們是上游系統的識別碼，
+    模糊比對會讓 `SO-1` 撈到 `SO-10`。四支 stock query（`stocks`、`stocksGroupedByMaterial`、`aggregatedStocks`、`changeLogs`）皆適用。
 - `DateRangeArgs` (`@InputType`) — 來源: `lib/inputs/date-range.args.ts`
 
 **批號**

@@ -169,7 +169,7 @@ static forRootAsync(
 | `MergeBatchOrderService<T>` | `merge` | 批號合併 | `lib/services/merge-batch-order.service.ts` |
 | `ReclassifyInventoryOrderService<T>` | `reclassify` | 庫存轉料號 | `lib/services/reclassify-inventory-order.service.ts` |
 | `ScrapeService<T>` | `scrape` | 庫存報廢 | `lib/services/scrape.service.ts` |
-| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法 | `lib/services/inventory-count-order.service.ts` |
+| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `findItems`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法。`findItems` 是單身的分頁查詢 | `lib/services/inventory-count-order.service.ts` |
 | `QualityInspectionOrderService<T>` | `inspect` | 品質檢驗 | `lib/services/quality-inspection-order.service.ts` |
 | `SaleOrderService` | （DataSource 直接操作） | 銷售訂單查詢 | `lib/services/sale-order.service.ts` |
 | `HelperService` | `getSeq` | 序號產生工具 | `lib/services/helper.service.ts` |
@@ -358,7 +358,7 @@ static forRootAsync(
 | `MaterialQuery` | `material`, `materials` | `MaterialDto`, `Materials` | `lib/queries/material.query.ts` |
 | `StockQuery` | `stock`, `stocks`, `stocksGroupedByMaterial`, `aggregatedStocks`, `changeLogs` | `StockDto`, `Stocks`, `Materials`, `AggregatedStocks`, `ChangeLogs` | `lib/queries/stock.query.ts` |
 | `BatchQuery` | `batches` | `Batches` | `lib/queries/batch.query.ts` |
-| `InventoryCountOrderQuery` | `inventoryCountOrders`, `inventoryCountOrder` | `InventoryCountOrders`, `InventoryCountOrderDto` | `lib/queries/inventory-count-order.query.ts` |
+| `InventoryCountOrderQuery` | `inventoryCountOrders`, `inventoryCountOrder`, `inventoryCountOrderItems` | `InventoryCountOrders`, `InventoryCountOrderDto`, `InventoryCountOrderItems` | `lib/queries/inventory-count-order.query.ts` |
 | `LocationQuery` | `location`, `locations` | `LocationDto`, `Locations` | `lib/queries/location.query.ts` |
 | `ReceiveInventoryOrderQuery` | `receiveInventoryOrder`, `receiveInventoryOrders` | `ReceiveInventoryOrderDto`, `ReceiveInventoryOrders` | `lib/queries/recieve-inventory-order.query.ts` |
 | `ShipInventoryOrderQuery` | `shipInventoryOrder`, `shipInventoryOrders` | `ShipInventoryOrderDto`, `ShipInventoryOrders` | `lib/queries/ship-inventory-order.query.ts` |
@@ -687,6 +687,39 @@ export default function Page() { return <MaterialsManagement />; }
 
 > **`ViewInventoryCount` is not optional if you mount `InventoryCount`.** The list's 檢視
 > button navigates to `/inventory-count/[id]`; without that shell it 404s.
+
+---
+
+### 頁面行為變更（消費端會看到的差異）
+
+**`InventoryList` / `Maps` — 多了四個進階篩選**
+
+篩選列的「進階搜尋」多出 供應商 / 客戶 / 銷售訂單號碼 / 銷售訂單項次。這四個屬性掛在批號上，
+一直都在表格欄位裡，現在才可以拿來篩。後端是**完全比對**（見 `FindStockArgs`），所以
+`SO-1` 不會撈到 `SO-10`；料號模式的展開子列也套同一組條件。
+
+需要在 host 端關掉的話，用 `disabledOperations` 關掉 `stock:read` 會連整個庫存清單一起關，
+沒有只關這四個篩選的開關——它們是同一支 query 的參數。
+
+**`InventoryList` / `Maps` — 空狀態分兩種**
+
+沒套篩選而查不到 → 「目前沒有庫存資料」；套了篩選而查不到 → 「查無符合條件的資料」。
+共用的內部 `Table` 現在也讓呼叫端覆寫 `emptyProps`（以前會被硬寫死的「查無資料」蓋掉）。
+
+**`ViewInventoryCount` — 單身改為伺服器端分頁與篩選**
+
+盤點單身不再隨 `inventoryCountOrder` 一次全撈，改走 `inventoryCountOrderItems`
+（分頁 + 9 個欄位篩選 + 只看盤差）。連帶的行為：
+
+- 表格新增 檢驗 / 凍結 / 調撥 三個 icon 欄與 供應商 / 客戶 / 銷售訂單號碼 / 銷售訂單項次 四欄，
+  資料來自開始盤點時的快照，不會跟著之後的庫存變動。
+- 點欄位值會把該欄設成篩選條件（快速帶入篩選條件），只替換該欄、不疊加。
+- 「下載盤點清單」與「上傳盤點結果」對的是**整張清單**，不是當頁——另外發一次不分頁查詢，
+  避免操作人員拿到被截斷的檔案後把漏掉的品項全部盤成短少。
+- 狀態為「尚未執行」時，上方 info 區的 名稱 / 盤點日期 / 盤點範圍 可直接編輯，
+  焦點離開該區塊即送出 `updateInventoryCountOrder`。開始盤點後鎖定（快照已成立）。
+
+host 若要關掉單身查詢，operation 名稱是 `inventory-count-order:read-items`。
 
 ---
 

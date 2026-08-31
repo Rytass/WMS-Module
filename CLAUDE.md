@@ -159,6 +159,28 @@ The regression guards are `libs/graphql/src/lib/custom-material-entity.integrati
 
 Consequence: the module **cannot** register a consumer's entity with TypeORM — `forFeature()` runs before the options resolve. `WmsEntities`' constructor checks `dataSource.hasMetadata` for all six and throws instead, because forgetting to register almost works (TypeORM copies a single-table child's columns into the parent, so `synchronize` still builds the right schema) and would otherwise surface as a bare `EntityMetadataNotFoundError` from inside a resolver.
 
+#### The inventory count sheet does not ride on `inventoryCountOrder`
+
+`InventoryCountOrderDto.items` still exists as a field resolver, but the detail page no
+longer uses it: the sheet comes from `inventoryCountOrderItems` (paginated, nine filters,
+`onlyVariance`), and the React fragment `InventoryCountOrder` deliberately does **not**
+select `items`. A count covering an aisle runs to thousands of lines, and a field resolver
+can take neither a page nor a filter. Two consequences: anything that must see the *whole*
+sheet (the CSV export and the upload's row matching) has to fetch it unpaginated on
+purpose — a truncated export comes back filled in and settles every missing line as a
+shortage — and any new mutation on the detail page must invalidate **both**
+`InventoryCountOrderDocument` and `InventoryCountOrderItemsDocument`, which is what
+`refetchOrder` in `libs/react/.../inventory-count/useApi.ts` is for.
+
+#### Batch commercial attributes are matched exactly, never with ILIKE
+
+`vendorId` / `customerId` / `saleId` / `saleSerialId` live on the batch and are filterable
+on both the stock queries (`FindStockArgs`) and the count sheet
+(`FindInventoryCountOrderItemArgs`). Unlike the key filters next to them, they use `=`, not
+`ILIKE`: they are identifiers the host system owns, and a substring match on `SO-1` quietly
+returns `SO-10` as well — a wrong answer that looks entirely plausible. The guard is
+`libs/graphql/src/lib/stock-batch-attribute-filters.integration.spec.ts`.
+
 #### DTO and entity nullability must match
 
 GraphQL DTOs in `libs/graphql/src/lib/dto/*.dto.ts` are returned from services that hand back the TypeORM entity. If the entity column is `string | null`, the DTO field must also declare `string | null` plus `@Field(() => String, { nullable: true })`. Mismatches trigger TS2322 (we suppress it in build via `noEmitOnError: false`, so the build still succeeds but the published `.d.ts` lies about the contract). Check both sides whenever you add or modify a nullable column.

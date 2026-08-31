@@ -109,7 +109,9 @@ WmsModuleCoreModule.forRootAsync({
 **盤點單 (Inventory Count Order)**
 - `InventoryCountOrderEntity` / `InventoryCountOrderEntityClass` — 盤點單主檔（`countDate` 為盤差記帳基準日）
 - `InventoryCountOrderLocationEntity` / `InventoryCountOrderLocationEntityClass` — 盤點範圍，已展開至所有下層儲位（`isRoot` 標示使用者實際選的節點）
-- `InventoryCountOrderItemEntity` / `InventoryCountOrderItemEntityClass` — 盤點單身（`isAddition` 標示盤盈新增列）
+- `InventoryCountOrderItemEntity` / `InventoryCountOrderItemEntityClass` — 盤點單身（`isAddition` 標示盤盈新增列）。
+  開始盤點時另外快照 8 個當下屬性，供檢視頁顯示與篩選，之後不再隨庫存變動：
+  `held`、`inShipment`、`inspectionResult`、`transferId`、`vendorId`、`customerId`、`saleId`、`saleSerialId`
 - `InventoryCountOrderChangeEntity` / `InventoryCountOrderChangeEntityClass` — 盤差異動（正=盤盈、負=盤虧）
 - 來源: `lib/models/extensions/inventory-count-order/`
 
@@ -213,7 +215,7 @@ WmsModuleCoreModule.forRootAsync({
 | `MergeBatchOrderService<T>` | `merge` | 批號合併 | `lib/services/merge-batch-order.service.ts` |
 | `ReclassifyInventoryOrderService<T>` | `reclassify` | 庫存轉料號 | `lib/services/reclassify-inventory-order.service.ts` |
 | `ScrapeService<T>` | `scrape` | 庫存報廢 | `lib/services/scrape.service.ts` |
-| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法 | `lib/services/inventory-count-order.service.ts` |
+| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `findItems`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法。`findItems` 是單身的分頁查詢，支援 9 個欄位篩選與「只看盤差」 | `lib/services/inventory-count-order.service.ts` |
 | `QualityInspectionOrderService<T>` | `inspect` | 品質檢驗 | `lib/services/quality-inspection-order.service.ts` |
 | `SaleOrderService` | （DataSource 直接操作） | 銷售訂單查詢 | `lib/services/sale-order.service.ts` |
 | `HelperService` | `getSeq` | 序號產生工具 | `lib/services/helper.service.ts` |
@@ -246,6 +248,9 @@ WmsModuleCoreModule.forRootAsync({
 
 **庫存**
 - `FindStockInput<U extends object>` (extends `PaginationInput`) — 來源: `lib/typings/find-stock.input.ts`
+  - 除了 `materialKey` / `batchKey` / `locationKey` / `loaderKey`（皆為 ILIKE 模糊比對），另可用批號上的四個商業屬性
+    `vendorId` / `customerId` / `saleId` / `saleSerialId` 篩選。這四個是**完全比對**，不是模糊比對——它們是上游系統的識別碼，
+    模糊比對會讓 `SO-1` 撈到 `SO-10`。傳 `null` 等同不篩選。
 - `AggregatedStock`, `ValidateStockDeductionParams`, `ChangeLog` — 來源: `lib/typings/aggregated-stock.ts`
 
 **批號**
@@ -321,7 +326,7 @@ enum InventoryCountStatus { PENDING, COUNTING, COMPLETED, CANCELLED }
 
 ### `WmsOperationName` (type) / `WMS_OPERATION_NAMES` (const)
 ```ts
-type WmsOperationName = 'material:read' | 'material:create' | /* …58 項… */;
+type WmsOperationName = 'material:read' | 'material:create' | /* …59 項… */;
 const WMS_OPERATION_NAMES: readonly WmsOperationName[];
 ```
 本套件所有 root operation 的 `` `${resource}:${action}` `` 名稱。同一組字串有三個用途：

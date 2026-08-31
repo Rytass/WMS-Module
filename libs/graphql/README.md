@@ -151,7 +151,8 @@ Because the switches mutate process-global registration state, a process may reg
 ## Inventory counting
 
 Compare the ledger against what is physically on the shelf, then adjust the ledger to
-match. Eleven operations (`inventory-count-order:{read,create,update,start,count,add-item,remove-item,reset,cancel,settle}`)
+match. Twelve operations
+(`inventory-count-order:{read,read-items,create,update,start,count,add-item,remove-item,reset,cancel,settle}`)
 back the flow:
 
 ```
@@ -173,6 +174,13 @@ back the flow:
 - **`countDate` is the business date.** The variance is reported under the date the count
   was created for, not the day settlement happened to run. `createdAt` keeps the real
   wall-clock time.
+- **The sheet has its own query.** `inventoryCountOrderItems` paginates and filters the
+  lines (料號 / 物料說明 / 批號 / 儲位 / 載具 as ILIKE; 供應商 / 客戶 / 銷售訂單號碼 / 銷售訂單項次
+  exactly; plus `onlyVariance`). A field resolver cannot take a page or a filter, and a
+  count covering an aisle runs to thousands of lines.
+- **`startInventoryCount` snapshots eight attributes per line** — `held`, `inShipment`,
+  `inspectionResult`, `transferId`, `vendorId`, `customerId`, `saleId`, `saleSerialId` —
+  so the sheet keeps showing the world the variance is measured against, not today's.
 
 ### ⚠️ Starting a count locks its locations
 
