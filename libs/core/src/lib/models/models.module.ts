@@ -28,6 +28,10 @@ import {
   WarehouseMapEntity,
 } from './metadata';
 import {
+  RollbackOrderEntity,
+  RollbackOrderEntityClass,
+  RollbackOrderItemEntity,
+  RollbackOrderItemEntityClass,
   ReceiveInventoryOrderChangeEntity,
   ReceiveInventoryOrderChangeEntityClass,
   ReceiveInventoryOrderEntity,
@@ -163,6 +167,8 @@ const entities = [
   [TransferCustomerOrderItemEntity, TransferCustomerOrderItemEntityClass],
   [TransferCustomerOrderChangeEntity, TransferCustomerOrderChangeEntityClass],
   [ScrapeOrderEntity, ScrapeOrderEntityClass],
+  [RollbackOrderEntity, RollbackOrderEntityClass],
+  [RollbackOrderItemEntity, RollbackOrderItemEntityClass],
   [ScrapeOrderItemEntity, ScrapeOrderItemEntityClass],
   [ScrapeOrderChangeEntity, ScrapeOrderChangeEntityClass],
   [InventoryCountOrderEntity, InventoryCountOrderEntityClass],

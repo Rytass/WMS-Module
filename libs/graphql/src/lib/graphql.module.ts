@@ -78,6 +78,8 @@ import { TransferVendorOrderResolver } from './resolvers/transfer-vendor-order.r
 import { SplitBatchResolver } from './resolvers/split-batch.resolver';
 import { MergeBatchOrderResolver } from './resolvers/merge-batch.resolver';
 import { ScrapeMutation } from './mutations/scrape-order.mutation';
+import { RollbackOrderMutation } from './mutations/rollback-order.mutation';
+import { RollbackOrderQuery } from './queries/rollback-order.query';
 import { QualityInspectionOrderMutation } from './mutations/quality-inspection-order.mutation';
 import { WarehouseMapDataQuery } from './queries/warehouse-map.query';
 import { MapRangeUnionResolver } from './resolvers/warehouse-map.resolver';
@@ -150,6 +152,8 @@ const exportDependencies = [
   ReclassifyInventoryOrderMutation,
 
   ScrapeMutation,
+  RollbackOrderMutation,
+  RollbackOrderQuery,
   QualityInspectionOrderMutation,
 
   WarehouseMapDataQuery,
