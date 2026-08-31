@@ -101,6 +101,46 @@ Touch all of these or the publish pipeline silently misbehaves:
 
 Resolver authorization is opt-in and host-neutral (`libs/graphql/src/lib/auth`). Each root `@Query` / `@Mutation` carries `@WmsOperation({ resource, action })`, which (1) stores a permission requirement for `WmsAuthGuard` to hand to the consumer's `authChecker`, and (2) stamps a host-skip marker (`HOST_SKIP_METADATA_KEY`, default = member-base's `IS_ROUTE_PUBLIC`) so a consumer's global `APP_GUARD` (e.g. member-base's deny-by-default `CasbinGuard`) defers instead of rejecting every WMS field. **A bare `@Query`/`@Mutation` re-introduces the "all WMS operations forbidden" bug** for consumers running a global guard — always add `@WmsOperation`. Do **not** add it to `@ResolveField` (those are reached only through an already-authorized root op). Convention: `resource` = kebab domain, `action` = `'read'` for queries / leading verb for mutations. These strings are internal metadata (not in the schema), so refining them is not a GraphQL breaking change. The member-base wiring lives in the separate `@rytass/wms-module-graphql/adapters/member-base` entrypoint and imports nothing from member-base — it only reads the request fields `CasbinGuard` injects at runtime.
 
+#### Every new Query/Mutation also needs a name in `WMS_OPERATION_NAMES`
+
+`libs/core/src/lib/constants/operations.ts` holds the `WmsOperationName` union and its
+runtime array. It is public API: it is what a consumer's `authChecker` keys off, what
+`enabledOperations` / `disabledOperations` accept, and what `@rytass/wms-module-react`'s
+`INVENTORY_ACTION_OPERATIONS` maps UI actions onto. A missing name means the deployment
+switch for that operation **silently matches nothing**.
+`libs/graphql/src/lib/operation-names.invariant.spec.ts` fails when the union and the
+declared `@WmsOperation` requirements drift apart in either direction, and also checks that
+every `operation` string in react's mapping table is a real name.
+
+Note a name is **not** unique per schema field — several queries share one requirement
+(`loader:read` covers 6 fields). That is why `disabledFields` exists.
+
+#### Deployment switches prune resolvers before the schema is built
+
+`enabledOperations` / `disabledOperations` / `disabledFields` on `forRootAsync` remove an
+operation from the schema entirely (`libs/graphql/src/lib/registry`). Resolver metadata in
+`@nestjs/graphql` is **lazy** — `@Query()` only registers a thunk with
+`LazyMetadataStorage`, and `TypeMetadataStorage.queries` is still empty at `forRootAsync`
+time — so pruning does two things that must stay paired: it deletes the method from the
+resolver prototype **now** (because `ResolversExplorerService.explore()` walks the prototype
+and runs before the metadata loads), and it wraps `addQueryMetadata` / `addMutationMetadata`
+to drop the entry at load time. Only one is worse than neither: prototype-only leaves a
+field resolving to `null`, metadata-only makes `makeExecutableSchema` reject the whole
+schema. Pruning is process-global, so a process may register the module once.
+
+#### Starting an inventory count locks its locations
+
+`InventoryCountLockSubscriber` (`libs/core/src/lib/events`) refuses **any** stock movement
+whose order item sits in a location scoped by a `COUNTING` inventory count. Like
+`StockChangeSubscriber` it hooks the insert of every `*_order_change` row, so the twelve
+domain services stay untouched and a consumer calling a service directly is covered too —
+which is the case that matters. `inventory_count_order_changes` is exempt or settlement
+would lock itself out. If you add a new `*_order_change` table, this subscriber covers it
+automatically; if you add one that is *not* a stock movement, exempt it here.
+
+The count's own entities (order, scope, item, change) are **not** in `WmsEntities` — they
+are owned outright by this package, so reference them by class per the asymmetry rule above.
+
 #### Every new Query/Mutation needs `@WmsMutationEvent` (mutations only)
 
 The mutation event/hook system (`libs/graphql/src/lib/events`, `libs/core/src/lib/events`) lets consumers veto (`beforeHooks`) and observe (`afterListeners`) mutations. Each root `@Mutation` carries `@WmsMutationEvent({ event: '<domain>.<action>' })` next to its `@WmsOperation`; the `WmsMutationInterceptor` opens an `AsyncLocalStorage` dispatch scope, runs the before-hook (throw = veto, before any transaction), and flushes events **after the outermost transaction commits** (it awaits the handler, and `dataSource.transaction` resolves post-commit). **A bare `@Mutation` emits no operation event** — always add `@WmsMutationEvent` with a name from `WmsOperationEventName`. Do **not** add it to `@Query` or `@ResolveField`. Stock domain events (`stock.*`) are collected centrally by `StockChangeSubscriber` (a TypeORM subscriber on every `*_order_change` insert, keyed by table name + sign of `quantityChanged`) — services are not touched, so any new change-writing path is covered automatically; if you add a new `*_order_change` table, add it to that subscriber's `TABLE_TO_CHANGE_TYPE` map. **Invariant:** mutation resolvers must `await` all their DB writes (never fire-and-forget) or the post-commit guarantee breaks. The `@nestjs/event-emitter` bridge lives in the separate `@rytass/wms-module-graphql/adapters/event-emitter` entrypoint (optional peer dep).
