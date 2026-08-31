@@ -35,3 +35,6 @@ export * from './transfer-customer-order/transfer-customer-order-change.entity';
 export * from './scrape-order/scrape-order.entity';
 export * from './scrape-order/scrape-order-item.entity';
 export * from './scrape-order/scrape-order-change.entity';
+export * from './inventory-count-order/inventory-count-order.entity';
+export * from './inventory-count-order/inventory-count-order-item.entity';
+export * from './inventory-count-order/inventory-count-order-change.entity';

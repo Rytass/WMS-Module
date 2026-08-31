@@ -30,3 +30,4 @@ export type {
   WmsStockEventName,
   WmsStockEventPayload,
 } from './wms-event.types';
+export * from './inventory-count-lock.subscriber';

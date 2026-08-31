@@ -74,6 +74,10 @@ const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   ['merge_batch_order_changes', () => ChangeType.MERGED],
   ['reclassify_inventory_order_changes', () => ChangeType.RECLASSIFIED],
   ['scrape_order_changes', () => ChangeType.SCRAPED],
+  [
+    'inventory_count_order_changes',
+    (q: number) => (q > 0 ? ChangeType.COUNT_GAINED : ChangeType.COUNT_LOST),
+  ],
 ]);
 
 const CHANGE_TYPE_TO_EVENT: Readonly<Record<ChangeType, WmsStockEventName>> = {
@@ -94,6 +98,8 @@ const CHANGE_TYPE_TO_EVENT: Readonly<Record<ChangeType, WmsStockEventName>> = {
   [ChangeType.DEALLOCATED]: 'stock.deallocated',
   [ChangeType.RECLASSIFIED]: 'stock.reclassified',
   [ChangeType.SCRAPED]: 'stock.scraped',
+  [ChangeType.COUNT_GAINED]: 'stock.count-gained',
+  [ChangeType.COUNT_LOST]: 'stock.count-lost',
 };
 
 const QUALITY_INSPECTION_TABLE = 'quality_inspection_order_changes';

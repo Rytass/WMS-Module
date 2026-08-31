@@ -102,6 +102,14 @@ import {
   ScrapeOrderItemEntityClass,
   ScrapeOrderChangeEntity,
   ScrapeOrderChangeEntityClass,
+  InventoryCountOrderEntity,
+  InventoryCountOrderEntityClass,
+  InventoryCountOrderLocationEntity,
+  InventoryCountOrderLocationEntityClass,
+  InventoryCountOrderItemEntity,
+  InventoryCountOrderItemEntityClass,
+  InventoryCountOrderChangeEntity,
+  InventoryCountOrderChangeEntityClass,
 } from './extensions';
 
 const entities = [
@@ -157,6 +165,10 @@ const entities = [
   [ScrapeOrderEntity, ScrapeOrderEntityClass],
   [ScrapeOrderItemEntity, ScrapeOrderItemEntityClass],
   [ScrapeOrderChangeEntity, ScrapeOrderChangeEntityClass],
+  [InventoryCountOrderEntity, InventoryCountOrderEntityClass],
+  [InventoryCountOrderLocationEntity, InventoryCountOrderLocationEntityClass],
+  [InventoryCountOrderItemEntity, InventoryCountOrderItemEntityClass],
+  [InventoryCountOrderChangeEntity, InventoryCountOrderChangeEntityClass],
 ] as [symbol, new () => object][];
 
 /**

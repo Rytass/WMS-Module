@@ -48,11 +48,13 @@ import {
   MergeBatchOrderService,
   ReclassifyInventoryOrderService,
   ScrapeService,
+  InventoryCountOrderService,
   QualityInspectionOrderService,
   WarehouseMapDataService,
 } from './services';
 import { BatchService } from './services/batch.service';
 import { StockChangeSubscriber } from './events/stock-change.subscriber';
+import { InventoryCountLockSubscriber } from './events/inventory-count-lock.subscriber';
 import { WMS_STOCK_ENRICH } from './events/wms-event.tokens';
 import { WMS_CORE_MODULE_OPTIONS } from './typings/core-module-options';
 import type {
@@ -173,6 +175,7 @@ const exportDependencies = [
   MergeBatchOrderService,
   ReclassifyInventoryOrderService,
   ScrapeService,
+  InventoryCountOrderService,
   QualityInspectionOrderService,
   WarehouseMapDataService,
 ];
@@ -192,9 +195,13 @@ export class WmsModuleCoreModule {
       providers: [
         ...exportDependencies,
         StockChangeSubscriber,
+        InventoryCountLockSubscriber,
         ...resolvedEntityProviders,
         { provide: WMS_CORE_MODULE_OPTIONS, useValue: coreOptions },
-        { provide: WMS_STOCK_ENRICH, useValue: !!coreOptions.enrichStockEvents },
+        {
+          provide: WMS_STOCK_ENRICH,
+          useValue: !!coreOptions.enrichStockEvents,
+        },
       ],
       exports: [
         ...exportDependencies,
@@ -221,6 +228,7 @@ export class WmsModuleCoreModule {
       providers: [
         ...exportDependencies,
         StockChangeSubscriber,
+        InventoryCountLockSubscriber,
         ...resolvedEntityProviders,
         {
           provide: WMS_CORE_MODULE_OPTIONS,

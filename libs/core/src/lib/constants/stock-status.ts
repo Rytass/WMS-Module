@@ -59,6 +59,12 @@ export enum ChangeType {
   // reclassify-inventory-order-change.entity.ts
   RECLASSIFIED = 'RECLASSIFIED',
 
+  // inventory-count-order-change.entity.ts, change > 0
+  COUNT_GAINED = 'COUNT_GAINED',
+
+  // inventory-count-order-change.entity.ts, change < 0
+  COUNT_LOST = 'COUNT_LOST',
+
   // scrape-order-change.entity.ts
   SCRAPED = 'SCRAPED',
 }

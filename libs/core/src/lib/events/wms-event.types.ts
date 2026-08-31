@@ -57,7 +57,14 @@ export type WmsOperationEventName =
   | 'loader.type-updated'
   | 'location.created'
   | 'location.updated'
-  | 'warehouse-map.updated';
+  | 'warehouse-map.updated'
+  | 'inventory-count-order.created'
+  | 'inventory-count-order.updated'
+  | 'inventory-count-order.started'
+  | 'inventory-count-order.counted'
+  | 'inventory-count-order.reset'
+  | 'inventory-count-order.cancelled'
+  | 'inventory-count-order.settled';
 
 // --- Stock domain event names (driven by ChangeType) ----------------------
 
@@ -81,7 +88,10 @@ export type WmsStockEventName =
   | 'stock.scraped'
   // No dedicated ChangeType — quality inspection only flips the
   // inspectionResult flag; surfaced as its own event to fill the gap.
-  | 'stock.inspection-resolved';
+  | 'stock.inspection-resolved'
+  // Settled inventory-count variance, split by the sign of the adjustment.
+  | 'stock.count-gained'
+  | 'stock.count-lost';
 
 export type WmsEventName = WmsOperationEventName | WmsStockEventName;
 
@@ -104,9 +114,7 @@ export interface WmsActor {
  * NestJS execution context. Wired via `forRootAsync({ actorExtractor })`; the
  * `@rytass/wms-module-graphql/adapters/member-base` entrypoint ships a default.
  */
-export type WmsActorExtractor = (
-  context: ExecutionContext,
-) => WmsActor | null;
+export type WmsActorExtractor = (context: ExecutionContext) => WmsActor | null;
 
 // --- Payloads -------------------------------------------------------------
 
