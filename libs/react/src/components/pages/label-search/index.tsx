@@ -1,15 +1,18 @@
 import { isNumber, uniq } from 'lodash';
 import { Typography, Button, cx } from '@mezzanine-ui/react';
 import ContentHeader from '@mezzanine-ui/react/ContentHeader';
-import { inventoryActionOptions } from '../../inventoryActions/utils';
 import { useInventoryActions } from '../../inventoryActions/useInventoryActions';
 import LabelInput from './LabelInput';
 import OperateArea from './OperateArea';
 import classes from './index.module.scss';
 
 function LabelSearch() {
-  const { setTargetAction, targetInventories, targetAction } =
-    useInventoryActions();
+  const {
+    setTargetAction,
+    targetInventories,
+    targetAction,
+    availableActionOptions,
+  } = useInventoryActions();
 
   return (
     <div className={classes.host}>
@@ -20,7 +23,7 @@ function LabelSearch() {
             功能操作
           </Typography>
           <div className={classes.actionsWrapper}>
-            {inventoryActionOptions.map((option) => (
+            {availableActionOptions.map((option) => (
               <Button
                 key={option.id}
                 className={cx(classes.actionButton, {

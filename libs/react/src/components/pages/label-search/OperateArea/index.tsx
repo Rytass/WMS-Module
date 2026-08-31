@@ -20,7 +20,8 @@ import QualityInspection from './QualityInspection';
 import ScrapInventory from './ScrapInventory';
 
 const OperateArea: FC = () => {
-  const { targetAction, targetInventoryIds } = useInventoryActions();
+  const { targetAction, targetInventoryIds, isActionEnabled } =
+    useInventoryActions();
 
   const { data, loading: queryInventoryListLoading } =
     useQueryInventoryList(targetInventoryIds);
@@ -37,6 +38,12 @@ const OperateArea: FC = () => {
     }),
     [inventoryList, queryInventoryListLoading],
   );
+
+  // A disabled action must not mount its panel even if `targetAction` somehow
+  // holds one; fall back to the neutral section so the page stays usable.
+  if (targetAction && !isActionEnabled(targetAction.id)) {
+    return <HostSection {...baseProps} />;
+  }
 
   switch (targetAction?.id) {
     case InventoryActions.CreateTransferInventory:

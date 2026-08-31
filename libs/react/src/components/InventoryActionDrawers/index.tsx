@@ -35,7 +35,8 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     data,
     loading: queryInventoryListLoading,
   } = useLazyQueryInventoryList();
-  const { targetInventoryIds, targetAction, resetAll } = useInventoryActions();
+  const { targetInventoryIds, targetAction, resetAll, isActionEnabled } =
+    useInventoryActions();
 
   useEffect(() => {
     if (open) {
@@ -67,6 +68,12 @@ const InventoryActionDrawers: FC<InventoryActionDrawersProps> = ({
     }),
     [inventoryList, onClose, open, queryInventoryListLoading],
   );
+
+  // A disabled action must not mount its drawer even if `targetAction` somehow
+  // holds one (deep link, leftover state, a consumer setting it directly).
+  if (targetAction && !isActionEnabled(targetAction.id)) {
+    return null;
+  }
 
   switch (targetAction?.id) {
     case InventoryActions.CreateTransferInventory:

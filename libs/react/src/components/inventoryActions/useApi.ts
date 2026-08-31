@@ -37,6 +37,7 @@ import { QualityInspectionFieldValues } from './fields/QualityInspectionField/ty
 import { DeliverToCustomerFieldValues } from './fields/DeliverToCustomerField/typing';
 import { ReturnFromCustomerFieldValues } from './fields/ReturnFromCustomerField/typing';
 import { useInventoryActions } from './useInventoryActions';
+import { useInventoryActionError } from './useInventoryActionError';
 
 const refetchQueriesAfterInventoryActions = [
   StocksGroupedByMaterialDocument,
@@ -94,6 +95,7 @@ export function useCreateTransferInventory(
   inventoryList: StockInActionsFragment[],
 ) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [createTransferInventory] = useMutation(CreateTransferOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -124,10 +126,11 @@ export function useCreateTransferInventory(
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
     [
+      handleError,
       createTransferInventory,
       inventoryList,
       inventorySignature,
@@ -143,6 +146,7 @@ export function useCreateTransferInventory(
 
 export function useHoldInventory(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [holdInventory] = useMutation(CreateHoldInventoryOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -168,9 +172,10 @@ export function useHoldInventory(inventoryList: StockInActionsFragment[]) {
         resetAll();
       }
     } catch (error) {
-      console.error(error);
+      handleError(error);
     }
   }, [
+    handleError,
     holdInventory,
     inventoryList,
     inventorySignature,
@@ -187,6 +192,7 @@ export function useReleaseHoldInventory(
   inventoryList: StockInActionsFragment[],
 ) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [releaseHoldInventory] = useMutation(ReleaseDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -212,9 +218,10 @@ export function useReleaseHoldInventory(
         resetAll();
       }
     } catch (error) {
-      console.error(error);
+      handleError(error);
     }
   }, [
+    handleError,
     inventoryList,
     inventorySignature,
     releaseHoldInventory,
@@ -229,6 +236,7 @@ export function useReleaseHoldInventory(
 
 export function useAllocateInventory(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [allocateInventory] = useMutation(
     CreateAllocateInventoryOrderDocument,
     {
@@ -260,10 +268,11 @@ export function useAllocateInventory(inventoryList: StockInActionsFragment[]) {
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
     [
+      handleError,
       allocateInventory,
       inventoryList,
       inventorySignature,
@@ -281,6 +290,7 @@ export function useDeallocateInventory(
   inventoryList: StockInActionsFragment[],
 ) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [deallocateInventory] = useMutation(DeallocateDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -306,9 +316,10 @@ export function useDeallocateInventory(
         resetAll();
       }
     } catch (error) {
-      console.error(error);
+      handleError(error);
     }
   }, [
+    handleError,
     deallocateInventory,
     inventoryList,
     inventorySignature,
@@ -323,6 +334,7 @@ export function useDeallocateInventory(
 
 export function useShipInventory(inventoryList: StockInActionsFragment[]) {
   const { targetAction, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [updateShipInventoryOrder] = useMutation(
     UpdateShipInventoryOrderDocument,
     {
@@ -375,10 +387,11 @@ export function useShipInventory(inventoryList: StockInActionsFragment[]) {
           }
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
     [
+      handleError,
       inventoryList,
       resetAll,
       targetAction?.submitText,
@@ -393,6 +406,7 @@ export function useShipInventory(inventoryList: StockInActionsFragment[]) {
 
 export function useSplitBatch(inventory?: StockInActionsFragment) {
   const { inventorySignature, targetAction, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [splitBatch] = useMutation(SplitBatchDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -422,10 +436,17 @@ export function useSplitBatch(inventory?: StockInActionsFragment) {
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
-    [currentUnitId, inventory, resetAll, splitBatch, targetAction?.submitText],
+    [
+      handleError,
+      currentUnitId,
+      inventory,
+      resetAll,
+      splitBatch,
+      targetAction?.submitText,
+    ],
   );
 
   return {
@@ -435,6 +456,7 @@ export function useSplitBatch(inventory?: StockInActionsFragment) {
 
 export function useMergeBatch(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [mergeBatch] = useMutation(MergeBatchDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -462,10 +484,17 @@ export function useMergeBatch(inventoryList: StockInActionsFragment[]) {
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
-    [inventoryList, inventorySignature, mergeBatch, resetAll, targetAction],
+    [
+      handleError,
+      inventoryList,
+      inventorySignature,
+      mergeBatch,
+      resetAll,
+      targetAction,
+    ],
   );
 
   return {
@@ -477,6 +506,7 @@ export function useReclassifyInventory(
   inventoryList: StockInActionsFragment[],
 ) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [reclassifyInventory] = useMutation(ReclassifyInventoryOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -504,10 +534,11 @@ export function useReclassifyInventory(
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
     [
+      handleError,
       inventoryList,
       inventorySignature,
       reclassifyInventory,
@@ -523,6 +554,7 @@ export function useReclassifyInventory(
 
 export function useTransferVendor(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [transferVendor] = useMutation(CreateTransferVendorOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -550,10 +582,17 @@ export function useTransferVendor(inventoryList: StockInActionsFragment[]) {
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
-    [inventoryList, inventorySignature, resetAll, targetAction, transferVendor],
+    [
+      handleError,
+      inventoryList,
+      inventorySignature,
+      resetAll,
+      targetAction,
+      transferVendor,
+    ],
   );
 
   return {
@@ -563,6 +602,7 @@ export function useTransferVendor(inventoryList: StockInActionsFragment[]) {
 
 export function useReturnVendor(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [returnVendor] = useMutation(ReturnTransferVendorOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -591,10 +631,17 @@ export function useReturnVendor(inventoryList: StockInActionsFragment[]) {
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
-    [inventoryList, inventorySignature, resetAll, returnVendor, targetAction],
+    [
+      handleError,
+      inventoryList,
+      inventorySignature,
+      resetAll,
+      returnVendor,
+      targetAction,
+    ],
   );
 
   return {
@@ -604,6 +651,7 @@ export function useReturnVendor(inventoryList: StockInActionsFragment[]) {
 
 export function useQualityInspection(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [qualityInspect] = useMutation(InspectMaterialsDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -633,10 +681,17 @@ export function useQualityInspection(inventoryList: StockInActionsFragment[]) {
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
-    [inventoryList, inventorySignature, qualityInspect, resetAll, targetAction],
+    [
+      handleError,
+      inventoryList,
+      inventorySignature,
+      qualityInspect,
+      resetAll,
+      targetAction,
+    ],
   );
 
   return {
@@ -646,6 +701,7 @@ export function useQualityInspection(inventoryList: StockInActionsFragment[]) {
 
 export function useTransferCustomer(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [transferCustomer] = useMutation(CreateTransferCustomerOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -673,10 +729,11 @@ export function useTransferCustomer(inventoryList: StockInActionsFragment[]) {
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
     [
+      handleError,
       inventoryList,
       inventorySignature,
       resetAll,
@@ -692,6 +749,7 @@ export function useTransferCustomer(inventoryList: StockInActionsFragment[]) {
 
 export function useReturnCustomer(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [returnCustomer] = useMutation(ReturnTransferCustomerOrderDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -720,10 +778,17 @@ export function useReturnCustomer(inventoryList: StockInActionsFragment[]) {
           resetAll();
         }
       } catch (error) {
-        console.error(error);
+        handleError(error);
       }
     },
-    [inventoryList, inventorySignature, resetAll, returnCustomer, targetAction],
+    [
+      handleError,
+      inventoryList,
+      inventorySignature,
+      resetAll,
+      returnCustomer,
+      targetAction,
+    ],
   );
 
   return {
@@ -733,6 +798,7 @@ export function useReturnCustomer(inventoryList: StockInActionsFragment[]) {
 
 export function useScrapInventory(inventoryList: StockInActionsFragment[]) {
   const { targetAction, inventorySignature, resetAll } = useInventoryActions();
+  const handleError = useInventoryActionError();
   const [scrapInventory] = useMutation(ScrapeMaterialsDocument, {
     refetchQueries: refetchQueriesAfterInventoryActions,
   });
@@ -758,9 +824,10 @@ export function useScrapInventory(inventoryList: StockInActionsFragment[]) {
         resetAll();
       }
     } catch (error) {
-      console.error(error);
+      handleError(error);
     }
   }, [
+    handleError,
     inventoryList,
     inventorySignature,
     resetAll,

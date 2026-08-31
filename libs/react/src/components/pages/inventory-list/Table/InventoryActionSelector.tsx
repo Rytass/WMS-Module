@@ -8,10 +8,7 @@ import {
 import { isNumber, uniq } from 'lodash';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { Dropdown, Button, Message } from '@mezzanine-ui/react';
-import {
-  InventoryActionItem,
-  inventoryActionOptions,
-} from '../../../inventoryActions/utils';
+import { InventoryActionItem } from '../../../inventoryActions/utils';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import {
   useInventoryActions,
@@ -31,12 +28,13 @@ function InventoryActionSelector({
   setNeedClearSelectedRows,
   openDrawer,
 }: InventoryActionSelectorProps) {
-  const { targetAction, setTargetAction } = useInventoryActions();
+  const { targetAction, setTargetAction, availableActionOptions } =
+    useInventoryActions();
   const addInventories = useAddInventories();
   const [open, toggleOpen] = useState<boolean>(false);
 
   const availableOptions = useMemo(() => {
-    return inventoryActionOptions.filter((iao) => {
+    return availableActionOptions.filter((iao) => {
       const baseCondition = targetStocks.every((s) => iao.condition(s));
 
       if (isNumber(iao.maxDataLength)) {
@@ -53,7 +51,7 @@ function InventoryActionSelector({
 
       return baseCondition;
     });
-  }, [targetStocks]);
+  }, [availableActionOptions, targetStocks]);
 
   const onAddInventories = useCallback(
     (currentAction: InventoryActionItem | null) => {
@@ -101,7 +99,7 @@ function InventoryActionSelector({
       onVisibilityChange={toggleOpen}
       onSelect={(option) => {
         const currentAction =
-          inventoryActionOptions.find((o) => o.id === option.id) ?? null;
+          availableActionOptions.find((o) => o.id === option.id) ?? null;
         setTargetAction(currentAction);
         onAddInventories(currentAction);
         toggleOpen(false);

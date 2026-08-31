@@ -371,6 +371,15 @@ export function inventoryActionsSpec(
   }
 }
 
+/**
+ * Every inventory action the lib ships, with no deployment filtering applied.
+ *
+ * @deprecated Read `availableActionOptions` from `useInventoryActions()`
+ * instead. This module-level array ignores the `enabledActions` /
+ * `disabledActions` / `actionFilter` props on `InventoryActionsProvider`, so a
+ * surface rendered from it will show actions the deployment has switched off.
+ * It stays exported as the provider's default (and for back-compat) only.
+ */
 export const inventoryActionOptions: InventoryActionItem[] = [
   InventoryActions.CreateTransferInventory,
   InventoryActions.HoldInventory,
