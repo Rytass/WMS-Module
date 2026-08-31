@@ -106,6 +106,13 @@ WmsModuleCoreModule.forRootAsync({
 
 同樣每個都有 Symbol + EntityClass 雙匯出，共 37 個：
 
+**盤點單 (Inventory Count Order)**
+- `InventoryCountOrderEntity` / `InventoryCountOrderEntityClass` — 盤點單主檔（`countDate` 為盤差記帳基準日）
+- `InventoryCountOrderLocationEntity` / `InventoryCountOrderLocationEntityClass` — 盤點範圍，已展開至所有下層儲位（`isRoot` 標示使用者實際選的節點）
+- `InventoryCountOrderItemEntity` / `InventoryCountOrderItemEntityClass` — 盤點單身（`isAddition` 標示盤盈新增列）
+- `InventoryCountOrderChangeEntity` / `InventoryCountOrderChangeEntityClass` — 盤差異動（正=盤盈、負=盤虧）
+- 來源: `lib/models/extensions/inventory-count-order/`
+
 **入庫訂單 (Receive Inventory Order)**
 - `ReceiveInventoryOrderEntity` / `ReceiveInventoryOrderEntityClass` — 入庫單主檔
 - `ReceiveInventoryOrderItemEntity` / `ReceiveInventoryOrderItemEntityClass` — 入庫單明細
@@ -206,6 +213,7 @@ WmsModuleCoreModule.forRootAsync({
 | `MergeBatchOrderService<T>` | `merge` | 批號合併 | `lib/services/merge-batch-order.service.ts` |
 | `ReclassifyInventoryOrderService<T>` | `reclassify` | 庫存轉料號 | `lib/services/reclassify-inventory-order.service.ts` |
 | `ScrapeService<T>` | `scrape` | 庫存報廢 | `lib/services/scrape.service.ts` |
+| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法 | `lib/services/inventory-count-order.service.ts` |
 | `QualityInspectionOrderService<T>` | `inspect` | 品質檢驗 | `lib/services/quality-inspection-order.service.ts` |
 | `SaleOrderService` | （DataSource 直接操作） | 銷售訂單查詢 | `lib/services/sale-order.service.ts` |
 | `HelperService` | `getSeq` | 序號產生工具 | `lib/services/helper.service.ts` |
@@ -297,10 +305,31 @@ enum ChangeType {
   RECEIVED, IN_SHIPMENT, SHIPPED, IN_TRANSFER, TRANSFERRED,
   VENDOR_TRANSFERRED, VENDOR_RETURNED, HELD, RELEASED,
   CUSTOMER_HELD, CUSTOMER_RETURNED, SPLITTED, MERGED,
-  ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED
+  ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED,
+  COUNT_GAINED, COUNT_LOST
 }
 ```
 來源: `lib/constants/stock-status.ts`
+
+### `InventoryCountStatus` (enum)
+```ts
+enum InventoryCountStatus { PENDING, COUNTING, COMPLETED, CANCELLED }
+```
+盤點單狀態：尚未執行 / 盤點中 / 已完成 / 已取消。只有 `COUNTING` 接受盤點數量，也只有
+`COUNTING` 會鎖定範圍內儲位；`COMPLETED` 只能由執行盤差達成。
+來源: `lib/constants/inventory-count-status.ts`
+
+### `WmsOperationName` (type) / `WMS_OPERATION_NAMES` (const)
+```ts
+type WmsOperationName = 'material:read' | 'material:create' | /* …58 項… */;
+const WMS_OPERATION_NAMES: readonly WmsOperationName[];
+```
+本套件所有 root operation 的 `` `${resource}:${action}` `` 名稱。同一組字串有三個用途：
+`authChecker` 收到的 requirement、`@rytass/wms-module-graphql` 的
+`enabledOperations` / `disabledOperations`、以及
+`@rytass/wms-module-react` 的 `INVENTORY_ACTION_OPERATIONS` 對照表。
+**注意名稱不等於欄位**：多支 query 共用同一組 requirement（`loader:read` 對應 6 支）。
+來源: `lib/constants/operations.ts`
 
 ### `ReceiveInventoryOrderStatus` (enum)
 ```ts
@@ -393,6 +422,7 @@ static forRootAsync(
 | `MaterialQuery` | `material`, `materials` | `MaterialDto`, `Materials` | `lib/queries/material.query.ts` |
 | `StockQuery` | `stock`, `stocks`, `stocksGroupedByMaterial`, `aggregatedStocks`, `changeLogs` | `StockDto`, `Stocks`, `Materials`, `AggregatedStocks`, `ChangeLogs` | `lib/queries/stock.query.ts` |
 | `BatchQuery` | `batches` | `Batches` | `lib/queries/batch.query.ts` |
+| `InventoryCountOrderQuery` | `inventoryCountOrders`, `inventoryCountOrder` | `InventoryCountOrders`, `InventoryCountOrderDto` | `lib/queries/inventory-count-order.query.ts` |
 | `LocationQuery` | `location`, `locations` | `LocationDto`, `Locations` | `lib/queries/location.query.ts` |
 | `ReceiveInventoryOrderQuery` | `receiveInventoryOrder`, `receiveInventoryOrders` | `ReceiveInventoryOrderDto`, `ReceiveInventoryOrders` | `lib/queries/recieve-inventory-order.query.ts` |
 | `ShipInventoryOrderQuery` | `shipInventoryOrder`, `shipInventoryOrders` | `ShipInventoryOrderDto`, `ShipInventoryOrders` | `lib/queries/ship-inventory-order.query.ts` |
@@ -411,6 +441,7 @@ static forRootAsync(
 | `LoaderMutation` | `createLoader`, `createBatchLoader`, `updateLoader`, `createLoaderType`（方法名未確認）, `updateLoaderType` | 載具與類型 | `lib/mutations/loader.mutation.ts` |
 | `LocationMutation` | `createLocation`, `updateLocation` | 庫位 | `lib/mutations/location.mutation.ts` |
 | `MaterialMutation` | `createMaterial`, `updateMaterial` | 料號 | `lib/mutations/material.mutation.ts` |
+| `InventoryCountOrderMutation` | `createInventoryCountOrder`, `updateInventoryCountOrder`, `startInventoryCount`, `countInventory`, `addInventoryCountItem`, `removeInventoryCountItem`, `resetInventoryCount`, `cancelInventoryCount`, `settleInventoryCount` | 盤點單。`startInventoryCount` 會鎖定範圍內儲位；`settleInventoryCount` 是唯一會改動庫存的一支 | `lib/mutations/inventory-count-order.mutation.ts` |
 | `ReceiveInventoryOrderMutation` | `createReceiveInventoryOrder`, `updateReceiveInventoryOrder`, `receive` | 入庫單 | `lib/mutations/receive-inventory-order.mutation.ts` |
 | `ShipInventoryOrderMutation` | `createShipInventoryOrder`, `updateShipInventoryOrder`, `ship`, `cancelShip` | 出庫單 | `lib/mutations/ship-inventory-order.mutation.ts` |
 | `TransferOrderMutation` | `createTransferOrder`, `updateTransferOrder`, `transfer`, `cancelTransfer` | 調撥單 | `lib/mutations/transfer-order.mutation.ts` |

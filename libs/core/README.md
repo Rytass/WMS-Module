@@ -65,7 +65,49 @@ export class MyService {
 }
 ```
 
-Exported services include `LoaderService`, `MaterialService`, `BatchService`, `StockService`, `LocationService`, `UnitService`, `HelperService`, `WarehouseMapDataService`, `ReceiveInventoryOrderService`, `ShipInventoryOrderService`, `HoldInventoryOrderService`, `AllocateInventoryOrderService`, `TransferOrderService`, `TransferCustomerOrderService`, `TransferVendorOrderService`, `SaleOrderService`, `SplitBatchOrderService`, `MergeBatchOrderService`, `ReclassifyInventoryOrderService`, `ScrapeService`, `QualityInspectionOrderService`.
+Exported services include `LoaderService`, `MaterialService`, `BatchService`, `StockService`, `LocationService`, `UnitService`, `HelperService`, `WarehouseMapDataService`, `ReceiveInventoryOrderService`, `ShipInventoryOrderService`, `HoldInventoryOrderService`, `AllocateInventoryOrderService`, `TransferOrderService`, `TransferCustomerOrderService`, `TransferVendorOrderService`, `SaleOrderService`, `SplitBatchOrderService`, `MergeBatchOrderService`, `ReclassifyInventoryOrderService`, `ScrapeService`, `QualityInspectionOrderService`, `InventoryCountOrderService`.
+
+## Inventory counting
+
+`InventoryCountOrderService` implements counting: create an order over a set of locations
+(expanded to every descendant), start it, record what was found, then settle the variance
+into stock.
+
+```ts
+const order = await counts.create({
+  name: '2026 上半年度例行盤點',
+  countDate: '2026-06-30',        // the business date the variance is reported under
+  locationIds: [aisleId],         // every shelf underneath is pulled in
+});
+
+await counts.start(order.id);     // snapshots the ledger AND locks the scope
+await counts.count(order.id, [{ itemId, countedQuantity: 94 }]);
+await counts.settle(order.id);    // the only call that changes stock
+```
+
+Counting adjusts quantity **in place** — it never moves stock between locations; that is
+what `TransferOrderService` is for. Uncounted lines are left alone rather than zeroed, and
+a surplus may name a batch that does not exist yet (it is created during settlement).
+
+> ⚠️ **`start()` locks the counted locations.** Until the order settles or is cancelled,
+> any stock movement touching a location in its scope is refused with a `ConflictException`
+> naming the count — including movements your own code makes by calling a service
+> directly. The check sits on the insert of every `*_order_change` row, so it covers every
+> path without any service needing to know about it. This is what keeps the book snapshot
+> the variance is measured against from going stale.
+
+## Operation names
+
+Every root operation this package family exposes is named `` `${resource}:${action}` ``.
+The union and its runtime counterpart are exported so a host can iterate them, diff them
+against its own permission list, or drive
+`@rytass/wms-module-graphql`'s `disabledOperations`:
+
+```ts
+import { WMS_OPERATION_NAMES, type WmsOperationName } from '@rytass/wms-module-core';
+```
+
+These are the same strings your `authChecker` receives as `{ resource, action }`.
 
 ## Extending entities
 
