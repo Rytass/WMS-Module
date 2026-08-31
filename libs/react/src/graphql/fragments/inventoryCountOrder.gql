@@ -9,6 +9,14 @@ fragment InventoryCountOrderItem on InventoryCountOrderItemDto {
   bookQuantity
   countedQuantity
   isAddition
+  held
+  inShipment
+  inspectionResult
+  transferId
+  vendorId
+  customerId
+  saleId
+  saleSerialId
   material {
     ...Material
   }
@@ -45,7 +53,4 @@ fragment InventoryCountOrder on InventoryCountOrderDto {
   startedAt
   settledAt
   cancelledAt
-  items {
-    ...InventoryCountOrderItem
-  }
 }

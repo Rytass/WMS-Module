@@ -10,6 +10,8 @@ interface LocationScopeFieldProps {
   name: string;
   label?: string;
   disabled?: boolean;
+  /** The create form demands a scope; the list filter treats it as optional. */
+  required?: boolean;
 }
 
 /**
@@ -22,6 +24,7 @@ const LocationScopeField: FC<LocationScopeFieldProps> = ({
   name,
   label = '盤點範圍',
   disabled,
+  required = true,
 }) => {
   const { setValue } = useFormContext();
   const { fetchLocations } = useLazyQueryLocations();
@@ -53,7 +56,7 @@ const LocationScopeField: FC<LocationScopeFieldProps> = ({
   const selected = useMemo(() => value ?? [], [value]);
 
   return (
-    <BaseField name={name} label={label} required>
+    <BaseField name={name} label={label} required={required}>
       <AutoComplete
         mode="multiple"
         options={currentOptions}

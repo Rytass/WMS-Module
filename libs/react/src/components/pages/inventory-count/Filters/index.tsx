@@ -8,6 +8,7 @@ import { InventoryCountStatus } from '../../../../graphql/generated/.graphql';
 import { inventoryCountStatusName } from '../../../../utils/share';
 import { FilterValues } from '../typing';
 import SingleSelectByIdField from '../../../fields/SingleSelectByIdField';
+import LocationScopeField from '../CreateForm/LocationScopeField';
 import classes from './index.module.scss';
 
 interface FiltersFormValues {
@@ -16,6 +17,7 @@ interface FiltersFormValues {
   countDateFrom: string;
   countDateTo: string;
   status: SelectValue<string> | null;
+  locations: SelectValue<string>[];
 }
 
 interface FiltersProps {
@@ -35,6 +37,7 @@ const DEFAULT_VALUES: FiltersFormValues = {
   countDateFrom: '',
   countDateTo: '',
   status: null,
+  locations: [],
 };
 
 const Filters: FC<FiltersProps> = ({ onSubmit }) => {
@@ -51,6 +54,11 @@ const Filters: FC<FiltersProps> = ({ onSubmit }) => {
         countDateTo: values.countDateTo || undefined,
         statuses: values.status
           ? [values.status.id as InventoryCountStatus]
+          : undefined,
+        // Matched against the *expanded* scope server-side, so picking a shelf
+        // finds the count that covers its whole aisle.
+        locationIds: values.locations.length
+          ? values.locations.map((location) => location.id)
           : undefined,
       });
     },
@@ -83,6 +91,7 @@ const Filters: FC<FiltersProps> = ({ onSubmit }) => {
             options={STATUS_OPTIONS}
             placeholder="選擇狀態"
           />
+          <LocationScopeField name="locations" required={false} />
           <div className={classes.actions}>
             <Button
               type="button"

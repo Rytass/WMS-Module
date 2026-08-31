@@ -1,6 +1,6 @@
 .host {
   display: grid;
-  grid-template-columns: repeat(5, 1fr) auto;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   align-items: end;
 }
@@ -8,4 +8,6 @@
 .actions {
   display: flex;
   gap: 8px;
+  justify-content: flex-end;
+  grid-column: 1 / -1;
 }

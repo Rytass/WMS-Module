@@ -42,3 +42,23 @@
   gap: 12px;
   background: rgb(0 0 0 / 40%);
 }
+
+/*
+ * A cell that doubles as a filter. Styled as text, not a button: the row still
+ * has to read as data — the affordance is the pointer and the underline on
+ * hover, which is what the design shows for 快速帶入篩選條件.
+ */
+.quickFilter {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}

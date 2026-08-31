@@ -1,7 +1,10 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
+import { isNull } from 'lodash';
+import { FormProvider, useForm } from 'react-hook-form';
 import {
   Button,
+  Icon,
   Input,
   Message,
   Select,
@@ -10,7 +13,13 @@ import {
   Toggle,
   Typography,
 } from '@mezzanine-ui/react';
-import { DownloadIcon, TrashIcon, UploadIcon } from '@mezzanine-ui/icons';
+import {
+  DangerousOutlineIcon,
+  DownloadIcon,
+  LockIcon,
+  TrashIcon,
+  UploadIcon,
+} from '@mezzanine-ui/icons';
 import { useWmsRouter } from '../../../../router/context';
 import Loading from '../../../Loading';
 import PageWrapper from '../../../PageWrapper';
@@ -18,11 +27,19 @@ import SectionWrapper from '../../../SectionWrapper';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
 import { useDialog } from '../../../dialog/useDialog';
+import InputField from '../../../fields/InputField';
+import DateField from '../../../fields/DateField';
+import LocationScopeField from '../CreateForm/LocationScopeField';
+import { WaitIcon, TransferIcon } from '../../../../icons';
 import Status from '../Status';
 import AddStockModal from './AddStockModal';
+import ItemFilters from './ItemFilters';
 import {
+  CSV_EXPORT_LIMIT,
   useInventoryCountMutations,
+  useLazyQueryAllInventoryCountOrderItems,
   useQueryInventoryCountOrder,
+  useQueryInventoryCountOrderItems,
 } from '../useApi';
 import {
   InventoryCountOrderItemFragment,
@@ -30,18 +47,42 @@ import {
 } from '../../../../graphql/generated/.graphql';
 import { BASE_UNIT } from '../../../../utils/share';
 import { buildCountSheetCsv, downloadCsv, parseCountSheetCsv } from '../csv';
+import { ItemFilterValues, QuickFilterKey } from '../typing';
 import classes from './index.module.scss';
 
 /** Counted quantities being edited, keyed by item id. */
 type CountDraft = Record<string, { quantity: string; unitId: string | null }>;
+
+/** How long a freshly added row stays highlighted. */
+const HIGHLIGHT_MS = 3000;
+
+/** The header fields an operator may still change before the count starts. */
+interface InfoFormValues {
+  name: string;
+  countDate: string;
+  locations: SelectValue<string>[];
+}
 
 function ViewInventoryCount() {
   const { params } = useWmsRouter();
   const id = useMemo(() => (params?.id as string) ?? '', [params?.id]);
   const { openDialog } = useDialog();
 
+  const [itemFilter, setItemFilter] = useState<ItemFilterValues>({});
+
   const { data, loading } = useQueryInventoryCountOrder(id);
   const {
+    data: itemsData,
+    loading: itemsLoading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+  } = useQueryInventoryCountOrderItems(id, itemFilter);
+  const { fetchAllItems } = useLazyQueryAllInventoryCountOrderItems();
+  const {
+    updateInventoryCountOrder,
     startInventoryCount,
     countInventory,
     resetInventoryCount,
@@ -51,8 +92,8 @@ function ViewInventoryCount() {
   } = useInventoryCountMutations();
 
   const [draft, setDraft] = useState<CountDraft>({});
-  const [onlyVariance, setOnlyVariance] = useState<boolean>(false);
   const [addModalOpened, setAddModalOpened] = useState<boolean>(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   /**
    * Settlement locks the whole page. The design is explicit about this: no
    * pausing, cancelling or navigating away until the adjustment finishes, so a
@@ -64,11 +105,86 @@ function ViewInventoryCount() {
   const order = data?.inventoryCountOrder;
   const status = order?.status;
   const isCounting = status === InventoryCountStatus.COUNTING;
+  const isPending = status === InventoryCountStatus.PENDING;
 
   const items = useMemo(
-    (): InventoryCountOrderItemFragment[] => order?.items ?? [],
-    [order?.items],
+    (): InventoryCountOrderItemFragment[] =>
+      itemsData?.inventoryCountOrderItems.items ?? [],
+    [itemsData?.inventoryCountOrderItems.items],
   );
+
+  /* ------------------------------------------------------------------ *
+   * Header — editable while the count has not started
+   * ------------------------------------------------------------------ */
+
+  const infoMethods = useForm<InfoFormValues>({
+    defaultValues: { name: '', countDate: '', locations: [] },
+  });
+
+  useEffect(() => {
+    if (!order) return;
+
+    infoMethods.reset({
+      name: order.name ?? '',
+      countDate: dayjs(order.countDate).format('YYYY-MM-DD'),
+      locations: order.locations.map(({ id: locationId, key }) => ({
+        id: locationId,
+        name: key,
+      })),
+    });
+    // `infoMethods` is stable across renders; listing it would reset the form on
+    // every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order]);
+
+  /**
+   * Save on focus leaving the header block.
+   *
+   * React's `onBlur` is the bubbling `focusout`, so one handler on the wrapper
+   * covers every field including the multi-select, which has no meaningful blur
+   * of its own but does move focus out when the menu closes.
+   *
+   * The guard compares against the order rather than reading
+   * `formState.isDirty`: react-hook-form only keeps `isDirty` current for fields
+   * whose form state was subscribed during render, and this block never reads it
+   * while rendering — so it stays `false` and every save is skipped. Comparing
+   * values is also the honest question to ask, since re-selecting the same scope
+   * should not fire a mutation.
+   */
+  const onInfoBlur = useCallback(async () => {
+    if (!order) return;
+
+    const values = infoMethods.getValues();
+    const locationIds = values.locations.map((location) => location.id);
+    const currentLocationIds = order.locations.map(
+      (location) => location.id as string,
+    );
+
+    const unchanged =
+      values.name === order.name &&
+      values.countDate === dayjs(order.countDate).format('YYYY-MM-DD') &&
+      locationIds.length === currentLocationIds.length &&
+      locationIds.every((locationId) =>
+        currentLocationIds.includes(locationId),
+      );
+
+    if (unchanged) return;
+
+    await updateInventoryCountOrder({
+      variables: {
+        id,
+        name: values.name || undefined,
+        countDate: values.countDate || undefined,
+        locationIds,
+      },
+    });
+
+    Message.success('已更新盤點單');
+  }, [id, infoMethods, order, updateInventoryCountOrder]);
+
+  /* ------------------------------------------------------------------ *
+   * Count sheet
+   * ------------------------------------------------------------------ */
 
   /** The value shown in a row's input: the draft if edited, else the server's. */
   const quantityOf = useCallback(
@@ -86,22 +202,6 @@ function ViewInventoryCount() {
     (item: InventoryCountOrderItemFragment): string | null =>
       draft[item.id] ? draft[item.id].unitId : (item.unitId ?? null),
     [draft],
-  );
-
-  const hasVariance = useCallback(
-    (item: InventoryCountOrderItemFragment): boolean => {
-      const raw = quantityOf(item);
-
-      if (raw === '') return false;
-
-      return Number(raw) !== Number(item.bookQuantity);
-    },
-    [quantityOf],
-  );
-
-  const dataSource = useMemo(
-    () => (onlyVariance ? items.filter(hasVariance) : items),
-    [hasVariance, items, onlyVariance],
   );
 
   const unitOptions = useCallback(
@@ -181,18 +281,34 @@ function ViewInventoryCount() {
     });
   }, [id, openDialog, resetInventoryCount]);
 
-  const onDownload = useCallback(() => {
+  /**
+   * The download has to be the *whole* sheet, not the page on screen: an
+   * operator handed a truncated file would fill it in and settlement would write
+   * off every line the export dropped. Hence a separate unpaginated fetch rather
+   * than reusing the table's data.
+   */
+  const onDownload = useCallback(async () => {
     if (!order) return;
+
+    const { data: all } = await fetchAllItems({
+      variables: { id, limit: CSV_EXPORT_LIMIT, offset: 0 },
+    });
 
     downloadCsv(
       `${order.key}_盤點清單.csv`,
-      buildCountSheetCsv(order.key, items),
+      buildCountSheetCsv(order.key, all?.inventoryCountOrderItems.items ?? []),
     );
-  }, [items, order]);
+  }, [fetchAllItems, id, order]);
 
   const onUpload = useCallback(
     async (file: File) => {
-      const { rows, errors } = parseCountSheetCsv(await file.text(), items);
+      // Matched against the whole sheet, not the visible page: the file the
+      // operator filled in was exported unfiltered.
+      const { data: all } = await fetchAllItems({
+        variables: { id, limit: CSV_EXPORT_LIMIT, offset: 0 },
+      });
+      const sheet = all?.inventoryCountOrderItems.items ?? [];
+      const { rows, errors } = parseCountSheetCsv(await file.text(), sheet);
 
       if (errors.length) {
         // One summary rather than a burst of toasts: the operator needs to see
@@ -219,8 +335,60 @@ function ViewInventoryCount() {
 
       Message.success(`已帶入 ${rows.length} 筆盤點數量`);
     },
-    [items],
+    [fetchAllItems, id],
   );
+
+  /* ------------------------------------------------------------------ *
+   * Filtering
+   * ------------------------------------------------------------------ */
+
+  /**
+   * Click a cell, filter by it.
+   *
+   * Replaces that one key rather than adding to it — the gesture reads as
+   * "show me this shelf", and stacking would leave the operator with an
+   * intersection they never asked for and cannot see.
+   */
+  const quickFilter = useCallback(
+    (key: QuickFilterKey, value: string | null | undefined) => {
+      if (!value) return;
+
+      setItemFilter((previous) => ({ ...previous, [key]: value }));
+      setPage(1);
+    },
+    [setPage],
+  );
+
+  const renderQuickFilter = useCallback(
+    (key: QuickFilterKey, value: string | null | undefined) =>
+      value ? (
+        <button
+          type="button"
+          className={classes.quickFilter}
+          onClick={() => quickFilter(key, value)}
+        >
+          {value}
+        </button>
+      ) : (
+        '-'
+      ),
+    [quickFilter],
+  );
+
+  const onFilterSubmit = useCallback(
+    (values: ItemFilterValues) => {
+      setItemFilter((previous) => ({
+        ...values,
+        onlyVariance: previous.onlyVariance,
+      }));
+      setPage(1);
+    },
+    [setPage],
+  );
+
+  /* ------------------------------------------------------------------ *
+   * Columns
+   * ------------------------------------------------------------------ */
 
   const columns: TableColumn<InventoryCountOrderItemFragment>[] = [
     {
@@ -303,35 +471,97 @@ function ViewInventoryCount() {
         );
       },
     },
+    /*
+     * The three status icons are snapshots taken when the count started, not
+     * live stock flags — the whole point of the snapshot is that the variance is
+     * measured against the world as it was at that moment. They render exactly
+     * as the stock list renders them so an operator reads them the same way.
+     */
+    {
+      key: 'inspectionResult',
+      title: '檢驗',
+      width: 48,
+      align: 'center',
+      render: (item) =>
+        isNull(item.inspectionResult) ? (
+          <Icon icon={WaitIcon} color="brand" size={16} />
+        ) : !item.inspectionResult ? (
+          <Icon icon={DangerousOutlineIcon} color="error" size={16} />
+        ) : null,
+    },
+    {
+      key: 'held',
+      title: '凍結',
+      width: 48,
+      align: 'center',
+      render: (item) =>
+        item.held ? <Icon icon={LockIcon} color="brand" size={16} /> : null,
+    },
+    {
+      key: 'inTransfer',
+      title: '調撥',
+      width: 48,
+      align: 'center',
+      render: (item) =>
+        item.transferId ? (
+          <Icon icon={TransferIcon} color="brand" size={16} />
+        ) : null,
+    },
     {
       key: 'materialKey',
       title: '料號',
       width: 165,
-      render: (item) => item.material?.key ?? '-',
+      render: (item) => renderQuickFilter('materialKey', item.material?.key),
     },
     {
       key: 'materialDescription',
       title: '物料說明',
       width: 200,
-      render: (item) => item.material?.description ?? '-',
+      render: (item) =>
+        renderQuickFilter('materialDescription', item.material?.description),
     },
     {
       key: 'batch',
       title: '批號',
       width: 165,
-      render: (item) => item.batch?.key ?? '-',
+      render: (item) => renderQuickFilter('batchKey', item.batch?.key),
     },
     {
       key: 'location',
       title: '儲存位置',
       width: 165,
-      render: (item) => item.location?.key ?? '-',
+      render: (item) => renderQuickFilter('locationKey', item.location?.key),
     },
     {
       key: 'loader',
       title: '載具',
       width: 140,
-      render: (item) => item.loader?.serialId ?? '-',
+      render: (item) =>
+        renderQuickFilter('loaderSerialId', item.loader?.serialId),
+    },
+    {
+      key: 'vendorId',
+      title: '供應商',
+      width: 140,
+      render: (item) => renderQuickFilter('vendorId', item.vendorId),
+    },
+    {
+      key: 'customerId',
+      title: '客戶',
+      width: 140,
+      render: (item) => renderQuickFilter('customerId', item.customerId),
+    },
+    {
+      key: 'saleId',
+      title: '銷售訂單號碼',
+      width: 140,
+      render: (item) => renderQuickFilter('saleId', item.saleId),
+    },
+    {
+      key: 'saleSerialId',
+      title: '銷售訂單項次',
+      width: 140,
+      render: (item) => renderQuickFilter('saleSerialId', item.saleSerialId),
     },
   ];
 
@@ -346,9 +576,15 @@ function ViewInventoryCount() {
   const varianceToggle = (
     <Toggle
       className={classes.varianceToggle}
-      checked={onlyVariance}
+      checked={itemFilter.onlyVariance ?? false}
       label="顯示盤差項目"
-      onChange={(event) => setOnlyVariance(event.target.checked)}
+      onChange={(event) => {
+        setItemFilter((previous) => ({
+          ...previous,
+          onlyVariance: event.target.checked,
+        }));
+        setPage(1);
+      }}
     />
   );
 
@@ -356,78 +592,112 @@ function ViewInventoryCount() {
     <Table<InventoryCountOrderItemFragment>
       tableKey="InventoryCountItems"
       columns={columns}
-      dataSource={dataSource}
-      loading={loading}
+      dataSource={items}
+      loading={itemsLoading}
+      rowState={(item) => (item.id === highlightedId ? 'added' : undefined)}
+      pagination={{
+        current: page,
+        onChange: (next) => setPage(next),
+        total: pageTotal,
+        pageSize: limit,
+        onChangePageSize: (size) => setLimit(size),
+      }}
     />
   );
 
   return (
     <PageWrapper title={order.name}>
       <SectionWrapper>
-        <div className={classes.info}>
-          <div>
-            <Typography variant="caption">名稱</Typography>
-            <Typography variant="body">{order.name}</Typography>
+        {isPending ? (
+          <FormProvider {...infoMethods}>
+            {/* Blur-save: the header is a handful of fields, and an explicit
+                save button here competes with the page's real actions. */}
+            <div className={classes.info} onBlur={onInfoBlur}>
+              <InputField name="name" label="名稱" placeholder="輸入名稱" />
+              <DateField
+                name="countDate"
+                label="盤點日期"
+                placeholder="選擇日期"
+              />
+              <LocationScopeField name="locations" />
+              <div>
+                <Typography variant="caption">建立者</Typography>
+                <Typography variant="body">{order.createdBy || '-'}</Typography>
+              </div>
+              <div>
+                <Typography variant="caption">狀態</Typography>
+                <Status status={order.status} />
+              </div>
+            </div>
+          </FormProvider>
+        ) : (
+          <div className={classes.info}>
+            <div>
+              <Typography variant="caption">名稱</Typography>
+              <Typography variant="body">{order.name}</Typography>
+            </div>
+            <div>
+              <Typography variant="caption">盤點日期</Typography>
+              <Typography variant="body">
+                {dayjs(order.countDate).format('YYYY-MM-DD')}
+              </Typography>
+            </div>
+            <div>
+              <Typography variant="caption">盤點範圍</Typography>
+              <Typography variant="body">
+                {order.locations.map(({ key }) => key).join('、') || '-'}
+              </Typography>
+            </div>
+            <div>
+              <Typography variant="caption">建立者</Typography>
+              <Typography variant="body">{order.createdBy || '-'}</Typography>
+            </div>
+            <div>
+              <Typography variant="caption">狀態</Typography>
+              <Status status={order.status} />
+            </div>
           </div>
-          <div>
-            <Typography variant="caption">盤點日期</Typography>
-            <Typography variant="body">
-              {dayjs(order.countDate).format('YYYY-MM-DD')}
-            </Typography>
-          </div>
-          <div>
-            <Typography variant="caption">盤點範圍</Typography>
-            <Typography variant="body">
-              {order.locations.map(({ key }) => key).join('、') || '-'}
-            </Typography>
-          </div>
-          <div>
-            <Typography variant="caption">建立者</Typography>
-            <Typography variant="body">{order.createdBy || '-'}</Typography>
-          </div>
-          <div>
-            <Typography variant="caption">狀態</Typography>
-            <Status status={order.status} />
-          </div>
-          <div className={classes.fileActions}>
-            <Button
-              type="button"
-              variant="base-secondary"
-              icon={DownloadIcon}
-              iconType="leading"
-              onClick={onDownload}
-            >
-              下載盤點清單
-            </Button>
-            {isCounting && (
-              <>
-                <Button
-                  type="button"
-                  variant="base-secondary"
-                  icon={UploadIcon}
-                  iconType="leading"
-                  onClick={() => uploadRef.current?.click()}
-                >
-                  上傳盤點結果
-                </Button>
-                <input
-                  ref={uploadRef}
-                  type="file"
-                  accept=".csv,text/csv"
-                  hidden
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
+        )}
+        <div className={classes.fileActions}>
+          <Button
+            type="button"
+            variant="base-secondary"
+            icon={DownloadIcon}
+            iconType="leading"
+            onClick={onDownload}
+          >
+            下載盤點清單
+          </Button>
+          {isCounting && (
+            <>
+              <Button
+                type="button"
+                variant="base-secondary"
+                icon={UploadIcon}
+                iconType="leading"
+                onClick={() => uploadRef.current?.click()}
+              >
+                上傳盤點結果
+              </Button>
+              <input
+                ref={uploadRef}
+                type="file"
+                accept=".csv,text/csv"
+                hidden
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
 
-                    if (file) onUpload(file);
+                  if (file) onUpload(file);
 
-                    event.target.value = '';
-                  }}
-                />
-              </>
-            )}
-          </div>
+                  event.target.value = '';
+                }}
+              />
+            </>
+          )}
         </div>
       </SectionWrapper>
+
+      <ItemFilters onSubmit={onFilterSubmit} values={itemFilter} />
 
       {/* `TableWrapper`'s create slot is a discriminated union — the two
           props are either both present or both absent — so the counting and
@@ -448,13 +718,13 @@ function ViewInventoryCount() {
       )}
 
       <div className={classes.footer}>
-        {(status === InventoryCountStatus.PENDING || isCounting) && (
+        {(isPending || isCounting) && (
           <Button type="button" variant="destructive-ghost" onClick={onCancel}>
             取消盤點
           </Button>
         )}
         <div className={classes.footerRight}>
-          {status === InventoryCountStatus.PENDING && (
+          {isPending && (
             <Button type="button" variant="base-primary" onClick={onStart}>
               開始盤點
             </Button>
@@ -492,6 +762,15 @@ function ViewInventoryCount() {
         orderId={id}
         open={addModalOpened}
         closeModal={() => setAddModalOpened(false)}
+        onCreated={(itemId) => {
+          // Additions already sort first server-side, so clearing the filters
+          // and going back to page 1 is what actually puts the new line on top;
+          // the highlight then says which one it is.
+          setItemFilter({});
+          setPage(1);
+          setHighlightedId(itemId);
+          setTimeout(() => setHighlightedId(null), HIGHLIGHT_MS);
+        }}
       />
     </PageWrapper>
   );

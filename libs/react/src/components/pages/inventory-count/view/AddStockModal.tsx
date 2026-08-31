@@ -54,6 +54,12 @@ interface AddStockModalProps {
   orderId: string;
   open: boolean;
   closeModal: VoidFunction;
+  /**
+   * The id of the line just booked. The detail page uses it to clear the
+   * filters, jump to the first page and highlight the new row — additions
+   * already sort first server-side, so that is enough to put it on top.
+   */
+  onCreated?: (itemId: string) => void;
 }
 
 /**
@@ -68,6 +74,7 @@ const AddStockModal: FC<AddStockModalProps> = ({
   orderId,
   open,
   closeModal,
+  onCreated,
 }) => {
   const { addInventoryCountItem } = useInventoryCountMutations();
 
@@ -93,7 +100,7 @@ const AddStockModal: FC<AddStockModalProps> = ({
 
   const onSubmit = useCallback(
     async (values: AddStockFormValues) => {
-      await addInventoryCountItem({
+      const { data } = await addInventoryCountItem({
         variables: {
           id: orderId,
           materialId: values.material?.id ?? '',
@@ -107,9 +114,15 @@ const AddStockModal: FC<AddStockModalProps> = ({
       });
 
       Message.success('新增庫存成功');
+
+      const createdId = data?.addInventoryCountItem.id;
+
+      if (createdId) onCreated?.(createdId);
+
+      methods.reset();
       closeModal();
     },
-    [addInventoryCountItem, closeModal, orderId],
+    [addInventoryCountItem, closeModal, methods, onCreated, orderId],
   );
 
   return (
