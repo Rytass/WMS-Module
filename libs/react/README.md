@@ -168,7 +168,147 @@ export default function LoadersManagementPage() {
 
 The barrel ships a `'use client'` directive, so importing a page into an App Router server component automatically marks the re-exported subtree as a client boundary — no extra `'use client'` needed in your shell. Dynamic detail screens read their route param (`[id]`) through the active bridge, so the App Router file lives at e.g. `app/receive-inventory-orders/[id]/edit/page.tsx`.
 
-Available top-level pages: `ChangeHistory`, `InventoryCount`, `InventoryList`, `InventoryMovement`, `LabelSearch`, `LoadersManagement`, `LocationsManagement`, `Maps`, `MaterialsManagement`, `ReceiveInventoryOrders`, `ShipInventoryOrders`. Dynamic-route detail screens: `CreateLoader`, `EditReceiveInventoryOrder`, `ViewReceiveInventoryOrder`, `EditShipInventoryOrder`, `ViewShipInventoryOrder`, `EditTransferOrder`.
+Available top-level pages: `ChangeHistory`, `InventoryCount`, `InventoryList`, `InventoryMovement`, `LabelSearch`, `LoadersManagement`, `LocationsManagement`, `Maps`, `MaterialsManagement`, `ReceiveInventoryOrders`, `ShipInventoryOrders`. Dynamic-route detail screens: `CreateLoader`, `EditReceiveInventoryOrder`, `ViewReceiveInventoryOrder`, `EditShipInventoryOrder`, `ViewShipInventoryOrder`, `EditTransferOrder`, `ViewInventoryCount`.
+
+## Turning inventory actions off per deployment
+
+The stock write surfaces (`InventoryList`, `LabelSearch`, `Maps`) share one action
+list. A deployment where some of those actions must never exist — because the host
+system owns that step of the workflow — configures it once on
+`InventoryActionsProvider`; all three surfaces follow.
+
+```tsx
+import {
+  InventoryActionsProvider,
+  InventoryActions,
+} from '@rytass/wms-module-react';
+
+<InventoryActionsProvider
+  disabledActions={[
+    InventoryActions.QualityInspection,
+    InventoryActions.ReclassifyInventory,
+  ]}
+>
+  {children}
+</InventoryActionsProvider>;
+```
+
+| Prop                   | Meaning                                                                |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `enabledActions`       | Allow-list. Only these actions exist. Mutually exclusive with the next |
+| `disabledActions`      | Deny-list. These actions do not exist                                  |
+| `actionFilter`         | Predicate combined with the above using AND (role checks, flags, …)    |
+| `onError`              | Take over failure presentation: `(action, error) => void`              |
+| `errorMessageFallback` | Message used when an error carries nothing human-readable              |
+
+A disabled action is **absent, not greyed out**: it is gone from the `InventoryList`
+dropdown and the `LabelSearch` button row, and its drawer will not mount even if
+`targetAction` is set programmatically or restored from a deep link. Passing none of
+these props keeps all 15 actions, exactly as before.
+
+### Keeping the frontend and backend switches in sync
+
+Switching an action off in the UI usually means refusing the mutation as well.
+`INVENTORY_ACTION_OPERATIONS` maps each action to the GraphQL document it sends and
+to the `${resource}:${action}` operation name that `@rytass/wms-module-graphql`
+guards, so one host-side constant can drive both ends:
+
+```ts
+import {
+  INVENTORY_ACTION_OPERATIONS,
+  inventoryActionsForOperation,
+} from '@rytass/wms-module-react';
+
+INVENTORY_ACTION_OPERATIONS[InventoryActions.ShipInventory];
+// { document: 'UpdateShipInventoryOrder', operation: 'ship-inventory-order:update' }
+
+inventoryActionsForOperation('batch:split'); // [InventoryActions.SplitBatch]
+```
+
+### Action failures are always reported
+
+Every action reports its own failures. When a mutation is rejected — an `authChecker`
+denial, a `beforeHooks` veto, a network error — the message is shown, the drawer stays
+open and the form keeps its values so the operator can correct and retry. Provide
+`onError` to route failures into your own notification system instead.
+
+> If you build your own Apollo client rather than using `createApolloClient()`, you
+> still get these messages: they come from the action layer, not from a link.
+> `createApolloClient()`'s own `ErrorLink` deliberately skips the 15 inventory-action
+> documents so the same error is never shown twice.
+
+## `Maps` is a write surface by default
+
+`Maps` embeds the full inventory table, so mounting it grants every inventory action —
+even though hosts usually gate the page on a read-only-sounding `warehouse-map`
+resource. Pass `haveInventoryActionsSystem={false}` to make it read-only:
+
+```tsx
+<Maps haveInventoryActionsSystem={false} />
+```
+
+The default stays `true` in this major for backwards compatibility; **it flips to
+`false` in the next major.**
+
+## Inventory counting
+
+`InventoryCount` (the list) and `ViewInventoryCount` (one count) implement the full
+counting flow: create a count over a set of locations, start it, record what was found,
+then settle the variance into stock.
+
+> **You must mount both routes.** The list's 檢視 button navigates to
+> `/inventory-count/[id]`; without that shell the button 404s.
+
+```tsx
+// pages/inventory-count/index.tsx
+import { InventoryCount } from '@rytass/wms-module-react';
+export default function InventoryCountPage() {
+  return <InventoryCount />;
+}
+
+// pages/inventory-count/[id]/index.tsx
+import { ViewInventoryCount } from '@rytass/wms-module-react';
+export default function InventoryCountViewPage() {
+  return <ViewInventoryCount />;
+}
+```
+
+### What the operator sees
+
+| Status         | Header actions                | Footer actions                     |
+| -------------- | ----------------------------- | ---------------------------------- |
+| 尚未執行 (`PENDING`)   | 下載盤點清單                  | 取消盤點 ／ 開始盤點               |
+| 盤點中 (`COUNTING`)     | 下載盤點清單、上傳盤點結果    | 取消盤點 ／ 清空重填 ／ 暫存結果 ／ 執行盤差 |
+| 已完成 (`COMPLETED`)   | 下載盤點清單                  | —                                  |
+| 已取消 (`CANCELLED`)   | 下載盤點清單                  | —                                  |
+
+Counted quantities are editable only while counting, and **nothing touches stock until
+執行盤差**. Up to that point the numbers are working notes; the page keeps them in local
+state and 暫存結果 persists them.
+
+> ⚠️ **開始盤點 locks the counted locations.** While a count is `COUNTING`, every other
+> stock movement in its scope — including one your own code drives by calling a service
+> directly — is refused with a 409 naming the count. See the backend note in
+> [`@rytass/wms-module-graphql`](https://www.npmjs.com/package/@rytass/wms-module-graphql).
+
+### The count sheet file
+
+下載盤點清單 produces UTF-8 CSV **with a BOM** (so Excel reads the Chinese headers), one
+row per sheet line, with the 盤點數量 column left blank for the floor to fill in:
+
+```
+盤點單號,項目識別碼,料號,物料說明,批號,儲存位置,載具,帳面數量,單位,盤點數量
+IC2508300001,3f9a…c1,WATER2B003,200ml 礦泉水,2510310042,1000A1BC,BY0093,100,BOT,
+```
+
+上傳盤點結果 reads the file back and fills the inputs — it does **not** submit. Matching
+prefers `項目識別碼`; when that column has been mangled or dropped it falls back to
+料號＋批號＋儲存位置＋載具, so a sheet that was printed, written on and retyped still
+works. A blank 盤點數量 means "not counted yet", not zero. Bad rows are reported together
+in one message and the good rows are still applied.
+
+Only CSV is supported. The lib carries no spreadsheet dependency, and adding one would
+mean a new peer dependency for every consumer.
 
 ## Route constants
 
@@ -185,7 +325,10 @@ import { NextPath, useRoutes } from '@rytass/wms-module-react';
 All typed mutations / queries / fragments are pre-generated as `TypedDocumentNode`s and re-exported from the package root. Consumers do not need to run graphql-codegen:
 
 ```ts
-import { useLoadersQuery, AggregatedStockFragment } from '@rytass/wms-module-react';
+import {
+  useLoadersQuery,
+  AggregatedStockFragment,
+} from '@rytass/wms-module-react';
 ```
 
 ## Known issues for standalone consumers
@@ -208,10 +351,10 @@ Track upstream progress via the [Mezzanine UI repo](https://github.com/mezzanine
 
 Full documentation is shipped inside this package under the `docs/` directory (available after `npm install`):
 
-| Document | Description |
-|---|---|
-| [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
-| [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
+| Document                                                   | Description                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------------- |
+| [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers   |
+| [`docs/api-reference.md`](./docs/api-reference.md)         | Complete export catalog with signatures and usage examples |
 
 GitHub hosted links (always up-to-date):
 
