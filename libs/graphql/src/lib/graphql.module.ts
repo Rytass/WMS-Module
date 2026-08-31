@@ -1,5 +1,8 @@
 import { DynamicModule, Module, type Provider } from '@nestjs/common';
-import { WmsModuleCoreModule, WmsEventDispatcher } from '@rytass/wms-module-core';
+import {
+  WmsModuleCoreModule,
+  WmsEventDispatcher,
+} from '@rytass/wms-module-core';
 import {
   WMS_ACTOR_EXTRACTOR,
   WMS_EVENT_OPTIONS,
@@ -18,6 +21,10 @@ import {
   type WmsTypedAfterListenerMap,
   type WmsTypedBeforeHookMap,
 } from './events';
+import {
+  pruneDisabledOperations,
+  type WmsOperationRegistrationOptions,
+} from './registry';
 import { LoaderMutation } from './mutations/loader.mutation';
 import { LoaderQuery } from './queries/loader.query';
 import { MaterialMutation } from './mutations/material.mutation';
@@ -74,6 +81,12 @@ import { ScrapeMutation } from './mutations/scrape-order.mutation';
 import { QualityInspectionOrderMutation } from './mutations/quality-inspection-order.mutation';
 import { WarehouseMapDataQuery } from './queries/warehouse-map.query';
 import { MapRangeUnionResolver } from './resolvers/warehouse-map.resolver';
+import { InventoryCountOrderQuery } from './queries/inventory-count-order.query';
+import { InventoryCountOrderMutation } from './mutations/inventory-count-order.mutation';
+import {
+  InventoryCountOrderItemResolver,
+  InventoryCountOrderResolver,
+} from './resolvers/inventory-count-order.resolver';
 
 const exportDependencies = [
   UnitQuery,
@@ -141,6 +154,11 @@ const exportDependencies = [
 
   WarehouseMapDataQuery,
   MapRangeUnionResolver,
+
+  InventoryCountOrderQuery,
+  InventoryCountOrderMutation,
+  InventoryCountOrderResolver,
+  InventoryCountOrderItemResolver,
 ];
 /**
  * Options for `WmsModuleGraphqlModule.forRootAsync`. Extends the core module
@@ -156,17 +174,22 @@ const exportDependencies = [
  * - `eventEmitterBridge` — pass `wmsEventEmitterBridgeProvider` from
  *   `@rytass/wms-module-graphql/adapters/event-emitter` to also fan events out
  *   to `@nestjs/event-emitter` (`@OnEvent('wms.<event>')`).
+ * - `enabledOperations` / `disabledOperations` / `disabledFields` — deployment
+ *   switches that keep an operation **out of the schema entirely** rather than
+ *   merely refusing it (see {@link WmsOperationRegistrationOptions}).
  *
  * Everything is optional; with nothing configured the module behaves exactly as
- * before (no events emitted, fully permissive).
+ * before (no events emitted, fully permissive, every operation registered).
  */
-export type WmsModuleGraphqlModuleAsyncOptions = WmsModuleCoreModuleAsyncOptions &
-  WmsAuthModuleOptions & {
-    readonly beforeHooks?: WmsTypedBeforeHookMap;
-    readonly afterListeners?: WmsTypedAfterListenerMap;
-    readonly actorExtractor?: WmsActorExtractor;
-    readonly eventEmitterBridge?: Provider;
-  };
+export type WmsModuleGraphqlModuleAsyncOptions =
+  WmsModuleCoreModuleAsyncOptions &
+    WmsAuthModuleOptions &
+    WmsOperationRegistrationOptions & {
+      readonly beforeHooks?: WmsTypedBeforeHookMap;
+      readonly afterListeners?: WmsTypedAfterListenerMap;
+      readonly actorExtractor?: WmsActorExtractor;
+      readonly eventEmitterBridge?: Provider;
+    };
 
 @Module({
   providers: exportDependencies,
@@ -181,8 +204,22 @@ export class WmsModuleGraphqlModule {
       afterListeners,
       actorExtractor,
       eventEmitterBridge,
+      enabledOperations,
+      disabledOperations,
+      disabledFields,
       ...coreOptions
     } = options;
+
+    // Must run before `GraphQLModule` builds the schema. `forRootAsync` is
+    // called while `AppModule` is still being defined, so this is the earliest
+    // point at which the deployment's switches are known — and it is early
+    // enough: the schema is not built until the app bootstraps.
+    pruneDisabledOperations(exportDependencies, {
+      enabledOperations,
+      disabledOperations,
+      disabledFields,
+    });
+
     // coreOptions still carries `enrichStockEvents`, forwarded to the core module.
     const coreModule = WmsModuleCoreModule.forRootAsync(coreOptions);
 

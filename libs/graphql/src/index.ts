@@ -19,6 +19,11 @@ export {
   type WmsAuthModuleOptions,
   type WmsOperationRequirement,
 } from './lib/auth';
+export {
+  pruneDisabledOperations,
+  type PrunedOperations,
+  type WmsOperationRegistrationOptions,
+} from './lib/registry';
 export type { WmsModuleGraphqlModuleAsyncOptions } from './lib/graphql.module';
 export {
   WmsMutationEvent,
@@ -48,7 +53,8 @@ export type {
   WmsEventPayloadMap,
   WmsOperationEventName,
   WmsOperationEventPayload,
+  WmsOperationName,
   WmsStockEventName,
   WmsStockEventPayload,
 } from '@rytass/wms-module-core';
-
+export { WMS_OPERATION_NAMES } from '@rytass/wms-module-core';
