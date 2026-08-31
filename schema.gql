@@ -159,6 +159,8 @@ enum ChangeType {
   ALLOCATED
   DEALLOCATED
   RECLASSIFIED
+  COUNT_GAINED
+  COUNT_LOST
   SCRAPED
 }
 
@@ -400,6 +402,54 @@ type QualityInspectionOrderDto {
   items: [QualityInspectionOrderItemDto!]!
 }
 
+type InventoryCountOrderItemDto {
+  id: ID!
+  orderId: ID!
+  materialId: ID!
+  batchId: ID!
+  locationId: ID
+  loaderId: ID
+  unitId: ID
+  bookQuantity: Float!
+  countedQuantity: Float
+  isAddition: Boolean!
+  material: MaterialDto!
+  batch: BatchDto!
+  location: LocationDto
+  loader: LoaderDto
+}
+
+type InventoryCountOrderDto {
+  id: ID!
+  key: String!
+  name: String!
+  countDate: String!
+  status: InventoryCountStatus!
+  createdBy: String
+  startedAt: DateTime
+  settledAt: DateTime
+  cancelledAt: DateTime
+  createdAt: DateTime!
+  items: [InventoryCountOrderItemDto!]!
+  locations: [LocationDto!]!
+}
+
+"""
+Lifecycle of an inventory count: PENDING (尚未執行) → COUNTING (盤點中) → COMPLETED (已完成), or CANCELLED (已取消).
+"""
+enum InventoryCountStatus {
+  PENDING
+  COUNTING
+  COMPLETED
+  CANCELLED
+}
+
+type InventoryCountOrders {
+  id: ID!
+  items: [InventoryCountOrderDto!]!
+  total: Int!
+}
+
 type LoaderUnitDto {
   id: ID!
 }
@@ -566,6 +616,8 @@ type Query {
   saleOrderDistinctIds(offset: Int, limit: Int, key: String): [String!]!
   saleOrders(id: ID!): [String!]!
   mapData(key: String!): MapDataDto!
+  inventoryCountOrders(offset: Int, limit: Int, name: String, statuses: [InventoryCountStatus!], createdBy: String, countDateFrom: String, countDateTo: String, locationIds: [ID!]): InventoryCountOrders!
+  inventoryCountOrder(id: ID!): InventoryCountOrderDto!
 }
 
 input DateRangeArgs {
@@ -617,6 +669,15 @@ type Mutation {
   reclassifyInventoryOrder(materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
   scrapeMaterials(items: [ScrapeOrderItemInput!]!): ScrapeOrderDto!
   inspectMaterials(key: String!, note: String, items: [CreateQualityInspectionOrderItemArgs!]!): QualityInspectionOrderDto!
+  createInventoryCountOrder(name: String!, countDate: String!, locationIds: [ID!]!): InventoryCountOrderDto!
+  updateInventoryCountOrder(id: ID!, name: String, countDate: String, locationIds: [ID!]): InventoryCountOrderDto!
+  startInventoryCount(id: ID!): InventoryCountOrderDto!
+  countInventory(id: ID!, items: [CountInventoryItemInput!]!): InventoryCountOrderDto!
+  addInventoryCountItem(id: ID!, materialId: ID!, batchKey: String!, locationId: ID!, loaderId: ID, countedQuantity: Float!, unitId: ID): InventoryCountOrderItemDto!
+  removeInventoryCountItem(id: ID!, itemId: ID!): InventoryCountOrderDto!
+  resetInventoryCount(id: ID!): InventoryCountOrderDto!
+  cancelInventoryCount(id: ID!): InventoryCountOrderDto!
+  settleInventoryCount(id: ID!): InventoryCountOrderDto!
 }
 
 input CreateLoadersArgs {
@@ -888,4 +949,10 @@ input CreateQualityInspectionOrderItemArgs {
   unitId: ID
   quantity: Int!
   inspectionResult: Boolean!
+}
+
+input CountInventoryItemInput {
+  itemId: ID!
+  countedQuantity: Float
+  unitId: ID
 }

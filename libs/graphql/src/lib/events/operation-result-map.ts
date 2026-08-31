@@ -29,6 +29,10 @@ import type {
 
 // DTOs not yet re-exported from the barrel — import directly -------------- //
 import type { LocationDto } from '../dto/location.dto';
+import type {
+  InventoryCountOrderDto,
+  InventoryCountOrderItemDto,
+} from '../dto/inventory-count-order.dto';
 import type { MapDataDto } from '../dto/warehouse-map.dto';
 import type { MergeBatchOrderDto } from '../dto/merge-batch-order.dto';
 import type { ReclassifyInventoryOrderDto } from '../dto/reclassify-inventory-order.dto';
@@ -46,6 +50,19 @@ import type { SplitBatchOrderDto } from '../dto/split-batch-order.dto';
  */
 export interface WmsOperationResultMap
   extends Record<WmsOperationEventName, unknown> {
+  // ── Inventory count ───────────────────────────────────────────────────── //
+  // `add-item` returns the created line; every other count mutation returns the
+  // order, so subscribers always get the state the operation left behind.
+  'inventory-count-order.created': InventoryCountOrderDto;
+  'inventory-count-order.updated':
+    | InventoryCountOrderDto
+    | InventoryCountOrderItemDto;
+  'inventory-count-order.started': InventoryCountOrderDto;
+  'inventory-count-order.counted': InventoryCountOrderDto;
+  'inventory-count-order.reset': InventoryCountOrderDto;
+  'inventory-count-order.cancelled': InventoryCountOrderDto;
+  'inventory-count-order.settled': InventoryCountOrderDto;
+
   // ── Material ──────────────────────────────────────────────────────────── //
   'material.created': MaterialDto;
   'material.updated': MaterialDto;
