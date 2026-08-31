@@ -45,9 +45,7 @@
     },
     "pkg-quality": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "options": {
         "command": "npx -y publint run libs/react --pack false",
         "parallel": false
@@ -55,9 +53,7 @@
     },
     "pkg-quality-attw": {
       "executor": "nx:run-commands",
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "options": {
         "parallel": false,
         "commands": [
@@ -69,12 +65,17 @@
     },
     "prepublish-check": {
       "executor": "nx:noop",
-      "dependsOn": [
-        "typecheck",
-        "lint",
-        "build",
-        "pkg-quality"
-      ]
+      "dependsOn": ["typecheck", "lint", "build", "pkg-quality"]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "parallel": false,
+        "commands": [
+          "tsc -p libs/react/tsconfig.spec.json",
+          "jest -c libs/react/jest.config.mjs"
+        ]
+      }
     }
   },
   "tags": []
