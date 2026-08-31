@@ -5,6 +5,7 @@ import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql'
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { aggregatedStockColumns } from '../../../../utils/columns';
 import { useQueryStocks } from '../useApi';
+import { stockEmptyProps } from '../emptyState';
 import { FilterValues } from '../typing';
 
 interface InventoryListTableProps {
@@ -66,6 +67,7 @@ function InventoryListTable({
       tableKey="InventoryListTable"
       columns={columns}
       dataSource={dataSource}
+      emptyProps={stockEmptyProps(currentFilter)}
       rowState={(source) =>
         targetInventoryIds.includes(source.id) ? 'added' : undefined
       }

@@ -34,6 +34,10 @@ export function useQueryStocksGrouped(currentFilter?: FilterValues) {
         currentFilter?.['loader-search'] ||
         undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,
+      vendorId: currentFilter?.vendorId || undefined,
+      customerId: currentFilter?.customerId || undefined,
+      saleId: currentFilter?.saleId || undefined,
+      saleSerialId: currentFilter?.saleSerialId || undefined,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -80,6 +84,10 @@ export function useQueryStocks(currentFilter?: FilterValues) {
         currentFilter?.['loader-search'] ||
         undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,
+      vendorId: currentFilter?.vendorId || undefined,
+      customerId: currentFilter?.customerId || undefined,
+      saleId: currentFilter?.saleId || undefined,
+      saleSerialId: currentFilter?.saleSerialId || undefined,
     },
     fetchPolicy: 'cache-and-network',
   });

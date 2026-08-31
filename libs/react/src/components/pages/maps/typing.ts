@@ -14,4 +14,8 @@ export type FilterValues = Pick<
 > & {
   location?: SelectValue | null;
   'location-search'?: string;
+  vendorId?: string;
+  customerId?: string;
+  saleId?: string;
+  saleSerialId?: string;
 };
