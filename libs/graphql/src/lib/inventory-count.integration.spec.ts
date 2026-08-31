@@ -217,6 +217,19 @@ describe('inventory counting (integration)', () => {
     await seedStock(100);
   });
 
+  // A count left in PENDING or COUNTING locks its locations, so one failing test
+  // would otherwise cascade into every later one. Cleaning up after each test
+  // keeps the suite order-independent.
+  afterEach(async () => {
+    const stragglers: { id: string }[] = await dataSource.query(
+      `SELECT id FROM inventory_count_orders WHERE status IN ('PENDING', 'COUNTING')`,
+    );
+
+    for (const { id } of stragglers) {
+      await countService.cancel(id);
+    }
+  });
+
   afterAll(async () => {
     await app?.close();
   });
@@ -383,6 +396,206 @@ describe('inventory counting (integration)', () => {
 
       expect(detailOrder.items.length).toBeGreaterThan(0);
       expect(detailOrder.items[0].material.key).toBe('COUNT-MATERIAL');
+
+      await countService.cancel(order.id);
+    });
+  });
+
+  describe('the count sheet query', () => {
+    it('filters by key, by snapshot and by variance, and paginates', async () => {
+      const order = await countService.create({
+        name: 'sheet query',
+        countDate: '2026-06-01',
+        locationIds: [aisleId],
+      });
+
+      await countService.start(order.id);
+
+      const [all, total] = await countService.findItems(order.id);
+
+      expect(total).toBeGreaterThan(0);
+      expect(all.length).toBe(total);
+
+      // Keys are matched case-insensitively on a substring, because that is how
+      // the operator types them.
+      const [byMaterial] = await countService.findItems(order.id, {
+        materialKey: 'count-mat',
+      });
+
+      expect(byMaterial.length).toBe(total);
+
+      const [byMissing] = await countService.findItems(order.id, {
+        materialKey: 'NOTHING-MATCHES',
+      });
+
+      expect(byMissing).toEqual([]);
+
+      const [byLocation] = await countService.findItems(order.id, {
+        locationKey: 'COUNT-SHELF',
+      });
+
+      expect(byLocation.length).toBe(total);
+
+      // Nothing counted yet, so nothing has a variance.
+      const [noVariance] = await countService.findItems(order.id, {
+        onlyVariance: true,
+      });
+
+      expect(noVariance).toEqual([]);
+
+      const target = all[0];
+
+      await countService.count(order.id, [
+        { itemId: target.id, countedQuantity: Number(target.bookQuantity) },
+      ]);
+
+      // Counted, but matching the books — still not a variance.
+      const [stillNone] = await countService.findItems(order.id, {
+        onlyVariance: true,
+      });
+
+      expect(stillNone).toEqual([]);
+
+      await countService.count(order.id, [
+        { itemId: target.id, countedQuantity: Number(target.bookQuantity) - 1 },
+      ]);
+
+      const [withVariance] = await countService.findItems(order.id, {
+        onlyVariance: true,
+      });
+
+      expect(withVariance.map(({ id }) => id)).toEqual([target.id]);
+
+      const [firstPage, pagedTotal] = await countService.findItems(order.id, {
+        limit: 1,
+        offset: 0,
+      });
+
+      expect(firstPage).toHaveLength(1);
+      expect(pagedTotal).toBe(total);
+
+      await countService.cancel(order.id);
+    });
+
+    it('serves the sheet through the schema', async () => {
+      const order = await countService.create({
+        name: 'sheet query graphql',
+        countDate: '2026-06-02',
+        locationIds: [aisleId],
+      });
+
+      await countService.start(order.id);
+
+      const result = await execute(`{
+        inventoryCountOrderItems(id: "${order.id}", limit: 10, materialKey: "COUNT") {
+          total
+          items {
+            id
+            bookQuantity
+            held
+            inspectionResult
+            vendorId
+            saleSerialId
+            material { key }
+            location { key }
+          }
+        }
+      }`);
+
+      expect(result.errors).toBeUndefined();
+
+      const page = result.data?.['inventoryCountOrderItems'] as {
+        total: number;
+        items: { material: { key: string } }[];
+      };
+
+      expect(page.total).toBeGreaterThan(0);
+      expect(page.items[0].material.key).toBe('COUNT-MATERIAL');
+
+      await countService.cancel(order.id);
+    });
+  });
+
+  describe('batch attribute snapshots', () => {
+    // The sheet shows whether a position was awaiting inspection, held or in
+    // transfer, and which vendor / customer / sale order it belonged to. Those
+    // live on the batch and keep moving after the count settles, so they are
+    // copied onto the line when counting starts — a June count has to keep
+    // showing June.
+    it('copies the batch attributes onto the line when counting starts', async () => {
+      const batchRepository = dataSource.getRepository(entities.batch);
+
+      await batchRepository.update({ id: batchId }, {
+        held: true,
+        inspectionResult: null,
+        vendorId: 'VENDOR-1',
+        saleId: 'SO-1',
+        saleSerialId: '001',
+      } as never);
+
+      const order = await countService.create({
+        name: 'snapshot check',
+        countDate: '2026-05-01',
+        locationIds: [aisleId],
+      });
+
+      await countService.start(order.id);
+
+      const [line] = await dataSource.query(
+        `SELECT held, "inspectionResult", "vendorId", "saleId", "saleSerialId"
+           FROM inventory_count_order_items
+          WHERE "orderId" = $1 AND "batchId" = $2`,
+        [order.id, batchId],
+      );
+
+      expect(line.held).toBe(true);
+      expect(line.inspectionResult).toBeNull();
+      expect(line.vendorId).toBe('VENDOR-1');
+      expect(line.saleId).toBe('SO-1');
+      expect(line.saleSerialId).toBe('001');
+
+      // Now the batch moves on. The settled sheet must not follow it.
+      await batchRepository.update({ id: batchId }, {
+        held: false,
+        vendorId: null,
+        saleId: null,
+        saleSerialId: null,
+      } as never);
+
+      const [afterwards] = await dataSource.query(
+        `SELECT held, "vendorId" FROM inventory_count_order_items
+          WHERE "orderId" = $1 AND "batchId" = $2`,
+        [order.id, batchId],
+      );
+
+      expect(afterwards.held).toBe(true);
+      expect(afterwards.vendorId).toBe('VENDOR-1');
+
+      await countService.cancel(order.id);
+    });
+
+    it('snapshots an added line from its own batch', async () => {
+      const order = await countService.create({
+        name: 'addition snapshot',
+        countDate: '2026-05-02',
+        locationIds: [aisleId],
+      });
+
+      await countService.start(order.id);
+
+      const item = await countService.addItem(order.id, {
+        materialId,
+        batchKey: 'SNAPSHOT-NEW-BATCH',
+        locationId: shelfId,
+        countedQuantity: 3,
+      });
+
+      // Unbooked stock in a brand-new batch: not held, not in transfer, and
+      // uninspected — the defaults, which is what the sheet should show.
+      expect(item.held).toBe(false);
+      expect(item.inShipment).toBe(false);
+      expect(item.transferId).toBeNull();
+      expect(item.vendorId).toBeNull();
 
       await countService.cancel(order.id);
     });
