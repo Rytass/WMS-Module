@@ -30,6 +30,43 @@ export class FindInventoryCountOrderArgs extends PaginationArgs {
 }
 
 @ArgsType()
+export class FindInventoryCountOrderItemArgs extends PaginationArgs {
+  @Field(() => ID)
+  id!: string;
+
+  @Field(() => String, { nullable: true })
+  materialKey?: string;
+
+  @Field(() => String, { nullable: true })
+  materialDescription?: string;
+
+  @Field(() => String, { nullable: true })
+  batchKey?: string;
+
+  @Field(() => String, { nullable: true })
+  locationKey?: string;
+
+  @Field(() => String, { nullable: true })
+  loaderSerialId?: string;
+
+  @Field(() => String, { nullable: true })
+  vendorId?: string;
+
+  @Field(() => String, { nullable: true })
+  customerId?: string;
+
+  @Field(() => String, { nullable: true })
+  saleId?: string;
+
+  @Field(() => String, { nullable: true })
+  saleSerialId?: string;
+
+  /** Only lines whose counted quantity differs from the books (顯示盤差項目). */
+  @Field(() => Boolean, { nullable: true })
+  onlyVariance?: boolean;
+}
+
+@ArgsType()
 export class CreateInventoryCountOrderArgs {
   @Field(() => String)
   name!: string;

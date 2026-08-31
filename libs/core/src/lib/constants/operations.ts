@@ -47,6 +47,7 @@ export type WmsOperationName =
   | 'inventory-count-order:count'
   | 'inventory-count-order:create'
   | 'inventory-count-order:read'
+  | 'inventory-count-order:read-items'
   | 'inventory-count-order:remove-item'
   | 'inventory-count-order:reset'
   | 'inventory-count-order:settle'
@@ -126,6 +127,7 @@ export const WMS_OPERATION_NAMES: readonly WmsOperationName[] = [
   'inventory-count-order:count',
   'inventory-count-order:create',
   'inventory-count-order:read',
+  'inventory-count-order:read-items',
   'inventory-count-order:remove-item',
   'inventory-count-order:reset',
   'inventory-count-order:settle',
