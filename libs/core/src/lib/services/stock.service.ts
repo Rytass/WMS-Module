@@ -313,6 +313,39 @@ export class StockService<
         },
       );
 
+    /*
+     * Vendor / customer / sale order live on the batch, so they need their own
+     * join. One join for all four rather than four joins: they are conditions on
+     * the same row, and repeating the join would multiply nothing but the plan.
+     *
+     * Exact match, not ILIKE: these are identifiers handed over by the host
+     * system, and a partial match on 「SO-1」 quietly sweeping in 「SO-10」 is the
+     * kind of wrong answer nobody notices. It also keeps this in step with the
+     * inventory count sheet, whose four filters match the same way.
+     */
+    const batchAttributeFilters = (
+      [
+        ['vendorId', options.vendorId],
+        ['customerId', options.customerId],
+        ['saleId', options.saleId],
+        ['saleSerialId', options.saleSerialId],
+      ] as const
+    ).filter(([, value]) => Boolean(value));
+
+    if (batchAttributeFilters.length) {
+      queryBuilder.innerJoin(
+        this.entities.batch,
+        'ba',
+        'ba.id = stock."batchId"',
+      );
+
+      for (const [column, value] of batchAttributeFilters) {
+        queryBuilder.andWhere(`ba."${column}" = :${column}`, {
+          [column]: value,
+        });
+      }
+    }
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
