@@ -427,7 +427,7 @@ export class ReceiveInventoryOrderService<
 
       const items = await itemRepository.find({
         where: { id: In(options.map((o) => o.itemId)) },
-        relations: ['changes'],
+        relations: { changes: true },
       });
       const itemMap = new Map(items.map((i) => [i.id, i]));
 

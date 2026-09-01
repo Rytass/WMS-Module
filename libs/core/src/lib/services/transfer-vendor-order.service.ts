@@ -205,7 +205,7 @@ export class TransferVendorOrderService<
         (
           await repos.transferVendorOrderItem.find({
             where: { orderId: id },
-            relations: ['changes'],
+            relations: { changes: true },
           })
         ).map((item) => item.id),
       );

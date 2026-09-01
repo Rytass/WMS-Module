@@ -205,7 +205,7 @@ export class TransferCustomerOrderService<
         (
           await repos.transferCustomerOrderItem.find({
             where: { orderId: id },
-            relations: ['changes'],
+            relations: { changes: true },
           })
         ).map((item) => item.id),
       );

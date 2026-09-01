@@ -192,7 +192,7 @@ export class AllocateInventoryOrderService<
         (
           await repos.allocateInventoryOrderItem.find({
             where: { orderId: id },
-            relations: ['changes'],
+            relations: { changes: true },
           })
         ).map((item) => item.id),
       );

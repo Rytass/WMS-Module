@@ -170,7 +170,7 @@ export class TransferOrderService<
     const repos = this.getRepositories(manager);
     const items = await repos.transferOrderItem.find({
       where: { id: In(options.map((o) => o.itemId)) },
-      relations: ['changes'],
+      relations: { changes: true },
     });
 
     const itemMap = new Map(items.map((item) => [item.id, item]));
@@ -313,7 +313,7 @@ export class TransferOrderService<
       // Find all items with changes to calculate cancellable quantities
       const items = await repos.transferOrderItem.find({
         where: { orderId: id },
-        relations: ['changes'],
+        relations: { changes: true },
       });
 
       // Build cancel inputs for items with remaining pending quantity
@@ -648,7 +648,7 @@ export class TransferOrderService<
 
       const items = await itemRepository.find({
         where: { id: In(options.map((o) => o.itemId)) },
-        relations: ['changes'],
+        relations: { changes: true },
       });
 
       const itemMap = new Map(items.map((item) => [item.id, item]));
@@ -677,7 +677,7 @@ export class TransferOrderService<
       if (orderId) {
         const allOrderItems = await itemRepository.find({
           where: { orderId },
-          relations: ['changes'],
+          relations: { changes: true },
         });
         for (const orderItem of allOrderItems) {
           if (orderItem.removedAt) continue;

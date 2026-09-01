@@ -456,7 +456,7 @@ export class ShipInventoryOrderService<
       // Find all items with changes to calculate cancellable quantities
       const items = await itemRepository.find({
         where: { orderId: id },
-        relations: ['changes'],
+        relations: { changes: true },
       });
 
       // Build cancel inputs for items with remaining prepared quantity
@@ -523,7 +523,7 @@ export class ShipInventoryOrderService<
 
     const items = await itemRepository.find({
       where: { id: In(options.map((o) => o.itemId)) },
-      relations: ['changes'],
+      relations: { changes: true },
     });
     const itemMap = new Map(items.map((item) => [item.id, item]));
 
@@ -763,7 +763,7 @@ export class ShipInventoryOrderService<
 
       const items = await itemRepository.find({
         where: { id: In(options.map((option) => option.itemId)) },
-        relations: ['changes'],
+        relations: { changes: true },
       });
       const itemMap = new Map(items.map((item) => [item.id, item]));
       await Promise.all(
