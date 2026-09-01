@@ -348,23 +348,36 @@ The `DEFAULT` location/loader/loaderType returned by the second query was seeded
 
 ### 4.6 Version compatibility matrix
 
-Tested combinations as of 0.1.2:
+Two different questions, so two columns. **Accepted** is what the published
+`peerDependencies` allow — a version outside it fails to install. **Tested** is the
+combination CI and the integration suite actually run against; anything else is
+accepted because nothing in the lib's use of that package is known to break, not
+because it was exercised.
 
-| Package                          | Tested version          | Notes                                                              |
-|----------------------------------|-------------------------|--------------------------------------------------------------------|
-| NestJS (`@nestjs/*`)             | 11.x                    | 10.x untested; some Express-5-related APIs differ                  |
-| `@nestjs/graphql`                | 13.x                    | Required for `@nestjs/apollo@13`                                   |
-| `@nestjs/apollo`                 | 13.0.x – 13.1.x         | 13.2+ requires @apollo/server@^5 which breaks lib's v4 plugin usage |
-| `@apollo/server`                 | 4.x                     | v5 is breaking; not supported                                      |
-| `@as-integrations/express5`      | 1.x                     | Required runtime peer                                              |
-| TypeORM                          | 0.3.x                   | 0.2.x not supported (different DataSource API)                     |
-| PostgreSQL                       | 14+                     | Native dialect                                                     |
-| `graphql`                        | 16.x                    | 15.x untested                                                      |
-| Node.js                          | 20 LTS or 22            | 18 deprecated, 24 untested                                         |
-| Next.js                          | 15.x Pages Router       | App Router unsupported (see §13.11)                                |
-| React                            | 19.x                    | 18.x likely works but untested                                     |
-| `@mezzanine-ui/react`            | 1.3.x                   | Earlier versions untested                                          |
-| `nuqs`                           | 2.x (Pages adapter)     | App Router adapter untested (see §13.11)                           |
+| Package                     | Accepted (peer range)     | Tested            | Notes                                                                       |
+|-----------------------------|---------------------------|-------------------|-----------------------------------------------------------------------------|
+| `@nestjs/common` / `core`   | 10.x – 11.x               | 11.1.x            | **12.x is not accepted**: the whole NestJS 12 line is ESM-only, which this package (dual CJS+ESM) and a webpack-bundled host cannot consume yet |
+| `@nestjs/graphql`           | 13.x                      | 13.4.5            | 14.x requires NestJS 12 (ESM-only)                                          |
+| `@nestjs/apollo`            | 13.x                      | 13.4.5            | The lib itself imports neither `@nestjs/apollo` nor `@apollo/server`; the peer records that a driver is required |
+| `@apollo/server`            | not a peer                | 5.5.1             | Chosen by your driver, not by this package                                   |
+| `@as-integrations/express5` | 1.x                       | 1.1.2             | Required runtime peer of the Express driver                                  |
+| `graphql`                   | 16.x                      | 16.12.0           | 17.x is blocked upstream — `@apollo/server@5` still peers `^16.11.0`         |
+| `rxjs`                      | 7.x                       | 7.8.x             | One import (the mutation interceptor)                                        |
+| `@nestjs/event-emitter`     | 2.x – 3.x (optional)      | 3.1.0             | The next release is 12.x, which is ESM-only                                  |
+| TypeORM                     | 0.3.x                     | 0.3.28            | 0.2.x not supported (different DataSource API)                              |
+| PostgreSQL                  | —                         | 14+               | Native dialect                                                              |
+| Node.js                     | —                         | 20 LTS / 22       | 18 deprecated, 24 untested                                                  |
+| Next.js                     | 15.x – 16.x               | 15.5.x Pages      | Only `next/router` and `next/navigation` are used; App Router unsupported (see §13.11) |
+| React / React DOM           | 18.x – 19.x               | 19.2.x            | No React-19-only API is used, and `@mezzanine-ui/react` peers `>=18`        |
+| `@mezzanine-ui/react`       | 1.x                       | 1.4.1             | `@mezzanine-ui/system` is required — 45 of the lib's SCSS files `@use` it   |
+| `nuqs`                      | 2.x                       | 2.8.x             | Pages adapter; App Router adapter untested (see §13.11)                     |
+
+> **Why `@apollo/server` v5 is fine.** An earlier release pinned `@nestjs/apollo` to
+> `>=13.0.0 <13.2.0`, on the grounds that 13.2+ moved to `@apollo/server@^5` and "the lib
+> uses v4 plugin APIs". That was wrong: the only `ApolloServerPluginLandingPageLocalDefault`
+> usage lives in this repo's own `apps/api`, never in the published package, which imports
+> nothing from `@apollo/server` at all. The pin excluded the very combination the test suite
+> runs on, so it has been widened back to `^13.0.0`.
 
 ---
 

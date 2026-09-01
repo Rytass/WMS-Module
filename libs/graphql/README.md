@@ -9,7 +9,7 @@ Pair with [`@rytass/wms-module-core`](https://www.npmjs.com/package/@rytass/wms-
 ```bash
 yarn add @rytass/wms-module-graphql @rytass/wms-module-core
 # peer deps
-yarn add @nestjs/common @nestjs/graphql @nestjs/apollo @apollo/server graphql dataloader reflect-metadata rxjs
+yarn add @nestjs/common @nestjs/graphql @nestjs/apollo @apollo/server @as-integrations/express5 graphql reflect-metadata rxjs
 ```
 
 ## Quick start

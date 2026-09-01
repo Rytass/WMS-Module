@@ -340,23 +340,23 @@ The `DEFAULT` location/loader/loaderType returned by the second query was seeded
 
 ### 4.6 Version compatibility matrix
 
-Tested combinations as of 0.1.2:
+Two different questions, so two columns. **Accepted** is what the published
+`peerDependencies` allow — a version outside it fails to install. **Tested** is the
+combination the integration suite actually runs against.
 
-| Package                          | Tested version          | Notes                                                              |
-|----------------------------------|-------------------------|--------------------------------------------------------------------|
-| NestJS (`@nestjs/*`)             | 11.x                    | 10.x untested; some Express-5-related APIs differ                  |
-| `@nestjs/graphql`                | 13.x                    | Required for `@nestjs/apollo@13`                                   |
-| `@nestjs/apollo`                 | 13.0.x – 13.1.x         | 13.2+ requires @apollo/server@^5 which breaks lib's v4 plugin usage |
-| `@apollo/server`                 | 4.x                     | v5 is breaking; not supported                                      |
-| `@as-integrations/express5`      | 1.x                     | Required runtime peer                                              |
-| TypeORM                          | 0.3.x                   | 0.2.x not supported (different DataSource API)                     |
-| PostgreSQL                       | 14+                     | Native dialect                                                     |
-| `graphql`                        | 16.x                    | 15.x untested                                                      |
-| Node.js                          | 20 LTS or 22            | 18 deprecated, 24 untested                                         |
-| Next.js                          | 15.x Pages Router       | App Router unsupported (see §13.11)                                |
-| React                            | 19.x                    | 18.x likely works but untested                                     |
-| `@mezzanine-ui/react`            | 1.3.x                   | Earlier versions untested                                          |
-| `nuqs`                           | 2.x (Pages adapter)     | App Router adapter untested (see §13.11)                           |
+| Package                  | Accepted (peer range)  | Tested       | Notes                                                                       |
+|--------------------------|------------------------|--------------|-----------------------------------------------------------------------------|
+| `@nestjs/common`         | 10.x – 11.x            | 11.1.x       | **12.x is not accepted**: the whole NestJS 12 line is ESM-only, which this package (dual CJS+ESM) and a webpack-bundled host cannot consume yet |
+| `@nestjs/typeorm`        | 10.x – 11.x            | 11.0.x       | Three import sites (`InjectDataSource`, `forFeature`), stable across both   |
+| TypeORM                  | 0.3.x                  | 0.3.28       | 0.2.x not supported (different DataSource API)                              |
+| `reflect-metadata`       | 0.1.13+ / 0.2.x        | 0.1.x        | Ambient requirement of the decorators                                        |
+| `rxjs`                   | not a peer             | —            | Never imported by this package; `@nestjs/common` peers it for you            |
+| PostgreSQL               | —                      | 14+          | Native dialect                                                              |
+| Node.js                  | —                      | 20 LTS / 22  | 18 deprecated, 24 untested                                                  |
+
+The GraphQL-side packages (`@nestjs/graphql`, `@nestjs/apollo`, `@apollo/server`,
+`@as-integrations/express5`) are not peers of this package — see
+[`@rytass/wms-module-graphql`](https://www.npmjs.com/package/@rytass/wms-module-graphql) §4.6.
 
 ---
 

@@ -11,7 +11,8 @@ yarn add @rytass/wms-module-react
 # peer deps
 yarn add react react-dom next @apollo/client graphql \
   @mezzanine-ui/core @mezzanine-ui/system @mezzanine-ui/react @mezzanine-ui/icons \
-  react-hook-form @hookform/error-message @hookform/resolvers yup nuqs lodash luxon
+  @rytass/wms-map-react-components \
+  react-hook-form @hookform/resolvers yup nuqs lodash
 ```
 
 > **Router support — Pages **and** App Router since v0.2.0.** Components no longer import `next/router` directly; navigation is injected through a `WmsRouterProvider`. Mount the bridge that matches your app:
