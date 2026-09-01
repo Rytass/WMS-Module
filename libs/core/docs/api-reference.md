@@ -248,6 +248,10 @@ WmsModuleCoreModule.forRootAsync({
 
 **庫存**
 - `FindStockInput<U extends object>` (extends `PaginationInput`) — 來源: `lib/typings/find-stock.input.ts`
+  - `aggregated` 已 **deprecated 且被忽略**，下一個 minor 移除。每個讀這個 input 的方法都自己決定要不要聚合：
+    `findAggregatedStocks` / `findAggregatedStock` 一律聚合，`findMany` / `findChangeLogs` 一律不聚合。
+    在 0.8.0 之前對 `findAggregatedStocks` 傳 `false`（或省略）會拋 `column agg."saleSerialId" does not exist`，
+    而不是回傳未聚合的列——所以沒有任何行為依賴它。
   - 除了 `materialKey` / `batchKey` / `locationKey` / `loaderKey`（皆為 ILIKE 模糊比對），另可用批號上的四個商業屬性
     `vendorId` / `customerId` / `saleId` / `saleSerialId` 篩選。這四個是**完全比對**，不是模糊比對——它們是上游系統的識別碼，
     模糊比對會讓 `SO-1` 撈到 `SO-10`。傳 `null` 等同不篩選。

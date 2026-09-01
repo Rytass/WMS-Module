@@ -159,6 +159,25 @@ The regression guards are `libs/graphql/src/lib/custom-material-entity.integrati
 
 Consequence: the module **cannot** register a consumer's entity with TypeORM — `forFeature()` runs before the options resolve. `WmsEntities`' constructor checks `dataSource.hasMetadata` for all six and throws instead, because forgetting to register almost works (TypeORM copies a single-table child's columns into the parent, so `synchronize` still builds the right schema) and would otherwise surface as a bare `EntityMetadataNotFoundError` from inside a resolver.
 
+#### A service query method needs a test that calls it directly
+
+Every one of the integration specs enters through the GraphQL schema, and every resolver on
+the way in fills in the arguments it cares about. That leaves a whole class of defect
+invisible: anything a **published service signature allows but no in-repo caller ever
+produces**. `StockService.findAggregatedStocks` carried an optional `aggregated?: boolean`
+whose default value produced `column agg."saleSerialId" does not exist` — 79 passing tests
+could not see it, because the six resolvers that reach that method all passed
+`aggregated: true` themselves.
+
+So: when a service method is exported from `@rytass/wms-module-core` and takes optional
+arguments, at least one spec must call it the way a consumer would — `app.get(TheService)`
+and then the method, with the optional arguments left out. Reaching it through a resolver
+tests the resolver's defaults, not the contract. The example lives at the end of
+`libs/graphql/src/lib/stock-batch-attribute-filters.integration.spec.ts`.
+
+A corollary for the signatures themselves: an optional parameter with exactly one workable
+value is not a parameter. Fix the method, do not document the one value that works.
+
 #### The inventory count sheet does not ride on `inventoryCountOrder`
 
 `InventoryCountOrderDto.items` still exists as a field resolver, but the detail page no
