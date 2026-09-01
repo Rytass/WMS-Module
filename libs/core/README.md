@@ -9,7 +9,7 @@ This package only provides the data and service layer. Pair it with [`@rytass/wm
 ```bash
 yarn add @rytass/wms-module-core
 # peer deps
-yarn add @nestjs/common @nestjs/typeorm typeorm reflect-metadata
+yarn add @nestjs/common @nestjs/typeorm typeorm reflect-metadata @rytass/wms-base-nestjs-module
 ```
 
 ## Quick start

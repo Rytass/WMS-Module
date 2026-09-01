@@ -351,6 +351,7 @@ combination the integration suite actually runs against.
 | TypeORM                  | 0.3.x                  | 0.3.28       | 0.2.x not supported (different DataSource API)                              |
 | `reflect-metadata`       | 0.1.13+ / 0.2.x        | 0.1.x        | Ambient requirement of the decorators                                        |
 | `rxjs`                   | not a peer             | —            | Never imported by this package; `@nestjs/common` peers it for you            |
+| `@rytass/wms-base-nestjs-module` | 0.4.x          | 0.4.0        | **A peer since 0.7.0**, not a bundled dependency. It was pinned exactly under `dependencies`, which cannot prevent a second copy — it *causes* one as soon as you ask for any other 0.4.x. Two copies means two sets of entity classes and DI Symbols, the split-brain this package's Symbol discipline exists to avoid. Install it yourself so there is one |
 | PostgreSQL               | —                      | 14+          | Native dialect                                                              |
 | Node.js                  | —                      | 20 LTS / 22  | 18 deprecated, 24 untested                                                  |
 
