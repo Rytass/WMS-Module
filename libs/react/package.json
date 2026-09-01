@@ -78,8 +78,7 @@
   },
   "dependencies": {
     "axios": "^1.6.0",
-    "dayjs": "^1.11.0",
-    "luxon": "^3.7.2"
+    "dayjs": "^1.11.0"
   },
   "peerDependencies": {
     "@apollo/client": "^4.0.0",
