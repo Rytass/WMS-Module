@@ -293,4 +293,44 @@ describe('stock batch-attribute filters (integration)', () => {
 
     expect(payload.items.map(({ key }) => key)).toEqual(['FILTER-MATERIAL']);
   });
+
+  /*
+   * Everything above enters through the GraphQL schema, and every resolver on
+   * the way in supplies `aggregated: true` itself. That makes a whole class of
+   * defect invisible from here: anything a *published* service signature allows
+   * but no in-repo caller ever produces. `findAggregatedStocks` used to read
+   * `options.aggregated` for its inner subquery while hard-wiring the outer
+   * projection, so the most natural call a consumer could write — the one the
+   * optional `aggregated?: boolean` invites — died on
+   * `column agg."saleSerialId" does not exist`.
+   *
+   * These two call the service the way a consumer of @rytass/wms-module-core
+   * does: directly, with the argument left out.
+   */
+  describe('StockService.findAggregatedStocks called as published API', () => {
+    it('aggregates when `aggregated` is omitted entirely', async () => {
+      const [items, total] = await stockService.findAggregatedStocks({});
+
+      expect(total).toBe(3);
+      expect(items.map((item) => item.saleSerialId).sort()).toEqual([
+        '1',
+        '1',
+        '2',
+      ]);
+      expect(items.every((item) => Number(item.quantity) === 10)).toBe(true);
+    });
+
+    it('aggregates even when `aggregated: false` is passed', async () => {
+      const [items, total] = await stockService.findAggregatedStocks({
+        aggregated: false,
+      });
+
+      expect(total).toBe(3);
+      expect(items.map((item) => item.vendorId).sort()).toEqual([
+        'V-1',
+        'V-1',
+        'V-2',
+      ]);
+    });
+  });
 });
