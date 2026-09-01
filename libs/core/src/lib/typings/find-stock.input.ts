@@ -13,6 +13,15 @@ export type FindStockInput<U extends object> = PaginationInput & {
   };
   status?: StockStatus;
   negateStatus?: StockStatus;
+  /**
+   * @deprecated Ignored, and slated for removal in the next minor.
+   *
+   * Every method that reads this input already fixes its own aggregation:
+   * `findAggregatedStocks` and `findAggregatedStock` always aggregate,
+   * `findMany` and `findChangeLogs` never do. Passing `false` to an
+   * `findAggregated*` call used to produce a SQL error rather than un-aggregated
+   * rows, which is how we know nobody was relying on it.
+   */
   aggregated?: boolean;
   aggregatedKeys?: string[];
 

@@ -497,7 +497,13 @@ export class StockService<
     const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
-      options.aggregated ? true : false,
+      // Always aggregated. The outer projection below is hard-wired to the
+      // aggregated shape (it selects agg."saleSerialId" and friends), so letting
+      // the caller switch the inner subquery off asked the outer query for a
+      // column the inner one never produced — a hard `column agg."saleSerialId"
+      // does not exist`. There was never a working `false` here: this method
+      // returns AggregatedStock[], so aggregating is its only meaning.
+      true,
     );
 
     // Wrap the aggregated subquery and apply pagination on top
@@ -534,7 +540,13 @@ export class StockService<
     const countBuilder = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
-      options.aggregated ? true : false,
+      // Always aggregated. The outer projection below is hard-wired to the
+      // aggregated shape (it selects agg."saleSerialId" and friends), so letting
+      // the caller switch the inner subquery off asked the outer query for a
+      // column the inner one never produced — a hard `column agg."saleSerialId"
+      // does not exist`. There was never a working `false` here: this method
+      // returns AggregatedStock[], so aggregating is its only meaning.
+      true,
     );
 
     const countResult = await this.dataSource
