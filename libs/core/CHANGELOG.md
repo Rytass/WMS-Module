@@ -1,3 +1,14 @@
+## 0.8.1 (2026-09-01)
+
+### 🩹 Fixes
+
+- **core:** stop findAggregatedStocks reading an aggregation switch it cannot honour ([bd3c1e1](https://github.com/Rytass/WMS-Module/commit/bd3c1e1))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.8.0 (2026-09-01)
 
 ### 🚀 Features
