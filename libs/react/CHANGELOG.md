@@ -1,3 +1,22 @@
+## 0.4.0 (2026-09-01)
+
+### 🚀 Features
+
+- **react:** filter stock by the four commercial attributes, and tell the two empty states apart ([a527ee0](https://github.com/Rytass/WMS-Module/commit/a527ee0))
+- **react:** paginate and filter the inventory count sheet ([0a98944](https://github.com/Rytass/WMS-Module/commit/0a98944))
+
+### 🩹 Fixes
+
+- **react:** give the emitted declarations explicit relative specifiers ([7753552](https://github.com/Rytass/WMS-Module/commit/7753552))
+- **deps:** correct two runtime dependency ranges that nothing was validating ([d7ed0c0](https://github.com/Rytass/WMS-Module/commit/d7ed0c0))
+- **repo:** make the pre-publish gate able to fail, and stop packing src twice ([f45a681](https://github.com/Rytass/WMS-Module/commit/f45a681))
+- **deps:** widen the published peer ranges to match what the code actually uses ([c9bd621](https://github.com/Rytass/WMS-Module/commit/c9bd621))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.3.0 (2026-08-31)
 
 ### 🚀 Features

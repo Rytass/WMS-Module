@@ -1,3 +1,27 @@
+## 0.10.0 (2026-09-01)
+
+### 🚀 Features
+
+- **graphql:** expose the batch attribute filters on every stock query ([37bad6d](https://github.com/Rytass/WMS-Module/commit/37bad6d))
+- **graphql:** add a filtered, paginated count sheet query ([e25aeed](https://github.com/Rytass/WMS-Module/commit/e25aeed))
+- **core:** snapshot the batch attributes a count sheet displays ([6ff7487](https://github.com/Rytass/WMS-Module/commit/6ff7487))
+
+### 🩹 Fixes
+
+- **deps:** declare every package the published bundles actually require ([02aea88](https://github.com/Rytass/WMS-Module/commit/02aea88))
+- **deps:** correct two runtime dependency ranges that nothing was validating ([d7ed0c0](https://github.com/Rytass/WMS-Module/commit/d7ed0c0))
+- **repo:** make the pre-publish gate able to fail, and stop packing src twice ([f45a681](https://github.com/Rytass/WMS-Module/commit/f45a681))
+- **deps:** widen the published peer ranges to match what the code actually uses ([c9bd621](https://github.com/Rytass/WMS-Module/commit/c9bd621))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.7.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.9.0 (2026-08-31)
 
 ### 🚀 Features

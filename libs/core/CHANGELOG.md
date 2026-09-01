@@ -1,3 +1,22 @@
+## 0.7.0 (2026-09-01)
+
+### 🚀 Features
+
+- **core:** filter stock by its batch's vendor, customer and sale order ([d66dfb4](https://github.com/Rytass/WMS-Module/commit/d66dfb4))
+- **graphql:** add a filtered, paginated count sheet query ([e25aeed](https://github.com/Rytass/WMS-Module/commit/e25aeed))
+- **core:** snapshot the batch attributes a count sheet displays ([6ff7487](https://github.com/Rytass/WMS-Module/commit/6ff7487))
+
+### 🩹 Fixes
+
+- **deps:** declare every package the published bundles actually require ([02aea88](https://github.com/Rytass/WMS-Module/commit/02aea88))
+- **repo:** make the pre-publish gate able to fail, and stop packing src twice ([f45a681](https://github.com/Rytass/WMS-Module/commit/f45a681))
+- **deps:** widen the published peer ranges to match what the code actually uses ([c9bd621](https://github.com/Rytass/WMS-Module/commit/c9bd621))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.6.0 (2026-08-31)
 
 ### 🚀 Features
