@@ -122,7 +122,20 @@ Cross-package consequences are handled automatically via `version.updateDependen
 
 ## Troubleshooting
 
-- **`npm publish` fails with `EOTP`**: the `--otp=` value expired (TOTPs rotate every 30 s). Refresh the authenticator app and rerun `yarn nx release publish --otp=NEW`.
+- **`npm publish` fails with `EOTP` and the OTP started with `0`**: it did not expire — Nx ate
+  the leading zero. `nx release publish` declares `otp` as `type: 'number'`
+  (`nx/src/command-line/release/command-object.js`), so yargs coerces `012506` to `12506`.
+  You can see it in Nx's own echo: `With additional flags: --otp=12506`. Roughly one OTP in
+  ten is affected. Either wait for a code that does not start with `0`, or bypass the flag
+  entirely and let npm read it from the environment:
+
+  ```bash
+  NPM_CONFIG_OTP=012506 yarn release:publish   # note: no --otp flag
+  ```
+
+  This works because the `@nx/js` publish executor shells out to `npm publish` with
+  `env: processEnv(true)`, so npm picks up `npm_config_otp` itself.
+- **`npm publish` fails with `EOTP` otherwise**: the `--otp=` value expired (TOTPs rotate every 30 s). Refresh the authenticator app and rerun `yarn nx release publish --otp=NEW`.
 - **`npm publish` fails with `E403 Forbidden`**: the local npm login does not have publish rights on the `@rytass` scope. Run `npm whoami` to verify the account, then ask an owner to add you as a maintainer on npmjs.com.
 - **`yarn release` fails with `gpg: signing failed: 逾時`**: `gpg-agent` is locked. Unlock with `echo test | gpg --clearsign` (enter passphrase when pinentry pops), then `git reset --hard HEAD` to drop the half-written bump files, and rerun `yarn release`.
 - **Nx says "Unable to resolve current version from git tags"**: a project has never been released; pass `--first-release` once.
