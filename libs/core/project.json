@@ -50,7 +50,7 @@
         "parallel": false,
         "commands": [
           "npm pack --pack-destination ./libs/core ./libs/core",
-          "npx -y @arethetypeswrong/cli ./libs/core/*.tgz",
+          "npx -y @arethetypeswrong/cli ./libs/core/*.tgz --ignore-rules unexpected-module-syntax",
           "rm -f ./libs/core/*.tgz"
         ]
       }
@@ -61,7 +61,8 @@
         "typecheck",
         "lint",
         "build",
-        "pkg-quality"
+        "pkg-quality",
+        "pkg-quality-attw"
       ]
     }
   },

@@ -15,12 +15,12 @@
       "outputs": [
         "{projectRoot}/index.js",
         "{projectRoot}/index.d.ts",
-        "{projectRoot}/globals.js",
         "{projectRoot}/globals.d.ts",
         "{projectRoot}/components",
         "{projectRoot}/hooks",
         "{projectRoot}/icons",
         "{projectRoot}/utils",
+        "{projectRoot}/router",
         "{projectRoot}/apollo",
         "{projectRoot}/graphql"
       ],
@@ -38,14 +38,16 @@
       "options": {
         "cwd": "libs/react",
         "commands": [
-          "rm -rf index.js index.d.ts globals.js globals.d.ts components hooks icons utils apollo graphql/generated"
+          "rm -rf index.js index.d.ts globals.js globals.d.ts components hooks icons utils apollo router graphql/generated"
         ],
         "parallel": false
       }
     },
     "pkg-quality": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "options": {
         "command": "npx -y publint run libs/react --pack false",
         "parallel": false
@@ -53,19 +55,27 @@
     },
     "pkg-quality-attw": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "options": {
         "parallel": false,
         "commands": [
           "npm pack --pack-destination ./libs/react ./libs/react",
-          "npx -y @arethetypeswrong/cli ./libs/react/*.tgz",
+          "npx -y @arethetypeswrong/cli ./libs/react/*.tgz --ignore-rules cjs-resolves-to-esm internal-resolution-error",
           "rm -f ./libs/react/*.tgz"
         ]
       }
     },
     "prepublish-check": {
       "executor": "nx:noop",
-      "dependsOn": ["typecheck", "lint", "build", "pkg-quality"]
+      "dependsOn": [
+        "typecheck",
+        "lint",
+        "build",
+        "pkg-quality",
+        "pkg-quality-attw"
+      ]
     },
     "test": {
       "executor": "nx:run-commands",

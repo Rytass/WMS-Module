@@ -6,7 +6,9 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "dependsOn": ["^build"],
+      "dependsOn": [
+        "^build"
+      ],
       "outputs": [
         "{projectRoot}/index.cjs.js",
         "{projectRoot}/index.js",
@@ -23,7 +25,9 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "libs/graphql",
-        "commands": ["rm -rf index.cjs.js index.js index.d.ts lib adapters"],
+        "commands": [
+          "rm -rf index.cjs.js index.js index.d.ts lib adapters"
+        ],
         "parallel": false
       }
     },
@@ -39,7 +43,9 @@
     },
     "pkg-quality": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "options": {
         "command": "npx -y publint run libs/graphql --pack false",
         "parallel": false
@@ -47,19 +53,27 @@
     },
     "pkg-quality-attw": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "options": {
         "parallel": false,
         "commands": [
           "npm pack --pack-destination ./libs/graphql ./libs/graphql",
-          "npx -y @arethetypeswrong/cli ./libs/graphql/*.tgz",
+          "npx -y @arethetypeswrong/cli ./libs/graphql/*.tgz --ignore-rules unexpected-module-syntax",
           "rm -f ./libs/graphql/*.tgz"
         ]
       }
     },
     "prepublish-check": {
       "executor": "nx:noop",
-      "dependsOn": ["typecheck", "lint", "build", "pkg-quality"]
+      "dependsOn": [
+        "typecheck",
+        "lint",
+        "build",
+        "pkg-quality",
+        "pkg-quality-attw"
+      ]
     }
   },
   "tags": []

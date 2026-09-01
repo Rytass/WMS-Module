@@ -70,7 +70,8 @@
     "**/*.scss",
     "README.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "!src"
   ],
   "publishConfig": {
     "access": "public"
