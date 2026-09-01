@@ -1,3 +1,18 @@
+## 0.8.0 (2026-09-01)
+
+### 🚀 Features
+
+- **core:** support TypeORM 1.x alongside 0.3.x ([ca25f8d](https://github.com/Rytass/WMS-Module/commit/ca25f8d))
+
+### 🩹 Fixes
+
+- **core:** match absent batch attributes with IsNull(), not a bare null ([df7f399](https://github.com/Rytass/WMS-Module/commit/df7f399))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.7.0 (2026-09-01)
 
 ### 🚀 Features

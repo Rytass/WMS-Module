@@ -1,3 +1,18 @@
+## 0.10.1 (2026-09-01)
+
+### 🚀 Features
+
+- **core:** support TypeORM 1.x alongside 0.3.x ([ca25f8d](https://github.com/Rytass/WMS-Module/commit/ca25f8d))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.8.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.10.0 (2026-09-01)
 
 ### 🚀 Features
