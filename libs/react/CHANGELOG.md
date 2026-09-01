@@ -1,5 +1,20 @@
 ## 0.4.0 (2026-09-01)
 
+### ⚠️ Breaking change
+
+The `InventoryCountOrder` fragment no longer selects `items`. The count sheet moved to the
+paginated `inventoryCountOrderItems` query, because a field resolver can take neither a page
+nor a filter and a count covering an aisle runs to thousands of lines.
+
+If you read `data.inventoryCountOrder.items`, it is gone — use the
+`InventoryCountOrderItemsDocument` query instead. This is a minor bump because in `0.x` this
+project treats minor as the breaking-change channel (see `RELEASING.md`).
+
+Also in this release: `@mezzanine-ui/icons` and `@rytass/wms-map-react-components` are no
+longer marked optional peers. They never were optional — both are static top-level imports
+reachable from the package barrel, so omitting them produced a module-not-found at build
+time rather than a degraded UI. Install them if you were relying on the flag.
+
 ### 🚀 Features
 
 - **react:** filter stock by the four commercial attributes, and tell the two empty states apart ([a527ee0](https://github.com/Rytass/WMS-Module/commit/a527ee0))
