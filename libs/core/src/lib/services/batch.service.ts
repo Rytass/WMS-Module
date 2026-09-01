@@ -3,6 +3,7 @@ import {
   DataSource,
   EntityManager,
   EntityTarget,
+  FindOperator,
   FindOptionsWhere,
   IsNull,
   Repository,
@@ -161,7 +162,7 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     const batchRepository = manager.getRepository<BatchEntityClass>(this.batchEntity);
     const batch = await batchRepository.findOneOrFail({
       where: { id: options.id },
-      relations: ['batchGroup'],
+      relations: { batchGroup: true },
     });
 
     // Validate state transition before proceeding
@@ -174,15 +175,26 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       groupId: batch.batchGroup.id,
     };
 
-    // Build where condition dynamically to handle optional fields
-    const whereCondition: Record<string, unknown> = {
+    /*
+     * Absent attributes have to be matched with `IsNull()`, not with a bare
+     * `null`. A `null` on the right of a find condition compiles to `= NULL`,
+     * which is never true in SQL — so this lookup used to miss every batch whose
+     * attributes were unset and split off a duplicate instead of reusing the one
+     * already there. `getBatch` above has always done it this way; this call
+     * site did not. TypeORM 1.x refuses a bare `null` here outright, which is
+     * how the bug surfaced.
+     */
+    const orNull = <V>(value: V | null | undefined): V | FindOperator<V> =>
+      value === null || value === undefined ? IsNull() : value;
+
+    const whereCondition: FindOptionsWhere<BatchEntityClass> = {
       groupId: mergedBatch.groupId,
-      saleId: mergedBatch.saleId ?? null,
-      saleSerialId: mergedBatch.saleSerialId ?? null,
-      customerId: mergedBatch.customerId ?? null,
-      vendorId: mergedBatch.vendorId ?? null,
-      inspectionResult: mergedBatch.inspectionResult ?? null,
-      transferId: mergedBatch.transferId ?? null,
+      saleId: orNull(mergedBatch.saleId),
+      saleSerialId: orNull(mergedBatch.saleSerialId),
+      customerId: orNull(mergedBatch.customerId),
+      vendorId: orNull(mergedBatch.vendorId),
+      inspectionResult: orNull(mergedBatch.inspectionResult),
+      transferId: orNull(mergedBatch.transferId),
       held: mergedBatch.held ?? false,
       inShipment: mergedBatch.inShipment ?? false,
     };
