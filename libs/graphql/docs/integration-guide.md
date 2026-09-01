@@ -365,7 +365,7 @@ because it was exercised.
 | `rxjs`                      | 7.x                       | 7.8.x             | One import (the mutation interceptor)                                        |
 | `@nestjs/event-emitter`     | 2.x – 3.x (optional)      | 3.1.0             | The next release is 12.x, which is ESM-only                                  |
 | `@rytass/wms-base-nestjs-module` | 0.4.x                | 0.4.0             | Imported directly by this package (the warehouse-map mutation and the location resolver) and shared with `@rytass/wms-module-core`. Declared as a peer since 0.10.0 so both see the same copy |
-| TypeORM                     | 0.3.x                     | 0.3.28            | 0.2.x not supported (different DataSource API)                              |
+| TypeORM                     | 0.3.x – 1.x               | 1.1.1             | The suite is run against both 0.3.31 and 1.1.1. 0.2.x is not supported. TypeORM 1.x additionally needs `@nestjs/typeorm` >= 11.0.1 |
 | PostgreSQL                  | —                         | 14+               | Native dialect                                                              |
 | Node.js                     | —                         | 20 LTS / 22       | 18 deprecated, 24 untested                                                  |
 | Next.js                     | 15.x – 16.x               | 15.5.x Pages      | Only `next/router` and `next/navigation` are used; App Router unsupported (see §13.11) |
