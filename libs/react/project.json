@@ -29,7 +29,8 @@
         "parallel": false,
         "commands": [
           "rollup -c rollup.config.mjs",
-          "rsync -a --include='*/' --include='*.scss' --exclude='*' src/ ./"
+          "rsync -a --include='*/' --include='*.scss' --exclude='*' src/ ./",
+          "node scripts/fix-dts-specifiers.mjs ."
         ]
       }
     },
@@ -62,7 +63,7 @@
         "parallel": false,
         "commands": [
           "npm pack --pack-destination ./libs/react ./libs/react",
-          "npx -y @arethetypeswrong/cli ./libs/react/*.tgz --ignore-rules cjs-resolves-to-esm internal-resolution-error",
+          "npx -y @arethetypeswrong/cli ./libs/react/*.tgz --ignore-rules cjs-resolves-to-esm",
           "rm -f ./libs/react/*.tgz"
         ]
       }

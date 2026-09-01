@@ -102,9 +102,11 @@ gate is green and fails on anything *new*. Each waiver is a bug, not a decision:
 |---|---|---|---|
 | `core`, `graphql` | `unexpected-module-syntax` | Neither declares `"type"`, so npm treats their `.js` as CJS while the ESM build emits ESM syntax into `.js` | Emit ESM as `.mjs` and set `"type": "commonjs"` |
 | `react` | `cjs-resolves-to-esm` | Deliberate — the package is ESM-only (see `libs/react/README.md` "Known issues") | Not a bug; keep waived |
-| `react` | `internal-resolution-error` | Relative imports in the emitted `.d.ts` carry no `.js` extension, which `"type": "module"` requires. Consumers on `moduleResolution: node16`/`nodenext` fail to resolve **every** export; `bundler` resolution is unaffected, which is why Next.js consumers have not hit it | Emit extensioned relative specifiers |
 
 Delete a row from this table and its `--ignore-rules` entry in the same commit that fixes it.
+(`react`'s `internal-resolution-error` was retired that way — the emitted declarations now
+carry explicit specifiers, written by `libs/react/scripts/fix-dts-specifiers.mjs` at the end
+of the build.)
 
 ## Conventional commit scopes used in this repo
 
