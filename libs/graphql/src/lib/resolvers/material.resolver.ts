@@ -20,7 +20,6 @@ export class MaterialResolver {
     // TODO: should be compatible with dataloader in the future
     const [items] = await this.stockService.findAggregatedStocks({
       materialId: id,
-      aggregated: true,
     });
     return items;
   }

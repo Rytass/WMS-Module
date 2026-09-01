@@ -375,7 +375,6 @@ export class TransferOrderService<
       for (const srcLoaderId of wholeLoaderSourceIds) {
         const [aggRows] = await this.stockService.findAggregatedStocks({
           loaderId: srcLoaderId,
-          aggregated: true,
         });
         // Gate 1
         const nonFree = aggRows.filter((r) => r.status !== StockStatus.FREE);
@@ -726,7 +725,6 @@ export class TransferOrderService<
       for (const [srcLoaderId, subTotalQty] of wholeLoaderGroupSums) {
         const [aggRows] = await this.stockService.findAggregatedStocks({
           loaderId: srcLoaderId,
-          aggregated: true,
         });
         const loaderTotalQty = aggRows.reduce(
           (s, r) => s + Number(r.quantity),

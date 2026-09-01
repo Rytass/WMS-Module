@@ -51,7 +51,6 @@ export class LoaderResolver {
   async totalQuantity(@Parent() { id }: LoadersEntityClass) {
     const [aggregatedStocks] = await this.stockService.findAggregatedStocks({
       loaderId: id,
-      aggregated: true,
     });
     if (!aggregatedStocks.length) return 0;
     return aggregatedStocks.reduce(

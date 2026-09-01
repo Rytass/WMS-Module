@@ -45,7 +45,6 @@ export class StockQuery {
   ): Promise<AggregatedStocks> {
     const [items, total] = await this.stockService.findAggregatedStocks({
       ...args,
-      aggregated: true,
       aggregatedKeys: args.ids?.length ? args.ids : [],
     });
     return { items, total };
@@ -54,10 +53,7 @@ export class StockQuery {
   @Query(() => ChangeLogs)
   @WmsOperation({ resource: 'stock', action: 'read' })
   async changeLogs(@Args() args: FindStockArgs): Promise<ChangeLogs> {
-    const [items, total] = await this.stockService.findChangeLogs({
-      ...args,
-      aggregated: false,
-    });
+    const [items, total] = await this.stockService.findChangeLogs(args);
     return {
       items: items.map((item) => ({
         ...item,

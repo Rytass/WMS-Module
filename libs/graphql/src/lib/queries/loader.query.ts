@@ -81,7 +81,6 @@ export class LoaderQuery {
         if (loader.locationId === locationId) loaders.push(loader);
       });
     const [aggregatedStocks] = await this.stockService.findAggregatedStocks({
-      aggregated: true,
     });
 
     // Collect loaderIds that currently have stock
