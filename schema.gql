@@ -464,6 +464,31 @@ type InventoryCountOrders {
   total: Int!
 }
 
+type RollbackOrderItemDto {
+  id: ID!
+  targetOrderId: ID!
+  reverseOrderId: ID!
+  targetKind: String
+  createdAt: DateTime!
+}
+
+type RollbackOrderDto {
+  id: ID!
+  key: String!
+  description: String!
+  reason: String
+  createdBy: String
+  createdAt: DateTime!
+  removedAt: DateTime
+  items: [RollbackOrderItemDto!]!
+}
+
+type RollbackOrders {
+  id: ID!
+  items: [RollbackOrderDto!]!
+  total: Int!
+}
+
 type LoaderUnitDto {
   id: ID!
 }
@@ -629,6 +654,8 @@ type Query {
   allocateInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): AllocateInventoryOrders!
   saleOrderDistinctIds(offset: Int, limit: Int, key: String): [String!]!
   saleOrders(id: ID!): [String!]!
+  rollbackOrders(id: ID, targetOrderId: ID, offset: Int, limit: Int): RollbackOrders!
+  rollbackOrder(id: ID, targetOrderId: ID, offset: Int, limit: Int): RollbackOrderDto
   mapData(key: String!): MapDataDto!
   inventoryCountOrders(offset: Int, limit: Int, name: String, statuses: [InventoryCountStatus!], createdBy: String, countDateFrom: String, countDateTo: String, locationIds: [ID!]): InventoryCountOrders!
   inventoryCountOrderItems(offset: Int, limit: Int, id: ID!, materialKey: String, materialDescription: String, batchKey: String, locationKey: String, loaderSerialId: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String, onlyVariance: Boolean): InventoryCountOrderItems!
@@ -683,6 +710,7 @@ type Mutation {
   mergeBatch(batchKey: String!, materialId: ID!, items: [MergeBatchItemInput!]!): MergeBatchOrderDto!
   reclassifyInventoryOrder(materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
   scrapeMaterials(items: [ScrapeOrderItemInput!]!): ScrapeOrderDto!
+  createRollbackOrder(key: String, description: String, reason: String, createdBy: String, targets: [RollbackTargetInput!]!): RollbackOrderDto!
   inspectMaterials(key: String!, note: String, items: [CreateQualityInspectionOrderItemArgs!]!): QualityInspectionOrderDto!
   createInventoryCountOrder(name: String!, countDate: String!, locationIds: [ID!]!): InventoryCountOrderDto!
   updateInventoryCountOrder(id: ID!, name: String, countDate: String, locationIds: [ID!]): InventoryCountOrderDto!
@@ -957,6 +985,10 @@ input ScrapeOrderItemInput {
   aggregateKey: String!
   unitId: ID
   quantity: Int!
+}
+
+input RollbackTargetInput {
+  targetOrderId: ID!
 }
 
 input CreateQualityInspectionOrderItemArgs {

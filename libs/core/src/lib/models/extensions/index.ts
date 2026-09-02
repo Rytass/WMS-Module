@@ -38,3 +38,5 @@ export * from './scrape-order/scrape-order-change.entity';
 export * from './inventory-count-order/inventory-count-order.entity';
 export * from './inventory-count-order/inventory-count-order-item.entity';
 export * from './inventory-count-order/inventory-count-order-change.entity';
+export * from './rollback-order/rollback-order.entity';
+export * from './rollback-order/rollback-order-item.entity';
