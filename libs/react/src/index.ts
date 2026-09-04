@@ -7,6 +7,7 @@ import './globals';
 
 // Page components — drop-in for Next.js Pages-Router shells.
 export { default as ChangeHistory } from './components/pages/change-history';
+export { default as ConsumptionOrders } from './components/pages/consumption-orders';
 export { default as InventoryCount } from './components/pages/inventory-count';
 export { default as InventoryList } from './components/pages/inventory-list';
 export { default as InventoryMovement } from './components/pages/inventory-movement';
@@ -26,12 +27,28 @@ export { default as EditShipInventoryOrder } from './components/pages/ship-inven
 export { default as ViewShipInventoryOrder } from './components/pages/ship-inventory-orders/view';
 export { default as EditTransferOrder } from './components/pages/inventory-movement/transfer-order';
 export { default as ViewInventoryCount } from './components/pages/inventory-count/view';
+export { default as ViewConsumptionOrder } from './components/pages/consumption-orders/view';
 
 // Apollo client factory + default singleton.
 export { createApolloClient, default as ApolloClient } from './apollo';
 
 // Providers consumed by app shells.
 export { default as DialogProvider } from './components/dialog/DialogProvider';
+// Optional: mount it to make an order's upstream documents clickable. Leaving
+// it out renders them as plain text rather than breaking anything.
+export {
+  default as OrderReferenceProvider,
+  type OrderReferenceProviderProps,
+} from './components/orderReference/OrderReferenceProvider';
+export { default as OrderReferenceList } from './components/orderReference/OrderReferenceList';
+export {
+  useOrderReference,
+  type OrderReferenceValue,
+  type OrderReferenceLinkResolver,
+  type OrderReferenceLabelResolver,
+  type OrderReferenceContextValues,
+} from './components/orderReference/context';
+export { useOrderReferences } from './components/orderReference/useOrderReferences';
 export { default as ModalProvider } from './components/modal/ModalProvider';
 export {
   default as InventoryActionsProvider,

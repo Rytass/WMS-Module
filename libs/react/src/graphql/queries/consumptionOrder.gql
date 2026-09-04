@@ -1,0 +1,35 @@
+query ConsumptionOrders(
+  $offset: Int
+  $limit: Int
+  $key: String
+  $description: String
+  $materialId: ID
+  $batchId: ID
+  $locationId: ID
+  $createdAtFrom: DateTime
+  $createdAtTo: DateTime
+) {
+  consumptionOrders(
+    offset: $offset
+    limit: $limit
+    key: $key
+    description: $description
+    materialId: $materialId
+    batchId: $batchId
+    locationId: $locationId
+    createdAtFrom: $createdAtFrom
+    createdAtTo: $createdAtTo
+  ) {
+    id
+    items {
+      ...ConsumptionOrderDetail
+    }
+    total
+  }
+}
+
+query ConsumptionOrder($id: ID!) {
+  consumptionOrder(id: $id) {
+    ...ConsumptionOrderDetail
+  }
+}

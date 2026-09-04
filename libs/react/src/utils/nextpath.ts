@@ -1,5 +1,7 @@
 export enum NextPath {
     CHANGEHISTORY = "/change-history",
+    CONSUMPTIONORDERS = "/consumption-orders",
+    CONSUMPTIONORDERS_ID = "/consumption-orders/[id]",
     INVENTORYCOUNT = "/inventory-count",
     INVENTORYCOUNT_ID = "/inventory-count/[id]",
     INVENTORYLIST = "/inventory-list",

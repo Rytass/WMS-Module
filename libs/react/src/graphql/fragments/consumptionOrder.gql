@@ -1,0 +1,44 @@
+fragment ConsumptionOrderItem on ConsumptionOrderItemDto {
+  id
+  unitId
+  targetConsumedQuantity
+  issuedQuantity
+  returnedQuantity
+  settledQuantity
+  outstandingQuantity
+  removedAt
+  material {
+    ...SimpleMaterial
+  }
+  batch {
+    ...Batch
+  }
+  location {
+    ...SimpleLocation
+  }
+  targetLocation {
+    ...SimpleLocation
+  }
+  loader {
+    ...Loader
+  }
+  targetLoader {
+    ...Loader
+  }
+}
+
+fragment ConsumptionOrder on ConsumptionOrderDto {
+  id
+  key
+  description
+  createdBy
+  createdAt
+  removedAt
+}
+
+fragment ConsumptionOrderDetail on ConsumptionOrderDto {
+  ...ConsumptionOrder
+  items {
+    ...ConsumptionOrderItem
+  }
+}

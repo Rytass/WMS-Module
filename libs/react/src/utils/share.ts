@@ -99,6 +99,15 @@ export function changeTypeName(type: ChangeType): string {
     case ChangeType.SCRAPED:
       return '報廢';
 
+    case ChangeType.ISSUED:
+      return '領用';
+
+    case ChangeType.RETURNED:
+      return '領用退回';
+
+    case ChangeType.CONSUMED:
+      return '耗用';
+
     default:
       return type;
   }
