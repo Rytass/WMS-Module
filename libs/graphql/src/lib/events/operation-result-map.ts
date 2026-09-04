@@ -38,6 +38,7 @@ import type { MergeBatchOrderDto } from '../dto/merge-batch-order.dto';
 import type { ReclassifyInventoryOrderDto } from '../dto/reclassify-inventory-order.dto';
 import type { SplitBatchOrderDto } from '../dto/split-batch-order.dto';
 import type { OrderReferenceDto } from '../dto/order-reference.dto';
+import type { ConsumptionOrderDto } from '../dto/consumption-order.dto';
 
 /**
  * Maps every {@link WmsOperationEventName} to the concrete type returned by
@@ -120,6 +121,16 @@ export interface WmsOperationResultMap
 
   // ── Quality inspection order ──────────────────────────────────────────── //
   'quality-inspection-order.inspected': QualityInspectionOrderDto;
+
+  // ── Consumption order ─────────────────────────────────────────────────── //
+  'consumption-order.created': ConsumptionOrderDto;
+  'consumption-order.updated': ConsumptionOrderDto;
+  /** Action mutation — result is a success flag; use args + stock.issued. */
+  'consumption-order.issued': boolean;
+  /** Action mutation — result is a success flag; use args + stock.returned. */
+  'consumption-order.returned': boolean;
+  /** Action mutation — result is a success flag; use args + stock.consumed. */
+  'consumption-order.settled': boolean;
 
   // ── Order reference ───────────────────────────────────────────────────── //
   'order-reference.attached': OrderReferenceDto[];

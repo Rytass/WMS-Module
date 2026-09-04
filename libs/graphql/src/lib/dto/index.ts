@@ -26,4 +26,6 @@ export * from './scrape-order-item.dto';
 export * from './quality-inspection-order.dto';
 export * from './quality-inspection-order-item.dto';
 export * from './inventory-count-order.dto';
+export * from './consumption-order.dto';
+export * from './consumption-order-item.dto';
 export * from './order-reference.dto';

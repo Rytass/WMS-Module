@@ -51,6 +51,12 @@ import { HoldInventoryOrderResolver } from './resolvers/hold-inventory-order.res
 import { BatchQuery } from './queries/batch.query';
 import { OrderReferenceQuery } from './queries/order-reference.query';
 import { OrderReferenceMutation } from './mutations/order-reference.mutation';
+import { ConsumptionOrderQuery } from './queries/consumption-order.query';
+import { ConsumptionOrderMutation } from './mutations/consumption-order.mutation';
+import {
+  ConsumptionOrderItemResolver,
+  ConsumptionOrderResolver,
+} from './resolvers/consumption-order.resolver';
 import { ChangeLogResolver } from './resolvers/change-log.resolver';
 import {
   ReceiveInventoryOrderItemResolver,
@@ -159,6 +165,11 @@ const exportDependencies = [
 
   OrderReferenceQuery,
   OrderReferenceMutation,
+
+  ConsumptionOrderQuery,
+  ConsumptionOrderMutation,
+  ConsumptionOrderResolver,
+  ConsumptionOrderItemResolver,
 ];
 /**
  * Options for `WmsModuleGraphqlModule.forRootAsync`. Extends the core module
