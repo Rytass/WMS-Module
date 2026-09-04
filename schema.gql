@@ -427,6 +427,7 @@ type InventoryCountOrderItemDto {
   held: Boolean
   inShipment: Boolean
   inspectionResult: Boolean
+  requiresInspection: Boolean
   transferId: ID
   vendorId: String
   customerId: String
