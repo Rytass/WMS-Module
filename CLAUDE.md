@@ -200,6 +200,36 @@ on both the stock queries (`FindStockArgs`) and the count sheet
 returns `SO-10` as well — a wrong answer that looks entirely plausible. The guard is
 `libs/graphql/src/lib/stock-batch-attribute-filters.integration.spec.ts`.
 
+#### The consumption order handles work-in-progress with a location, not a status
+
+`ConsumptionOrderService` (`libs/core/src/lib/services/consumption-order.service.ts`) covers
+material handed to a process that eats some of it: `issue()` out to a consuming location,
+`return()` what came home, `settle()` what was used. **Three actions on one order**, matching
+the grammar of hold/release, allocate/deallocate and transfer/cancel.
+
+There is deliberately **no `IN_PRODUCTION` / work-in-progress status**. Status here is a flag
+on the *batch*, so a status would force every partial issue to split a child batch off, and
+one batch key per issue is a worse answer than one location. An issue is a plain location
+move: the same batch key sits in two places and the aggregate adds up. `excludeLocationIds`
+is how a stock report drops the consuming location.
+
+Nothing in it is manufacturing-specific, and that is on purpose — a subcontract, a repair job
+and a kitchen prep list are the same shape. **What the process actually is belongs in
+`order_references`**, which can name *which* work order; a status could only ever say "some".
+
+Two things to keep in mind when touching it:
+
+- `consumption_order_changes` carries a `kind` column (`ISSUE` / `RETURN` / `SETTLE`) because
+  a return and a settlement are **both negative** — the sign convention every other change
+  table relies on cannot separate them. `TABLE_TO_CHANGE_TYPE` in `StockChangeSubscriber` was
+  widened to take the whole change row rather than just the quantity for exactly this, and
+  its resolvers may now return `null` for a row they cannot classify (no event beats a wrong
+  one).
+- Nothing is denormalised onto the item. `getProgress` and the `issuedQuantity` /
+  `outstandingQuantity` resolvers read the change rows back every time, because those rows
+  are what the stock ledger and the `stock.*` events agree with; a counter kept alongside
+  them is a second answer waiting to disagree.
+
 #### The event guarantee belongs to `WmsOperationRunner`, not the interceptor
 
 Before-hook → dispatch scope → operation event → one post-commit flush. That sequence lives
