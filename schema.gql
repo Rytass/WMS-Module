@@ -119,12 +119,20 @@ type AggregatedStockDto {
   customerId: ID
   vendorId: ID
   inspectionResult: Boolean
+  requiresInspection: Boolean
+  parentBatchId: ID
+  attributes: JSONObject
   id: ID!
   material: MaterialDto!
   batch: BatchDto!
   location: LocationDto!
   loader: LoaderDto!
 }
+
+"""
+An arbitrary JSON object supplied by the host. Its keys and values are stored verbatim and are never interpreted by this module.
+"""
+scalar JSONObject
 
 type AggregatedStocks {
   id: ID!
@@ -531,11 +539,6 @@ enum WmsOrderType {
   TRANSFER_ORDER
   TRANSFER_VENDOR_ORDER
 }
-
-"""
-An arbitrary JSON object supplied by the host. Its keys and values are stored verbatim and are never interpreted by this module.
-"""
-scalar JSONObject
 
 type OrderReferences {
   id: ID!
