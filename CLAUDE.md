@@ -200,6 +200,30 @@ on both the stock queries (`FindStockArgs`) and the count sheet
 returns `SO-10` as well — a wrong answer that looks entirely plausible. The guard is
 `libs/graphql/src/lib/stock-batch-attribute-filters.integration.spec.ts`.
 
+#### `PENDING_INSPECTION` needs `requiresInspection`, not just a null result
+
+`inspectionResult IS NULL` is the resting state of essentially **every** batch in the
+warehouse, so reading it as "awaiting inspection" made the status report the whole
+warehouse. The answer was never zero and never absurd, which is why it survived.
+
+The missing half is intent. `batches.requiresInspection` records that somebody actually asked
+— `ReceiveInventoryOrderService.receive` sets it when a receive item carries
+`requireInspection` and arrives without a result — and the filter is now
+`requiresInspection = true AND inspectionResult IS NULL`, on both the query side and react's
+inspection icon (`utils/columns.tsx` and `inventory-list/Table/GroupTable.tsx`, which each
+render it separately). `InventoryActions.QualityInspection` deliberately still gates on
+`inspectionResult` alone: "can I inspect this" is a different question from "is this waiting".
+
+Consequences:
+
+- A receive that requires inspection now **splits** the batch, so material awaiting QC stops
+  being commingled with the free stock on the same key — the same thing holding or shipping
+  part of a batch already does. `requiresInspection` is part of the batch identity in
+  `getBatch` / `splitBatch` for that reason.
+- Existing rows get the column default `false`, so a deployment upgrading across this needs
+  to decide what its already-null batches meant. There is no generic backfill: the honest
+  answer comes from the deployment's own receive history.
+
 #### The consumption order handles work-in-progress with a location, not a status
 
 `ConsumptionOrderService` (`libs/core/src/lib/services/consumption-order.service.ts`) covers
