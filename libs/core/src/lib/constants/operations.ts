@@ -36,6 +36,13 @@ export type WmsOperationName =
   | 'batch:merge'
   | 'batch:read'
   | 'batch:split'
+  // ── Consumption order ───────────────────────────────────────────────────── //
+  | 'consumption-order:create'
+  | 'consumption-order:issue'
+  | 'consumption-order:read'
+  | 'consumption-order:return'
+  | 'consumption-order:settle'
+  | 'consumption-order:update'
   // ── Hold inventory order ────────────────────────────────────────────────── //
   | 'hold-inventory-order:create'
   | 'hold-inventory-order:read'
@@ -122,6 +129,12 @@ export const WMS_OPERATION_NAMES: readonly WmsOperationName[] = [
   'batch:merge',
   'batch:read',
   'batch:split',
+  'consumption-order:create',
+  'consumption-order:issue',
+  'consumption-order:read',
+  'consumption-order:return',
+  'consumption-order:settle',
+  'consumption-order:update',
   'hold-inventory-order:create',
   'hold-inventory-order:read',
   'hold-inventory-order:release',

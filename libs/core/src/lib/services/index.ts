@@ -11,6 +11,7 @@ export * from './hold-inventory-order.service';
 export * from './allocate-inventory-order.service';
 export * from './split-batch-order.service';
 export * from './merge-batch-order.service';
+export * from './consumption-order.service';
 export * from './order-reference.service';
 export * from './reclassify-inventory-order.service';
 export * from './transfer-vendor-order.service';

@@ -65,6 +65,11 @@ export type WmsOperationEventName =
   | 'inventory-count-order.reset'
   | 'inventory-count-order.cancelled'
   | 'inventory-count-order.settled'
+  | 'consumption-order.created'
+  | 'consumption-order.updated'
+  | 'consumption-order.issued'
+  | 'consumption-order.returned'
+  | 'consumption-order.settled'
   | 'order-reference.attached'
   | 'order-reference.detached';
 
@@ -93,7 +98,11 @@ export type WmsStockEventName =
   | 'stock.inspection-resolved'
   // Settled inventory-count variance, split by the sign of the adjustment.
   | 'stock.count-gained'
-  | 'stock.count-lost';
+  | 'stock.count-lost'
+  // Consumption order: out to the consuming location, back from it, used up.
+  | 'stock.issued'
+  | 'stock.returned'
+  | 'stock.consumed';
 
 export type WmsEventName = WmsOperationEventName | WmsStockEventName;
 
