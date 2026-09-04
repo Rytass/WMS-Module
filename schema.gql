@@ -464,6 +464,48 @@ type InventoryCountOrders {
   total: Int!
 }
 
+type OrderReferenceDto {
+  id: ID!
+  orderType: WmsOrderType!
+  orderId: ID!
+  itemId: ID
+  referenceType: String!
+  referenceId: String!
+  referenceLine: String
+  metadata: JSONObject
+  createdAt: DateTime!
+}
+
+"""
+An order family in this module, named the same way `@WmsOperation` names it.
+"""
+enum WmsOrderType {
+  ALLOCATE_INVENTORY_ORDER
+  HOLD_INVENTORY_ORDER
+  INVENTORY_COUNT_ORDER
+  MERGE_BATCH_ORDER
+  QUALITY_INSPECTION_ORDER
+  RECEIVE_INVENTORY_ORDER
+  RECLASSIFY_INVENTORY_ORDER
+  SCRAPE_ORDER
+  SHIP_INVENTORY_ORDER
+  SPLIT_BATCH_ORDER
+  TRANSFER_CUSTOMER_ORDER
+  TRANSFER_ORDER
+  TRANSFER_VENDOR_ORDER
+}
+
+"""
+An arbitrary JSON object supplied by the host. Its keys and values are stored verbatim and are never interpreted by this module.
+"""
+scalar JSONObject
+
+type OrderReferences {
+  id: ID!
+  items: [OrderReferenceDto!]!
+  total: Int!
+}
+
 type LoaderUnitDto {
   id: ID!
 }
@@ -613,10 +655,10 @@ type Query {
   materials(offset: Int, limit: Int, key: String, description: String): Materials!
   batches(offset: Int, limit: Int, key: String, materialId: ID): Batches!
   stock(id: ID!): StockDto!
-  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Stocks!
-  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Materials!
-  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): AggregatedStocks!
-  changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): ChangeLogs!
+  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Stocks!
+  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Materials!
+  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): AggregatedStocks!
+  changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): ChangeLogs!
   receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
   receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, statuses: [ReceiveInventoryOrderStatus!], dateRange: DateRangeArgs, description: String, key: String, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
@@ -633,6 +675,7 @@ type Query {
   inventoryCountOrders(offset: Int, limit: Int, name: String, statuses: [InventoryCountStatus!], createdBy: String, countDateFrom: String, countDateTo: String, locationIds: [ID!]): InventoryCountOrders!
   inventoryCountOrderItems(offset: Int, limit: Int, id: ID!, materialKey: String, materialDescription: String, batchKey: String, locationKey: String, loaderSerialId: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String, onlyVariance: Boolean): InventoryCountOrderItems!
   inventoryCountOrder(id: ID!): InventoryCountOrderDto!
+  orderReferences(offset: Int, limit: Int, orderType: WmsOrderType, orderId: ID, itemId: ID, referenceType: String, referenceId: String, referenceLine: String): OrderReferences!
 }
 
 input DateRangeArgs {
@@ -693,6 +736,8 @@ type Mutation {
   resetInventoryCount(id: ID!): InventoryCountOrderDto!
   cancelInventoryCount(id: ID!): InventoryCountOrderDto!
   settleInventoryCount(id: ID!): InventoryCountOrderDto!
+  attachOrderReferences(orderType: WmsOrderType!, orderId: ID!, references: [OrderReferenceInputType!]!): [OrderReferenceDto!]!
+  detachOrderReference(id: ID!): Boolean!
 }
 
 input CreateLoadersArgs {
@@ -940,6 +985,7 @@ input ReturnTransferVendorOrderArgs {
 input SplitBatchItemInput {
   batchKey: ID!
   quantity: Float!
+  attributes: JSONObject
 }
 
 input MergeBatchItemInput {
@@ -970,4 +1016,12 @@ input CountInventoryItemInput {
   itemId: ID!
   countedQuantity: Float
   unitId: ID
+}
+
+input OrderReferenceInputType {
+  referenceType: String!
+  referenceId: String!
+  referenceLine: String
+  itemId: ID
+  metadata: JSONObject
 }
