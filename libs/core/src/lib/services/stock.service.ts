@@ -102,6 +102,7 @@ export class StockService<
               .addSelect('b."held"', 'held')
               .addSelect('b."inShipment"', 'inShipment')
               .addSelect('b."inspectionResult"', 'inspectionResult')
+              .addSelect('b."requiresInspection"', 'requiresInspection')
               .addSelect('b."saleId"', 'saleId')
               .addSelect('b."vendorId"', 'vendorId')
               .addSelect('b."customerId"', 'customerId')
@@ -115,6 +116,7 @@ export class StockService<
         .addSelect('stock_status.held', 'held')
         .addSelect('stock_status."inShipment"', 'inShipment')
         .addSelect('stock_status."inspectionResult"', 'inspectionResult')
+        .addSelect('stock_status."requiresInspection"', 'requiresInspection')
         .addSelect('stock_status."saleId"', 'saleId')
         .addSelect('stock_status."vendorId"', 'vendorId')
         .addSelect('stock_status."customerId"', 'customerId')
@@ -224,7 +226,15 @@ export class StockService<
     if (options.status) {
       switch (options.status) {
         case StockStatus.PENDING_INSPECTION:
-          queryBuilder.andWhere('stock_status."inspectionResult" IS NULL');
+          /*
+           * Both halves are required. `inspectionResult IS NULL` alone is the
+           * resting state of every batch nobody ever asked to inspect, so on
+           * its own it reported the whole warehouse as awaiting inspection --
+           * a wrong answer that looked plausible because it was never zero.
+           */
+          queryBuilder.andWhere(
+            'stock_status."requiresInspection" = true AND stock_status."inspectionResult" IS NULL',
+          );
           break;
         case StockStatus.INSPECTION_FAILED:
           queryBuilder.andWhere('stock_status."inspectionResult" = false');
@@ -249,7 +259,9 @@ export class StockService<
     if (options.negateStatus) {
       switch (options.negateStatus) {
         case StockStatus.PENDING_INSPECTION:
-          queryBuilder.andWhere('stock_status."inspectionResult" IS NOT NULL');
+          queryBuilder.andWhere(
+            'NOT (stock_status."requiresInspection" = true AND stock_status."inspectionResult" IS NULL)',
+          );
           break;
         case StockStatus.INSPECTION_FAILED:
           queryBuilder.andWhere(
@@ -373,6 +385,16 @@ export class StockService<
       queryBuilder.addSelect('b."customerId"', 'customerId');
       queryBuilder.addSelect('b."vendorId"', 'vendorId');
       queryBuilder.addSelect('b."inspectionResult"', 'inspectionResult');
+      queryBuilder.addSelect('b."requiresInspection"', 'requiresInspection');
+      /*
+       * Lineage and the host's own attributes, carried along the same way the
+       * commercial attributes above are. Both are functionally dependent on
+       * `batchId`, which is already a grouping key, but SQL still wants them
+       * named in GROUP BY. `attributes` is jsonb, which groups fine — jsonb has
+       * equality and a btree opclass.
+       */
+      queryBuilder.addSelect('b."parentBatchId"', 'parentBatchId');
+      queryBuilder.addSelect('b."attributes"', 'attributes');
       queryBuilder.addSelect('SUM(stock.quantity)', 'quantity');
       queryBuilder.groupBy('stock."materialId"');
       queryBuilder.addGroupBy('stock."batchId"');
@@ -387,6 +409,9 @@ export class StockService<
       queryBuilder.addGroupBy('b."customerId"');
       queryBuilder.addGroupBy('b."vendorId"');
       queryBuilder.addGroupBy('b."inspectionResult"');
+      queryBuilder.addGroupBy('b."requiresInspection"');
+      queryBuilder.addGroupBy('b."parentBatchId"');
+      queryBuilder.addGroupBy('b."attributes"');
       queryBuilder.having('SUM(stock.quantity) <> 0');
 
       if (options.aggregatedKeys?.length)
@@ -533,6 +558,12 @@ export class StockService<
       'agg."inspectionResult"',
       'inspectionResult',
     );
+    paginatedQueryBuilder.addSelect(
+      'agg."requiresInspection"',
+      'requiresInspection',
+    );
+    paginatedQueryBuilder.addSelect('agg."parentBatchId"', 'parentBatchId');
+    paginatedQueryBuilder.addSelect('agg."attributes"', 'attributes');
 
     // Apply pagination to the outer query
     if (options.offset !== undefined && options.offset >= 0) {

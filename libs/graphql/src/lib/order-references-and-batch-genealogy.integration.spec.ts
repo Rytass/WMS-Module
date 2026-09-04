@@ -350,6 +350,65 @@ describe('order references and batch genealogy (integration)', () => {
       expect(again.id).toBe(first.id);
     });
 
+    it('surfaces lineage and attributes on the aggregated stock row', async () => {
+      /*
+       * `batch` on a stock row resolves to the batch *group* — the thing that
+       * carries the human-readable key — so neither of these is reachable
+       * through it. They ride along on the aggregate the same way `saleId` and
+       * `vendorId` already do.
+       */
+      const source = await batchService.getBatch({
+        key: 'REF-AGG-SOURCE',
+        materialId,
+      });
+
+      await seedStock(source.id, storageLocationId, 20);
+
+      const child = await batchService.splitBatch({
+        id: source.id,
+        held: true,
+        attributes: { bin: 'B7', grade: 'A' },
+      });
+
+      await seedStock(child.id, storageLocationId, 5);
+
+      const [items] = await stockService.findAggregatedStocks({
+        batchId: child.id,
+      });
+
+      expect(items).toHaveLength(1);
+      expect(items[0].parentBatchId).toBe(source.id);
+      expect(items[0].attributes).toEqual({ bin: 'B7', grade: 'A' });
+
+      const result = await execute(`{
+        aggregatedStocks(batchId: "${child.id}") {
+          items { parentBatchId attributes }
+        }
+      }`);
+
+      expect(result.errors).toBeUndefined();
+
+      const payload = result.data?.['aggregatedStocks'] as {
+        items: {
+          parentBatchId: string | null;
+          attributes: Record<string, unknown> | null;
+        }[];
+      };
+
+      expect(payload.items[0].parentBatchId).toBe(source.id);
+      expect(payload.items[0].attributes).toEqual({ bin: 'B7', grade: 'A' });
+    });
+
+    it('leaves both null on a batch that was never split', async () => {
+      const [items] = await stockService.findAggregatedStocks({
+        batchId: sourceBatchId,
+        locationId: storageLocationId,
+      });
+
+      expect(items[0].parentBatchId).toBeNull();
+      expect(items[0].attributes).toBeNull();
+    });
+
     it('still reuses the sibling when neither side carries attributes', async () => {
       const plainSource = await batchService.getBatch({
         key: 'REF-PLAIN-SOURCE',

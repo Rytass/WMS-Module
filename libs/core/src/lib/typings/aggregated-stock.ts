@@ -13,6 +13,12 @@ export type AggregatedStock = Pick<
   customerId?: string | null;
   vendorId?: string | null;
   inspectionResult?: boolean;
+  /** Whether anyone actually asked for this batch to be inspected. */
+  requiresInspection?: boolean;
+  /** The batch this one was split out of; `null` for a batch created outright. */
+  parentBatchId?: string | null;
+  /** The host's own attributes on the batch, stored verbatim. */
+  attributes?: Record<string, unknown> | null;
 };
 
 export interface ValidateStockDeductionParams {
