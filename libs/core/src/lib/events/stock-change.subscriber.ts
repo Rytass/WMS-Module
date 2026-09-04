@@ -7,8 +7,12 @@ import {
 } from 'typeorm';
 import { ConsumptionChangeKind } from '../constants/consumption-change-kind';
 import { ChangeType } from '../constants/stock-status';
+import type {
+  WmsCustomChangeTable,
+  WmsStockChangeRow,
+} from '../typings/custom-change-table';
 import { WmsEventCollector } from './wms-event.collector';
-import { WMS_STOCK_ENRICH } from './wms-event.tokens';
+import { WMS_CUSTOM_CHANGE_TABLES, WMS_STOCK_ENRICH } from './wms-event.tokens';
 import type { WmsStockEventPayload } from './wms-event.types';
 import type { WmsStockEventName } from './wms-event.types';
 
@@ -135,6 +139,11 @@ const CHANGE_TYPE_TO_EVENT: Readonly<Record<ChangeType, WmsStockEventName>> = {
 
 const QUALITY_INSPECTION_TABLE = 'quality_inspection_order_changes';
 
+/** Every `ChangeType` value, for deciding whether a host reused our vocabulary. */
+const CHANGE_TYPE_VALUES: ReadonlySet<string> = new Set(
+  Object.values(ChangeType),
+);
+
 /**
  * Centralized collection of stock domain events. Listens to every
  * `*_order_change` insert and, using the change table name plus the sign of
@@ -148,13 +157,23 @@ const QUALITY_INSPECTION_TABLE = 'quality_inspection_order_changes';
  */
 @Injectable()
 export class StockChangeSubscriber implements EntitySubscriberInterface {
+  /** Host-registered tables, keyed by table name. Empty unless configured. */
+  private readonly customTables: ReadonlyMap<string, WmsCustomChangeTable>;
+
   constructor(
     @InjectDataSource() dataSource: DataSource,
     private readonly collector: WmsEventCollector,
     @Optional()
     @Inject(WMS_STOCK_ENRICH)
     private readonly enrich = false,
+    @Optional()
+    @Inject(WMS_CUSTOM_CHANGE_TABLES)
+    customTables: readonly WmsCustomChangeTable[] | null = null,
   ) {
+    this.customTables = new Map(
+      (customTables ?? []).map((entry) => [entry.table, entry]),
+    );
+
     dataSource.subscribers.push(this);
   }
 
@@ -184,6 +203,13 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
       return;
     }
 
+    const custom = this.customTables.get(tableName);
+
+    if (custom) {
+      await this.collectCustom(event, entity, quantityDelta, custom);
+      return;
+    }
+
     const resolveChangeType = TABLE_TO_CHANGE_TYPE.get(tableName);
 
     if (!resolveChangeType) {
@@ -210,6 +236,49 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
       changeType,
       ...enrichment,
     });
+  }
+
+  /**
+   * Emit for a table the host registered.
+   *
+   * A resolver that names one of our own `ChangeType`s gets that type's event,
+   * so a movement the host models itself but which really is a receipt or a
+   * scrap still counts in reports as one. Anything else becomes `stock.custom`
+   * carrying the host's string, because inventing an event name per host would
+   * break every exhaustive listener in the package.
+   */
+  private async collectCustom(
+    event: InsertEvent<unknown>,
+    entity: ChangeRowLike,
+    quantityDelta: number,
+    custom: WmsCustomChangeTable,
+  ): Promise<void> {
+    const resolved = custom.changeType(entity as unknown as WmsStockChangeRow);
+
+    if (!resolved) {
+      // The host says this row does not move stock. Nothing to say about it.
+      return;
+    }
+
+    const enrichment = this.enrich
+      ? await this.loadItemFields(event, entity.itemId)
+      : undefined;
+
+    const known = CHANGE_TYPE_VALUES.has(resolved)
+      ? (resolved as ChangeType)
+      : null;
+
+    this.collector.collect(
+      known ? CHANGE_TYPE_TO_EVENT[known] : 'stock.custom',
+      {
+        orderId: entity.id,
+        itemId: entity.itemId,
+        quantityDelta,
+        changeType: known,
+        ...(known ? {} : { customChangeType: resolved }),
+        ...enrichment,
+      },
+    );
   }
 
   /**

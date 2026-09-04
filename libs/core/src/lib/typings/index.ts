@@ -13,6 +13,7 @@ export * from './find-receive-inventory-order.input';
 export * from './find-ship-inventory-order.input';
 export * from './find-stock.input';
 export * from './consumption-order.input';
+export * from './custom-change-table';
 export * from './order-reference.input';
 export * from './reclassify-inventory-order.input';
 export * from './paginations';

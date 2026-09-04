@@ -59,9 +59,11 @@ import { StockChangeSubscriber } from './events/stock-change.subscriber';
 import { InventoryCountLockSubscriber } from './events/inventory-count-lock.subscriber';
 import {
   WMS_ACTOR_EXTRACTOR,
+  WMS_CUSTOM_CHANGE_TABLES,
   WMS_EVENT_OPTIONS,
   WMS_STOCK_ENRICH,
 } from './events/wms-event.tokens';
+import type { WmsCustomChangeTable } from './typings/custom-change-table';
 import { WmsEventDispatcher } from './events/wms-event.dispatcher';
 import { WmsOperationRunner } from './events/wms-operation-runner';
 import type { WmsEventWiringOptions } from './typings/core-module-options';
@@ -220,6 +222,67 @@ const eventExports = [
   WMS_ACTOR_EXTRACTOR,
 ];
 
+/**
+ * Reject a registration that would shadow one of this package's own change
+ * tables.
+ *
+ * Silently letting a host redefine `receive_inventory_order_changes` would
+ * reclassify every receipt in the warehouse from somewhere the reader of that
+ * report would never think to look. Refusing at module-definition time costs a
+ * startup crash and buys an obvious one.
+ */
+const OWNED_CHANGE_TABLES: ReadonlySet<string> = new Set([
+  'receive_inventory_order_changes',
+  'ship_inventory_order_changes',
+  'transfer_order_changes',
+  'transfer_vendor_order_changes',
+  'transfer_customer_order_changes',
+  'hold_inventory_order_changes',
+  'allocate_inventory_order_changes',
+  'split_batch_order_changes',
+  'merge_batch_order_changes',
+  'reclassify_inventory_order_changes',
+  'scrape_order_changes',
+  'inventory_count_order_changes',
+  'consumption_order_changes',
+  'quality_inspection_order_changes',
+]);
+
+const assertCustomChangeTables = (
+  tables: readonly WmsCustomChangeTable[] | undefined,
+): readonly WmsCustomChangeTable[] => {
+  if (!tables?.length) return [];
+
+  const seen = new Set<string>();
+
+  for (const { table } of tables) {
+    if (OWNED_CHANGE_TABLES.has(table)) {
+      throw new Error(
+        `WmsModuleCoreModule: customChangeTables cannot register "${table}" — this package owns it.`,
+      );
+    }
+
+    if (seen.has(table)) {
+      throw new Error(
+        `WmsModuleCoreModule: customChangeTables registers "${table}" twice.`,
+      );
+    }
+
+    if (!table.endsWith('_order_changes')) {
+      // The inventory count lock keys off this suffix, so a table without it
+      // gets events but silently escapes the lock — the worse half of the
+      // bargain, and not one a host would knowingly take.
+      throw new Error(
+        `WmsModuleCoreModule: customChangeTables entry "${table}" must end in "_order_changes" so the inventory count lock covers it too.`,
+      );
+    }
+
+    seen.add(table);
+  }
+
+  return tables;
+};
+
 @Module({
   providers: exportDependencies,
 })
@@ -238,6 +301,10 @@ export class WmsModuleCoreModule {
         InventoryCountLockSubscriber,
         ...resolvedEntityProviders,
         ...eventProviders(coreOptions),
+        {
+          provide: WMS_CUSTOM_CHANGE_TABLES,
+          useValue: assertCustomChangeTables(coreOptions.customChangeTables),
+        },
         { provide: WMS_CORE_MODULE_OPTIONS, useValue: coreOptions },
         {
           provide: WMS_STOCK_ENRICH,
@@ -265,6 +332,7 @@ export class WmsModuleCoreModule {
       afterListeners,
       actorExtractor,
       eventEmitterBridge,
+      customChangeTables,
       ...baseOptions
     } = options;
     const coreModule = WMSBaseModule.forRootAsync(baseOptions);
@@ -282,6 +350,10 @@ export class WmsModuleCoreModule {
           actorExtractor,
           eventEmitterBridge,
         }),
+        {
+          provide: WMS_CUSTOM_CHANGE_TABLES,
+          useValue: assertCustomChangeTables(customChangeTables),
+        },
         {
           provide: WMS_CORE_MODULE_OPTIONS,
           useValue: {

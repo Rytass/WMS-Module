@@ -9,3 +9,6 @@ export const WMS_ACTOR_EXTRACTOR = Symbol('WMS_ACTOR_EXTRACTOR');
 
 /** DI token holding the boolean "enrich stock events" flag (default false). */
 export const WMS_STOCK_ENRICH = Symbol('WMS_STOCK_ENRICH');
+
+/** DI token holding the host's registered custom change tables (default none). */
+export const WMS_CUSTOM_CHANGE_TABLES = Symbol('WMS_CUSTOM_CHANGE_TABLES');

@@ -102,7 +102,17 @@ export type WmsStockEventName =
   // Consumption order: out to the consuming location, back from it, used up.
   | 'stock.issued'
   | 'stock.returned'
-  | 'stock.consumed';
+  | 'stock.consumed'
+  /**
+   * A movement on a change table the host registered through
+   * `customChangeTables`, whose kind this package has no name for. The host's
+   * own string arrives as `payload.customChangeType`.
+   *
+   * One event name rather than an open union on purpose: `WmsStockEventName`
+   * stays closed, so the typed listener map, the GraphQL `ChangeType` enum and
+   * every exhaustive switch a consumer wrote keep working.
+   */
+  | 'stock.custom';
 
 export type WmsEventName = WmsOperationEventName | WmsStockEventName;
 
@@ -156,8 +166,18 @@ export interface WmsStockEventPayload {
   readonly itemId: string;
   /** `change.quantityChanged` — sign carries direction (in: +, out: -). */
   readonly quantityDelta: number;
-  /** The resolved `ChangeType` for this stock movement (null for inspection). */
+  /**
+   * The resolved `ChangeType` for this stock movement. `null` for a quality
+   * inspection, which has none, and for a `stock.custom` movement, which
+   * carries the host's own name in {@link WmsStockEventPayload.customChangeType}
+   * instead.
+   */
   readonly changeType: ChangeType | null;
+  /**
+   * The host's own change type, present only on `stock.custom`. Opaque: this
+   * package never interprets it.
+   */
+  readonly customChangeType?: string;
   /** Quality-inspection result, present only on `stock.inspection-resolved`. */
   readonly inspectionResult?: boolean | null;
   // --- enrichment fields (present only when `enrichStockEvents` is enabled) ---

@@ -5,6 +5,7 @@ import type {
   WmsAfterListenerMap,
   WmsBeforeHookMap,
 } from '../events/wms-event.types';
+import type { WmsCustomChangeTable } from './custom-change-table';
 
 export const WMS_CORE_MODULE_OPTIONS = Symbol('WMS_CORE_MODULE_OPTIONS');
 
@@ -43,6 +44,13 @@ export interface WmsModuleCoreModuleOptions extends WmsEventWiringOptions {
    * `forRootAsync({ enrichStockEvents })`, which forwards it here.
    */
   enrichStockEvents?: boolean;
+  /**
+   * Change tables this package does not own, so a host's own order family still
+   * emits `stock.*` events. Everything else a custom family needs -- the
+   * transaction, the availability check, the inventory count lock -- it already
+   * has. See {@link WmsCustomChangeTable}.
+   */
+  customChangeTables?: readonly WmsCustomChangeTable[];
 }
 
 export type WmsModuleCoreModuleAsyncOptions = WMSBaseModuleAsyncOptions &
