@@ -37,6 +37,7 @@ import type { MapDataDto } from '../dto/warehouse-map.dto';
 import type { MergeBatchOrderDto } from '../dto/merge-batch-order.dto';
 import type { ReclassifyInventoryOrderDto } from '../dto/reclassify-inventory-order.dto';
 import type { SplitBatchOrderDto } from '../dto/split-batch-order.dto';
+import type { OrderReferenceDto } from '../dto/order-reference.dto';
 
 /**
  * Maps every {@link WmsOperationEventName} to the concrete type returned by
@@ -119,6 +120,11 @@ export interface WmsOperationResultMap
 
   // ── Quality inspection order ──────────────────────────────────────────── //
   'quality-inspection-order.inspected': QualityInspectionOrderDto;
+
+  // ── Order reference ───────────────────────────────────────────────────── //
+  'order-reference.attached': OrderReferenceDto[];
+  /** Action mutation — result is a success flag; the id is in `args`. */
+  'order-reference.detached': boolean;
 
   // ── Transfer order ────────────────────────────────────────────────────── //
   'transfer-order.created': TransferOrderDto;

@@ -65,6 +65,10 @@ export type WmsOperationName =
   | 'material:create'
   | 'material:read'
   | 'material:update'
+  // ── Order reference ─────────────────────────────────────────────────────── //
+  | 'order-reference:attach'
+  | 'order-reference:detach'
+  | 'order-reference:read'
   // ── Quality inspection order ────────────────────────────────────────────── //
   | 'quality-inspection-order:inspect'
   // ── Receive inventory order ─────────────────────────────────────────────── //
@@ -142,6 +146,9 @@ export const WMS_OPERATION_NAMES: readonly WmsOperationName[] = [
   'material:create',
   'material:read',
   'material:update',
+  'order-reference:attach',
+  'order-reference:detach',
+  'order-reference:read',
   'quality-inspection-order:inspect',
   'receive-inventory-order:create',
   'receive-inventory-order:read',

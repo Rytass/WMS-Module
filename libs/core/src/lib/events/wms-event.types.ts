@@ -64,7 +64,9 @@ export type WmsOperationEventName =
   | 'inventory-count-order.counted'
   | 'inventory-count-order.reset'
   | 'inventory-count-order.cancelled'
-  | 'inventory-count-order.settled';
+  | 'inventory-count-order.settled'
+  | 'order-reference.attached'
+  | 'order-reference.detached';
 
 // --- Stock domain event names (driven by ChangeType) ----------------------
 
