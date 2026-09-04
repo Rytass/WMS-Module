@@ -21,7 +21,14 @@ export interface Repositories {
 
 /**
  * Base service for order operations that create/deduct stock entries.
- * Provides common methods for adding and deducting inventory across different order types.
+ * Provides common methods for adding and deducting inventory across different
+ * order types.
+ *
+ * Public API: a host writing its own order family may extend it to get unit
+ * conversion and the availability check for free, and register its change table
+ * through `customChangeTables` so the family emits `stock.*` events too. See
+ * {@link WmsCustomChangeTable} for what a custom family does and does not
+ * inherit.
  */
 export abstract class BaseOrderService {
   protected abstract materialService: MaterialService;

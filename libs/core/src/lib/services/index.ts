@@ -1,3 +1,4 @@
+export * from './base-order.service';
 export * from './stock.service';
 export * from './loader.service';
 export * from './material.service';
