@@ -1,0 +1,11 @@
+fragment OrderReference on OrderReferenceDto {
+  id
+  orderType
+  orderId
+  itemId
+  referenceType
+  referenceId
+  referenceLine
+  metadata
+  createdAt
+}

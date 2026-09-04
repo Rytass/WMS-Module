@@ -1,0 +1,23 @@
+query OrderReferences(
+  $offset: Int
+  $limit: Int
+  $orderType: WmsOrderType
+  $orderId: ID
+  $referenceType: String
+  $referenceId: String
+) {
+  orderReferences(
+    offset: $offset
+    limit: $limit
+    orderType: $orderType
+    orderId: $orderId
+    referenceType: $referenceType
+    referenceId: $referenceId
+  ) {
+    id
+    items {
+      ...OrderReference
+    }
+    total
+  }
+}
