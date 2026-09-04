@@ -5,6 +5,20 @@ export type FindStockInput<U extends object> = PaginationInput & {
   materialId?: string;
   batchId?: string;
   locationId?: string;
+  /**
+   * Locations to leave out of the result, whatever else matches.
+   *
+   * `locationId` narrows to one place; this widens from "everywhere" by
+   * subtraction, which is what a stock report needs when some locations do not
+   * represent available inventory — a staging lane, a quarantine bay, a
+   * work-in-progress location a host issues material into. The module has no
+   * opinion on what those locations mean, so it takes ids rather than a
+   * classification: the host already knows which of its locations to leave out,
+   * and it can change that answer without a schema migration.
+   *
+   * An empty array is treated as "not filtering", the same as omitting it.
+   */
+  excludeLocationIds?: string[];
   loaderId?: string;
   description?: string;
   wildcard?: {

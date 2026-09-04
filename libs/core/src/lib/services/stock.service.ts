@@ -198,6 +198,12 @@ export class StockService<
         locationId: options.locationId,
       });
 
+    if (options.excludeLocationIds?.length)
+      queryBuilder.andWhere(
+        'stock."locationId" NOT IN (:...excludeLocationIds)',
+        { excludeLocationIds: options.excludeLocationIds },
+      );
+
     if (options.loaderId)
       queryBuilder.andWhere('stock."loaderId" = :loaderId', {
         loaderId: options.loaderId,
