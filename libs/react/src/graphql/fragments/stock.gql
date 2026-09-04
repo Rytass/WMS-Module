@@ -29,6 +29,9 @@ fragment AggregatedStock on AggregatedStockDto {
   customerId
   vendorId
   inspectionResult
+  requiresInspection
+  parentBatchId
+  attributes
   status
   material {
     ...SimpleMaterial

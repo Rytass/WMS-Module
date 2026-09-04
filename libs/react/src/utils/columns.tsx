@@ -9,6 +9,40 @@ import { WaitIcon, TransferIcon } from '../icons';
 import { stockStatusName } from '../components/inventoryActions/utils';
 import { formatKeyName } from './share';
 
+/**
+ * Host-defined batch attributes as a readable line.
+ *
+ * Sorted by key so the same batch reads the same way every time — `jsonb` does
+ * not preserve insertion order, so without this the columns would reshuffle
+ * between rows for no visible reason.
+ */
+export function formatBatchAttributes(attributes: unknown): string {
+  if (
+    !attributes ||
+    typeof attributes !== 'object' ||
+    Array.isArray(attributes)
+  )
+    return '-';
+
+  const entries = Object.entries(attributes as Record<string, unknown>);
+
+  if (!entries.length) return '-';
+
+  return entries
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(
+      ([key, value]) =>
+        `${key}: ${
+          value === null || value === undefined
+            ? '-'
+            : typeof value === 'object'
+              ? JSON.stringify(value)
+              : String(value)
+        }`,
+    )
+    .join('、');
+}
+
 export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
   {
     key: 'status',
@@ -21,10 +55,16 @@ export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
     title: '檢驗',
     width: 48,
     align: 'center',
+    /*
+     * The waiting icon needs both halves. A null `inspectionResult` on its own
+     * is the resting state of every batch nobody ever asked to inspect, so
+     * showing the hourglass for it marked the whole warehouse as awaiting QC —
+     * the same mistake the `PENDING_INSPECTION` filter used to make.
+     */
     render: (source) =>
-      isNull(source.inspectionResult) ? (
+      source.requiresInspection && isNull(source.inspectionResult) ? (
         <Icon icon={WaitIcon} color="brand" size={16} />
-      ) : !source.inspectionResult ? (
+      ) : source.inspectionResult === false ? (
         <Icon icon={DangerousOutlineIcon} color="error" size={16} />
       ) : null,
   },
@@ -113,5 +153,27 @@ export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
     title: '銷售訂單項次',
     width: 140,
     render: (source) => source.saleSerialId || '-',
+  },
+  /*
+   * Batch lineage and the host's own attributes. Both live on the batch itself
+   * rather than the batch group `batchKey` shows, so this row is the only place
+   * they surface — following `parentBatchId` upwards is how you get from a
+   * child split off by a hold or a shipment back to the batch it came from.
+   *
+   * `attributes` is whatever the host put there; the module never interprets
+   * it, so it is rendered as plain `key: value` pairs rather than given
+   * columns of its own.
+   */
+  {
+    key: 'parentBatchId',
+    title: '母批',
+    width: 140,
+    render: (source) => source.parentBatchId || '-',
+  },
+  {
+    key: 'attributes',
+    title: '批號屬性',
+    width: 200,
+    render: (source) => formatBatchAttributes(source.attributes),
   },
 ];

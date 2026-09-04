@@ -217,10 +217,17 @@ function InventoryGroupTable({
       title: '檢驗',
       width: 48,
       align: 'center',
+      /*
+       * Both halves, as in `aggregatedStockColumns`. A null `inspectionResult`
+       * alone is the resting state of every batch nobody asked to inspect, so
+       * on its own it put the waiting icon on every material in the warehouse.
+       */
       render: (source) =>
-        source.aggregatedStock?.some((s) => isNull(s.inspectionResult)) ? (
+        source.aggregatedStock?.some(
+          (s) => s.requiresInspection && isNull(s.inspectionResult),
+        ) ? (
           <Icon icon={WaitIcon} color="neutral" size={16} />
-        ) : source.aggregatedStock?.some((s) => !s.inspectionResult) ? (
+        ) : source.aggregatedStock?.some((s) => s.inspectionResult === false) ? (
           <Icon icon={DangerousOutlineIcon} color="neutral" size={16} />
         ) : null,
     },
