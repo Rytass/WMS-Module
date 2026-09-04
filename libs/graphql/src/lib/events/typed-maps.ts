@@ -57,17 +57,27 @@ export interface WmsTypedAfterEventContext<N extends WmsEventName> {
 
 /**
  * Context passed to a before-hook.  Runs *before* any DB work, so
- * `payload` / `result` are not yet available — only the raw GraphQL
- * arguments (`args`) and the resolved actor.  Throwing from a before-hook
- * vetoes the mutation with zero side effects.
+ * `payload` / `result` are not yet available — only the raw arguments
+ * (`args`) and the resolved actor.  Throwing from a before-hook vetoes the
+ * operation with zero side effects.
+ *
+ * Structurally identical to the core `WmsBeforeHookContext`; the two must stay
+ * in step, because a hook written against either is handed the same object.
  */
 export interface WmsTypedBeforeHookContext<N extends WmsEventName> {
   readonly event: N;
-  /** Raw GraphQL arguments — the mutation intent (per §3.4 of the design doc). */
+  /** Raw arguments — the operation's intent (per §3.4 of the design doc). */
   readonly args: Readonly<Record<string, unknown>>;
-  /** The NestJS execution context at the time of the mutation call. */
-  readonly executionContext: ExecutionContext;
-  /** Who performed the mutation; `null` when no `actorExtractor` is configured. */
+  /**
+   * The NestJS execution context, or `null` when the operation did not arrive
+   * through one — a host driving a domain service through
+   * `WmsOperationRunner`. Branch on {@link WmsTypedBeforeHookContext.source}
+   * rather than on this being present.
+   */
+  readonly executionContext: ExecutionContext | null;
+  /** Where the operation came in from. `'host'` means a direct service call. */
+  readonly source: 'graphql' | 'host';
+  /** Who performed the operation; `null` when no `actorExtractor` is configured. */
   readonly actor: WmsActor | null;
 }
 

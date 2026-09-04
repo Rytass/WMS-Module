@@ -56,7 +56,14 @@ import {
 import { BatchService } from './services/batch.service';
 import { StockChangeSubscriber } from './events/stock-change.subscriber';
 import { InventoryCountLockSubscriber } from './events/inventory-count-lock.subscriber';
-import { WMS_STOCK_ENRICH } from './events/wms-event.tokens';
+import {
+  WMS_ACTOR_EXTRACTOR,
+  WMS_EVENT_OPTIONS,
+  WMS_STOCK_ENRICH,
+} from './events/wms-event.tokens';
+import { WmsEventDispatcher } from './events/wms-event.dispatcher';
+import { WmsOperationRunner } from './events/wms-operation-runner';
+import type { WmsEventWiringOptions } from './typings/core-module-options';
 import { WMS_CORE_MODULE_OPTIONS } from './typings/core-module-options';
 import type {
   WmsModuleCoreModuleAsyncOptions,
@@ -182,6 +189,35 @@ const exportDependencies = [
   WarehouseMapDataService,
 ];
 
+/**
+ * The event machinery, bound here rather than in the graphql module so a
+ * consumer that only installs `@rytass/wms-module-core` still gets hooks,
+ * listeners and `WmsOperationRunner`. `WmsModuleGraphqlModule` forwards its own
+ * event options down to `forRootAsync`, which keeps exactly one binding per
+ * token — two live bindings would resolve to whichever module the injector
+ * reached first, the same hazard the overridable entity Symbols avoid.
+ */
+const eventProviders = (wiring: WmsEventWiringOptions): Provider[] => [
+  {
+    provide: WMS_EVENT_OPTIONS,
+    useValue: {
+      beforeHooks: wiring.beforeHooks,
+      afterListeners: wiring.afterListeners,
+    },
+  },
+  { provide: WMS_ACTOR_EXTRACTOR, useValue: wiring.actorExtractor ?? null },
+  WmsEventDispatcher,
+  WmsOperationRunner,
+  ...(wiring.eventEmitterBridge ? [wiring.eventEmitterBridge] : []),
+];
+
+const eventExports = [
+  WmsEventDispatcher,
+  WmsOperationRunner,
+  WMS_EVENT_OPTIONS,
+  WMS_ACTOR_EXTRACTOR,
+];
+
 @Module({
   providers: exportDependencies,
 })
@@ -199,6 +235,7 @@ export class WmsModuleCoreModule {
         StockChangeSubscriber,
         InventoryCountLockSubscriber,
         ...resolvedEntityProviders,
+        ...eventProviders(coreOptions),
         { provide: WMS_CORE_MODULE_OPTIONS, useValue: coreOptions },
         {
           provide: WMS_STOCK_ENRICH,
@@ -210,6 +247,7 @@ export class WmsModuleCoreModule {
         coreModule,
         ModelsModule,
         ...exportedEntityTokens,
+        ...eventExports,
         WMS_CORE_MODULE_OPTIONS,
       ],
     };
@@ -221,6 +259,10 @@ export class WmsModuleCoreModule {
       defaultLoaderTypeKey,
       defaultLocationKey,
       enrichStockEvents,
+      beforeHooks,
+      afterListeners,
+      actorExtractor,
+      eventEmitterBridge,
       ...baseOptions
     } = options;
     const coreModule = WMSBaseModule.forRootAsync(baseOptions);
@@ -232,6 +274,12 @@ export class WmsModuleCoreModule {
         StockChangeSubscriber,
         InventoryCountLockSubscriber,
         ...resolvedEntityProviders,
+        ...eventProviders({
+          beforeHooks,
+          afterListeners,
+          actorExtractor,
+          eventEmitterBridge,
+        }),
         {
           provide: WMS_CORE_MODULE_OPTIONS,
           useValue: {
@@ -247,6 +295,7 @@ export class WmsModuleCoreModule {
         coreModule,
         ModelsModule,
         ...exportedEntityTokens,
+        ...eventExports,
         WMS_CORE_MODULE_OPTIONS,
       ],
     };

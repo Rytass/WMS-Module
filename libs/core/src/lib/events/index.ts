@@ -7,6 +7,10 @@ export {
 export { WmsEventCollector } from './wms-event.collector';
 export { WmsEventDispatcher } from './wms-event.dispatcher';
 export {
+  WmsOperationRunner,
+  type WmsOperationRunOptions,
+} from './wms-operation-runner';
+export {
   collectToScope,
   runInDispatchScope,
   type DispatchScopeResult,

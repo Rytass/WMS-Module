@@ -177,13 +177,25 @@ export interface WmsDomainEvent<N extends WmsEventName = WmsEventName> {
 
 /**
  * Context handed to a before-hook. Runs *before* any DB work, so it sees the
- * mutation **intent** (raw GraphQL arguments) rather than a result. Throwing
- * vetoes the whole mutation with zero side effects.
+ * operation **intent** (the raw arguments) rather than a result. Throwing
+ * vetoes the whole operation with zero side effects.
  */
 export interface WmsBeforeHookContext<N extends WmsEventName = WmsEventName> {
   readonly event: N;
   readonly args: Readonly<Record<string, unknown>>;
-  readonly executionContext: ExecutionContext;
+  /**
+   * The NestJS execution context, or `null` when the operation did not arrive
+   * through one.
+   *
+   * A host calling a domain service directly through `WmsOperationRunner` has
+   * no execution context to offer, and fabricating one would be worse than
+   * admitting it: a hook that reaches into the request would get a lie instead
+   * of an obvious `null`. Branch on {@link WmsBeforeHookContext.source} rather
+   * than on this field being present.
+   */
+  readonly executionContext: ExecutionContext | null;
+  /** Where the operation came in from. `'host'` means a direct service call. */
+  readonly source: 'graphql' | 'host';
   readonly actor: WmsActor | null;
 }
 

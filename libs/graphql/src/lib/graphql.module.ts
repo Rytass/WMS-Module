@@ -1,11 +1,6 @@
 import { DynamicModule, Module, type Provider } from '@nestjs/common';
+import { WmsModuleCoreModule } from '@rytass/wms-module-core';
 import {
-  WmsModuleCoreModule,
-  WmsEventDispatcher,
-} from '@rytass/wms-module-core';
-import {
-  WMS_ACTOR_EXTRACTOR,
-  WMS_EVENT_OPTIONS,
   type WmsActorExtractor,
   type WmsModuleCoreModuleAsyncOptions,
   type WmsEventModuleOptions,
@@ -225,27 +220,33 @@ export class WmsModuleGraphqlModule {
       disabledFields,
     });
 
-    // coreOptions still carries `enrichStockEvents`, forwarded to the core module.
-    const coreModule = WmsModuleCoreModule.forRootAsync(coreOptions);
-
-    const authOptions: WmsAuthModuleOptions = { authChecker };
-    // The typed hook maps are a compile-time refinement of the core maps; at
-    // runtime the dispatched payload IS the concrete result type, so handing the
-    // refined maps to the (looser) core option contract is sound.
-    const eventOptions: WmsEventModuleOptions = {
+    /*
+     * The event wiring goes down to the core module rather than being bound
+     * here. `WmsOperationRunner` lives in core so a host calling a service
+     * directly gets the same guarantee, and binding the same tokens in both
+     * modules would leave two live bindings whose winner depends on which
+     * injector the consumer reached first.
+     *
+     * `coreOptions` still carries `enrichStockEvents`, also forwarded.
+     */
+    const coreModule = WmsModuleCoreModule.forRootAsync({
+      ...coreOptions,
+      // The typed hook maps are a compile-time refinement of the core maps; at
+      // runtime the dispatched payload IS the concrete result type, so handing
+      // the refined maps to the (looser) core option contract is sound.
       beforeHooks: beforeHooks as WmsEventModuleOptions['beforeHooks'],
       afterListeners: afterListeners as WmsEventModuleOptions['afterListeners'],
-    };
+      actorExtractor,
+      eventEmitterBridge,
+    });
+
+    const authOptions: WmsAuthModuleOptions = { authChecker };
 
     const providers: Provider[] = [
       ...exportDependencies,
       WmsAuthGuard,
       { provide: WMS_AUTH_OPTIONS, useValue: authOptions },
-      { provide: WMS_EVENT_OPTIONS, useValue: eventOptions },
-      { provide: WMS_ACTOR_EXTRACTOR, useValue: actorExtractor ?? null },
-      WmsEventDispatcher,
       WmsMutationInterceptor,
-      ...(eventEmitterBridge ? [eventEmitterBridge] : []),
     ];
 
     return {
