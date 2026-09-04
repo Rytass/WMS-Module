@@ -200,6 +200,35 @@ on both the stock queries (`FindStockArgs`) and the count sheet
 returns `SO-10` as well — a wrong answer that looks entirely plausible. The guard is
 `libs/graphql/src/lib/stock-batch-attribute-filters.integration.spec.ts`.
 
+#### The event guarantee belongs to `WmsOperationRunner`, not the interceptor
+
+Before-hook → dispatch scope → operation event → one post-commit flush. That sequence lives
+in `WmsOperationRunner` (`libs/core/src/lib/events/wms-operation-runner.ts`), and
+`WmsMutationInterceptor` is a thin adapter that adds the two things only a GraphQL request
+can supply: the raw arguments and the actor. **Do not reimplement the sequence anywhere
+else** — the whole point is that a host calling a domain service directly gets exactly what a
+mutation gets. Nesting is safe; only the outermost run flushes.
+
+`run({}, fn)` with no `event` opens a scope without an operation event, which is what a host
+wants when it just needs the `stock.*` events a service collects to actually go somewhere.
+
+Consequences of that living in core:
+
+- The event tokens (`WMS_EVENT_OPTIONS`, `WMS_ACTOR_EXTRACTOR`), `WmsEventDispatcher`,
+  `WmsOperationRunner` and the emitter-bridge provider are all bound by
+  `WmsModuleCoreModule`. `WmsModuleGraphqlModule.forRootAsync` keeps accepting
+  `beforeHooks` / `afterListeners` / `actorExtractor` / `eventEmitterBridge` and **forwards
+  them down**. Binding either set in both modules would leave two live bindings per token —
+  the same hazard the overridable entity Symbols avoid.
+- `WmsBeforeHookContext.executionContext` is `ExecutionContext | null`, with a `source:
+  'graphql' | 'host'` discriminant next to it. A direct service call has no execution context
+  and fabricating one would hand a hook a lie. Branch on `source`.
+  `WmsTypedBeforeHookContext` in `libs/graphql/.../typed-maps.ts` restates the same shape and
+  must be kept in step — a hook written against either is handed the same object.
+
+The coverage is `libs/graphql/src/lib/wms-operation-runner.integration.spec.ts`, which is also
+the only test the event system has; it drives both paths and asserts a veto leaves no rows.
+
 #### An upstream document is recorded in `order_references`, never on the order
 
 Orders here record what moved and when, never what for. `order_references`
