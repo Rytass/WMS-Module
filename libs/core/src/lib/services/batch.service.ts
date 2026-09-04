@@ -6,6 +6,7 @@ import {
   FindOperator,
   FindOptionsWhere,
   IsNull,
+  Raw,
   Repository,
 } from 'typeorm';
 import { BatchEntity, BatchEntityClass } from '../models';
@@ -113,11 +114,23 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     }
   }
 
+  /**
+   * Find the unsplit batch carrying `key` for this material, or create it.
+   *
+   * `parentBatchId` and `attributes` are write-on-create only: the lookup still
+   * matches on key, material and the unsplit condition alone, so a caller that
+   * passes them for a key that already exists gets the existing batch back
+   * untouched. `key` is the batch's identity in this model; attributes describe
+   * a batch rather than distinguish one, so a host that needs two distinct
+   * batches gives them two keys.
+   */
   async getBatch({
     manager = this.dataSource.manager,
     ...options
   }: GetBatchInput & { manager?: EntityManager }): Promise<T> {
-    const batchRepository = manager.getRepository<BatchEntityClass>(this.batchEntity);
+    const batchRepository = manager.getRepository<BatchEntityClass>(
+      this.batchEntity,
+    );
     const batchGroupRepository = manager.getRepository(this.batchGroupEntity);
     const unsplittedCondition: FindOptionsWhere<BatchEntityClass> = {
       saleId: IsNull(),
@@ -159,7 +172,9 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     id: string;
     manager?: EntityManager;
   } & SplitBatchInput): Promise<BatchEntityClass> {
-    const batchRepository = manager.getRepository<BatchEntityClass>(this.batchEntity);
+    const batchRepository = manager.getRepository<BatchEntityClass>(
+      this.batchEntity,
+    );
     const batch = await batchRepository.findOneOrFail({
       where: { id: options.id },
       relations: { batchGroup: true },
@@ -197,6 +212,19 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       transferId: orNull(mergedBatch.transferId),
       held: mergedBatch.held ?? false,
       inShipment: mergedBatch.inShipment ?? false,
+      /*
+       * Attributes take part in the identity check, so a split that asks for
+       * `{ bin: 'B1' }` never lands on the sibling holding `{ bin: 'B2' }`.
+       * Compared as `jsonb`, whose equality is by content rather than by the
+       * text of the document, so key order and whitespace do not matter — which
+       * a plain string comparison on the serialized column would get wrong.
+       */
+      attributes:
+        mergedBatch.attributes === null || mergedBatch.attributes === undefined
+          ? IsNull()
+          : Raw((alias) => `${alias} = cast(:batchAttributes as jsonb)`, {
+              batchAttributes: JSON.stringify(mergedBatch.attributes),
+            }),
     };
 
     // Check if a batch with these exact metrics already exists in the same group
@@ -213,6 +241,10 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       batchRepository.create({
         ...mergedBatch,
         key: `${batch.batchGroup.key}_${Date.now().toString()}`,
+        // Not inherited from `mergedBatch`: spreading the source batch would
+        // copy *its* parent and flatten the chain by one link. The parent of
+        // the batch being created is the batch it was split out of.
+        parentBatchId: batch.id,
         id: undefined,
       }),
     );

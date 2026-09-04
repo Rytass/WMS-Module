@@ -72,10 +72,14 @@ export class SplitBatchOrderService<
       // Process each item split
       await Promise.all(
         options.items.map(async (item) => {
-          // Get or create target batch
+          // Get or create target batch. The genealogy link and the host's
+          // attributes only land when this call creates the batch — reusing an
+          // existing key keeps whatever it already carries.
           const targetBatch = await this.batchService.getBatch({
             key: item.batchKey,
             materialId: originalBatch.materialId,
+            parentBatchId: options.batchId,
+            attributes: item.attributes ?? null,
             manager,
           });
 

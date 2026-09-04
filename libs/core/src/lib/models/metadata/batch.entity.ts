@@ -40,6 +40,43 @@ export class BatchEntityClass extends BaseBatchEntity {
   @Column({ type: 'bool', default: false })
   inShipment: boolean;
 
+  /**
+   * The batch this one was first split out of, or `null` for a batch that was
+   * created outright.
+   *
+   * Written once, at creation, and never updated — it is a genealogy line, not
+   * a current-parent pointer. Every status in this model is a flag on the batch
+   * rather than a column on the stock row, so holding, transferring or shipping
+   * *part* of a batch splits a child off first (see
+   * `HoldInventoryOrderService`); before this column those children were
+   * orphans, and the only way back to the original batch was to read the stock
+   * ledger. Following `parentBatchId` upwards now yields the root batch, which
+   * is what a label or a shipping document should print.
+   *
+   * `BatchService.splitBatch` reuses an existing sibling when one already
+   * carries the requested attributes, so a reused batch keeps the parent it was
+   * first created from. The quantity ledger in `stocks` remains the authority
+   * on what actually moved.
+   */
+  @Column({ type: 'uuid', nullable: true })
+  parentBatchId: string | null;
+
+  /**
+   * Host-defined attributes describing this batch, stored verbatim.
+   *
+   * The module reads nothing out of this and validates nothing in it: what a
+   * grade, a bin code or a die count means belongs to the host, and a schema
+   * enforced here would be a second, weaker copy of the host's own. It exists
+   * because `batchEntity` overrides solve the storage half of the problem but
+   * not the display half — a column the module does not know about cannot be
+   * carried through a split or shown on a batch row, and this can.
+   *
+   * Set at creation; two splits asking for different attributes produce two
+   * batches rather than one merged one.
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  attributes: Record<string, unknown> | null;
+
   @ManyToOne(
     'batch_groups',
     (batchGroup: BatchGroupEntityClass) => batchGroup.batches,
