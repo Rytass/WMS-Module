@@ -192,15 +192,33 @@ const exportDependencies = [
  * Everything is optional; with nothing configured the module behaves exactly as
  * before (no events emitted, fully permissive, every operation registered).
  */
-export type WmsModuleGraphqlModuleAsyncOptions =
-  WmsModuleCoreModuleAsyncOptions &
-    WmsAuthModuleOptions &
-    WmsOperationRegistrationOptions & {
-      readonly beforeHooks?: WmsTypedBeforeHookMap;
-      readonly afterListeners?: WmsTypedAfterListenerMap;
-      readonly actorExtractor?: WmsActorExtractor;
-      readonly eventEmitterBridge?: Provider;
-    };
+export type WmsModuleGraphqlModuleAsyncOptions = Omit<
+  WmsModuleCoreModuleAsyncOptions,
+  /*
+   * Omitted, not merged. Both keys are also declared on the core options, and an
+   * intersection makes TypeScript resolve an inline object literal against the
+   * *looser* member: `ctx.payload.result` silently became `unknown` for exactly
+   * the inline form this type's own docs advertise. A consumer could only
+   * recover it by hoisting the map into a separately annotated const.
+   *
+   * `beforeHooks` is omitted too even though its two context types are
+   * structurally identical today. That identity is not a contract — the obvious
+   * next refinement (typing `args` per event, the way the after-listener context
+   * already types `payload`) would break it, reproducing this bug with no error
+   * at the declaration site to point at the cause.
+   *
+   * Safe for the forwarding call below: `forRootAsync` destructures both keys by
+   * name, so the `...coreOptions` rest object never carried them.
+   */
+  'beforeHooks' | 'afterListeners'
+> &
+  WmsAuthModuleOptions &
+  WmsOperationRegistrationOptions & {
+    readonly beforeHooks?: WmsTypedBeforeHookMap;
+    readonly afterListeners?: WmsTypedAfterListenerMap;
+    readonly actorExtractor?: WmsActorExtractor;
+    readonly eventEmitterBridge?: Provider;
+  };
 
 @Module({
   providers: exportDependencies,
