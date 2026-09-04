@@ -209,17 +209,25 @@ warehouse. The answer was never zero and never absurd, which is why it survived.
 The missing half is intent. `batches.requiresInspection` records that somebody actually asked
 — `ReceiveInventoryOrderService.receive` sets it when a receive item carries
 `requireInspection` and arrives without a result — and the filter is now
-`requiresInspection = true AND inspectionResult IS NULL`, on both the query side and react's
-inspection icon (`utils/columns.tsx` and `inventory-list/Table/GroupTable.tsx`, which each
-render it separately). `InventoryActions.QualityInspection` deliberately still gates on
-`inspectionResult` alone: "can I inspect this" is a different question from "is this waiting".
+`requiresInspection = true AND inspectionResult IS NULL`. **Three** places render that icon
+and all three need both halves: `utils/columns.tsx`, `inventory-list/Table/GroupTable.tsx`,
+and `inventory-count/view` — the count sheet snapshots the flag onto
+`inventory_count_order_items` alongside `held` / `inShipment`, because a settled count has to
+keep showing what the world looked like at the time.
+`InventoryActions.QualityInspection` deliberately still gates on `inspectionResult` alone:
+"can I inspect this" is a different question from "is this waiting".
 
 Consequences:
 
-- A receive that requires inspection now **splits** the batch, so material awaiting QC stops
-  being commingled with the free stock on the same key — the same thing holding or shipping
-  part of a batch already does. `requiresInspection` is part of the batch identity in
-  `getBatch` / `splitBatch` for that reason.
+- **`requireInspection` defaults to `true`**, so this is the ordinary receive path, not an
+  edge case. Splitting unconditionally moved *every* default receipt off the batch key the
+  caller asked for and onto a synthetic child, which an exact-id lookup then could not find.
+  So the receive splits **only when the batch already holds stock**; a batch with nothing on
+  it yet has nothing to commingle with and is flagged in place.
+- `requiresInspection` is part of the batch identity in `splitBatch` (a flagged child must not
+  collapse into an unflagged sibling) but deliberately **not** in `getBatch`'s lookup: given
+  `UNIQUE (key, materialId)` there is one row per key, and hiding a flagged one would leave
+  the next lookup trying to create a duplicate.
 - Existing rows get the column default `false`, so a deployment upgrading across this needs
   to decide what its already-null batches meant. There is no generic backfill: the honest
   answer comes from the deployment's own receive history.
@@ -253,6 +261,18 @@ Two things to keep in mind when touching it:
   `outstandingQuantity` resolvers read the change rows back every time, because those rows
   are what the stock ledger and the `stock.*` events agree with; a counter kept alongside
   them is a second answer waiting to disagree.
+- **Everything inside `act` is in base units.** `quantityChanged` is written in base units
+  while `targetConsumedQuantity` is stored in the line's own unit, so `getProgress` converts
+  the target and `act` converts a caller's `quantity` on the way in. Comparing the two
+  unconverted made a whole-order `return` or `settle` on a non-base unit ask for the
+  conversion factor times what was there — impossible — and a partial issue strand the line
+  permanently. Every spec used a factor of 1, which is why it stayed green.
+  `ReceiveInventoryOrderService` resolves the same tension the same way; follow it.
+- `act` takes a `pessimistic_write` lock on the order row and accumulates what the current
+  call has moved. The guard rests on a snapshot read once, so without the lock two
+  transactions both see an untouched line, and without the accumulator two lines naming the
+  same item in one call do. `validateStockAvailability` catches neither: it checks the shelf,
+  not the order's target.
 
 #### `customChangeTables` is the only extension point for a host's own order family
 
@@ -312,8 +332,15 @@ Consequences of that living in core:
 - `WmsBeforeHookContext.executionContext` is `ExecutionContext | null`, with a `source:
   'graphql' | 'host'` discriminant next to it. A direct service call has no execution context
   and fabricating one would hand a hook a lie. Branch on `source`.
-  `WmsTypedBeforeHookContext` in `libs/graphql/.../typed-maps.ts` restates the same shape and
-  must be kept in step — a hook written against either is handed the same object.
+- **`WmsModuleGraphqlModuleAsyncOptions` `Omit`s `beforeHooks` and `afterListeners` from the
+  core options before re-declaring them.** Both keys exist on both types, and an intersection
+  makes TypeScript resolve an *inline* object literal against the looser core member — so
+  `ctx.payload.result` silently degraded to `unknown` for exactly the inline form the docs
+  advertise, with no error at the declaration site to point at the cause. `beforeHooks` is
+  omitted too even though its two context types are structurally identical today: that
+  identity is not a contract, and typing `args` per event would break it. Keep
+  `WmsTypedBeforeHookContext` in step with `WmsBeforeHookContext` for the reader's sake, but
+  compilation no longer depends on it.
 
 The coverage is `libs/graphql/src/lib/wms-operation-runner.integration.spec.ts`, which is also
 the only test the event system has; it drives both paths and asserts a veto leaves no rows.
