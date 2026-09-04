@@ -1,0 +1,500 @@
+import { INestApplication } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { GraphQLModule, GraphQLSchemaHost } from '@nestjs/graphql';
+import { ApolloDriver } from '@nestjs/apollo';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Client } from 'pg';
+import { DataSource, type DeepPartial } from 'typeorm';
+import { ExecutionResult, GraphQLSchema, graphql } from 'graphql';
+import { OrderEntity } from '@rytass/wms-base-nestjs-module';
+import {
+  BatchService,
+  ConsumptionChangeKind,
+  ConsumptionOrderChangeEntityClass,
+  ConsumptionOrderService,
+  LocationEntityClass,
+  MaterialEntityClass,
+  StockEntityClass,
+  StockService,
+  WmsEntities,
+  WmsOperationRunner,
+  type WmsAfterEventContext,
+} from '@rytass/wms-module-core';
+import { WmsModuleGraphqlModule } from './graphql.module';
+import { LoaderService, createWmsLoaders } from './helpers';
+
+/**
+ * The consumption order: material handed to a process that eats some of it.
+ *
+ * Three actions on one document — issue it out, take back what came home,
+ * settle what was used — because they are one story and because hold/release,
+ * allocate/deallocate and transfer/cancel are each one document too.
+ *
+ * The two properties worth pinning hardest are the ones a reviewer would
+ * reasonably doubt. First, an issue moves stock between locations and touches
+ * nothing else: no new status, no split batch, so the same batch key is in two
+ * places at once and the aggregate has to add up. Second, a return and a
+ * settlement are both negative, so nothing can distinguish them by sign — the
+ * `kind` column is load-bearing all the way out to the `stock.*` event the
+ * TypeORM subscriber emits.
+ *
+ * Requires a reachable PostgreSQL; override with WMS_TEST_DB_* env vars.
+ */
+const DB_HOST = process.env['WMS_TEST_DB_HOST'] ?? 'localhost';
+const DB_PORT = Number(process.env['WMS_TEST_DB_PORT'] ?? 5432);
+const DB_USER =
+  process.env['WMS_TEST_DB_USER'] ?? process.env['USER'] ?? 'postgres';
+const DB_PASS = process.env['WMS_TEST_DB_PASS'];
+const DB_NAME =
+  process.env['WMS_TEST_CONSUMPTION_DB_NAME'] ?? 'wms_module_consumption_test';
+
+const resetDatabase = async (): Promise<void> => {
+  const client = new Client({
+    host: DB_HOST,
+    port: DB_PORT,
+    user: DB_USER,
+    password: DB_PASS,
+    database: 'postgres',
+  });
+
+  await client.connect();
+
+  try {
+    await client.query(`DROP DATABASE IF EXISTS "${DB_NAME}" WITH (FORCE)`);
+    await client.query(`CREATE DATABASE "${DB_NAME}"`);
+  } finally {
+    await client.end();
+  }
+};
+
+const stockEvents: string[] = [];
+
+const recordStockEvent = async (
+  context: WmsAfterEventContext,
+): Promise<void> => {
+  stockEvents.push(context.event);
+};
+
+describe('consumption order (integration)', () => {
+  let app: INestApplication;
+  let dataSource: DataSource;
+  let entities: WmsEntities;
+  let stockService: StockService;
+  let batchService: BatchService;
+  let service: ConsumptionOrderService;
+  let runner: WmsOperationRunner;
+  let schema: GraphQLSchema;
+  let loaderService: LoaderService;
+
+  let materialId: string;
+  let shelfId: string;
+  let benchId: string;
+
+  const execute = async (
+    source: string,
+  ): Promise<ExecutionResult<Record<string, unknown>>> =>
+    graphql({
+      schema,
+      source,
+      contextValue: { ...createWmsLoaders(loaderService) },
+    }) as Promise<ExecutionResult<Record<string, unknown>>>;
+
+  /** A fresh batch of `quantity` units sitting on the shelf. */
+  const seedBatch = async (key: string, quantity = 100): Promise<string> => {
+    const batch = await batchService.getBatch({ key, materialId });
+    const orderRepository = dataSource.getRepository<OrderEntity>(
+      entities.order,
+    );
+    const base = await orderRepository.save(orderRepository.create({}));
+
+    await dataSource.getRepository<StockEntityClass>(entities.stock).save({
+      orderId: base.id,
+      materialId,
+      batchId: batch.id,
+      locationId: shelfId,
+      loaderId: stockService.resolveLoaderId(null),
+      quantity,
+    } as never);
+
+    return batch.id;
+  };
+
+  /** On-hand quantity for one batch at one location. */
+  const onHand = async (
+    batchId: string,
+    locationId: string,
+  ): Promise<number> => {
+    const [items] = await stockService.findAggregatedStocks({
+      batchId,
+      locationId,
+    });
+
+    return items.reduce((total, item) => total + Number(item.quantity), 0);
+  };
+
+  /** An order with one line for `quantity` off the given batch. */
+  const newOrder = async (
+    batchId: string,
+    quantity: number,
+  ): Promise<{ orderId: string; itemId: string }> => {
+    const order = await service.createConsumptionOrder({
+      description: 'test',
+      items: [
+        {
+          materialId,
+          batchId,
+          locationId: shelfId,
+          targetLocationId: benchId,
+          quantity,
+        },
+      ],
+    });
+
+    const [progress] = await service.getProgress(order.id);
+
+    return { orderId: order.id, itemId: progress.itemId };
+  };
+
+  beforeEach(() => {
+    stockEvents.length = 0;
+  });
+
+  beforeAll(async () => {
+    await resetDatabase();
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        TypeOrmModule.forRoot({
+          type: 'postgres',
+          host: DB_HOST,
+          port: DB_PORT,
+          username: DB_USER,
+          password: DB_PASS,
+          database: DB_NAME,
+          autoLoadEntities: true,
+          synchronize: true,
+          uuidExtension: 'uuid-ossp',
+        }),
+        WmsModuleGraphqlModule.forRootAsync({
+          useFactory: async () => ({}),
+          defaultLoaderSerialId: 'DEFAULT',
+          defaultLoaderTypeKey: 'DEFAULT',
+          defaultLocationKey: 'DEFAULT',
+          afterListeners: {
+            'stock.issued': recordStockEvent,
+            'stock.returned': recordStockEvent,
+            'stock.consumed': recordStockEvent,
+          },
+        }),
+        GraphQLModule.forRootAsync({
+          driver: ApolloDriver,
+          inject: [LoaderService],
+          useFactory: (injected: LoaderService) => ({
+            autoSchemaFile: true,
+            context: () => ({ ...createWmsLoaders(injected) }),
+          }),
+        }),
+      ],
+    }).compile();
+
+    app = moduleRef.createNestApplication();
+
+    await app.init();
+
+    dataSource = app.get(DataSource);
+    entities = app.get(WmsEntities);
+    stockService = app.get(StockService);
+    batchService = app.get(BatchService);
+    service = app.get(ConsumptionOrderService);
+    runner = app.get(WmsOperationRunner);
+    schema = app.get(GraphQLSchemaHost).schema;
+    loaderService = app.get(LoaderService);
+
+    const locationRepository = dataSource.getRepository<LocationEntityClass>(
+      entities.location,
+    );
+
+    shelfId = (
+      await locationRepository.save(
+        locationRepository.create({
+          key: 'CSO-SHELF',
+          description: 'shelf',
+          isActive: true,
+        } as DeepPartial<LocationEntityClass>),
+      )
+    ).id;
+
+    benchId = (
+      await locationRepository.save(
+        locationRepository.create({
+          key: 'CSO-BENCH',
+          description: 'the consuming location',
+          isActive: true,
+        } as DeepPartial<LocationEntityClass>),
+      )
+    ).id;
+
+    const materialRepository = dataSource.getRepository<MaterialEntityClass>(
+      entities.material,
+    );
+    materialId = (
+      await materialRepository.save(
+        materialRepository.create({
+          key: 'CSO-MATERIAL',
+        } as DeepPartial<MaterialEntityClass>),
+      )
+    ).id;
+  });
+
+  afterAll(async () => {
+    await app?.close();
+  });
+
+  describe('the whole life of one handover', () => {
+    it('issues, returns and settles, leaving the ledger consistent', async () => {
+      const batchId = await seedBatch('CSO-LIFE');
+      const { orderId, itemId } = await newOrder(batchId, 40);
+
+      await service.issue({ orderId });
+
+      // The same batch is now in two places. No status changed and no child
+      // batch was created: an issue is a location move and nothing more.
+      expect(await onHand(batchId, shelfId)).toBe(60);
+      expect(await onHand(batchId, benchId)).toBe(40);
+
+      await service.return({ orderId, items: [{ itemId, quantity: 15 }] });
+
+      expect(await onHand(batchId, shelfId)).toBe(75);
+      expect(await onHand(batchId, benchId)).toBe(25);
+
+      await service.settle({ orderId, items: [{ itemId, quantity: 25 }] });
+
+      // Settled stock leaves inventory entirely rather than going back.
+      expect(await onHand(batchId, shelfId)).toBe(75);
+      expect(await onHand(batchId, benchId)).toBe(0);
+
+      expect(await service.getProgress(orderId)).toEqual([
+        {
+          itemId,
+          target: 40,
+          issued: 40,
+          returned: 15,
+          settled: 25,
+          outstanding: 0,
+        },
+      ]);
+    });
+
+    it('tells a return and a settlement apart, which the sign cannot', async () => {
+      const batchId = await seedBatch('CSO-KIND');
+      const { orderId, itemId } = await newOrder(batchId, 20);
+
+      await service.issue({ orderId });
+      await service.return({ orderId, items: [{ itemId, quantity: 5 }] });
+      await service.settle({ orderId, items: [{ itemId, quantity: 15 }] });
+
+      const changes = await dataSource
+        .getRepository(ConsumptionOrderChangeEntityClass)
+        .find({ where: { itemId }, order: { createdAt: 'ASC' } });
+
+      expect(changes.map(({ kind }) => kind)).toEqual([
+        ConsumptionChangeKind.ISSUE,
+        ConsumptionChangeKind.RETURN,
+        ConsumptionChangeKind.SETTLE,
+      ]);
+
+      // Both of the last two are negative; only `kind` separates them.
+      expect(
+        changes.map(({ quantityChanged }) => Number(quantityChanged)),
+      ).toEqual([20, -5, -15]);
+    });
+
+    it('emits a distinct stock event for each of the three', async () => {
+      const batchId = await seedBatch('CSO-EVENTS');
+      const { orderId, itemId } = await newOrder(batchId, 12);
+
+      await runner.run({}, () => service.issue({ orderId }));
+      await runner.run({}, () =>
+        service.return({ orderId, items: [{ itemId, quantity: 2 }] }),
+      );
+      await runner.run({}, () =>
+        service.settle({ orderId, items: [{ itemId, quantity: 10 }] }),
+      );
+
+      expect(stockEvents).toEqual([
+        'stock.issued',
+        'stock.returned',
+        'stock.consumed',
+      ]);
+    });
+  });
+
+  describe('what it refuses', () => {
+    it('will not issue more than the line asked for', async () => {
+      const batchId = await seedBatch('CSO-OVER-ISSUE');
+      const { orderId, itemId } = await newOrder(batchId, 10);
+
+      await expect(
+        service.issue({ orderId, items: [{ itemId, quantity: 11 }] }),
+      ).rejects.toThrow('only 10 left to issue');
+    });
+
+    it('will not settle more than the process is holding', async () => {
+      const batchId = await seedBatch('CSO-OVER-SETTLE');
+      const { orderId, itemId } = await newOrder(batchId, 10);
+
+      await service.issue({ orderId, items: [{ itemId, quantity: 4 }] });
+
+      await expect(
+        service.settle({ orderId, items: [{ itemId, quantity: 5 }] }),
+      ).rejects.toThrow('only 4 outstanding');
+    });
+
+    it('will not issue stock that is not on the shelf', async () => {
+      const batchId = await seedBatch('CSO-SHORT', 3);
+      const { orderId } = await newOrder(batchId, 10);
+
+      await expect(service.issue({ orderId })).rejects.toThrow(
+        'Insufficient stock',
+      );
+    });
+
+    it('will not replace the lines once stock has moved', async () => {
+      const batchId = await seedBatch('CSO-FROZEN');
+      const { orderId } = await newOrder(batchId, 5);
+
+      await service.issue({ orderId });
+
+      await expect(
+        service.updateConsumptionOrder({
+          id: orderId,
+          items: [{ materialId, batchId, quantity: 1 }],
+        }),
+      ).rejects.toThrow('already moved stock');
+    });
+
+    it('rejects a line that belongs to another order', async () => {
+      const batchId = await seedBatch('CSO-STRANGER');
+      const { orderId } = await newOrder(batchId, 5);
+      const other = await newOrder(batchId, 5);
+
+      await expect(
+        service.issue({ orderId, items: [{ itemId: other.itemId }] }),
+      ).rejects.toThrow('does not belong to');
+    });
+  });
+
+  describe('acting on the whole order', () => {
+    it('skips lines that are already fully issued instead of failing', async () => {
+      const batchId = await seedBatch('CSO-REPEAT');
+      const { orderId } = await newOrder(batchId, 8);
+
+      await service.issue({ orderId });
+      // The natural way to say "make sure it is all out there". Nothing is
+      // left, so nothing moves — and it must not throw for that.
+      await service.issue({ orderId });
+
+      expect(await onHand(batchId, benchId)).toBe(8);
+    });
+
+    it('settles everything outstanding when no lines are named', async () => {
+      const batchId = await seedBatch('CSO-SETTLE-ALL');
+      const { orderId } = await newOrder(batchId, 9);
+
+      await service.issue({ orderId });
+      await service.settle({ orderId });
+
+      expect(await onHand(batchId, benchId)).toBe(0);
+      expect(await onHand(batchId, shelfId)).toBe(91);
+    });
+  });
+
+  describe('through the schema', () => {
+    it('reports the four quantities on the line', async () => {
+      const batchId = await seedBatch('CSO-GRAPHQL');
+      const { orderId, itemId } = await newOrder(batchId, 30);
+
+      await service.issue({ orderId });
+      await service.return({ orderId, items: [{ itemId, quantity: 4 }] });
+      await service.settle({ orderId, items: [{ itemId, quantity: 6 }] });
+
+      const result = await execute(`{
+        consumptionOrder(id: "${orderId}") {
+          key
+          items {
+            targetConsumedQuantity
+            issuedQuantity
+            returnedQuantity
+            settledQuantity
+            outstandingQuantity
+            location { key }
+            targetLocation { key }
+          }
+        }
+      }`);
+
+      expect(result.errors).toBeUndefined();
+
+      const payload = result.data?.['consumptionOrder'] as {
+        key: string;
+        items: {
+          targetConsumedQuantity: number;
+          issuedQuantity: number;
+          returnedQuantity: number;
+          settledQuantity: number;
+          outstandingQuantity: number;
+          location: { key: string };
+          targetLocation: { key: string };
+        }[];
+      };
+
+      // `HelperService.getSeq` uses the service's prefix to name the sequence,
+      // not to prefix the key; every order family's keys are `yyyyMMdd` plus a
+      // four-digit serial.
+      expect(payload.key).toMatch(/^\d{8}\d{4}$/);
+      expect(payload.items).toHaveLength(1);
+      expect(payload.items[0]).toEqual({
+        targetConsumedQuantity: 30,
+        issuedQuantity: 30,
+        returnedQuantity: 4,
+        settledQuantity: 6,
+        outstandingQuantity: 20,
+        location: { key: 'CSO-SHELF' },
+        targetLocation: { key: 'CSO-BENCH' },
+      });
+    });
+  });
+
+  /*
+   * Every case above hands the service its arguments in full, because a
+   * resolver would. A consumer of @rytass/wms-module-core writes the call the
+   * signature invites — with the optional parts left out — and that is the
+   * shape no in-repo caller ever produces.
+   */
+  describe('called as published API', () => {
+    it('lists orders with no filter, pagination or flags', async () => {
+      const [items, total] = await service.findMany({});
+
+      expect(total).toBeGreaterThan(0);
+      expect(items.length).toBe(total);
+    });
+
+    it('reads progress without being handed a manager', async () => {
+      const batchId = await seedBatch('CSO-PUBLISHED');
+      const { orderId } = await newOrder(batchId, 7);
+
+      const progress = await service.getProgress(orderId);
+
+      expect(progress).toHaveLength(1);
+      expect(progress[0].outstanding).toBe(0);
+    });
+
+    it('issues with no line list at all', async () => {
+      const batchId = await seedBatch('CSO-PUBLISHED-ISSUE');
+      const { orderId } = await newOrder(batchId, 7);
+
+      await expect(service.issue({ orderId })).resolves.toBe(true);
+      expect(await onHand(batchId, benchId)).toBe(7);
+    });
+  });
+});
