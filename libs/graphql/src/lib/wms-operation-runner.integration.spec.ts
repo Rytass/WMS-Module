@@ -12,10 +12,12 @@ import {
   LocationEntityClass,
   MaterialEntityClass,
   OrderReferenceService,
+  SplitBatchOrderChangeEntityClass,
   SplitBatchOrderService,
   StockEntityClass,
   StockService,
   WmsEntities,
+  WmsEventDispatcher,
   WmsOperationRunner,
   WmsOrderType,
   type WmsAfterEventContext,
@@ -82,6 +84,8 @@ interface RecordedHook {
 const beforeCalls: RecordedHook[] = [];
 const afterCalls: { event: string; payload: unknown }[] = [];
 let vetoEvent: string | null = null;
+/** What each listener could see in the database at the moment it ran. */
+const visibleAtFlush: (number | null)[] = [];
 
 const recordBefore = async (context: WmsBeforeHookContext): Promise<void> => {
   beforeCalls.push({
@@ -99,6 +103,16 @@ const recordBefore = async (context: WmsBeforeHookContext): Promise<void> => {
 const recordAfter = async (context: WmsAfterEventContext): Promise<void> => {
   afterCalls.push({ event: context.event, payload: context.payload });
 };
+
+/** Flush sizes, in order, for the run under test. */
+const flushCalls: number[] = [];
+
+/**
+ * How many split-change rows the given base order has, read on a connection
+ * that is not the operation's. Assigned once the app is up.
+ */
+let splitChangeCount: (orderId: string) => Promise<number | null> = async () =>
+  null;
 
 describe('WmsOperationRunner (integration)', () => {
   let app: INestApplication;
@@ -148,7 +162,9 @@ describe('WmsOperationRunner (integration)', () => {
   beforeEach(() => {
     beforeCalls.length = 0;
     afterCalls.length = 0;
+    visibleAtFlush.length = 0;
     vetoEvent = null;
+    flushCalls.length = 0;
   });
 
   beforeAll(async () => {
@@ -179,7 +195,15 @@ describe('WmsOperationRunner (integration)', () => {
           afterListeners: {
             'order-reference.attached': recordAfter,
             'batch.splitted': recordAfter,
-            'stock.splitted': recordAfter,
+            'stock.splitted': async (context): Promise<void> => {
+              await recordAfter(context);
+
+              // Reads through the DataSource, not the operation's manager. A
+              // flush that ran before the commit would see nothing here.
+              const payload = context.payload as { orderId: string };
+              const rows = await splitChangeCount(payload.orderId);
+              visibleAtFlush.push(rows);
+            },
           },
         }),
         GraphQLModule.forRootAsync({
@@ -204,8 +228,28 @@ describe('WmsOperationRunner (integration)', () => {
     splitBatchOrderService = app.get(SplitBatchOrderService);
     orderReferenceService = app.get(OrderReferenceService);
     runner = app.get(WmsOperationRunner);
+
+    /*
+     * Count flushes rather than events. Every listener appends to a shared
+     * array, so a buffer flushed twice with one event each is indistinguishable
+     * from one flushed once with two — which is how the nested-scope test
+     * managed to pass with the nesting removed entirely.
+     */
+    const dispatcher = app.get(WmsEventDispatcher);
+    const realFlush = dispatcher.flush.bind(dispatcher);
+    jest.spyOn(dispatcher, 'flush').mockImplementation(async (events) => {
+      flushCalls.push(events.length);
+      return realFlush(events);
+    });
     schema = app.get(GraphQLSchemaHost).schema;
     loaderService = app.get(LoaderService);
+
+    // Reads through the DataSource, not the operation's manager: rows written
+    // inside the transaction are invisible here until it commits.
+    splitChangeCount = async (orderId) =>
+      dataSource
+        .getRepository(SplitBatchOrderChangeEntityClass)
+        .count({ where: { id: orderId } });
 
     const locationRepository = dataSource.getRepository<LocationEntityClass>(
       entities.location,
@@ -384,12 +428,41 @@ describe('WmsOperationRunner (integration)', () => {
         ),
       );
 
-      // The inner call joins the outer scope; only the outermost owner flushes,
-      // so nothing arrives twice.
+      /*
+       * The number of flushes, not the set of events. Asserting the set passes
+       * just as happily when the inner run opens its own scope: two flushes of
+       * one event each build the same array as one flush of two, which is how
+       * this test used to stay green with the nesting removed entirely.
+       */
+      expect(flushCalls).toEqual([2]);
+
       expect(afterCalls.map(({ event }) => event).sort()).toEqual([
         'batch.splitted',
         'stock.splitted',
       ]);
+    });
+
+    it('flushes only after the transaction that produced the events commits', async () => {
+      const batchId = await seedBatch('RUNNER-BATCH-D');
+
+      await runner.run({ event: 'batch.splitted' }, () =>
+        splitBatchOrderService.split({
+          batchId,
+          items: [{ batchKey: 'RUNNER-CHILD-D', quantity: 10, locationId }],
+        }),
+      );
+
+      /*
+       * Every listener in this package's specs only pushed a name into an array,
+       * so nothing anywhere noticed whether the flush ran before or after the
+       * commit — the invariant CLAUDE.md calls load-bearing had no assertion at
+       * all. The `stock.splitted` listener reads the ledger through the
+       * DataSource rather than the operation's manager: a flush inside the
+       * transaction would find nothing there.
+       */
+      expect(visibleAtFlush.length).toBeGreaterThan(0);
+      expect(visibleAtFlush).not.toContain(0);
+      expect(visibleAtFlush).not.toContain(null);
     });
   });
 });
