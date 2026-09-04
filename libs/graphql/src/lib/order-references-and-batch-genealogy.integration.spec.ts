@@ -409,6 +409,27 @@ describe('order references and batch genealogy (integration)', () => {
       expect(items[0].attributes).toBeNull();
     });
 
+    it('leaves an existing key alone when asked to create it again', async () => {
+      const first = await batchService.getBatch({
+        key: 'REF-REUSE',
+        materialId,
+      });
+
+      // Documented behaviour with nothing pinning it: `key` is the batch's
+      // identity, so a second call with lineage and attributes returns what is
+      // already there rather than rewriting it.
+      const second = await batchService.getBatch({
+        key: 'REF-REUSE',
+        materialId,
+        parentBatchId: sourceBatchId,
+        attributes: { grade: 'A' },
+      });
+
+      expect(second.id).toBe(first.id);
+      expect(second.parentBatchId).toBeNull();
+      expect(second.attributes).toBeNull();
+    });
+
     it('still reuses the sibling when neither side carries attributes', async () => {
       const plainSource = await batchService.getBatch({
         key: 'REF-PLAIN-SOURCE',
@@ -671,6 +692,63 @@ describe('order references and batch genealogy (integration)', () => {
       expect(payload.items[0].orderType).toBe('TRANSFER_ORDER');
       expect(payload.items[0].orderId).toBe(transferOrderId);
       expect(payload.items[0].metadata).toEqual({ componentLine: 3 });
+    });
+
+    it('detaches one reference and leaves the rest', async () => {
+      const orderRepository = dataSource.getRepository<OrderEntity>(
+        entities.order,
+      );
+      const orderId = (await orderRepository.save(orderRepository.create({})))
+        .id;
+
+      const [first, second] = await orderReferenceService.attach({
+        orderType: WmsOrderType.SCRAPE_ORDER,
+        orderId,
+        references: [
+          { referenceType: 'ncr', referenceId: 'NCR-DETACH-1' },
+          { referenceType: 'ncr', referenceId: 'NCR-DETACH-2' },
+        ],
+      });
+
+      await orderReferenceService.detach(first.id);
+
+      const [items, total] = await orderReferenceService.findMany({ orderId });
+
+      expect(total).toBe(1);
+      expect(items[0].id).toBe(second.id);
+    });
+
+    it("joins the caller's transaction when handed a manager", async () => {
+      const orderRepository = dataSource.getRepository<OrderEntity>(
+        entities.order,
+      );
+      const orderId = (await orderRepository.save(orderRepository.create({})))
+        .id;
+
+      /*
+       * The whole reason `manager` is on the signature: a host creating an
+       * order and attaching its references wants both to land together or
+       * neither. Nothing exercised it, so nothing proved the parameter was
+       * wired through rather than ignored.
+       */
+      await expect(
+        dataSource.transaction(async (manager) => {
+          await orderReferenceService.attach({
+            orderType: WmsOrderType.SCRAPE_ORDER,
+            orderId,
+            references: [
+              { referenceType: 'work-order', referenceId: 'WO-ROLLED-BACK' },
+            ],
+            manager,
+          });
+
+          throw new Error('host changed its mind');
+        }),
+      ).rejects.toThrow('host changed its mind');
+
+      const [, total] = await orderReferenceService.findMany({ orderId });
+
+      expect(total).toBe(0);
     });
 
     /*

@@ -20,6 +20,7 @@ import {
   WmsEventDispatcher,
   WmsOperationRunner,
   WmsOrderType,
+  type WmsActor,
   type WmsAfterEventContext,
   type WmsBeforeHookContext,
 } from '@rytass/wms-module-core';
@@ -75,6 +76,7 @@ interface RecordedHook {
   readonly source: 'graphql' | 'host';
   readonly hasExecutionContext: boolean;
   readonly args: Readonly<Record<string, unknown>>;
+  readonly actor: WmsActor | null;
 }
 
 /*
@@ -93,6 +95,7 @@ const recordBefore = async (context: WmsBeforeHookContext): Promise<void> => {
     source: context.source,
     hasExecutionContext: context.executionContext !== null,
     args: context.args,
+    actor: context.actor,
   });
 
   if (vetoEvent === context.event) {
@@ -298,6 +301,8 @@ describe('WmsOperationRunner (integration)', () => {
           source: 'graphql',
           hasExecutionContext: true,
           args: expect.objectContaining({ orderId }),
+          // No `actorExtractor` is configured for this module.
+          actor: null,
         },
       ]);
 
@@ -352,6 +357,7 @@ describe('WmsOperationRunner (integration)', () => {
           // No request to reach into, and nothing fabricated to pretend there is.
           hasExecutionContext: false,
           args: { orderId },
+          actor: null,
         },
       ]);
 
@@ -440,6 +446,86 @@ describe('WmsOperationRunner (integration)', () => {
         'batch.splitted',
         'stock.splitted',
       ]);
+    });
+
+    it('carries the actor into both the hook and the event payload', async () => {
+      const orderId = await newBaseOrderId();
+      const actor = { id: 'operator-7', domain: 'warehouse' };
+
+      await runner.run(
+        { event: 'order-reference.attached', args: { orderId }, actor },
+        () =>
+          orderReferenceService.attach({
+            orderType: WmsOrderType.SCRAPE_ORDER,
+            orderId,
+            references: [
+              { referenceType: 'work-order', referenceId: 'WO-ACTOR' },
+            ],
+          }),
+      );
+
+      // Nothing collected the actor before, so whether it reached either side
+      // was unverified — it is the audit trail the option exists for.
+      expect(beforeCalls[0].actor).toEqual(actor);
+
+      const payload = afterCalls[0].payload as { actor: unknown };
+      expect(payload.actor).toEqual(actor);
+    });
+
+    it('defaults the actor to null rather than leaving it undefined', async () => {
+      const orderId = await newBaseOrderId();
+
+      await runner.run(
+        { event: 'order-reference.attached', args: { orderId } },
+        () =>
+          orderReferenceService.attach({
+            orderType: WmsOrderType.SCRAPE_ORDER,
+            orderId,
+            references: [
+              { referenceType: 'work-order', referenceId: 'WO-NO-ACTOR' },
+            ],
+          }),
+      );
+
+      expect(beforeCalls[0].actor).toBeNull();
+      expect((afterCalls[0].payload as { actor: unknown }).actor).toBeNull();
+    });
+
+    it('lets the caller decide the event id', async () => {
+      const orderId = await newBaseOrderId();
+
+      await runner.run(
+        {
+          event: 'order-reference.attached',
+          args: { orderId },
+          // The default reads `result.id`, which is wrong for an operation
+          // returning a list — `attach` returns one row per reference.
+          resolveId: (_result, args) => `order:${args['orderId'] as string}`,
+        },
+        () =>
+          orderReferenceService.attach({
+            orderType: WmsOrderType.SCRAPE_ORDER,
+            orderId,
+            references: [
+              { referenceType: 'work-order', referenceId: 'WO-RESOLVE-ID' },
+            ],
+          }),
+      );
+
+      expect((afterCalls[0].payload as { id: string }).id).toBe(
+        `order:${orderId}`,
+      );
+    });
+
+    it('falls back to the args id when the result has none', async () => {
+      const orderId = await newBaseOrderId();
+
+      await runner.run(
+        { event: 'order-reference.attached', args: { id: orderId } },
+        async () => true,
+      );
+
+      expect((afterCalls[0].payload as { id: string | null }).id).toBe(orderId);
     });
 
     it('flushes only after the transaction that produced the events commits', async () => {

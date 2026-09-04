@@ -351,14 +351,19 @@ describe('custom change tables (integration)', () => {
 
       await countService.start(order.id);
 
-      // The subscriber never heard of `tenant_rework_order_changes`; it refuses
-      // it because the table name ends in `_order_changes` and the change
-      // reaches an order item carrying a locked `locationId`.
-      await expect(writeChange('reworking', 1)).rejects.toThrow(
-        /locked by inventory count order/,
-      );
-
-      await countService.cancel(order.id);
+      try {
+        // The subscriber never heard of `tenant_rework_order_changes`; it
+        // refuses it because the table name ends in `_order_changes` and the
+        // change reaches an order item carrying a locked `locationId`.
+        await expect(writeChange('reworking', 1)).rejects.toThrow(
+          /locked by inventory count order/,
+        );
+      } finally {
+        // Without this the count stays COUNTING when the assertion fails, and
+        // every later test that touches this location fails for a reason that
+        // has nothing to do with what it was testing.
+        await countService.cancel(order.id);
+      }
     });
 
     it('shares the same stock ledger, so its movements aggregate', async () => {
