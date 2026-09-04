@@ -165,6 +165,15 @@ export class ConsumptionOrderService<
         where: { id: options.id },
       });
 
+      if (order.removedAt) {
+        // The "has anything moved" check below only looks at live items, and a
+        // removed order has none — so without this it would happily attach a
+        // fresh set of lines to an order that is supposed to be gone.
+        throw new Error(
+          `Consumption order ${order.key} has been removed and cannot be updated`,
+        );
+      }
+
       if (options.description !== undefined) {
         await repos.consumptionOrder.update(order.id, {
           description: options.description,
@@ -233,9 +242,17 @@ export class ConsumptionOrderService<
   }
 
   /**
-   * How much of each line has moved. The changes are the only record of that —
-   * nothing is denormalised onto the item — so `issue`, `return` and `settle`
-   * all read it back before they write.
+   * How much of each line has moved, **in base units**.
+   *
+   * The changes are the only record of that — nothing is denormalised onto the
+   * item — so `issue`, `return` and `settle` all read it back before they write.
+   *
+   * Base units on both sides is the point. `quantityChanged` is written in base
+   * units (the stock ledger's own unit), while `targetConsumedQuantity` is
+   * stored in whatever unit the line was written in. Reporting the two side by
+   * side without converting made every comparison in `act` wrong by the
+   * conversion factor. `ReceiveInventoryOrderService` resolves the same tension
+   * the same way.
    */
   async getProgress(
     orderId: string,
@@ -253,30 +270,38 @@ export class ConsumptionOrderService<
       where: { itemId: In(items.map(({ id }) => id)) },
     });
 
-    return items.map((item) => {
-      const own = changes.filter((change) => change.itemId === item.id);
+    return Promise.all(
+      items.map(async (item) => {
+        const conversionFactor = await this.materialService.getConversionFactor(
+          item.materialId,
+          item.unitId || undefined,
+        );
 
-      const sum = (kind: ConsumptionChangeKind): number =>
-        own
-          .filter((change) => change.kind === kind)
-          .reduce(
-            (total, change) => total + Math.abs(Number(change.quantityChanged)),
-            0,
-          );
+        const own = changes.filter((change) => change.itemId === item.id);
 
-      const issued = sum(ConsumptionChangeKind.ISSUE);
-      const returned = sum(ConsumptionChangeKind.RETURN);
-      const settled = sum(ConsumptionChangeKind.SETTLE);
+        const sum = (kind: ConsumptionChangeKind): number =>
+          own
+            .filter((change) => change.kind === kind)
+            .reduce(
+              (total, change) =>
+                total + Math.abs(Number(change.quantityChanged)),
+              0,
+            );
 
-      return {
-        itemId: item.id,
-        target: Number(item.targetConsumedQuantity),
-        issued,
-        returned,
-        settled,
-        outstanding: issued - returned - settled,
-      };
-    });
+        const issued = sum(ConsumptionChangeKind.ISSUE);
+        const returned = sum(ConsumptionChangeKind.RETURN);
+        const settled = sum(ConsumptionChangeKind.SETTLE);
+
+        return {
+          itemId: item.id,
+          target: Number(item.targetConsumedQuantity) * conversionFactor,
+          issued,
+          returned,
+          settled,
+          outstanding: issued - returned - settled,
+        };
+      }),
+    );
   }
 
   /**
@@ -304,6 +329,33 @@ export class ConsumptionOrderService<
     return this.dataSource.transaction(async (manager) => {
       const repos = this.getRepositories(manager);
 
+      /*
+       * Serialise concurrent actions on one order before reading anything.
+       *
+       * The whole guard rests on a progress snapshot, and two transactions that
+       * both read it before either writes both believe the line is untouched --
+       * so a ten-unit line goes out twice. `validateStockAvailability` does not
+       * save us: it checks that the shelf has the stock, not that the order
+       * asked for it, so the over-draw only surfaces when the shelf happens to
+       * be short.
+       */
+      const order = await repos.consumptionOrder.findOne({
+        where: { id: options.orderId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!order) {
+        throw new Error(`Consumption order ${options.orderId} does not exist`);
+      }
+
+      if (order.removedAt) {
+        // Nothing else reads the order's own `removedAt`, so without this a
+        // removed order still moves stock while staying out of every listing.
+        throw new Error(
+          `Consumption order ${order.key} has been removed and cannot move stock`,
+        );
+      }
+
       const items = await repos.consumptionOrderItem.find({
         where: { orderId: options.orderId, removedAt: IsNull() },
       });
@@ -317,9 +369,25 @@ export class ConsumptionOrderService<
         progress.map((entry) => [entry.itemId, entry]),
       );
 
+      if (options.items?.length === 0) {
+        // Omitting `items` already means "every line". An empty array is
+        // therefore a caller that meant to name lines and computed none —
+        // succeeding silently would hide that.
+        throw new Error(
+          `Consumption order ${order.key} was asked to ${kind.toLowerCase()} an empty line list; omit "items" to act on every line`,
+        );
+      }
+
       const lines =
         options.items ??
         items.map((item) => ({ itemId: item.id, quantity: undefined }));
+
+      /*
+       * What this call has already moved, per line. The snapshot above is read
+       * once, so without this two lines naming the same item would each see
+       * "nothing moved yet" and both go through.
+       */
+      const movedInThisCall = new Map<string, number>();
 
       for (const line of lines) {
         const item = items.find(({ id }) => id === line.itemId);
@@ -330,55 +398,67 @@ export class ConsumptionOrderService<
           );
         }
 
+        const conversionFactor = await this.materialService.getConversionFactor(
+          item.materialId,
+          item.unitId || undefined,
+        );
+
         const state = progressById.get(item.id);
-        // `??` rather than `||`: a line whose remaining quantity is 0 must stay
-        // 0 and be rejected below, not fall through to the whole target.
+        const alreadyMoved = movedInThisCall.get(item.id) ?? 0;
+
+        // Everything here is in base units: `getProgress` reports base units and
+        // converts the target, and a caller's `quantity` -- which is in the
+        // line's own unit -- is converted on the way in. Mixing the two is what
+        // made a whole-order settle ask for twelve times what was there.
+        //
+        // `??` rather than `||`: a line with nothing left must stay 0 and be
+        // rejected below, not fall through to the whole target.
         const remaining =
-          kind === ConsumptionChangeKind.ISSUE
-            ? Number(item.targetConsumedQuantity) - (state?.issued ?? 0)
-            : (state?.outstanding ?? 0);
+          (kind === ConsumptionChangeKind.ISSUE
+            ? (state?.target ?? 0) - (state?.issued ?? 0)
+            : (state?.outstanding ?? 0)) - alreadyMoved;
 
-        const quantity = line.quantity ?? remaining;
+        const amount =
+          line.quantity === undefined
+            ? remaining
+            : line.quantity * conversionFactor;
 
-        if (quantity <= 0) {
+        if (amount <= 0) {
           // Acting on the whole order is the common call, and an order where
           // some lines are already done is the common state; skipping them
           // beats making the caller compute the list.
           if (line.quantity === undefined) continue;
 
           throw new Error(
-            `Consumption order line ${item.id} cannot move ${quantity}`,
+            `Consumption order line ${item.id} cannot move ${amount} (base units)`,
           );
         }
 
-        if (quantity > remaining) {
+        if (amount > remaining) {
           throw new Error(
             kind === ConsumptionChangeKind.ISSUE
-              ? `Consumption order line ${item.id} has only ${remaining} left to issue, asked for ${quantity}`
-              : `Consumption order line ${item.id} has only ${remaining} outstanding, asked to ${kind.toLowerCase()} ${quantity}`,
+              ? `Consumption order line ${item.id} has only ${remaining} left to issue, asked for ${amount} (base units)`
+              : `Consumption order line ${item.id} has only ${remaining} outstanding, asked to ${kind.toLowerCase()} ${amount} (base units)`,
           );
         }
 
-        await this.writeMovement(repos, manager, item, kind, quantity);
+        await this.writeMovement(repos, manager, item, kind, amount);
+
+        movedInThisCall.set(item.id, alreadyMoved + amount);
       }
 
       return true;
     });
   }
 
+  /** `amount` is in base units; `act` has already converted. */
   private async writeMovement(
     repos: ReturnType<typeof this.getRepositories>,
     manager: EntityManager,
     item: ConsumptionOrderItemEntityClass,
     kind: ConsumptionChangeKind,
-    quantity: number,
+    amount: number,
   ): Promise<void> {
-    const conversionFactor = await this.materialService.getConversionFactor(
-      item.materialId,
-      item.unitId || undefined,
-    );
-    const amount = quantity * conversionFactor;
-
     const source = {
       locationId: this.stockService.resolveLocationId(item.locationId),
       loaderId: this.stockService.resolveLoaderId(item.loaderId),

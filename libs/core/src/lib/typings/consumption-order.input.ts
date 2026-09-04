@@ -28,10 +28,11 @@ export type UpdateConsumptionOrderInput = {
 /**
  * One line of an issue / return / settle call.
  *
- * `quantity` is in the item's own unit, the same as `targetConsumedQuantity`;
- * omitting it means "whatever is outstanding on that line", which is what makes
- * the common case — issue the whole order, settle everything still out there —
- * a call with no line list at all.
+ * `quantity` is in the line's own unit, the same as `targetConsumedQuantity`,
+ * and is converted to base units before it is compared with anything. Omitting
+ * it means "whatever is outstanding on that line", which is what makes the
+ * common case — issue the whole order, settle everything still out there — a
+ * call with no line list at all.
  */
 export type ConsumptionOrderLineInput = {
   itemId: string;
@@ -57,10 +58,18 @@ export type FindConsumptionOrderInput = PaginationInput & {
   includeRemoved?: boolean;
 };
 
-/** How much of one line has moved, in the item's own unit. */
+/**
+ * How much of one line has moved, **in base units** — the unit the stock ledger
+ * and `quantityChanged` are written in, not the unit the line was ordered in.
+ *
+ * `target` is therefore `targetConsumedQuantity` already multiplied by the
+ * line's conversion factor, so every field here can be compared with every
+ * other. Reporting the target in the line's own unit next to totals in base
+ * units is what made a whole-order settle ask for twelve times what was there.
+ */
 export type ConsumptionOrderItemProgress = {
   itemId: string;
-  /** `targetConsumedQuantity`. */
+  /** `targetConsumedQuantity` converted to base units. */
   target: number;
   issued: number;
   returned: number;

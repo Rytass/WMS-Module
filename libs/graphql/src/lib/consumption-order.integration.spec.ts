@@ -14,6 +14,8 @@ import {
   ConsumptionOrderService,
   LocationEntityClass,
   MaterialEntityClass,
+  MaterialService,
+  MaterialUnitEntityClass,
   StockEntityClass,
   StockService,
   WmsEntities,
@@ -89,6 +91,9 @@ describe('consumption order (integration)', () => {
   let materialId: string;
   let shelfId: string;
   let benchId: string;
+  /** A second material carrying a BOX unit worth 12 of its base unit. */
+  let boxMaterialId: string;
+  let boxUnitId: string;
 
   const execute = async (
     source: string,
@@ -130,6 +135,11 @@ describe('consumption order (integration)', () => {
     });
 
     return items.reduce((total, item) => total + Number(item.quantity), 0);
+  };
+
+  const newBaseOrderId = async (): Promise<string> => {
+    const repository = dataSource.getRepository<OrderEntity>(entities.order);
+    return (await repository.save(repository.create({}))).id;
   };
 
   /** An order with one line for `quantity` off the given batch. */
@@ -244,6 +254,25 @@ describe('consumption order (integration)', () => {
         } as DeepPartial<MaterialEntityClass>),
       )
     ).id;
+
+    /*
+     * Everything above this line uses a material with no alternate unit, so
+     * every conversion factor is 1 — which is exactly why a unit-conversion
+     * defect could hide behind a green suite. This one has a real factor.
+     */
+    const materialService = app.get(MaterialService);
+    const boxMaterial = await materialService.createMaterial({
+      key: 'CSO-BOX-MATERIAL',
+      description: 'sold by the box',
+      baseUnit: 'PCS',
+      units: [{ unit: 'BOX', conversionFactor: 12 }],
+    });
+    boxMaterialId = boxMaterial.id;
+    boxUnitId = (
+      await dataSource
+        .getRepository<MaterialUnitEntityClass>(MaterialUnitEntityClass)
+        .findOneByOrFail({ materialId: boxMaterialId, unit: 'BOX' })
+    ).id;
   });
 
   afterAll(async () => {
@@ -329,6 +358,96 @@ describe('consumption order (integration)', () => {
     });
   });
 
+  /*
+   * Every case above uses a material whose only unit is its base unit, so every
+   * conversion factor is 1 and a unit mistake is invisible. These use a line
+   * measured in BOXes worth 12 each: the change rows and the stock ledger are in
+   * base units, the target and a caller's quantity are in the item's unit, and
+   * anything that compares the two without converting is wrong by a factor of
+   * twelve.
+   */
+  describe('a line measured in something other than the base unit', () => {
+    /** Seed a BOX-material batch and open an order for `boxes` of it. */
+    const newBoxOrder = async (
+      key: string,
+      boxes: number,
+    ): Promise<{ orderId: string; itemId: string; batchId: string }> => {
+      const batch = await batchService.getBatch({
+        key,
+        materialId: boxMaterialId,
+      });
+
+      await dataSource.getRepository<StockEntityClass>(entities.stock).save({
+        orderId: await newBaseOrderId(),
+        materialId: boxMaterialId,
+        batchId: batch.id,
+        locationId: shelfId,
+        loaderId: stockService.resolveLoaderId(null),
+        quantity: 1000,
+      } as never);
+
+      const order = await service.createConsumptionOrder({
+        items: [
+          {
+            materialId: boxMaterialId,
+            batchId: batch.id,
+            locationId: shelfId,
+            targetLocationId: benchId,
+            unitId: boxUnitId,
+            quantity: boxes,
+          },
+        ],
+      });
+
+      const [progress] = await service.getProgress(order.id);
+
+      return { orderId: order.id, itemId: progress.itemId, batchId: batch.id };
+    };
+
+    it('issues, returns and settles a whole order without converting twice', async () => {
+      const { orderId, itemId, batchId } = await newBoxOrder('CSO-BOX-A', 10);
+
+      await service.issue({ orderId });
+
+      // Ten boxes of twelve.
+      expect(await onHand(batchId, benchId)).toBe(120);
+
+      await service.return({ orderId, items: [{ itemId, quantity: 4 }] });
+
+      expect(await onHand(batchId, benchId)).toBe(72);
+
+      // The one that used to be impossible: a whole-order settle read the
+      // outstanding amount in base units and then multiplied it by the factor
+      // again, asking for 864 of the 72 that were there.
+      await service.settle({ orderId });
+
+      expect(await onHand(batchId, benchId)).toBe(0);
+      expect(await onHand(batchId, shelfId)).toBe(1000 - 120 + 48);
+    });
+
+    it('finishes a line that was partly issued', async () => {
+      const { orderId, batchId, itemId } = await newBoxOrder('CSO-BOX-B', 10);
+
+      await service.issue({ orderId, items: [{ itemId, quantity: 1 }] });
+
+      // Used to strand the line: one box out of ten looked like twelve of ten,
+      // so the whole-order call treated it as finished and an explicit call
+      // reported minus two remaining.
+      await service.issue({ orderId });
+
+      expect(await onHand(batchId, benchId)).toBe(120);
+      expect((await service.getProgress(orderId))[0].outstanding).toBe(120);
+    });
+
+    it('still refuses to issue more boxes than the line asked for', async () => {
+      const { orderId, itemId } = await newBoxOrder('CSO-BOX-C', 10);
+
+      await expect(
+        service.issue({ orderId, items: [{ itemId, quantity: 11 }] }),
+      ).rejects.toThrow(/left to issue/);
+    });
+  });
+
   describe('what it refuses', () => {
     it('will not issue more than the line asked for', async () => {
       const batchId = await seedBatch('CSO-OVER-ISSUE');
@@ -371,6 +490,84 @@ describe('consumption order (integration)', () => {
           items: [{ materialId, batchId, quantity: 1 }],
         }),
       ).rejects.toThrow('already moved stock');
+    });
+
+    it('will not over-issue when one call names the same line twice', async () => {
+      const batchId = await seedBatch('CSO-DOUBLE-LINE');
+      const { orderId, itemId } = await newOrder(batchId, 10);
+
+      // The progress snapshot is read once, before the loop. Without also
+      // accumulating inside it, two lines for the same item each see the same
+      // "nothing issued yet" and both go through.
+      await expect(
+        service.issue({
+          orderId,
+          items: [
+            { itemId, quantity: 6 },
+            { itemId, quantity: 6 },
+          ],
+        }),
+      ).rejects.toThrow(/left to issue/);
+
+      expect(await onHand(batchId, benchId)).toBe(0);
+    });
+
+    it('will not over-issue when two calls race', async () => {
+      const batchId = await seedBatch('CSO-RACE');
+      const { orderId } = await newOrder(batchId, 10);
+
+      // Both transactions read progress before either writes, so without a lock
+      // on the order they both believe the whole line is still outstanding.
+      //
+      // Both calls legitimately *succeed*: the second one waits on the lock,
+      // re-reads, finds nothing left and skips the line, which is the same
+      // no-op an unraced repeat call performs. What must not happen is the
+      // stock moving twice.
+      await Promise.all([
+        service.issue({ orderId }),
+        service.issue({ orderId }),
+      ]);
+
+      expect(await onHand(batchId, benchId)).toBe(10);
+      expect((await service.getProgress(orderId))[0].issued).toBe(10);
+    });
+
+    it('will not move stock for an order that was removed', async () => {
+      const batchId = await seedBatch('CSO-REMOVED');
+      const { orderId } = await newOrder(batchId, 5);
+
+      await service.removeConsumptionOrder(orderId);
+
+      await expect(service.issue({ orderId })).rejects.toThrow(
+        /has been removed/,
+      );
+      expect(await onHand(batchId, benchId)).toBe(0);
+    });
+
+    it('will not resurrect a removed order through update', async () => {
+      const batchId = await seedBatch('CSO-RESURRECT');
+      const { orderId } = await newOrder(batchId, 5);
+
+      await service.removeConsumptionOrder(orderId);
+
+      // The "has anything moved" guard only looks at live items, and a removed
+      // order has none — so this used to attach a fresh set of lines to an
+      // order that no listing shows, and then move stock with them.
+      await expect(
+        service.updateConsumptionOrder({
+          id: orderId,
+          items: [{ materialId, batchId, quantity: 5 }],
+        }),
+      ).rejects.toThrow(/has been removed/);
+    });
+
+    it('refuses an explicitly empty line list', async () => {
+      const batchId = await seedBatch('CSO-EMPTY-LINES');
+      const { orderId } = await newOrder(batchId, 5);
+
+      await expect(service.issue({ orderId, items: [] })).rejects.toThrow(
+        /empty line list/,
+      );
     });
 
     it('rejects a line that belongs to another order', async () => {
