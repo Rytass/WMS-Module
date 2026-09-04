@@ -254,6 +254,41 @@ Two things to keep in mind when touching it:
   are what the stock ledger and the `stock.*` events agree with; a counter kept alongside
   them is a second answer waiting to disagree.
 
+#### `customChangeTables` is the only extension point for a host's own order family
+
+A host that writes its own order family already inherits almost everything, without asking:
+
+- **transactions and stock arithmetic** — `dataSource.transaction`,
+  `StockService.validateStockAvailability` and `BaseOrderService` (exported) are public API;
+- **the inventory count lock** — `InventoryCountLockSubscriber` keys off
+  `tableName.endsWith('_order_changes')`, so it covers a table this package has never heard
+  of, provided the change row reaches an order item carrying a `locationId` through an `item`
+  relation;
+- **the ledger and change history**, because those are `stocks` rows, not a table we own.
+
+The one gap was the event: `StockChangeSubscriber`'s table→`ChangeType` map is closed.
+`forRootAsync({ customChangeTables })` registers into it. The resolver is handed the whole
+change row and returns a `ChangeType` (reuse our vocabulary — the row then emits that type's
+real `stock.*` event and counts in reports like any built-in movement), any other string
+(emits `stock.custom` with the host's name in `payload.customChangeType`), or `null` (emit
+nothing).
+
+`stock.custom` is **one** event name rather than an open union, on purpose: `WmsStockEventName`
+stays closed, so the typed listener map, the GraphQL `ChangeType` enum and every consumer's
+exhaustive switch keep working.
+
+**Do not widen this into custom order types, resolvers or schema.** That would trade the
+module's one real guarantee — that it knows what every movement in it means — for something a
+host can already do with an entity of its own. A movement we cannot classify is a hole in our
+reports; that is the bargain, and it is why a host-defined string should be a proposal
+upstream once it stops being one deployment's special case.
+
+Registration is validated at module-definition time (`core.module.ts`): shadowing an owned
+table, registering one twice, or missing the `_order_changes` suffix all throw. Each of those
+mistakes otherwise looks exactly like working software until someone reads a report. **A new
+change table this package owns must be added to `OWNED_CHANGE_TABLES` as well as to
+`TABLE_TO_CHANGE_TYPE`.**
+
 #### The event guarantee belongs to `WmsOperationRunner`, not the interceptor
 
 Before-hook → dispatch scope → operation event → one post-commit flush. That sequence lives
