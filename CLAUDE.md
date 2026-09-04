@@ -200,6 +200,59 @@ on both the stock queries (`FindStockArgs`) and the count sheet
 returns `SO-10` as well — a wrong answer that looks entirely plausible. The guard is
 `libs/graphql/src/lib/stock-batch-attribute-filters.integration.spec.ts`.
 
+#### An upstream document is recorded in `order_references`, never on the order
+
+Orders here record what moved and when, never what for. `order_references`
+(`libs/core/src/lib/models/extensions/order-reference`) is the one place a host says which
+of *its* documents an order was opened for: `(orderType, orderId, itemId?, referenceType,
+referenceId, referenceLine?, metadata?)`. One polymorphic table rather than three columns on
+each of the thirteen order entities — a new order family picks it up for free, and a
+line-level reference has somewhere to live without widening every item table.
+
+`orderType` is `WmsOrderType`, whose values are exactly the `resource` half of the matching
+`WmsOperationName`s. Reusing those strings is the point: one vocabulary for the switch, the
+permission and the reference. **Renaming a value is a breaking change** — it is persisted.
+
+`referenceType` / `referenceId` are opaque and matched with `=`, never `ILIKE`, for the same
+reason as the batch commercial attributes above. The module never resolves them; a host turns
+one into a link through react's `referenceLinkResolver`.
+
+`ShipInventoryOrderReferenceEntityClass` is **not** this. Despite the name it is a line-level
+shipment plan (it carries quantities and a removal timestamp). The two coexist; do not merge
+them.
+
+#### `batches.parentBatchId` is written once, at creation
+
+Every status in this model is a flag on the *batch* (`held`, `inShipment`, `transferId`) and
+`stocks` has no status column at all — `StockService.selectQueryBuilder` derives it. So acting
+on **part** of a batch splits a child off first (`HoldInventoryOrderService` does this
+internally, as do ship, transfer, allocate, customer, vendor and inspection). `parentBatchId`
+is what makes those children traceable; following it upwards yields the root batch a label or
+shipping document should print.
+
+Two rules: it is set only when `BatchService.splitBatch` / `getBatch` *creates* a batch, never
+rewritten (a reused sibling keeps the parent it was first created from), and it is set to the
+batch being split, **not** inherited from the spread of that batch's own row — inheriting it
+flattens the chain by one link. The stock ledger stays the authority on what actually moved.
+
+#### `batches.attributes` is stored verbatim and never validated
+
+Host-defined batch attributes (a grade, a bin code, a die count) live in a `jsonb` column. The
+module reads nothing out of it and enforces no schema: what those keys mean belongs to the
+host, and a schema enforced here would be a second, weaker copy of the host's own. It exists
+because a `batchEntity` override solves storage but not visibility — a column the module does
+not know about cannot be carried through a split or shown on a batch row.
+
+It **is** part of a batch's identity for split reuse: `splitBatch` compares it as `jsonb`
+(content equality, so key order does not matter), so two splits asking for different
+attributes produce two batches. `getBatch` is the exception — it matches on `key` alone and
+applies attributes only on creation, because `key` is the batch's identity and attributes
+describe rather than distinguish.
+
+Exposed through GraphQL as the `JSONObject` scalar in `libs/graphql/src/lib/scalars`, defined
+in-repo on top of `graphql` rather than pulled from `graphql-type-json` so the peer dependency
+list does not grow. It deliberately rejects bare scalars, arrays and class instances.
+
 #### DTO and entity nullability must match
 
 GraphQL DTOs in `libs/graphql/src/lib/dto/*.dto.ts` are returned from services that hand back the TypeORM entity. If the entity column is `string | null`, the DTO field must also declare `string | null` plus `@Field(() => String, { nullable: true })`. Mismatches trigger TS2322 (we suppress it in build via `noEmitOnError: false`, so the build still succeeds but the published `.d.ts` lies about the contract). Check both sides whenever you add or modify a nullable column.
