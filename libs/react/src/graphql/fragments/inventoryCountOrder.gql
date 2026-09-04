@@ -12,6 +12,7 @@ fragment InventoryCountOrderItem on InventoryCountOrderItemDto {
   held
   inShipment
   inspectionResult
+  requiresInspection
   transferId
   vendorId
   customerId

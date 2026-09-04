@@ -47,6 +47,7 @@ interface BatchAttributes {
   readonly held: boolean | null;
   readonly inShipment: boolean | null;
   readonly inspectionResult: boolean | null;
+  readonly requiresInspection: boolean | null;
   readonly transferId: string | null;
   readonly vendorId: string | null;
   readonly customerId: string | null;
@@ -238,6 +239,7 @@ export class InventoryCountOrderService<
       .addSelect('batch.held', 'held')
       .addSelect('batch."inShipment"', 'inShipment')
       .addSelect('batch."inspectionResult"', 'inspectionResult')
+      .addSelect('batch."requiresInspection"', 'requiresInspection')
       .addSelect('batch."transferId"', 'transferId')
       .addSelect('batch."vendorId"', 'vendorId')
       .addSelect('batch."customerId"', 'customerId')
@@ -255,6 +257,7 @@ export class InventoryCountOrderService<
       .addGroupBy('batch.held')
       .addGroupBy('batch."inShipment"')
       .addGroupBy('batch."inspectionResult"')
+      .addGroupBy('batch."requiresInspection"')
       .addGroupBy('batch."transferId"')
       .addGroupBy('batch."vendorId"')
       .addGroupBy('batch."customerId"')
@@ -281,6 +284,7 @@ export class InventoryCountOrderService<
         held: row.held ?? null,
         inShipment: row.inShipment ?? null,
         inspectionResult: row.inspectionResult ?? null,
+        requiresInspection: row.requiresInspection ?? null,
         transferId: row.transferId ?? null,
         vendorId: row.vendorId ?? null,
         customerId: row.customerId ?? null,

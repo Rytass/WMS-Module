@@ -92,9 +92,23 @@ export class InventoryCountOrderItemEntityClass {
   @Column({ type: 'boolean', nullable: true })
   inShipment!: boolean | null;
 
-  /** `null` = 待檢驗, `false` = 檢驗失敗, `true` = passed. */
+  /**
+   * `false` = 檢驗失敗, `true` = passed, `null` = not inspected.
+   *
+   * `null` on its own does **not** mean 待檢驗: it is the resting state of
+   * almost every batch in the warehouse. Pair it with
+   * {@link InventoryCountOrderItemEntityClass.requiresInspection}.
+   */
   @Column({ type: 'boolean', nullable: true })
   inspectionResult!: boolean | null;
+
+  /**
+   * Whether anybody had asked for this position to be inspected when the count
+   * started. Snapshotted for the same reason as the flags around it, and needed
+   * because `inspectionResult IS NULL` alone would mark the whole sheet 待檢驗.
+   */
+  @Column({ type: 'boolean', nullable: true })
+  requiresInspection!: boolean | null;
 
   @Column({ type: 'uuid', nullable: true })
   transferId!: string | null;

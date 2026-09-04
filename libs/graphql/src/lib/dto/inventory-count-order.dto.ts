@@ -69,9 +69,17 @@ export class InventoryCountOrderItemDto {
   @Field(() => Boolean, { nullable: true })
   inShipment!: boolean | null;
 
-  /** `null` = awaiting inspection, `false` = failed, `true` = passed. */
+  /**
+   * `false` = failed, `true` = passed, `null` = not inspected — which is the
+   * resting state of almost every batch and does **not** on its own mean
+   * awaiting inspection. Pair it with `requiresInspection`.
+   */
   @Field(() => Boolean, { nullable: true })
   inspectionResult!: boolean | null;
+
+  /** Whether anybody had asked for this position to be inspected. */
+  @Field(() => Boolean, { nullable: true })
+  requiresInspection!: boolean | null;
 
   @Field(() => ID, { nullable: true })
   transferId!: string | null;

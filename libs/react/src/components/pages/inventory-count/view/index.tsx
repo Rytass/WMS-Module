@@ -475,7 +475,9 @@ function ViewInventoryCount() {
      * The three status icons are snapshots taken when the count started, not
      * live stock flags — the whole point of the snapshot is that the variance is
      * measured against the world as it was at that moment. They render exactly
-     * as the stock list renders them so an operator reads them the same way.
+     * as the stock list renders them so an operator reads them the same way,
+     * which includes needing both halves of "awaiting inspection": a null
+     * result alone is the resting state of almost every batch.
      */
     {
       key: 'inspectionResult',
@@ -483,9 +485,9 @@ function ViewInventoryCount() {
       width: 48,
       align: 'center',
       render: (item) =>
-        isNull(item.inspectionResult) ? (
+        item.requiresInspection && isNull(item.inspectionResult) ? (
           <Icon icon={WaitIcon} color="brand" size={16} />
-        ) : !item.inspectionResult ? (
+        ) : item.inspectionResult === false ? (
           <Icon icon={DangerousOutlineIcon} color="error" size={16} />
         ) : null,
     },
