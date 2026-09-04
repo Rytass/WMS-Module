@@ -1,6 +1,10 @@
 import { useMemo } from 'react';
 import dayjs from 'dayjs';
-import { TableColumn, Typography } from '@mezzanine-ui/react';
+import {
+  Description,
+  DescriptionContent,
+  TableColumn,
+} from '@mezzanine-ui/react';
 import Loading from '../../../Loading';
 import PageWrapper from '../../../PageWrapper';
 import SectionWrapper from '../../../SectionWrapper';
@@ -17,20 +21,6 @@ import {
 import { formatKeyName } from '../../../../utils/share';
 import { useQueryConsumptionOrder } from '../useApi';
 import classes from './index.module.scss';
-
-/** One label/value pair in the order header. */
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={classes.field}>
-      <Typography variant="caption" color="text-neutral">
-        {label}
-      </Typography>
-      <Typography variant="body" color="text-neutral-solid">
-        {value || '—'}
-      </Typography>
-    </div>
-  );
-}
 
 function ViewConsumptionOrder() {
   const { params } = useWmsRouter();
@@ -116,28 +106,47 @@ function ViewConsumptionOrder() {
 
   if (loading && !order) return <Loading />;
 
+  /*
+   * `consumptionOrder` is a non-null field, so a bad id or a removed order is a
+   * GraphQL error and `order` stays undefined with `loading` false. Rendering
+   * the shell anyway produced a page that looked fine and said nothing — an
+   * empty title, an empty breadcrumb and four em-dashes.
+   */
+  if (!order) return null;
+
   return (
     <PageWrapper
-      title={order?.key ?? ''}
+      title={order.key}
       haveBack
       breadcrumb={[
         { label: '領用單', href: NextPath.CONSUMPTIONORDERS },
-        { label: order?.key ?? '' },
+        { label: order.key },
       ]}
     >
       <SectionWrapper title="單據資訊">
         <div className={classes.fields}>
-          <Field label="單號" value={order?.key ?? ''} />
-          <Field label="說明" value={order?.description ?? ''} />
-          <Field label="建立者" value={order?.createdBy ?? ''} />
-          <Field
-            label="建立時間"
-            value={
-              order?.createdAt
-                ? dayjs(order.createdAt).format('YYYY-MM-DD HH:mm')
-                : ''
-            }
-          />
+          <Description widthType="stretch" orientation="vertical" title="單號">
+            <DescriptionContent>{order.key}</DescriptionContent>
+          </Description>
+          <Description widthType="stretch" orientation="vertical" title="說明">
+            <DescriptionContent>{order.description || '—'}</DescriptionContent>
+          </Description>
+          <Description
+            widthType="stretch"
+            orientation="vertical"
+            title="建立者"
+          >
+            <DescriptionContent>{order.createdBy || '—'}</DescriptionContent>
+          </Description>
+          <Description
+            widthType="stretch"
+            orientation="vertical"
+            title="建立時間"
+          >
+            <DescriptionContent>
+              {dayjs(order.createdAt).format('YYYY-MM-DD HH:mm')}
+            </DescriptionContent>
+          </Description>
         </div>
       </SectionWrapper>
       <SectionWrapper title="來源單據">
@@ -152,7 +161,7 @@ function ViewConsumptionOrder() {
         <Table<ConsumptionOrderItemFragment>
           tableKey="ConsumptionOrderItem"
           columns={columns}
-          dataSource={order?.items ?? []}
+          dataSource={order.items ?? []}
           loading={loading}
         />
       </TableWrapper>

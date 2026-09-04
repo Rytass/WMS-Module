@@ -4,9 +4,20 @@ import { createContext, useContext } from 'react';
 
 /** One link from a WMS order to a document in the host system. */
 export interface OrderReferenceValue {
+  /**
+   * The reference row's own id. `order_references` has no unique constraint and
+   * `attach` is additive, so nothing else here is guaranteed distinct — two
+   * lines of one order pointing at the same document differ only by `itemId`.
+   */
+  readonly id: string;
   readonly referenceType: string;
   readonly referenceId: string;
   readonly referenceLine?: string | null;
+  /**
+   * The order line this reference belongs to, or `null` for an order-level one.
+   * A host's `referenceLinkResolver` needs it to link at line granularity.
+   */
+  readonly itemId?: string | null;
   readonly metadata?: Record<string, unknown> | null;
 }
 

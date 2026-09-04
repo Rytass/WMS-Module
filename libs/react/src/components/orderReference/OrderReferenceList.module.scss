@@ -1,17 +1,13 @@
+@use '@mezzanine-ui/system/spacing';
+
 .host {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-}
-
-.item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: spacing.semantic-variable(gap, base);
 }
 
 .link {
-  text-decoration: none;
+  color: inherit;
 
   &:hover {
     text-decoration: underline;

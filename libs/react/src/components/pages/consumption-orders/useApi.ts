@@ -28,7 +28,10 @@ export function useQueryConsumptionOrders(currentFilter?: FilterValues) {
     page,
     total: data?.consumptionOrders.total,
     setPage,
-    filterValues: [],
+    // The filter values, not an empty array: this is the only signal that sends
+    // the table back to page 1. Left empty, applying a filter on page 3 keeps
+    // `offset` at 20 and the operator reads an empty table as "no matches".
+    filterValues: [currentFilter],
   });
 
   return { data, loading, pageTotal, page, setPage, limit, setLimit };

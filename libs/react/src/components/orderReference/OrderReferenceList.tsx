@@ -1,7 +1,6 @@
 'use client';
 
-import { Fragment } from 'react';
-import { Typography } from '@mezzanine-ui/react';
+import { Description, DescriptionContent } from '@mezzanine-ui/react';
 import { useOrderReference, type OrderReferenceValue } from './context';
 import classes from './OrderReferenceList.module.scss';
 
@@ -12,12 +11,17 @@ interface OrderReferenceListProps {
 }
 
 /**
- * The upstream documents an order was opened for.
+ * Schemes a resolver may return.
  *
- * Renders a link when the host mounted an `OrderReferenceProvider` that can
- * resolve one, and plain text otherwise — the module has no idea what a
- * `work-order` is or where its page lives.
+ * The resolver is host code, but its *input* is database content a host wrote
+ * through `attachOrderReferences`, so a resolver as ordinary as
+ * `(ref) => ref.metadata?.url` puts a stored string straight into an `href`.
+ * React does not filter `javascript:`, and this package renders in somebody
+ * else's app — checking here costs nothing and refusing to check quietly moves
+ * the problem to every host.
  */
+const SAFE_HREF = /^(https?:\/\/|\/|#|\?)/i;
+
 function OrderReferenceList({
   references,
   emptyText = '—',
@@ -26,9 +30,9 @@ function OrderReferenceList({
 
   if (!references.length) {
     return (
-      <Typography variant="body" color="text-neutral">
-        {emptyText}
-      </Typography>
+      <Description orientation="vertical" title="">
+        <DescriptionContent>{emptyText}</DescriptionContent>
+      </Description>
     );
   }
 
@@ -38,34 +42,35 @@ function OrderReferenceList({
         const label =
           referenceLabelResolver?.(reference.referenceType) ||
           reference.referenceType;
-        const href = referenceLinkResolver?.(reference);
+        const resolved = referenceLinkResolver?.(reference);
+        const href =
+          typeof resolved === 'string' && SAFE_HREF.test(resolved)
+            ? resolved
+            : null;
         const text = reference.referenceLine
           ? `${reference.referenceId} / ${reference.referenceLine}`
           : reference.referenceId;
 
-        return (
-          <Fragment
-            key={`${reference.referenceType}-${reference.referenceId}-${
-              reference.referenceLine ?? ''
-            }`}
-          >
-            <div className={classes.item}>
-              <Typography variant="caption" color="text-neutral">
-                {label}
-              </Typography>
-              {href ? (
-                <a className={classes.link} href={href}>
-                  <Typography variant="body" color="text-neutral-solid">
-                    {text}
-                  </Typography>
-                </a>
-              ) : (
-                <Typography variant="body" color="text-neutral-solid">
-                  {text}
-                </Typography>
-              )}
-            </div>
-          </Fragment>
+        /*
+         * `DescriptionContent` takes a string, and Mezzanine has no hyperlink
+         * component — `Anchor` is in-page navigation. So the anchor goes on the
+         * outside, which also keeps the clickable area to the pair itself
+         * rather than stretching a block element across the row.
+         */
+        const pair = (
+          <Description orientation="vertical" title={label}>
+            <DescriptionContent>{text}</DescriptionContent>
+          </Description>
+        );
+
+        return href ? (
+          // The row's own id: `order_references` has no unique constraint and
+          // `attach` is additive, so the type/id/line triple genuinely repeats.
+          <a key={reference.id} className={classes.link} href={href}>
+            {pair}
+          </a>
+        ) : (
+          <div key={reference.id}>{pair}</div>
         );
       })}
     </div>

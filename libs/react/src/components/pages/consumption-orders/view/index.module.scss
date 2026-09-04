@@ -1,11 +1,7 @@
+@use '@mezzanine-ui/system/spacing';
+
 .fields {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: spacing.semantic-variable(gap, base);
 }
