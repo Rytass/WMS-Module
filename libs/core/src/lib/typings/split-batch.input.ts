@@ -9,10 +9,14 @@ export type SplitBatchInput = {
     locationId?: string;
     loaderId?: string;
     /**
-     * Host-defined attributes for this child batch, applied when the split
-     * creates it. One split order can therefore produce several children that
-     * differ only by their attributes — the shape a host needs when one test
-     * run sorts a batch into several grades at once.
+     * Host-defined attributes for this child batch, applied **only when the
+     * split creates it** — an existing `batchKey` is returned as it stands,
+     * attributes and all.
+     *
+     * Children are distinguished by `batchKey`, never by attributes: `batches`
+     * carries `UNIQUE (key, materialId)`, so one test run sorting a batch into
+     * several grades gives each grade its own key and hangs the grade off it as
+     * an attribute. Two items sharing a key is refused outright.
      */
     attributes?: Record<string, unknown> | null;
   }[];
