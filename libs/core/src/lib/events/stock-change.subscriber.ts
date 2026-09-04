@@ -139,6 +139,22 @@ const CHANGE_TYPE_TO_EVENT: Readonly<Record<ChangeType, WmsStockEventName>> = {
 
 const QUALITY_INSPECTION_TABLE = 'quality_inspection_order_changes';
 
+/**
+ * Every change table this package owns, derived from the map above rather than
+ * restated.
+ *
+ * `WmsModuleCoreModule` refuses to let a host register one of these, and the
+ * subscriber consults host registrations *before* the built-in map — so a table
+ * added to the map but forgotten in a hand-maintained copy of this list would
+ * become host-registrable, letting a host's resolver silently reclassify every
+ * row on it. Deriving it is the difference between a rule and a rule someone has
+ * to remember.
+ */
+export const OWNED_CHANGE_TABLES: ReadonlySet<string> = new Set([
+  ...TABLE_TO_CHANGE_TYPE.keys(),
+  QUALITY_INSPECTION_TABLE,
+]);
+
 /** Every `ChangeType` value, for deciding whether a host reused our vocabulary. */
 const CHANGE_TYPE_VALUES: ReadonlySet<string> = new Set(
   Object.values(ChangeType),

@@ -65,6 +65,7 @@ import {
 } from './events/wms-event.tokens';
 import type { WmsCustomChangeTable } from './typings/custom-change-table';
 import { WmsEventDispatcher } from './events/wms-event.dispatcher';
+import { OWNED_CHANGE_TABLES } from './events/stock-change.subscriber';
 import { WmsOperationRunner } from './events/wms-operation-runner';
 import type { WmsEventWiringOptions } from './typings/core-module-options';
 import { WMS_CORE_MODULE_OPTIONS } from './typings/core-module-options';
@@ -230,24 +231,11 @@ const eventExports = [
  * reclassify every receipt in the warehouse from somewhere the reader of that
  * report would never think to look. Refusing at module-definition time costs a
  * startup crash and buys an obvious one.
+ *
+ * The list is derived from `StockChangeSubscriber`'s own table map rather than
+ * restated here: two hand-maintained copies would drift, and the drift would
+ * open exactly the hole this guard exists to close.
  */
-const OWNED_CHANGE_TABLES: ReadonlySet<string> = new Set([
-  'receive_inventory_order_changes',
-  'ship_inventory_order_changes',
-  'transfer_order_changes',
-  'transfer_vendor_order_changes',
-  'transfer_customer_order_changes',
-  'hold_inventory_order_changes',
-  'allocate_inventory_order_changes',
-  'split_batch_order_changes',
-  'merge_batch_order_changes',
-  'reclassify_inventory_order_changes',
-  'scrape_order_changes',
-  'inventory_count_order_changes',
-  'consumption_order_changes',
-  'quality_inspection_order_changes',
-]);
-
 const assertCustomChangeTables = (
   tables: readonly WmsCustomChangeTable[] | undefined,
 ): readonly WmsCustomChangeTable[] => {
