@@ -13,6 +13,14 @@ export class FindStockArgs extends PaginationArgs {
   @Field(() => ID, { nullable: true })
   locationId?: string;
 
+  /**
+   * Locations to leave out of the result. Subtractive counterpart to
+   * `locationId`: a stock report uses it to drop locations that do not hold
+   * available inventory (staging, quarantine, a host's work-in-progress lane).
+   */
+  @Field(() => [ID], { nullable: true })
+  excludeLocationIds?: string[];
+
   @Field(() => ID, { nullable: true })
   loaderId?: string;
 
