@@ -162,6 +162,9 @@ enum ChangeType {
   COUNT_GAINED
   COUNT_LOST
   SCRAPED
+  ISSUED
+  RETURNED
+  CONSUMED
 }
 
 type ChangeLogs {
@@ -464,6 +467,39 @@ type InventoryCountOrders {
   total: Int!
 }
 
+type ConsumptionOrderItemDto {
+  id: ID!
+  unitId: String
+  targetConsumedQuantity: Float!
+  removedAt: DateTime
+  material: MaterialDto!
+  batch: BatchDto
+  location: LocationDto
+  targetLocation: LocationDto
+  loader: LoaderDto
+  targetLoader: LoaderDto
+  issuedQuantity: Float!
+  returnedQuantity: Float!
+  settledQuantity: Float!
+  outstandingQuantity: Float!
+}
+
+type ConsumptionOrderDto {
+  id: ID!
+  key: String!
+  description: String
+  createdBy: String
+  removedAt: DateTime
+  createdAt: DateTime!
+  items: [ConsumptionOrderItemDto!]!
+}
+
+type ConsumptionOrders {
+  id: ID!
+  items: [ConsumptionOrderDto!]!
+  total: Int!
+}
+
 type OrderReferenceDto {
   id: ID!
   orderType: WmsOrderType!
@@ -481,6 +517,7 @@ An order family in this module, named the same way `@WmsOperation` names it.
 """
 enum WmsOrderType {
   ALLOCATE_INVENTORY_ORDER
+  CONSUMPTION_ORDER
   HOLD_INVENTORY_ORDER
   INVENTORY_COUNT_ORDER
   MERGE_BATCH_ORDER
@@ -676,6 +713,8 @@ type Query {
   inventoryCountOrderItems(offset: Int, limit: Int, id: ID!, materialKey: String, materialDescription: String, batchKey: String, locationKey: String, loaderSerialId: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String, onlyVariance: Boolean): InventoryCountOrderItems!
   inventoryCountOrder(id: ID!): InventoryCountOrderDto!
   orderReferences(offset: Int, limit: Int, orderType: WmsOrderType, orderId: ID, itemId: ID, referenceType: String, referenceId: String, referenceLine: String): OrderReferences!
+  consumptionOrder(id: ID!): ConsumptionOrderDto!
+  consumptionOrders(offset: Int, limit: Int, ids: [ID!], key: String, description: String, materialId: ID, batchId: ID, locationId: ID, createdBy: String, createdAtFrom: DateTime, createdAtTo: DateTime, includeRemoved: Boolean): ConsumptionOrders!
 }
 
 input DateRangeArgs {
@@ -738,6 +777,11 @@ type Mutation {
   settleInventoryCount(id: ID!): InventoryCountOrderDto!
   attachOrderReferences(orderType: WmsOrderType!, orderId: ID!, references: [OrderReferenceInputType!]!): [OrderReferenceDto!]!
   detachOrderReference(id: ID!): Boolean!
+  createConsumptionOrder(description: String, createdBy: String, items: [CreateConsumptionOrderItemInputType!]!): ConsumptionOrderDto!
+  updateConsumptionOrder(id: ID!, description: String, items: [CreateConsumptionOrderItemInputType!]): ConsumptionOrderDto!
+  issueConsumptionOrder(orderId: ID!, items: [ConsumptionOrderLineInputType!]): Boolean!
+  returnConsumptionOrder(orderId: ID!, items: [ConsumptionOrderLineInputType!]): Boolean!
+  settleConsumptionOrder(orderId: ID!, items: [ConsumptionOrderLineInputType!]): Boolean!
 }
 
 input CreateLoadersArgs {
@@ -1024,4 +1068,20 @@ input OrderReferenceInputType {
   referenceLine: String
   itemId: ID
   metadata: JSONObject
+}
+
+input CreateConsumptionOrderItemInputType {
+  materialId: ID!
+  batchId: ID!
+  locationId: ID
+  loaderId: ID
+  unitId: ID
+  quantity: Float!
+  targetLocationId: ID
+  targetLoaderId: ID
+}
+
+input ConsumptionOrderLineInputType {
+  itemId: ID!
+  quantity: Float
 }
