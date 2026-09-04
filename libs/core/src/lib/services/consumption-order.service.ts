@@ -509,7 +509,16 @@ export class ConsumptionOrderService<
       });
     }
 
-    queryBuilder.orderBy('consumption."createdAt"', 'DESC');
+    /*
+     * The property path, not a quoted column. `getManyAndCount` with a joined
+     * relation and a limit wraps the query in a `SELECT DISTINCT` over the root
+     * ids, and it can only carry an ordering across that wrapper if it
+     * recognises the expression as a column of the aliased entity. Given raw
+     * SQL it copies the string through verbatim and Postgres rejects
+     * `distinctAlias.consumption_"createdAt"`. Unpaginated calls never hit it,
+     * which is why it took a page-sized query to surface.
+     */
+    queryBuilder.orderBy('consumption.createdAt', 'DESC');
 
     if (options.offset !== undefined && options.offset >= 0) {
       queryBuilder.skip(options.offset);

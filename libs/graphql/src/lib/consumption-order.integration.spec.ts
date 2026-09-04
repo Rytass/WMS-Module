@@ -479,6 +479,31 @@ describe('consumption order (integration)', () => {
       expect(items.length).toBe(total);
     });
 
+    /*
+     * The unpaginated call above cannot see this: asking for a page makes
+     * TypeORM wrap the joined query in a `SELECT DISTINCT` over the root ids,
+     * and an ordering expressed as raw SQL rather than a property path does not
+     * survive that rewrite. It failed with
+     * `column distinctAlias.consumption_"createdAt" does not exist` — on the
+     * first query the list page ever sent.
+     */
+    it('lists a page of orders, which is what a list page actually asks for', async () => {
+      const [items, total] = await service.findMany({ offset: 0, limit: 2 });
+
+      expect(total).toBeGreaterThan(0);
+      expect(items.length).toBeLessThanOrEqual(2);
+    });
+
+    it('pages a filtered list too', async () => {
+      const [items] = await service.findMany({
+        offset: 0,
+        limit: 2,
+        materialId,
+      });
+
+      expect(items.length).toBeLessThanOrEqual(2);
+    });
+
     it('reads progress without being handed a manager', async () => {
       const batchId = await seedBatch('CSO-PUBLISHED');
       const { orderId } = await newOrder(batchId, 7);
