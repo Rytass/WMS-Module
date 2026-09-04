@@ -431,6 +431,7 @@ export class ReceiveInventoryOrderService<
       const stockRepository = manager.getRepository<StockEntityClass>(
         this.entities.stock,
       );
+      const batchRepository = manager.getRepository(this.entities.batch);
 
       const items = await itemRepository.find({
         where: { id: In(options.map((o) => o.itemId)) },
@@ -438,8 +439,15 @@ export class ReceiveInventoryOrderService<
       });
       const itemMap = new Map(items.map((i) => [i.id, i]));
 
-      await Promise.all(
-        options.map(async (option) => {
+      /*
+       * Sequential, not `Promise.all`. Two options for one item both reach the
+       * batch lookups below before either has written, so `splitBatch`'s
+       * read-then-create misses twice and one receipt ends up fragmented across
+       * two batch identities. A receive order has a handful of lines; ordering
+       * them costs nothing worth measuring.
+       */
+      for (const option of options) {
+        await (async () => {
           const item = itemMap.get(option.itemId);
           if (!item) return;
           if (!item.batchId && option.batchKey) {
@@ -515,17 +523,37 @@ export class ReceiveInventoryOrderService<
              * mean "awaiting inspection" rather than "never inspected" -- the
              * latter being true of almost every batch in the warehouse.
              *
-             * It splits, so material waiting on an inspection stops being
-             * commingled with the free stock on the same batch key. That is the
-             * same thing holding or shipping part of a batch already does.
+             * Split only when the batch already holds something. `require-
+             * Inspection` defaults to **true**, so this is the ordinary receive
+             * path, not an edge case: splitting unconditionally moved every
+             * default receipt off the batch key the caller asked for and onto a
+             * synthetic child, which an exact-id lookup then could not find.
+             *
+             * A batch with nothing on it yet has nothing to commingle with, so
+             * flagging it in place is both sufficient and invisible. Only a
+             * receipt joining stock that is already there needs its own batch,
+             * which is the same thing holding or shipping part of a batch does.
              */
-            batchId = await this.batchService
-              .splitBatch({
-                manager,
-                id: batchId as string,
+            const onHand = await stockRepository
+              .createQueryBuilder('stock')
+              .select('COALESCE(SUM(stock.quantity), 0)', 'total')
+              .where('stock."batchId" = :batchId', { batchId })
+              .getRawOne<{ total: string }>()
+              .then((row) => parseFloat(row?.total ?? '0'));
+
+            if (onHand > 0) {
+              batchId = await this.batchService
+                .splitBatch({
+                  manager,
+                  id: batchId as string,
+                  requiresInspection: true,
+                })
+                .then(({ id }) => id);
+            } else {
+              await batchRepository.update({ id: batchId as string }, {
                 requiresInspection: true,
-              })
-              .then(({ id }) => id);
+              } as never);
+            }
           }
 
           let locationId = item.locationId;
@@ -559,8 +587,8 @@ export class ReceiveInventoryOrderService<
               }),
             ),
           ]);
-        }),
-      );
+        })();
+      }
 
       return true;
     });

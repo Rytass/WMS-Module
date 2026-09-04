@@ -120,9 +120,16 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
    * `parentBatchId` and `attributes` are write-on-create only: the lookup still
    * matches on key, material and the unsplit condition alone, so a caller that
    * passes them for a key that already exists gets the existing batch back
-   * untouched. `key` is the batch's identity in this model; attributes describe
-   * a batch rather than distinguish one, so a host that needs two distinct
-   * batches gives them two keys.
+   * untouched. `key` is the batch's identity in this model — `batches` carries
+   * `UNIQUE (key, materialId)`, so there is exactly one row per key — and
+   * attributes describe a batch rather than distinguish one. A host that needs
+   * two distinct batches gives them two keys; asking for two here fails on the
+   * constraint.
+   *
+   * Deliberately **not** filtered on `requiresInspection`: a receipt awaiting
+   * inspection may flag the batch in place, and the flag must not then hide the
+   * key from the next lookup — which, given the unique constraint, would leave
+   * it trying to create a duplicate.
    */
   async getBatch({
     manager = this.dataSource.manager,
@@ -139,7 +146,6 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       vendorId: IsNull(),
       transferId: IsNull(),
       inspectionResult: IsNull(),
-      requiresInspection: false,
       held: false,
       inShipment: false,
     };

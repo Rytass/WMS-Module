@@ -253,7 +253,7 @@ describe('pending inspection (integration)', () => {
     expect(marked.parentBatchId).toBe(source.id);
   });
 
-  it('marks what a receive order asked to be inspected', async () => {
+  it('flags the batch a receive landed on, without moving it off the key', async () => {
     const order = await receiveService.createReceiveInventoryOrder({
       key: 'QC-RO-1',
       description: 'inspect me',
@@ -269,7 +269,6 @@ describe('pending inspection (integration)', () => {
       ],
     });
 
-    // `createReceiveInventoryOrder` returns the order without its items.
     const [item] = await dataSource
       .getRepository(receiveService.receiveInventoryOrderItemEntity)
       .find({ where: { orderId: order.id } });
@@ -281,26 +280,136 @@ describe('pending inspection (integration)', () => {
       locationKey: 'QC-LOCATION',
     });
 
-    const pending = await pendingBatchIds();
-
-    const plainReceived = await dataSource
+    /*
+     * `requireInspection` defaults to true, so this is the ordinary receive
+     * path. Splitting it unconditionally moved every default receipt onto a
+     * synthetic child and left the key the caller asked for holding nothing —
+     * an exact-id lookup on it then returned an empty list.
+     */
+    const received = await dataSource
       .getRepository(entities.batch)
-      .findOneByOrFail({ key: 'QC-RECEIVED', requiresInspection: false });
+      .findOneByOrFail({ key: 'QC-RECEIVED' });
 
-    // The received quantity did not land on the plain `QC-RECEIVED` batch: it
-    // was split onto a flagged child, so the receipt shows as awaiting
-    // inspection while the plain batch stays out of it.
-    expect(pending).not.toContain(plainReceived.id);
-    expect(pending.length).toBeGreaterThan(0);
+    expect(received.requiresInspection).toBe(true);
+    expect(received.parentBatchId).toBeNull();
+    expect(await pendingBatchIds()).toContain(received.id);
+
+    const [positions] = await stockService.findAggregatedStocks({
+      batchId: received.id,
+    });
+
+    expect(positions.reduce((total, p) => total + Number(p.quantity), 0)).toBe(
+      12,
+    );
+  });
+
+  it('splits instead when the batch already holds something', async () => {
+    const existing = await batchService.getBatch({
+      key: 'QC-OCCUPIED',
+      materialId,
+    });
+
+    await seedStock(existing.id, 30);
+
+    const order = await receiveService.createReceiveInventoryOrder({
+      key: 'QC-RO-2',
+      description: 'joins occupied stock',
+      items: [
+        {
+          serialId: '1',
+          materialKey: 'QC-MATERIAL',
+          batchKey: 'QC-OCCUPIED',
+          locationKey: 'QC-LOCATION',
+          targetReceivedQuantity: 5,
+          requireInspection: true,
+        },
+      ],
+    });
+
+    const [item] = await dataSource
+      .getRepository(receiveService.receiveInventoryOrderItemEntity)
+      .find({ where: { orderId: order.id } });
+
+    await receiveService.receive({
+      itemId: item.id,
+      quantity: 5,
+      batchKey: 'QC-OCCUPIED',
+      locationKey: 'QC-LOCATION',
+    });
+
+    // The 30 already there were never awaiting inspection, so the 5 that are
+    // must not join them on the same batch.
+    expect(
+      (
+        await dataSource
+          .getRepository(entities.batch)
+          .findOneByOrFail({ key: 'QC-OCCUPIED' })
+      ).requiresInspection,
+    ).toBe(false);
 
     const flagged = await dataSource
       .getRepository(entities.batch)
       .findOneByOrFail({
-        parentBatchId: plainReceived.id,
+        parentBatchId: existing.id,
         requiresInspection: true,
       });
 
-    expect(pending).toContain(flagged.id);
+    expect(await pendingBatchIds()).toContain(flagged.id);
+  });
+
+  it('does not fragment one receive call across two batches', async () => {
+    const order = await receiveService.createReceiveInventoryOrder({
+      key: 'QC-RO-3',
+      description: 'two lines, one item',
+      items: [
+        {
+          serialId: '1',
+          materialKey: 'QC-MATERIAL',
+          batchKey: 'QC-TWO-LINES',
+          locationKey: 'QC-LOCATION',
+          targetReceivedQuantity: 60,
+          requireInspection: true,
+        },
+      ],
+    });
+
+    const [item] = await dataSource
+      .getRepository(receiveService.receiveInventoryOrderItemEntity)
+      .find({ where: { orderId: order.id } });
+
+    // Both halves used to run through `Promise.all`, so both missed the batch
+    // lookup and one receipt ended up spread over two batch identities.
+    await receiveService.receive([
+      {
+        itemId: item.id,
+        quantity: 30,
+        batchKey: 'QC-TWO-LINES',
+        locationKey: 'QC-LOCATION',
+      },
+      {
+        itemId: item.id,
+        quantity: 30,
+        batchKey: 'QC-TWO-LINES',
+        locationKey: 'QC-LOCATION',
+      },
+    ]);
+
+    const batches = await dataSource
+      .getRepository(entities.batch)
+      .find({
+        where: [
+          { key: 'QC-TWO-LINES' },
+          {
+            parentBatchId: (
+              await dataSource
+                .getRepository(entities.batch)
+                .findOneByOrFail({ key: 'QC-TWO-LINES' })
+            ).id,
+          },
+        ],
+      });
+
+    expect(batches).toHaveLength(1);
   });
 
   it('reports the flag through the schema', async () => {
