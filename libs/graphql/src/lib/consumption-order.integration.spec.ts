@@ -663,12 +663,167 @@ describe('consumption order (integration)', () => {
   });
 
   /*
+   * Everything above drives the service directly, so the resolvers and the
+   * `@WmsMutationEvent` interceptor around them were never executed — only
+   * `operation-names.invariant.spec` knew the mutations existed at all.
+   */
+  describe('the mutations, through the schema', () => {
+    it('runs the whole lifecycle and emits an event for each action', async () => {
+      const batchId = await seedBatch('CSO-SCHEMA');
+
+      const created = await execute(`mutation {
+        createConsumptionOrder(
+          description: "through the schema"
+          items: [{
+            materialId: "${materialId}"
+            batchId: "${batchId}"
+            locationId: "${shelfId}"
+            targetLocationId: "${benchId}"
+            quantity: 25
+          }]
+        ) { id items { id } }
+      }`);
+
+      expect(created.errors).toBeUndefined();
+
+      const order = created.data?.['createConsumptionOrder'] as {
+        id: string;
+        items: { id: string }[];
+      };
+
+      const issued = await execute(
+        `mutation { issueConsumptionOrder(orderId: "${order.id}") }`,
+      );
+      expect(issued.errors).toBeUndefined();
+      expect(await onHand(batchId, benchId)).toBe(25);
+
+      const returned = await execute(`mutation {
+        returnConsumptionOrder(
+          orderId: "${order.id}"
+          items: [{ itemId: "${order.items[0].id}", quantity: 5 }]
+        )
+      }`);
+      expect(returned.errors).toBeUndefined();
+
+      const settled = await execute(
+        `mutation { settleConsumptionOrder(orderId: "${order.id}") }`,
+      );
+      expect(settled.errors).toBeUndefined();
+
+      expect(await onHand(batchId, benchId)).toBe(0);
+      expect(await onHand(batchId, shelfId)).toBe(80);
+
+      // The three `stock.*` events the interceptor path is supposed to flush.
+      expect(stockEvents).toEqual([
+        'stock.issued',
+        'stock.returned',
+        'stock.consumed',
+      ]);
+    });
+
+    it('surfaces a refusal as a GraphQL error rather than a silent no-op', async () => {
+      const batchId = await seedBatch('CSO-SCHEMA-REFUSE');
+
+      const created = await execute(`mutation {
+        createConsumptionOrder(
+          items: [{
+            materialId: "${materialId}"
+            batchId: "${batchId}"
+            locationId: "${shelfId}"
+            targetLocationId: "${benchId}"
+            quantity: 5
+          }]
+        ) { id items { id } }
+      }`);
+
+      const order = created.data?.['createConsumptionOrder'] as {
+        id: string;
+        items: { id: string }[];
+      };
+
+      const result = await execute(`mutation {
+        issueConsumptionOrder(
+          orderId: "${order.id}"
+          items: [{ itemId: "${order.items[0].id}", quantity: 6 }]
+        )
+      }`);
+
+      expect(result.errors?.[0].message).toMatch(/left to issue/);
+      expect(await onHand(batchId, benchId)).toBe(0);
+    });
+
+    it('lists a page of orders through the schema', async () => {
+      /*
+       * The query the list page actually sends, with the pagination arguments
+       * it actually sends. `PaginationArgs` has no defaults, so a schema test
+       * that omits them never reaches the `SELECT DISTINCT` rewrite that made
+       * this crash in a browser.
+       */
+      const result = await execute(`{
+        consumptionOrders(offset: 0, limit: 5) {
+          total
+          items { key items { issuedQuantity outstandingQuantity } }
+        }
+      }`);
+
+      expect(result.errors).toBeUndefined();
+
+      const payload = result.data?.['consumptionOrders'] as {
+        total: number;
+        items: unknown[];
+      };
+
+      expect(payload.total).toBeGreaterThan(0);
+      expect(payload.items.length).toBeLessThanOrEqual(5);
+    });
+
+    it('updates an order through the schema', async () => {
+      const batchId = await seedBatch('CSO-SCHEMA-UPDATE');
+
+      const created = await execute(`mutation {
+        createConsumptionOrder(
+          description: "before"
+          items: [{
+            materialId: "${materialId}"
+            batchId: "${batchId}"
+            locationId: "${shelfId}"
+            quantity: 5
+          }]
+        ) { id }
+      }`);
+
+      const order = created.data?.['createConsumptionOrder'] as { id: string };
+
+      const updated = await execute(`mutation {
+        updateConsumptionOrder(id: "${order.id}", description: "after") {
+          description
+        }
+      }`);
+
+      expect(updated.errors).toBeUndefined();
+      expect(
+        (updated.data?.['updateConsumptionOrder'] as { description: string })
+          .description,
+      ).toBe('after');
+    });
+  });
+
+  /*
    * Every case above hands the service its arguments in full, because a
    * resolver would. A consumer of @rytass/wms-module-core writes the call the
    * signature invites — with the optional parts left out — and that is the
    * shape no in-repo caller ever produces.
    */
   describe('called as published API', () => {
+    // Its own order, so the describe passes when run on its own. The two list
+    // assertions below used to depend on earlier `it` blocks having created
+    // something, which is a quiet way for a suite to stop meaning anything when
+    // someone runs a single test.
+    beforeAll(async () => {
+      const batchId = await seedBatch('CSO-PUBLISHED-SEED');
+      await newOrder(batchId, 3);
+    });
+
     it('lists orders with no filter, pagination or flags', async () => {
       const [items, total] = await service.findMany({});
 
@@ -709,6 +864,78 @@ describe('consumption order (integration)', () => {
 
       expect(progress).toHaveLength(1);
       expect(progress[0].outstanding).toBe(0);
+    });
+
+    it('returns with no line list at all', async () => {
+      const batchId = await seedBatch('CSO-PUBLISHED-RETURN');
+      const { orderId } = await newOrder(batchId, 7);
+
+      await service.issue({ orderId });
+
+      await expect(service.return({ orderId })).resolves.toBe(true);
+      expect(await onHand(batchId, benchId)).toBe(0);
+      expect(await onHand(batchId, shelfId)).toBe(100);
+    });
+
+    it('creates an order with no description and no createdBy', async () => {
+      const batchId = await seedBatch('CSO-PUBLISHED-BARE');
+
+      const order = await service.createConsumptionOrder({
+        items: [
+          {
+            materialId,
+            batchId,
+            locationId: shelfId,
+            targetLocationId: benchId,
+            quantity: 2,
+          },
+        ],
+      });
+
+      expect(order.description).toBeNull();
+      expect(order.createdBy).toBeNull();
+    });
+
+    it('records createdBy when it is given', async () => {
+      const batchId = await seedBatch('CSO-PUBLISHED-AUTHOR');
+
+      const order = await service.createConsumptionOrder({
+        createdBy: 'operator-7',
+        items: [
+          {
+            materialId,
+            batchId,
+            locationId: shelfId,
+            targetLocationId: benchId,
+            quantity: 2,
+          },
+        ],
+      });
+
+      expect(order.createdBy).toBe('operator-7');
+    });
+
+    it('removes an order that has not moved anything', async () => {
+      const batchId = await seedBatch('CSO-PUBLISHED-REMOVE');
+      const { orderId } = await newOrder(batchId, 4);
+
+      await expect(service.removeConsumptionOrder(orderId)).resolves.toBe(true);
+
+      const [items] = await service.findMany({});
+      expect(items.map(({ id }) => id)).not.toContain(orderId);
+    });
+
+    it('refuses to remove an order that has moved stock', async () => {
+      const batchId = await seedBatch('CSO-PUBLISHED-KEEP');
+      const { orderId } = await newOrder(batchId, 4);
+
+      await service.issue({ orderId });
+
+      // The guard exists precisely so a settled movement keeps the document
+      // that explains it. Nothing exercised it before.
+      await expect(service.removeConsumptionOrder(orderId)).rejects.toThrow(
+        /already moved stock/,
+      );
     });
 
     it('issues with no line list at all', async () => {
