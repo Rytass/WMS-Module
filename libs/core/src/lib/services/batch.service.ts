@@ -139,6 +139,7 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       vendorId: IsNull(),
       transferId: IsNull(),
       inspectionResult: IsNull(),
+      requiresInspection: false,
       held: false,
       inShipment: false,
     };
@@ -212,6 +213,9 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       transferId: orNull(mergedBatch.transferId),
       held: mergedBatch.held ?? false,
       inShipment: mergedBatch.inShipment ?? false,
+      // Part of the batch's identity: material waiting on an inspection must
+      // not be merged back into the free stock it was split away from.
+      requiresInspection: mergedBatch.requiresInspection ?? false,
       /*
        * Attributes take part in the identity check, so a split that asks for
        * `{ bin: 'B1' }` never lands on the sibling holding `{ bin: 'B2' }`.

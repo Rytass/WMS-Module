@@ -28,6 +28,21 @@ export class BatchEntityClass extends BaseBatchEntity {
   @Column({ type: 'bool', nullable: true })
   inspectionResult: boolean | null;
 
+  /**
+   * Whether anyone ever asked for this batch to be inspected.
+   *
+   * `inspectionResult IS NULL` on its own cannot answer that: null is also the
+   * state of every batch nobody ever intended to inspect, which is most of
+   * them. Reading it as "awaiting inspection" made `StockStatus`
+   * `PENDING_INSPECTION` return the whole warehouse.
+   *
+   * Set when a receive order item carrying `requireInspection` lands without a
+   * result yet; cleared by nothing, because the pending filter also requires
+   * `inspectionResult IS NULL` and an inspection fills that in.
+   */
+  @Column({ type: 'bool', default: false })
+  requiresInspection: boolean;
+
   // added when transfer inventory, used to link to transfer order
   @Column({ type: 'varchar', nullable: true })
   transferId: string | null;

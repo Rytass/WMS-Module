@@ -132,8 +132,9 @@ export class ReceiveInventoryOrderService<
     const materialRepository = manager.getRepository<MaterialEntityClass>(
       this.materialService.materialEntity,
     );
-    const locationRepository =
-      manager.getRepository<LocationEntityClass>(this.entities.location);
+    const locationRepository = manager.getRepository<LocationEntityClass>(
+      this.entities.location,
+    );
     const loaderRepository =
       manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
 
@@ -193,7 +194,9 @@ export class ReceiveInventoryOrderService<
   }: CreateReceiveInventoryOrderInput & {
     manager?: EntityManager;
   }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
+    const orderRepository = manager.getRepository<OrderEntity>(
+      this.entities.order,
+    );
     const receiveInventoryOrderRepository =
       manager.getRepository<ReceiveInventoryOrderEntityClass>(
         this.receiveInventoryOrderEntity,
@@ -417,13 +420,17 @@ export class ReceiveInventoryOrderService<
         manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
           this.receiveInventoryOrderItemEntity,
         );
-      const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
-      const locationRepository =
-        manager.getRepository<LocationEntityClass>(this.entities.location);
+      const orderRepository = manager.getRepository<OrderEntity>(
+        this.entities.order,
+      );
+      const locationRepository = manager.getRepository<LocationEntityClass>(
+        this.entities.location,
+      );
       const loaderRepository =
         manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
-      const stockRepository =
-        manager.getRepository<StockEntityClass>(this.entities.stock);
+      const stockRepository = manager.getRepository<StockEntityClass>(
+        this.entities.stock,
+      );
 
       const items = await itemRepository.find({
         where: { id: In(options.map((o) => o.itemId)) },
@@ -493,7 +500,7 @@ export class ReceiveInventoryOrderService<
               ? true
               : (option.inspectionResult ?? null);
 
-          if (inspectionResult != null)
+          if (inspectionResult != null) {
             batchId = await this.batchService
               .splitBatch({
                 manager,
@@ -501,6 +508,25 @@ export class ReceiveInventoryOrderService<
                 inspectionResult,
               })
               .then(({ id }) => id);
+          } else if (item.requireInspection) {
+            /*
+             * Somebody asked for this to be inspected and it has not been yet.
+             * Recording that on the batch is what lets `PENDING_INSPECTION`
+             * mean "awaiting inspection" rather than "never inspected" -- the
+             * latter being true of almost every batch in the warehouse.
+             *
+             * It splits, so material waiting on an inspection stops being
+             * commingled with the free stock on the same batch key. That is the
+             * same thing holding or shipping part of a batch already does.
+             */
+            batchId = await this.batchService
+              .splitBatch({
+                manager,
+                id: batchId as string,
+                requiresInspection: true,
+              })
+              .then(({ id }) => id);
+          }
 
           let locationId = item.locationId;
           if (option.locationKey && !locationId)

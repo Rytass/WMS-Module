@@ -7,6 +7,8 @@ export type SplitBatchInput = {
   transferId?: string | null;
   held?: boolean;
   inShipment?: boolean;
+  /** Marks the child as awaiting an inspection somebody actually asked for. */
+  requiresInspection?: boolean;
   /**
    * Host-defined attributes for the child batch. Part of the batch's identity
    * for the purposes of reuse: a split asking for attributes the existing
