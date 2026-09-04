@@ -5,6 +5,7 @@ import {
   type EntitySubscriberInterface,
   type InsertEvent,
 } from 'typeorm';
+import { ConsumptionChangeKind } from '../constants/consumption-change-kind';
 import { ChangeType } from '../constants/stock-status';
 import { WmsEventCollector } from './wms-event.collector';
 import { WMS_STOCK_ENRICH } from './wms-event.tokens';
@@ -17,6 +18,8 @@ interface ChangeRowLike {
   readonly itemId: string;
   readonly quantityChanged: number | string;
   readonly result?: boolean | null;
+  /** Consumption orders record intent rather than encoding it in the sign. */
+  readonly kind?: ConsumptionChangeKind | null;
 }
 
 /** The subset of order-item columns used to enrich a stock event. */
@@ -35,40 +38,60 @@ type StockEnrichment = Pick<
 >;
 
 /**
- * Resolve the `ChangeType` for a change table. Tables whose semantics depend on
- * the sign of `quantityChanged` (ship / transfer / vendor / customer / hold /
- * allocate) branch on it; the rest are fixed.
+ * The consumption order's three actions, which the sign cannot separate: a
+ * return and a settlement are both negative.
+ */
+const CONSUMPTION_KIND_TO_CHANGE_TYPE: Readonly<
+  Record<ConsumptionChangeKind, ChangeType>
+> = {
+  [ConsumptionChangeKind.ISSUE]: ChangeType.ISSUED,
+  [ConsumptionChangeKind.RETURN]: ChangeType.RETURNED,
+  [ConsumptionChangeKind.SETTLE]: ChangeType.CONSUMED,
+};
+
+/**
+ * Resolve the `ChangeType` for a change table. Most tables whose semantics
+ * depend on direction (ship / transfer / vendor / customer / hold / allocate)
+ * branch on the sign of `quantityChanged`; the rest are fixed. The resolver is
+ * handed the whole row rather than just the quantity because the sign is not
+ * always enough — see `consumption_order_changes`.
  */
 const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   string,
-  (quantity: number) => ChangeType
-> = new Map<string, (quantity: number) => ChangeType>([
+  (change: ChangeRowLike) => ChangeType | null
+> = new Map<string, (change: ChangeRowLike) => ChangeType | null>([
   ['receive_inventory_order_changes', () => ChangeType.RECEIVED],
   [
     'ship_inventory_order_changes',
-    (q: number) => (q > 0 ? ChangeType.IN_SHIPMENT : ChangeType.SHIPPED),
+    ({ quantityChanged: q }) =>
+      Number(q) > 0 ? ChangeType.IN_SHIPMENT : ChangeType.SHIPPED,
   ],
   [
     'transfer_order_changes',
-    (q: number) => (q > 0 ? ChangeType.IN_TRANSFER : ChangeType.TRANSFERRED),
+    ({ quantityChanged: q }) =>
+      Number(q) > 0 ? ChangeType.IN_TRANSFER : ChangeType.TRANSFERRED,
   ],
   [
     'transfer_vendor_order_changes',
-    (q: number) =>
-      q > 0 ? ChangeType.VENDOR_TRANSFERRED : ChangeType.VENDOR_RETURNED,
+    ({ quantityChanged: q }) =>
+      Number(q) > 0
+        ? ChangeType.VENDOR_TRANSFERRED
+        : ChangeType.VENDOR_RETURNED,
   ],
   [
     'transfer_customer_order_changes',
-    (q: number) =>
-      q > 0 ? ChangeType.CUSTOMER_HELD : ChangeType.CUSTOMER_RETURNED,
+    ({ quantityChanged: q }) =>
+      Number(q) > 0 ? ChangeType.CUSTOMER_HELD : ChangeType.CUSTOMER_RETURNED,
   ],
   [
     'hold_inventory_order_changes',
-    (q: number) => (q > 0 ? ChangeType.HELD : ChangeType.RELEASED),
+    ({ quantityChanged: q }) =>
+      Number(q) > 0 ? ChangeType.HELD : ChangeType.RELEASED,
   ],
   [
     'allocate_inventory_order_changes',
-    (q: number) => (q > 0 ? ChangeType.ALLOCATED : ChangeType.DEALLOCATED),
+    ({ quantityChanged: q }) =>
+      Number(q) > 0 ? ChangeType.ALLOCATED : ChangeType.DEALLOCATED,
   ],
   ['split_batch_order_changes', () => ChangeType.SPLITTED],
   ['merge_batch_order_changes', () => ChangeType.MERGED],
@@ -76,7 +99,12 @@ const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   ['scrape_order_changes', () => ChangeType.SCRAPED],
   [
     'inventory_count_order_changes',
-    (q: number) => (q > 0 ? ChangeType.COUNT_GAINED : ChangeType.COUNT_LOST),
+    ({ quantityChanged: q }) =>
+      Number(q) > 0 ? ChangeType.COUNT_GAINED : ChangeType.COUNT_LOST,
+  ],
+  [
+    'consumption_order_changes',
+    ({ kind }) => (kind ? CONSUMPTION_KIND_TO_CHANGE_TYPE[kind] : null),
   ],
 ]);
 
@@ -100,6 +128,9 @@ const CHANGE_TYPE_TO_EVENT: Readonly<Record<ChangeType, WmsStockEventName>> = {
   [ChangeType.SCRAPED]: 'stock.scraped',
   [ChangeType.COUNT_GAINED]: 'stock.count-gained',
   [ChangeType.COUNT_LOST]: 'stock.count-lost',
+  [ChangeType.ISSUED]: 'stock.issued',
+  [ChangeType.RETURNED]: 'stock.returned',
+  [ChangeType.CONSUMED]: 'stock.consumed',
 };
 
 const QUALITY_INSPECTION_TABLE = 'quality_inspection_order_changes';
@@ -160,7 +191,14 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
       return;
     }
 
-    const changeType = resolveChangeType(quantityDelta);
+    const changeType = resolveChangeType(entity);
+
+    if (!changeType) {
+      // A row the table's resolver could not classify. Emitting a wrong event
+      // would be worse than emitting none.
+      return;
+    }
+
     const enrichment = this.enrich
       ? await this.loadItemFields(event, entity.itemId)
       : undefined;

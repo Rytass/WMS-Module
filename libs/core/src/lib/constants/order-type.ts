@@ -14,6 +14,7 @@
  */
 export enum WmsOrderType {
   ALLOCATE_INVENTORY_ORDER = 'allocate-inventory-order',
+  CONSUMPTION_ORDER = 'consumption-order',
   HOLD_INVENTORY_ORDER = 'hold-inventory-order',
   INVENTORY_COUNT_ORDER = 'inventory-count-order',
   MERGE_BATCH_ORDER = 'merge-batch-order',

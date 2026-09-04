@@ -67,4 +67,13 @@ export enum ChangeType {
 
   // scrape-order-change.entity.ts
   SCRAPED = 'SCRAPED',
+
+  // consumption-order-change.entity.ts, kind = ISSUE
+  ISSUED = 'ISSUED',
+
+  // consumption-order-change.entity.ts, kind = RETURN
+  RETURNED = 'RETURNED',
+
+  // consumption-order-change.entity.ts, kind = SETTLE
+  CONSUMED = 'CONSUMED',
 }
