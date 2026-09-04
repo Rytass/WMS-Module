@@ -110,6 +110,8 @@ import {
   InventoryCountOrderItemEntityClass,
   InventoryCountOrderChangeEntity,
   InventoryCountOrderChangeEntityClass,
+  OrderReferenceEntity,
+  OrderReferenceEntityClass,
 } from './extensions';
 
 const entities = [
@@ -169,6 +171,7 @@ const entities = [
   [InventoryCountOrderLocationEntity, InventoryCountOrderLocationEntityClass],
   [InventoryCountOrderItemEntity, InventoryCountOrderItemEntityClass],
   [InventoryCountOrderChangeEntity, InventoryCountOrderChangeEntityClass],
+  [OrderReferenceEntity, OrderReferenceEntityClass],
 ] as [symbol, new () => object][];
 
 /**
