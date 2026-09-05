@@ -1,3 +1,18 @@
+## 0.11.1 (2026-09-05)
+
+### 🩹 Fixes
+
+- **graphql:** declare tslib and ship the ESM build as .mjs ([098723b](https://github.com/Rytass/WMS-Module/commit/098723b))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.9.1
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5 (1M context)
+
 ## 0.11.0 (2026-09-05)
 
 ### 🚀 Features

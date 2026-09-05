@@ -1,3 +1,14 @@
+## 0.9.1 (2026-09-05)
+
+### 🩹 Fixes
+
+- **core:** declare tslib and ship the ESM build as .mjs ([6291700](https://github.com/Rytass/WMS-Module/commit/6291700))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5 (1M context)
+
 ## 0.9.0 (2026-09-05)
 
 ### 🚀 Features
