@@ -38,6 +38,31 @@ Changelogs are attributed the same way (by file path, with no scope filter), so 
 cross-touching commit appears in **both** projects' changelogs. `yarn release --dry-run`
 shows the rendered changelogs before anything is written — read them.
 
+### Put `BREAKING CHANGE:` last
+
+The changelog renderer takes everything from `BREAKING CHANGE:` to the end of the commit
+message as that entry's body — including any git trailers that follow it. Put the footer
+after `Co-Authored-By:` and friends, or they end up printed in the published notes:
+
+```
+fix(core)!: compare consumption quantities in base units
+
+<body>
+
+Co-Authored-By: …
+
+BREAKING CHANGE: `ConsumptionOrderItemProgress` now reports base units.
+```
+
+Two more things the renderer will not do for you:
+
+- It strips the `BREAKING CHANGE:` prefix, so the sentence after it has to stand on its own —
+  start it with a capital, not with "existing rows take…".
+- `!` in the subject and a `BREAKING CHANGE:` footer both force a major bump, and the footer's
+  *text* is not read. A footer saying "none intended" still bumps major and still prints under
+  **Breaking Changes**, which is worse than saying nothing. If a change is not breaking, use
+  neither.
+
 > Per-project semver: in `0.x.y` we treat minor bumps as the breaking-change channel (consistent with SemVer's 0.x rule). The `0.3.0` graphql release was a breaking API surface change but did not bump to `1.0.0` because pre-1.0 lib consumers expect that contract.
 
 ## One-time setup

@@ -30,15 +30,12 @@
   every field, including `target`. A consumer reading `target` as the
   number the line was ordered in must divide by the line's conversion
   factor. Nothing changes for a line already in its base unit.
-  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 - **core:** stop calling every uninspected batch "awaiting inspection"  ([e28de17](https://github.com/Rytass/WMS-Module/commit/e28de17))
-  existing rows take the column default `false`, so
+  Existing rows take the column default `false`, so
   batches that were genuinely awaiting inspection before this upgrade stop
   being reported as such. There is no generic backfill -- `inspectionResult
   IS NULL` is precisely the signal that turned out not to mean this -- so a
   deployment that cares has to derive it from its own receive history.
-  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-  Claude-Session: https://claude.ai/code/session_01NXgGpWvXoNXZyUmZmZ43LY
 - **core:** give a direct service call the same event guarantee as a mutation  ([3914c32](https://github.com/Rytass/WMS-Module/commit/3914c32))
   `WmsBeforeHookContext.executionContext` is now
   `ExecutionContext | null`, with a `source: 'graphql' | 'host'`
@@ -46,8 +43,6 @@
   and fabricating one would hand a hook a lie instead of an obvious null.
   A hook that reaches into the request should branch on `source` first.
   The same widening applies to `WmsTypedBeforeHookContext`.
-  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-  Claude-Session: https://claude.ai/code/session_01NXgGpWvXoNXZyUmZmZ43LY
 
 ### ❤️ Thank You
 
