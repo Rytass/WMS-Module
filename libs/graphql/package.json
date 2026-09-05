@@ -21,46 +21,25 @@
     "url": "https://github.com/Rytass/WMS-Module/issues"
   },
   "main": "./index.cjs.js",
-  "module": "./index.mjs",
   "typings": "./index.d.ts",
   "exports": {
     ".": {
-      "import": {
-        "types": "./index.d.mts",
-        "default": "./index.mjs"
-      },
-      "require": {
-        "types": "./index.d.ts",
-        "default": "./index.cjs.js"
-      }
+      "types": "./index.d.ts",
+      "default": "./index.cjs.js"
     },
     "./adapters/member-base": {
-      "import": {
-        "types": "./adapters/member-base.d.mts",
-        "default": "./adapters/member-base.mjs"
-      },
-      "require": {
-        "types": "./adapters/member-base.d.ts",
-        "default": "./adapters/member-base.cjs.js"
-      }
+      "types": "./adapters/member-base.d.ts",
+      "default": "./adapters/member-base.cjs.js"
     },
     "./adapters/event-emitter": {
-      "import": {
-        "types": "./adapters/event-emitter.d.mts",
-        "default": "./adapters/event-emitter.mjs"
-      },
-      "require": {
-        "types": "./adapters/event-emitter.d.ts",
-        "default": "./adapters/event-emitter.cjs.js"
-      }
+      "types": "./adapters/event-emitter.d.ts",
+      "default": "./adapters/event-emitter.cjs.js"
     },
     "./package.json": "./package.json"
   },
   "files": [
     "**/*.js",
-    "**/*.mjs",
     "**/*.d.ts",
-    "**/*.d.mts",
     "README.md",
     "LICENSE",
     "docs",
