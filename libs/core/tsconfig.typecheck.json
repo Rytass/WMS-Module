@@ -1,0 +1,21 @@
+{
+  // Type checking only — deliberately emits nothing.
+  //
+  // `@nx/js/typescript` otherwise infers this project's `typecheck` target from
+  // `tsconfig.lib.json`, and that config exists to *build*: `outDir: "."` with
+  // `declaration: true`. The inferred command is `tsc --build
+  // --emitDeclarationOnly`, so running it as a check writes declarations over
+  // the ones `build` just produced.
+  //
+  // `prepublish-check` depends on `typecheck` and `build` and nx runs them in
+  // parallel, so whichever finished last decided what shipped. In `libs/react`
+  // that raced against a post-processing step and surfaced as a flaky
+  // `internal-resolution-error` from `@arethetypeswrong/cli`; here the two
+  // emits happen to agree today, which is worse, because nothing would say so
+  // when they stop agreeing.
+  "extends": "./tsconfig.lib.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false
+  }
+}

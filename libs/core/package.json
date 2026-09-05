@@ -12,6 +12,7 @@
   "author": "Chia Yu Pai <fantasyatelier@gmail.com>",
   "homepage": "https://github.com/Rytass/WMS-Module#readme",
   "license": "MIT",
+  "type": "commonjs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Rytass/WMS-Module.git"
@@ -20,28 +21,39 @@
     "url": "https://github.com/Rytass/WMS-Module/issues"
   },
   "main": "./index.cjs.js",
-  "module": "./index.js",
+  "module": "./index.mjs",
   "typings": "./index.d.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "require": "./index.cjs.js",
-      "import": "./index.js"
+      "import": {
+        "types": "./index.d.mts",
+        "default": "./index.mjs"
+      },
+      "require": {
+        "types": "./index.d.ts",
+        "default": "./index.cjs.js"
+      }
     },
     "./package.json": "./package.json"
   },
   "files": [
     "**/*.js",
+    "**/*.mjs",
     "**/*.d.ts",
+    "**/*.d.mts",
     "README.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "!src",
+    "!*.config.mjs",
+    "!scripts"
   ],
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "luxon": "^3.0.0"
+    "luxon": "^3.0.0",
+    "tslib": "^2.6.0"
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0",

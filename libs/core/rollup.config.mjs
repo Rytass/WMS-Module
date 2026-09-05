@@ -53,7 +53,8 @@ export default [
       format: 'esm',
       preserveModules: true,
       preserveModulesRoot: 'src',
-      entryFileNames: '[name].js',
+      entryFileNames: '[name].mjs',
+      chunkFileNames: '[name]-[hash].mjs',
     },
     external: isExternal,
     plugins: [
