@@ -1,3 +1,23 @@
+## 0.5.0 (2026-09-05)
+
+### 🚀 Features
+
+- **react:** show batch lineage and attributes, and fix the QC icon ([a6761b9](https://github.com/Rytass/WMS-Module/commit/a6761b9))
+- **react:** read-only consumption order list and detail ([fbc1014](https://github.com/Rytass/WMS-Module/commit/fbc1014))
+- **react:** make an order's upstream documents linkable ([14e9d77](https://github.com/Rytass/WMS-Module/commit/14e9d77))
+
+### 🩹 Fixes
+
+- **react:** stop the typecheck target overwriting the built declarations ([4786c19](https://github.com/Rytass/WMS-Module/commit/4786c19))
+- **react:** compose the detail page from Description, and four smaller defects ([0117e05](https://github.com/Rytass/WMS-Module/commit/0117e05))
+- **core:** snapshot requiresInspection onto the count sheet ([5fc1963](https://github.com/Rytass/WMS-Module/commit/5fc1963))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+- Claude Opus 5 (1M context)
+
 ## 0.4.1 (2026-09-01)
 
 This was a version bump only for react to align it with other projects, there were no code changes.

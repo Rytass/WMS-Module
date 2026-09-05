@@ -1,3 +1,54 @@
+## 0.11.0 (2026-09-05)
+
+### 🚀 Features
+
+- **core:** surface batch lineage and attributes on the aggregated stock ([be1df6c](https://github.com/Rytass/WMS-Module/commit/be1df6c))
+- **graphql:** expose the consumption order ([74a68ee](https://github.com/Rytass/WMS-Module/commit/74a68ee))
+- ⚠️  **core:** give a direct service call the same event guarantee as a mutation ([3914c32](https://github.com/Rytass/WMS-Module/commit/3914c32))
+- **graphql:** read and write order references ([802ca4e](https://github.com/Rytass/WMS-Module/commit/802ca4e))
+- **graphql:** expose excludeLocationIds on the stock queries ([de91544](https://github.com/Rytass/WMS-Module/commit/de91544))
+- **graphql:** expose batch attributes through a JSONObject scalar ([088abba](https://github.com/Rytass/WMS-Module/commit/088abba))
+
+### 🩹 Fixes
+
+- **core:** snapshot requiresInspection onto the count sheet ([5fc1963](https://github.com/Rytass/WMS-Module/commit/5fc1963))
+- ⚠️  **graphql:** restore per-event typing for inline hook and listener maps ([a8d3990](https://github.com/Rytass/WMS-Module/commit/a8d3990))
+- **core:** stop the inspection flag rewriting every default receipt's batch ([7a9bf57](https://github.com/Rytass/WMS-Module/commit/7a9bf57))
+- ⚠️  **core:** compare consumption quantities in base units, and guard the target ([59e299b](https://github.com/Rytass/WMS-Module/commit/59e299b))
+- **core:** order a paginated consumption order list by a property path ([ebdba4d](https://github.com/Rytass/WMS-Module/commit/ebdba4d))
+
+### ⚠️  Breaking Changes
+
+- **graphql:** restore per-event typing for inline hook and listener maps  ([a8d3990](https://github.com/Rytass/WMS-Module/commit/a8d3990))
+  none intended -- this restores typing that 849b082
+  removed by accident. A consumer who worked around it by annotating the
+  map separately is unaffected.
+  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+- **core:** compare consumption quantities in base units, and guard the target  ([59e299b](https://github.com/Rytass/WMS-Module/commit/59e299b))
+  `ConsumptionOrderItemProgress` now reports base units on
+  every field, including `target`. A consumer reading `target` as the
+  number the line was ordered in must divide by the line's conversion
+  factor. Nothing changes for a line already in its base unit.
+  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+- **core:** give a direct service call the same event guarantee as a mutation  ([3914c32](https://github.com/Rytass/WMS-Module/commit/3914c32))
+  `WmsBeforeHookContext.executionContext` is now
+  `ExecutionContext | null`, with a `source: 'graphql' | 'host'`
+  discriminant beside it. A direct service call has no execution context,
+  and fabricating one would hand a hook a lie instead of an obvious null.
+  A hook that reaches into the request should branch on `source` first.
+  The same widening applies to `WmsTypedBeforeHookContext`.
+  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+  Claude-Session: https://claude.ai/code/session_01NXgGpWvXoNXZyUmZmZ43LY
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.9.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.10.2 (2026-09-01)
 
 ### 🧱 Updated Dependencies

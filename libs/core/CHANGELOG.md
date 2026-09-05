@@ -1,3 +1,59 @@
+## 0.9.0 (2026-09-05)
+
+### 🚀 Features
+
+- **core:** publish BaseOrderService ([475c147](https://github.com/Rytass/WMS-Module/commit/475c147))
+- **core:** let a host register its own change table for stock events ([72560cc](https://github.com/Rytass/WMS-Module/commit/72560cc))
+- **core:** surface batch lineage and attributes on the aggregated stock ([be1df6c](https://github.com/Rytass/WMS-Module/commit/be1df6c))
+- **core:** issue, return and settle a consumption order ([191a778](https://github.com/Rytass/WMS-Module/commit/191a778))
+- **core:** add the consumption order's tables and change types ([54e095c](https://github.com/Rytass/WMS-Module/commit/54e095c))
+- ⚠️  **core:** give a direct service call the same event guarantee as a mutation ([3914c32](https://github.com/Rytass/WMS-Module/commit/3914c32))
+- **graphql:** read and write order references ([802ca4e](https://github.com/Rytass/WMS-Module/commit/802ca4e))
+- **core:** link an order to the host document it was opened for ([1730b93](https://github.com/Rytass/WMS-Module/commit/1730b93))
+- **core:** let stock queries exclude locations ([8ec8176](https://github.com/Rytass/WMS-Module/commit/8ec8176))
+- **core:** carry batch lineage and host attributes through a split ([391f565](https://github.com/Rytass/WMS-Module/commit/391f565))
+
+### 🩹 Fixes
+
+- **core:** snapshot requiresInspection onto the count sheet ([5fc1963](https://github.com/Rytass/WMS-Module/commit/5fc1963))
+- **core:** refuse a split that names one batch key twice ([7a7f6b1](https://github.com/Rytass/WMS-Module/commit/7a7f6b1))
+- **core:** correct the BaseOrderService recipe, and derive the owned tables ([0712ee3](https://github.com/Rytass/WMS-Module/commit/0712ee3))
+- **core:** stop the inspection flag rewriting every default receipt's batch ([7a9bf57](https://github.com/Rytass/WMS-Module/commit/7a9bf57))
+- ⚠️  **core:** compare consumption quantities in base units, and guard the target ([59e299b](https://github.com/Rytass/WMS-Module/commit/59e299b))
+- ⚠️  **core:** stop calling every uninspected batch "awaiting inspection" ([e28de17](https://github.com/Rytass/WMS-Module/commit/e28de17))
+- **core:** order a paginated consumption order list by a property path ([ebdba4d](https://github.com/Rytass/WMS-Module/commit/ebdba4d))
+
+### ⚠️  Breaking Changes
+
+- **core:** compare consumption quantities in base units, and guard the target  ([59e299b](https://github.com/Rytass/WMS-Module/commit/59e299b))
+  `ConsumptionOrderItemProgress` now reports base units on
+  every field, including `target`. A consumer reading `target` as the
+  number the line was ordered in must divide by the line's conversion
+  factor. Nothing changes for a line already in its base unit.
+  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+- **core:** stop calling every uninspected batch "awaiting inspection"  ([e28de17](https://github.com/Rytass/WMS-Module/commit/e28de17))
+  existing rows take the column default `false`, so
+  batches that were genuinely awaiting inspection before this upgrade stop
+  being reported as such. There is no generic backfill -- `inspectionResult
+  IS NULL` is precisely the signal that turned out not to mean this -- so a
+  deployment that cares has to derive it from its own receive history.
+  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+  Claude-Session: https://claude.ai/code/session_01NXgGpWvXoNXZyUmZmZ43LY
+- **core:** give a direct service call the same event guarantee as a mutation  ([3914c32](https://github.com/Rytass/WMS-Module/commit/3914c32))
+  `WmsBeforeHookContext.executionContext` is now
+  `ExecutionContext | null`, with a `source: 'graphql' | 'host'`
+  discriminant beside it. A direct service call has no execution context,
+  and fabricating one would hand a hook a lie instead of an obvious null.
+  A hook that reaches into the request should branch on `source` first.
+  The same widening applies to `WmsTypedBeforeHookContext`.
+  Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+  Claude-Session: https://claude.ai/code/session_01NXgGpWvXoNXZyUmZmZ43LY
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
 ## 0.8.1 (2026-09-01)
 
 ### 🩹 Fixes
