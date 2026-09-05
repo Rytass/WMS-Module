@@ -90,6 +90,8 @@ Touch all of these or the publish pipeline silently misbehaves:
 5. `tsconfig.base.json` `paths` — add `"@rytass/wms-module-<name>": ["libs/<name>/src/index.ts"]` for the dev loop
 6. `nx.json` `release.projects` — add `"<name>"` (Nx Release uses the global tag pattern `{projectName}@{version}`, so there is no per-lib tag config)
 7. `.gitignore` — exclude the per-file build artefacts (`libs/<name>/<emit-dirs>`) so a local build does not pollute git status
+8. `libs/<name>/tsconfig.typecheck.json` and an explicit `typecheck` target — see below; the inferred one emits
+9. `project.json` — a `pkg-quality` target running `node tools/pkg-gate.mjs libs/<name>`, and `prepublish-check` depending on `typecheck`, `lint`, `build`, `pkg-quality`
 
 (There is **no** publish CI workflow to touch — publishing is manual via `yarn release` + `yarn release:publish`; the old `.github/workflows/publish.yml` was removed in PR #177. See `RELEASING.md`.)
 
@@ -405,6 +407,50 @@ GraphQL DTOs in `libs/graphql/src/lib/dto/*.dto.ts` are returned from services t
 #### Rollup externals must track peer deps
 
 Each `libs/*/rollup.config.mjs` keeps an `externalPatterns` array. When you add a peer dependency to a lib's `package.json` you must also add the package name (and any sub-path regex like `/^lodash\//`) to that array, otherwise Rollup will bundle the dep into our output — bloating the package and locking consumers to one specific version. The dependencies are not auto-synced.
+
+It cuts the other way too, and that half went unnoticed for every release so far: marking a
+package external and **not** declaring it makes the emitted `import` a dangling reference.
+`core` and `graphql` emit `import { __decorate } from 'tslib'` from every decorated class,
+`tslib` was external, and it was in nobody's `dependencies` — both packages were broken on a
+clean `npm install` from their first publish. Every real consumer is a NestJS app that
+already has `tslib`, so only a clean install could have caught it, and neither publint nor
+attw reads the JavaScript. `tools/pkg-gate.mjs` now does; see `RELEASING.md`.
+
+#### `core` and `graphql` are dual-format packages
+
+```
+index.cjs.js   CJS bundle          ← "require"          "type": "commonjs" makes .js CJS
+index.mjs      ESM, one file per   ← "import"           .mjs is ESM regardless
+lib/**/*.mjs   source module
+index.d.ts     declarations        ← "require".types    CJS-flavoured, one copy
+index.d.mts    one-line re-export  ← "import".types     ESM-flavoured
+```
+
+The ESM tree must be `.mjs`. Emitting it as `.js` under `"type": "commonjs"` makes Node parse
+it as CommonJS and reject the `export` keyword — a break that Node 22.7+ hides by retrying as
+ESM, which is why it survived as nothing but an attw warning that had been waived.
+
+There is **one** declaration tree, CJS-flavoured, serving the `require` condition. The
+`import` condition gets a one-line `.d.mts` per entry point re-exporting it, written by
+`tools/emit-esm-type-shims.mjs` at the end of the build — a second full tree would double the
+package for no new information. ESM importing CJS types is legal; the reverse is not, so the
+asymmetry only works in this direction. The shim is `export *`, which does not carry a
+default, and the script refuses to write one for a barrel that has a default export rather
+than dropping it silently.
+
+A new entry point therefore means: an `exports` entry with `import`/`require` conditions, a
+rollup ESM input **and** a CJS bundle for it, and its name appended to the
+`emit-esm-type-shims.mjs` call in `project.json`. Miss the last one and the `import`
+condition points at a `.d.mts` that does not exist.
+
+#### `typecheck` must be declared explicitly, and must not emit
+
+`@nx/js/typescript` infers `typecheck` from `tsconfig.lib.json`, which for all three libs is a
+*build* config (`outDir: "."`, `declaration: true`). The inferred command
+(`tsc --build --emitDeclarationOnly`) therefore writes declarations over the ones `build` just
+produced, and `prepublish-check` runs the two in parallel — so whichever finished last decided
+what shipped. Each lib declares its own `typecheck` target against a `tsconfig.typecheck.json`
+with `noEmit`. Deleting one silently restores the race.
 
 #### `apps/api` webpack alias for source-resolution
 

@@ -112,26 +112,94 @@ curl -s https://registry.npmjs.org/@rytass/wms-module-graphql \
 
 `yarn release` runs `nx run-many -t prepublish-check` first (`nx.json`
 `release.version.preVersionCommand`). Each project's `prepublish-check` depends on
-`typecheck`, `lint`, `build`, `pkg-quality` (publint) and `pkg-quality-attw`
-([`@arethetypeswrong/cli`](https://github.com/arethetypeswrong/arethetypeswrong.github.io)).
+`typecheck`, `lint`, `build` and `pkg-quality`.
 
-**publint alone cannot fail the gate** — it exits 0 on warnings. `pkg-quality-attw` is the
-one that returns non-zero, which is why it is in `dependsOn`.
+`pkg-quality` is `tools/pkg-gate.mjs`. It packs the project **once** and runs every check
+against that one tarball:
+
+| Check | What it catches |
+|---|---|
+| [publint](https://publint.dev) | `package.json` shape — bad `exports` conditions, files that do not exist, fields pointing at nothing |
+| [attw](https://github.com/arethetypeswrong/arethetypeswrong.github.io) | whether the types resolve at all, and whether they resolve to the same module kind as the JavaScript beside them, under `node10` / `node16` / `bundler` |
+| declared dependencies | every bare specifier in the shipped JavaScript is in `dependencies`, `peerDependencies` or `optionalDependencies` |
+
+Three details of that are load-bearing, each because of a specific failure:
+
+- **It packs once.** The two targets this replaced each ran `npm pack` and then globbed
+  `libs/<name>/*.tgz`. An interrupted run leaves a tarball behind, and the next run then
+  analysed the stale one — giving a plausible answer about the wrong artefact.
+- **publint runs on the *extracted* tarball**, not the working directory, so the `files`
+  allowlist is applied first. Otherwise a file that never ships can satisfy a field.
+- **The script aggregates exit codes.** publint exits 0 on warnings, so on its own it can
+  never fail a gate.
+
+### The dependency check exists because `tslib` shipped undeclared
+
+`core` and `graphql` emit `import { __decorate } from 'tslib'` — decorators, in every entity
+and every module — and `tslib` was in neither package's `dependencies`. Both were broken on a
+clean `npm install` from the day they were first published. Nothing noticed because every
+realistic consumer is a NestJS app that already has `tslib` transitively, so the only thing
+that could have failed was a clean install, and nobody did one.
+
+publint and attw both look at `package.json` and the type declarations. Neither reads the
+JavaScript. That is the gap this check closes, and it is worth knowing it also catches the
+inverse mistake: it is what caught `rollup.config.mjs` being published when the `files`
+allowlist grew a `**/*.mjs` entry.
+
+### `typecheck` must not emit
+
+`@nx/js/typescript` infers a project's `typecheck` target from `tsconfig.lib.json`, and for
+all three libs that config exists to *build* — `outDir: "."`, `declaration: true`. The
+inferred command is `tsc --build --emitDeclarationOnly`, so running it as a check writes
+declarations over the ones `build` just produced. `prepublish-check` depends on `typecheck`
+and `build`, and nx runs them in parallel, so whichever finished last decided what shipped.
+
+In `libs/react` that raced against `scripts/fix-dts-specifiers.mjs` and surfaced as an
+`internal-resolution-error` from attw that appeared and vanished between runs. In `core` and
+`graphql` the two emits happened to agree, which is worse: the same coin flip, with nothing
+to say so when they stop agreeing.
+
+All three projects therefore declare `typecheck` explicitly, pointing at a
+`tsconfig.typecheck.json` that sets `noEmit`. **Do not delete those targets** — nx will
+silently fall back to the inferred one.
 
 ### Known attw exemptions — a shrinking list, not a permanent one
 
-Three real packaging defects are currently waived per project via `--ignore-rules`, so the
-gate is green and fails on anything *new*. Each waiver is a bug, not a decision:
-
 | Project | Waived rule | Why it fires | Fix |
 |---|---|---|---|
-| `core`, `graphql` | `unexpected-module-syntax` | Neither declares `"type"`, so npm treats their `.js` as CJS while the ESM build emits ESM syntax into `.js` | Emit ESM as `.mjs` and set `"type": "commonjs"` |
 | `react` | `cjs-resolves-to-esm` | Deliberate — the package is ESM-only (see `libs/react/README.md` "Known issues") | Not a bug; keep waived |
 
-Delete a row from this table and its `--ignore-rules` entry in the same commit that fixes it.
-(`react`'s `internal-resolution-error` was retired that way — the emitted declarations now
-carry explicit specifiers, written by `libs/react/scripts/fix-dts-specifiers.mjs` at the end
-of the build.)
+Delete a row from this table and its `--attw-ignore` entry in the same commit that fixes it.
+Two rows have been retired that way: `react`'s `internal-resolution-error` (the emitted
+declarations now carry explicit specifiers, written by `libs/react/scripts/fix-dts-specifiers.mjs`)
+and `core`/`graphql`'s `unexpected-module-syntax` — see below.
+
+### How `core` and `graphql` are packaged
+
+Both are dual-format, and the shape is deliberate:
+
+```
+index.cjs.js   CJS bundle          ← "require"          "type": "commonjs" makes .js CJS
+index.mjs      ESM, one file per   ← "import"           .mjs is ESM regardless
+lib/**/*.mjs   source module
+index.d.ts     declarations        ← "require".types    CJS-flavoured, one copy
+index.d.mts    one-line re-export  ← "import".types     ESM-flavoured
+```
+
+The ESM tree used to be emitted as `.js` with no `"type"` field, which made Node parse it as
+CommonJS and choke on the `export` keyword. Modern Node hides this — since 22.7 it retries as
+ESM when CJS parsing fails — so the failure only ever showed up as attw's
+`unexpected-module-syntax`, and that rule was waived. It was a real defect the whole time.
+
+A second full declaration tree for the `import` condition would double the package for no new
+information, so each entry point gets a one-line `.d.mts` re-exporting the `.d.ts` beside it,
+written by `tools/emit-esm-type-shims.mjs` at the end of the build. ESM may import CJS, so
+this direction is legal; the reverse is not. The shim uses `export *`, which does **not**
+carry a default export — the script refuses to write one for a barrel that has a default, so
+that a future default cannot vanish silently.
+
+`libs/react` is not part of this: it is ESM-only and declares `"type": "module"` (`nuqs` is
+ESM-only and cannot be `require()`-d).
 
 ## Conventional commit scopes used in this repo
 
