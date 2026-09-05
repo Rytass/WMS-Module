@@ -437,32 +437,40 @@ clean `npm install` from their first publish. Every real consumer is a NestJS ap
 already has `tslib`, so only a clean install could have caught it, and neither publint nor
 attw reads the JavaScript. `tools/pkg-gate.mjs` now does; see `RELEASING.md`.
 
-#### `core` and `graphql` are dual-format packages
+#### `core` and `graphql` ship CommonJS only, and must keep shipping exactly one file
 
 ```
-index.cjs.js   CJS bundle          ← "require"          "type": "commonjs" makes .js CJS
-index.mjs      ESM, one file per   ← "import"           .mjs is ESM regardless
-lib/**/*.mjs   source module
-index.d.ts     declarations        ← "require".types    CJS-flavoured, one copy
-index.d.mts    one-line re-export  ← "import".types     ESM-flavoured
+index.cjs.js   the bundle           ← every condition in `exports` points here
+index.d.ts     declarations
 ```
 
-The ESM tree must be `.mjs`. Emitting it as `.js` under `"type": "commonjs"` makes Node parse
-it as CommonJS and reject the `export` keyword — a break that Node 22.7+ hides by retrying as
-ESM, which is why it survived as nothing but an attw warning that had been waived.
+There is deliberately **no `import` / `require` fork**. These packages export DI Symbols and
+TypeORM entity classes, and both are identities: a process that reaches two module records
+gets two of everything, so a provider registered under one `WMS_CORE_MODULE_OPTIONS` is
+invisible to a lookup holding the other, and `instanceof BatchEntityClass` is false for a row
+the other copy built. Measured on the published `0.9.1`, which shipped both formats,
+`require()` and `import()` of the same package in one process disagreed on **64 of 64 Symbols
+and 57 of 57 entity classes** — no shared identity at all.
 
-There is **one** declaration tree, CJS-flavoured, serving the `require` condition. The
-`import` condition gets a one-line `.d.mts` per entry point re-exporting it, written by
-`tools/emit-esm-type-shims.mjs` at the end of the build — a second full tree would double the
-package for no new information. ESM importing CJS types is legal; the reverse is not, so the
-asymmetry only works in this direction. The shim is `export *`, which does not carry a
-default, and the script refuses to write one for a barrel that has a default export rather
-than dropping it silently.
+ESM consumers lose nothing. Node reads named exports out of CommonJS via `cjs-module-lexer`,
+which detects all 162 of core's, including the one declared with `Object.defineProperty`
+instead of `exports.X =`. The ESM build existed to tree-shake a NestJS library whose classes
+are all decorated and side-effectful, for consumers that do not exist: `apps/api` resolves
+through a path alias to source, and `libs/react` — the only package that ships to a browser —
+is ESM-only and depends on neither.
 
-A new entry point therefore means: an `exports` entry with `import`/`require` conditions, a
-rollup ESM input **and** a CJS bundle for it, and its name appended to the
-`emit-esm-type-shims.mjs` call in `project.json`. Miss the last one and the `import`
-condition points at a `.d.mts` that does not exist.
+`tools/pkg-gate.mjs` enforces it structurally: every condition of a subpath must resolve to
+the same file (`types` excepted), so a fork fails the gate rather than reaching npm.
+
+A new entry point therefore needs an `exports` entry whose conditions all name one
+`.cjs.js`, and a rollup input producing it. **Do not add a second format to "improve
+interop"** — interop is what `cjs-module-lexer` already provides, and a second format is the
+bug.
+
+Declarations come from an explicit `tsc -p tsconfig.lib.json --emitDeclarationOnly` step
+after rollup, not from a rollup plugin. One consequence: `tsc` exits non-zero on a type error
+even where `noEmitOnError: false` is set, so `nx build graphql` now fails rather than emitting
+a `.d.ts` that lies about the contract.
 
 #### `typecheck` must be declared explicitly, and must not emit
 
