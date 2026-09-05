@@ -65,6 +65,38 @@ Two more things the renderer will not do for you:
 
 > Per-project semver: in `0.x.y` we treat minor bumps as the breaking-change channel (consistent with SemVer's 0.x rule). The `0.3.0` graphql release was a breaking API surface change but did not bump to `1.0.0` because pre-1.0 lib consumers expect that contract.
 
+### Never spell the footer token in a commit body
+
+Nx's conventional-commits parser matches the breaking-change token **anywhere in the
+message**, not only as a footer at the start of a line. Backticks, mid-sentence, inside a
+paragraph explaining the convention — all of it counts.
+
+`69eb46d docs: tidy the 0.9.0 / 0.11.0 release notes` was a documentation commit that changed
+two `CHANGELOG.md` files and nothing else. Its body described the rule in the section above
+and quoted the token twice. Nx read it as a breaking change and resolved `core` and `graphql`
+to **1.0.0** — a major bump, from a commit that ships no code, for two packages whose only
+real change that cycle was declaring `tslib`. `react` escaped only because that commit touched
+none of its files.
+
+So when a commit message needs to *talk about* the convention, do not write the token out.
+Say "the breaking-change footer" instead. If a release preview shows a major you did not
+intend, this is the first thing to check:
+
+```bash
+git log <lastTag>..HEAD --format='%h %s' --grep='BREAKING' -i
+```
+
+Recovering from it is easy only *before* the tags are pushed — pass an explicit specifier to
+override the resolved one:
+
+```bash
+yarn nx release patch --skip-publish
+```
+
+Afterwards it is not recoverable: npm versions cannot be reused, and the project's whole
+versioning regime has silently moved on. This repo is deliberately still in `0.x`, where the
+minor slot is the breaking-change channel.
+
 ## One-time setup
 
 1. **npm scope**: ensure the `@rytass` org on npmjs.com has the publishing user as a maintainer with publish rights.
