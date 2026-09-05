@@ -57,22 +57,8 @@
         "build"
       ],
       "options": {
-        "command": "npx -y publint run libs/react --pack false",
+        "command": "node tools/pkg-gate.mjs libs/react --attw-ignore cjs-resolves-to-esm",
         "parallel": false
-      }
-    },
-    "pkg-quality-attw": {
-      "executor": "nx:run-commands",
-      "dependsOn": [
-        "build"
-      ],
-      "options": {
-        "parallel": false,
-        "commands": [
-          "npm pack --pack-destination ./libs/react ./libs/react",
-          "npx -y @arethetypeswrong/cli ./libs/react/*.tgz --ignore-rules cjs-resolves-to-esm",
-          "rm -f ./libs/react/*.tgz"
-        ]
       }
     },
     "prepublish-check": {
@@ -81,8 +67,7 @@
         "typecheck",
         "lint",
         "build",
-        "pkg-quality",
-        "pkg-quality-attw"
+        "pkg-quality"
       ]
     },
     "test": {
