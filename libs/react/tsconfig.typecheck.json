@@ -1,0 +1,18 @@
+{
+  // Type checking only — deliberately emits nothing.
+  //
+  // `@nx/js/typescript` infers this project's `typecheck` target from
+  // `tsconfig.lib.json`, and that config exists to *build*: `outDir: "."` with
+  // `declaration: true`. Running it as a check therefore wrote declarations over
+  // the ones `build` had just post-processed with `fix-dts-specifiers.mjs`,
+  // stripping the explicit `.js` specifiers that `node16` resolution needs.
+  //
+  // `prepublish-check` depends on `typecheck` and `build` in parallel, so which
+  // one landed last decided whether the release gate passed — a coin flip that
+  // read as a flaky `internal-resolution-error` from `@arethetypeswrong/cli`.
+  "extends": "./tsconfig.lib.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "declaration": false
+  }
+}

@@ -10,6 +10,13 @@
         "command": "graphql-codegen -c libs/react/src/graphql/codegen.ts"
       }
     },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/react",
+        "command": "tsc -p tsconfig.typecheck.json"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "outputs": [
