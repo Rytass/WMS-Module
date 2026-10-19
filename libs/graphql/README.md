@@ -213,6 +213,9 @@ those apart.
 
 Settling or cancelling the count releases the lock.
 
+➡️ **Per-operation usage (繁體中文): [`docs/inventory-count.md`](./docs/inventory-count.md)** —
+every query and mutation with arguments, preconditions, errors and examples.
+
 
 ## Events & Hooks
 
@@ -302,6 +305,8 @@ Full documentation is shipped inside this package under the `docs/` directory (a
 | [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
 | [`docs/authorization.md`](./docs/authorization.md) | Complete resolver-authorization design & integration recipes (member-base / custom JWT / no-guard) |
 | [`docs/events.md`](./docs/events.md) | Mutation event/hook system — before-hooks (veto), post-commit after-listeners, complete event list, event-emitter bridge |
+| [`docs/inventory-count.md`](./docs/inventory-count.md) | 盤點 API 使用說明（繁體中文）— 3 支 query、9 支 mutation 的參數、前置狀態、錯誤與範例 |
+
 | [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
 
 GitHub hosted links (always up-to-date):
