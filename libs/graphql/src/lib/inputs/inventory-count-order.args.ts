@@ -77,6 +77,14 @@ export class CreateInventoryCountOrderArgs {
   /** Root locations; every descendant is pulled into scope automatically. */
   @Field(() => [ID])
   locationIds!: string[];
+
+  /**
+   * Who opened the count, as the host names its users. Shown as 建立者 and
+   * matched by the list's `createdBy` filter; the other order families take
+   * it the same way.
+   */
+  @Field(() => String, { nullable: true })
+  createdBy?: string;
 }
 
 @ArgsType()

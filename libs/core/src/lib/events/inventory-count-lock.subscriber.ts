@@ -9,14 +9,23 @@ import {
 /** The count's own settlement writes here; it must never lock itself out. */
 const INVENTORY_COUNT_CHANGE_TABLE = 'inventory_count_order_changes';
 
+/** The columns of an order item that name where its stock sits or goes. */
+interface ItemLocationLike {
+  readonly id?: string;
+  readonly locationId?: string | null;
+  /** A transfer item also names a destination; completing it writes stock there. */
+  readonly targetLocationId?: string | null;
+}
+
 /** A `*_order_change` row as seen in `beforeInsert`. */
 interface ChangeRowLike {
   readonly itemId?: string;
-  readonly item?: { readonly id?: string; readonly locationId?: string | null };
+  readonly item?: ItemLocationLike;
 }
 
 interface LockRow {
   readonly key: string;
+  readonly locationId: string;
 }
 
 /**
@@ -41,6 +50,17 @@ interface LockRow {
  *   covered too — which is exactly the case that matters, because a host with
  *   its own inbound flow does precisely that.
  *
+ * Both ends of a movement are checked
+ * -----------------------------------
+ * A transfer item names a source (`locationId`) and a destination
+ * (`targetLocationId`), and completing it writes stock at the destination. A
+ * change row cannot tell a reservation from a completion — both are an item id
+ * and a signed quantity — so any change on an item whose source *or*
+ * destination is locked is refused. The cost is that a transfer *into* a counted
+ * location cannot be reserved or cancelled either while the count runs. That is
+ * the conservative side to err on: stock arriving on a counted shelf is exactly
+ * the movement the snapshot cannot absorb.
+ *
  * The check costs one indexed lookup per change row. That is deliberate: caching
  * the locked set would open a window right after `start()` in which a movement
  * slips through, and a lock with a window is not a lock.
@@ -61,9 +81,9 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
       return;
     }
 
-    const locationId = await this.resolveLocationId(event);
+    const locationIds = await this.resolveLocationIds(event);
 
-    if (!locationId) {
+    if (!locationIds.length) {
       // split / merge / reclassify items carry no location. They still move
       // stock, but only within a position the caller already named elsewhere;
       // there is nothing to match against the scope here.
@@ -71,13 +91,13 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
     }
 
     const locks: LockRow[] = await event.manager.query(
-      `SELECT o."key"
+      `SELECT o."key", l."locationId"
          FROM inventory_count_order_locations l
          JOIN inventory_count_orders o ON o.id = l."orderId"
-        WHERE l."locationId" = $1
+        WHERE l."locationId" = ANY($1)
           AND o.status = 'COUNTING'
         LIMIT 1`,
-      [locationId],
+      [locationIds],
     );
 
     if (!locks.length) {
@@ -87,19 +107,37 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
     // Naming the order is the difference between an operator who can go and
     // settle the count and one who just sees "denied".
     throw new ConflictException(
-      `Location ${locationId} is locked by inventory count order ${locks[0].key}; finish or cancel that count before moving this stock.`,
+      `Location ${locks[0].locationId} is locked by inventory count order ${locks[0].key}; finish or cancel that count before moving this stock.`,
     );
   }
 
   /**
-   * The location the change ultimately touches, taken from the change's order
-   * item. `beforeInsert` may see the relation either already flattened to
-   * `itemId` or still as the item object, depending on how the caller built the
-   * row, so both are accepted.
+   * Every location the change ultimately touches — the item's own and, for a
+   * transfer, the one it is headed to. `beforeInsert` may see the relation
+   * either already flattened to `itemId` or still as the item object,
+   * depending on how the caller built the row, so both are accepted.
    */
-  private async resolveLocationId(
+  private async resolveLocationIds(
     event: InsertEvent<unknown>,
-  ): Promise<string | null> {
+  ): Promise<string[]> {
+    const item = await this.resolveItem(event);
+
+    if (!item) {
+      return [];
+    }
+
+    return [
+      ...new Set(
+        [item.locationId, item.targetLocationId].filter(
+          (id): id is string => typeof id === 'string' && id.length > 0,
+        ),
+      ),
+    ];
+  }
+
+  private async resolveItem(
+    event: InsertEvent<unknown>,
+  ): Promise<ItemLocationLike | null> {
     const entity = event.entity as ChangeRowLike | undefined;
 
     if (!entity) {
@@ -107,7 +145,7 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
     }
 
     if (entity.item && entity.item.locationId !== undefined) {
-      return entity.item.locationId;
+      return entity.item;
     }
 
     const itemId = entity.itemId ?? entity.item?.id;
@@ -124,12 +162,10 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
       return null;
     }
 
-    const item = await event.manager
-      .getRepository<{
-        locationId?: string | null;
-      }>(itemRelation.inverseEntityMetadata.target)
+    return event.manager
+      .getRepository<ItemLocationLike>(
+        itemRelation.inverseEntityMetadata.target,
+      )
       .findOne({ where: { id: itemId } as never });
-
-    return item?.locationId ?? null;
   }
 }

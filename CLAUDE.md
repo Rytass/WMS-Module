@@ -138,7 +138,13 @@ whose order item sits in a location scoped by a `COUNTING` inventory count. Like
 domain services stay untouched and a consumer calling a service directly is covered too —
 which is the case that matters. `inventory_count_order_changes` is exempt or settlement
 would lock itself out. If you add a new `*_order_change` table, this subscriber covers it
-automatically; if you add one that is *not* a stock movement, exempt it here.
+automatically; if you add one that is *not* a stock movement, exempt it here. It reads
+**both** `locationId` and `targetLocationId` off the item, so a transfer *into* a locked
+location is refused as well; if you add an item column that names where stock ends up,
+add it to `resolveLocationIds` or the lock has a hole. `settle()` additionally re-reads
+the ledger and refuses on any mismatch with the snapshot, which catches writes that
+bypass change rows entirely.
+
 
 The count's own entities (order, scope, item, change) are **not** in `WmsEntities` — they
 are owned outright by this package, so reference them by class per the asymmetry rule above.

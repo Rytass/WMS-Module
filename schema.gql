@@ -770,7 +770,8 @@ type Mutation {
   reclassifyInventoryOrder(materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
   scrapeMaterials(items: [ScrapeOrderItemInput!]!): ScrapeOrderDto!
   inspectMaterials(key: String!, note: String, items: [CreateQualityInspectionOrderItemArgs!]!): QualityInspectionOrderDto!
-  createInventoryCountOrder(name: String!, countDate: String!, locationIds: [ID!]!): InventoryCountOrderDto!
+  createInventoryCountOrder(name: String!, countDate: String!, locationIds: [ID!]!, createdBy: String): InventoryCountOrderDto!
+
   updateInventoryCountOrder(id: ID!, name: String, countDate: String, locationIds: [ID!]): InventoryCountOrderDto!
   startInventoryCount(id: ID!): InventoryCountOrderDto!
   countInventory(id: ID!, items: [CountInventoryItemInput!]!): InventoryCountOrderDto!
