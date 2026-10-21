@@ -2,11 +2,13 @@ mutation CreateInventoryCountOrder(
   $name: String!
   $countDate: String!
   $locationIds: [ID!]!
+  $createdBy: String
 ) {
   createInventoryCountOrder(
     name: $name
     countDate: $countDate
     locationIds: $locationIds
+    createdBy: $createdBy
   ) {
     id
     key
