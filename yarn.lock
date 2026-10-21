@@ -4230,10 +4230,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/core@npm:1.1.0":
-  version: 1.1.0
-  resolution: "@mezzanine-ui/core@npm:1.1.0"
+"@mezzanine-ui/core@npm:1.2.4":
+  version: 1.2.4
+  resolution: "@mezzanine-ui/core@npm:1.2.4"
   dependencies:
+    "@floating-ui/dom": "npm:^1.7.4"
     "@mezzanine-ui/icons": "npm:1.0.2"
     "@mezzanine-ui/system": "npm:1.0.2"
     lodash: "npm:^4.17.21"
@@ -4253,7 +4254,7 @@ __metadata:
       optional: true
     moment:
       optional: true
-  checksum: 10c0/ec6cc80894bf5ff3e44fbd005a19efece9d8a50d3c1f1e1a055fa833869501b57cce085a153b4b0e073451ece5200b74a17236de6053007196fa2999477e5831
+  checksum: 10c0/6294a86974cccf7c8291d51e8fab481db16610a733d18babcf5cd05c862e49543a36019f8620781aac90fd9e18a0be1d05db67189e08ae54476f2ed2af9a9711
   languageName: node
   linkType: hard
 
@@ -4264,14 +4265,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mezzanine-ui/react@npm:1.4.1":
-  version: 1.4.1
-  resolution: "@mezzanine-ui/react@npm:1.4.1"
+"@mezzanine-ui/react@npm:1.7.1":
+  version: 1.7.1
+  resolution: "@mezzanine-ui/react@npm:1.7.1"
   dependencies:
     "@floating-ui/dom": "npm:^1.7.4"
     "@floating-ui/react-dom": "npm:^2.1.6"
     "@hello-pangea/dnd": "npm:^18.0.1"
-    "@mezzanine-ui/core": "npm:1.1.0"
+    "@mezzanine-ui/core": "npm:1.2.4"
     "@mezzanine-ui/icons": "npm:1.0.2"
     "@mezzanine-ui/system": "npm:1.0.2"
     "@tanstack/react-virtual": "npm:^3.13.13"
@@ -4287,7 +4288,7 @@ __metadata:
     lodash: ">=4"
     react: ">=18"
     react-dom: ">=18"
-  checksum: 10c0/841a825244f89b5d3d894431d766df5bc36e913b8f3149ad0a84d59a3eba6ec1e0ce5911a9821bbfb1f1228c83688f16b8415397d49d8d44ee3c960b837345f8
+  checksum: 10c0/3909f3d408d28c6d53fbc177f149d93f8abdbf967d596dfa5fc227b3e1875cc3a4ec46b4b264361055dbbb444c44e8c3fba4ef74ba41c0bdf55a5f3bbf117e9c
   languageName: node
   linkType: hard
 
@@ -8358,9 +8359,9 @@ __metadata:
     "@hookform/devtools": "npm:^4.4.0"
     "@hookform/error-message": "npm:^2.0.1"
     "@hookform/resolvers": "npm:^5.2.2"
-    "@mezzanine-ui/core": "npm:1.1.0"
+    "@mezzanine-ui/core": "npm:1.2.4"
     "@mezzanine-ui/icons": "npm:1.0.2"
-    "@mezzanine-ui/react": "npm:1.4.1"
+    "@mezzanine-ui/react": "npm:1.7.1"
     "@mezzanine-ui/system": "npm:1.0.2"
     "@nestjs/apollo": "npm:^13.4.5"
     "@nestjs/common": "npm:^11.0.0"
