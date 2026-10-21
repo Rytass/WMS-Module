@@ -181,6 +181,14 @@ back the flow:
 - **`startInventoryCount` snapshots eight attributes per line** — `held`, `inShipment`,
   `inspectionResult`, `transferId`, `vendorId`, `customerId`, `saleId`, `saleSerialId` —
   so the sheet keeps showing the world the variance is measured against, not today's.
+- **`createInventoryCountOrder` takes an optional `createdBy`**, like the other order
+  families; it is what the list shows as 建立者 and what its `createdBy` filter matches.
+- **Every count mutation is one transaction.** Creating, updating, starting, counting,
+  adding or removing a line, resetting, cancelling and settling each commit or roll back
+  as a whole, and each accepts an `EntityManager` to join a transaction you already hold.
+- **`settleInventoryCount` re-checks the snapshot first.** If a scoped line's
+  `bookQuantity` no longer matches the ledger — something wrote around the lock — it
+  refuses with a `409 Conflict` instead of posting a variance against stale books.
 
 ### ⚠️ Starting a count locks its locations
 
@@ -198,7 +206,16 @@ stock events use — so it covers resolvers **and** direct service calls, includ
 integration code. Without it the book snapshot the variance is measured against would go
 stale and settlement would silently write off somebody else's legitimate movement.
 
+Both ends of a movement count. A transfer item names a source and a destination, and the
+lock refuses a change on either, so a transfer **into** a counted location is refused as
+well — at reservation, completion and cancellation alike, because a change row cannot tell
+those apart.
+
 Settling or cancelling the count releases the lock.
+
+➡️ **Per-operation usage (繁體中文): [`docs/inventory-count.md`](./docs/inventory-count.md)** —
+every query and mutation with arguments, preconditions, errors and examples.
+
 
 ## Events & Hooks
 
@@ -288,6 +305,8 @@ Full documentation is shipped inside this package under the `docs/` directory (a
 | [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
 | [`docs/authorization.md`](./docs/authorization.md) | Complete resolver-authorization design & integration recipes (member-base / custom JWT / no-guard) |
 | [`docs/events.md`](./docs/events.md) | Mutation event/hook system — before-hooks (veto), post-commit after-listeners, complete event list, event-emitter bridge |
+| [`docs/inventory-count.md`](./docs/inventory-count.md) | 盤點 API 使用說明（繁體中文）— 3 支 query、9 支 mutation 的參數、前置狀態、錯誤與範例 |
+
 | [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
 
 GitHub hosted links (always up-to-date):

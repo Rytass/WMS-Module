@@ -93,8 +93,16 @@ a surplus may name a batch that does not exist yet (it is created during settlem
 > any stock movement touching a location in its scope is refused with a `ConflictException`
 > naming the count — including movements your own code makes by calling a service
 > directly. The check sits on the insert of every `*_order_change` row, so it covers every
-> path without any service needing to know about it. This is what keeps the book snapshot
-> the variance is measured against from going stale.
+> path without any service needing to know about it, and it looks at both ends of a
+> movement: a transfer *into* a counted location is refused too. This is what keeps the
+> book snapshot the variance is measured against from going stale.
+
+Every mutating method runs in one transaction and takes an optional `EntityManager` as
+its last argument to join one you already hold. `settle()` re-reads the ledger before it
+writes and refuses with a `ConflictException` if a scoped line's `bookQuantity` no longer
+matches it — the lock makes that impossible through this package, so a mismatch means
+something wrote to `stocks` around it.
+
 
 ## Operation names
 

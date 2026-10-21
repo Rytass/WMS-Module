@@ -16,6 +16,7 @@ import {
   ScrapeService,
   StockEntityClass,
   StockService,
+  TransferOrderService,
   WmsEntities,
 } from '@rytass/wms-module-core';
 import { WmsModuleGraphqlModule } from './graphql.module';
@@ -70,6 +71,7 @@ describe('inventory counting (integration)', () => {
   let entities: WmsEntities;
   let countService: InventoryCountOrderService;
   let scrapeService: ScrapeService;
+  let transferService: TransferOrderService;
   let stockService: StockService;
   let batchService: BatchService;
   let schema: GraphQLSchema;
@@ -88,9 +90,24 @@ describe('inventory counting (integration)', () => {
   let batchId: string;
   let aisleId: string;
   let shelfId: string;
+  /** A root location outside every count's scope, with its own material. */
+  let outsideId: string;
+  let outsideMaterialId: string;
+  let outsideBatchId: string;
 
-  /** Put `quantity` of the seeded material on `shelf`, the way a service would. */
-  const seedStock = async (quantity: number): Promise<void> => {
+  /**
+   * Put `quantity` of a material somewhere, the way a service would — but with
+   * no change row, so nothing the lock watches ever sees it. That is the point
+   * for the settlement guard test: it is the one write the lock cannot refuse.
+   */
+  const seedStock = async (
+    quantity: number,
+    position: {
+      materialId?: string;
+      batchId?: string;
+      locationId?: string;
+    } = {},
+  ): Promise<void> => {
     const orderRepository = dataSource.getRepository<OrderEntity>(
       entities.order,
     );
@@ -98,12 +115,31 @@ describe('inventory counting (integration)', () => {
 
     await dataSource.getRepository<StockEntityClass>(entities.stock).save({
       orderId: baseOrder.id,
-      materialId,
-      batchId,
-      locationId: shelfId,
+      materialId: position.materialId ?? materialId,
+      batchId: position.batchId ?? batchId,
+      locationId: position.locationId ?? shelfId,
       loaderId: stockService.resolveLoaderId(null),
       quantity,
     } as never);
+  };
+
+  const stockOfAt = async (where: {
+    materialId: string;
+    locationId: string;
+  }): Promise<number> => {
+    const { total } = (await dataSource
+      .getRepository<StockEntityClass>(entities.stock)
+      .createQueryBuilder('stock')
+      .select('COALESCE(SUM(stock.quantity), 0)', 'total')
+      .where('stock.materialId = :materialId', {
+        materialId: where.materialId,
+      })
+      .andWhere('stock.locationId = :locationId', {
+        locationId: where.locationId,
+      })
+      .getRawOne<{ total: string }>()) ?? { total: '0' };
+
+    return Number(total);
   };
 
   const stockAt = async (
@@ -166,6 +202,7 @@ describe('inventory counting (integration)', () => {
     entities = app.get(WmsEntities);
     countService = app.get(InventoryCountOrderService);
     scrapeService = app.get(ScrapeService);
+    transferService = app.get(TransferOrderService);
     stockService = app.get(StockService);
     batchService = app.get(BatchService);
     schema = app.get(GraphQLSchemaHost).schema;
@@ -215,6 +252,39 @@ describe('inventory counting (integration)', () => {
     batchId = batch.id;
 
     await seedStock(100);
+
+    // Stock that lives outside every count's scope, so a transfer can be
+    // pointed *at* a locked shelf from somewhere the lock has no say over.
+    const outside = await locationRepository.save(
+      locationRepository.create({
+        key: 'COUNT-OUTSIDE',
+        description: 'outside',
+        isActive: true,
+      } as DeepPartial<LocationEntityClass>),
+    );
+
+    outsideId = outside.id;
+
+    const outsideMaterial = await materialRepository.save(
+      materialRepository.create({
+        key: 'COUNT-OUTSIDE-MATERIAL',
+      } as DeepPartial<MaterialEntityClass>),
+    );
+
+    outsideMaterialId = outsideMaterial.id;
+
+    outsideBatchId = (
+      await batchService.getBatch({
+        key: 'COUNT-OUTSIDE-BATCH',
+        materialId: outsideMaterialId,
+      })
+    ).id;
+
+    await seedStock(10, {
+      materialId: outsideMaterialId,
+      batchId: outsideBatchId,
+      locationId: outsideId,
+    });
   });
 
   // A count left in PENDING or COUNTING locks its locations, so one failing test
@@ -396,6 +466,35 @@ describe('inventory counting (integration)', () => {
 
       expect(detailOrder.items.length).toBeGreaterThan(0);
       expect(detailOrder.items[0].material.key).toBe('COUNT-MATERIAL');
+
+      await countService.cancel(order.id);
+    });
+
+    it('records who opened the count', async () => {
+      // The list filters by `createdBy` and shows it as 建立者, so the create
+      // mutation has to be able to set it — the other order families' create
+      // mutations take it the same way.
+      const created = await execute(`mutation {
+        createInventoryCountOrder(
+          name: "creator check"
+          countDate: "2026-04-02"
+          locationIds: ["${aisleId}"]
+          createdBy: "Mark Wu"
+        ) { id createdBy }
+      }`);
+
+      expect(created.errors).toBeUndefined();
+
+      const order = created.data?.['createInventoryCountOrder'] as {
+        id: string;
+        createdBy: string | null;
+      };
+
+      expect(order.createdBy).toBe('Mark Wu');
+
+      const [byCreator] = await countService.findMany({ createdBy: 'Mark Wu' });
+
+      expect(byCreator.map(({ id }) => id)).toEqual([order.id]);
 
       await countService.cancel(order.id);
     });
@@ -594,8 +693,33 @@ describe('inventory counting (integration)', () => {
       // uninspected — the defaults, which is what the sheet should show.
       expect(item.held).toBe(false);
       expect(item.inShipment).toBe(false);
+      expect(item.requiresInspection).toBe(false);
       expect(item.transferId).toBeNull();
       expect(item.vendorId).toBeNull();
+
+      await countService.cancel(order.id);
+    });
+
+    it('refuses a second line for a position the sheet already has', async () => {
+      const order = await countService.create({
+        name: 'duplicate addition',
+        countDate: '2026-05-03',
+        locationIds: [aisleId],
+      });
+
+      await countService.start(order.id);
+
+      // The shelf's existing batch is already a scoped line; adding it again
+      // would make settlement adjust the same stock twice. A missing loader
+      // resolves to the default one, which is where the scoped line sits.
+      await expect(
+        countService.addItem(order.id, {
+          materialId,
+          batchKey: 'COUNT-BATCH',
+          locationId: shelfId,
+          countedQuantity: 1,
+        }),
+      ).rejects.toThrow(/already has a line/);
 
       await countService.cancel(order.id);
     });
@@ -650,6 +774,133 @@ describe('inventory counting (integration)', () => {
       await seedStock(1);
 
       expect(await stockAt()).toBe(100);
+    });
+
+    it('refuses a transfer into a locked location', async () => {
+      const order = await countService.create({
+        name: 'inbound transfer check',
+        countDate: '2026-01-31',
+        locationIds: [aisleId],
+      });
+
+      await countService.start(order.id);
+
+      // The source is outside the scope, so only the destination is locked.
+      // Reserving the transfer already writes a change row, and completing it
+      // would put stock on the counted shelf — both have to be refused.
+      const transferIn = () =>
+        transferService.createTransferOrder({
+          locationId: shelfId,
+          items: [
+            {
+              materialId: outsideMaterialId,
+              batchId: outsideBatchId,
+              locationId: outsideId,
+              targetTransferredQuantity: 1,
+            },
+          ],
+        } as never);
+
+      await expect(transferIn()).rejects.toThrow(new RegExp(order.key));
+
+      expect(
+        await stockOfAt({ materialId: outsideMaterialId, locationId: shelfId }),
+      ).toBe(0);
+
+      await countService.cancel(order.id);
+
+      // Lock gone: the same transfer reserves and completes.
+      const transfer = await transferIn();
+      const [item] = await dataSource.query(
+        'SELECT id FROM transfer_order_items WHERE "orderId" = $1',
+        [transfer.id],
+      );
+
+      await transferService.transfer({ itemId: item.id, quantity: 1 });
+
+      expect(
+        await stockOfAt({ materialId: outsideMaterialId, locationId: shelfId }),
+      ).toBe(1);
+
+      // Put it back. The suites below read the shelf's sheet by position and
+      // assume the seeded material is the only thing on it.
+      const transferOut = await transferService.createTransferOrder({
+        locationId: outsideId,
+        items: [
+          {
+            materialId: outsideMaterialId,
+            batchId: outsideBatchId,
+            locationId: shelfId,
+            targetTransferredQuantity: 1,
+          },
+        ],
+      } as never);
+      const [outItem] = await dataSource.query(
+        'SELECT id FROM transfer_order_items WHERE "orderId" = $1',
+        [transferOut.id],
+      );
+
+      await transferService.transfer({ itemId: outItem.id, quantity: 1 });
+
+      expect(
+        await stockOfAt({ materialId: outsideMaterialId, locationId: shelfId }),
+      ).toBe(0);
+    });
+
+    it('refuses to settle when the ledger moved around the lock', async () => {
+      const order = await countService.create({
+        name: 'moved ledger',
+        countDate: '2026-01-31',
+        locationIds: [aisleId],
+      });
+
+      await countService.start(order.id);
+
+      const [item] = await dataSource.query(
+        'SELECT id, "bookQuantity" FROM inventory_count_order_items WHERE "orderId" = $1 AND "batchId" = $2',
+        [order.id, batchId],
+      );
+
+      await countService.count(order.id, [
+        { itemId: item.id, countedQuantity: Number(item.bookQuantity) - 1 },
+      ]);
+
+      // A bare `stocks` insert never touches a change row, so the lock cannot
+      // see it. Settlement has to notice the books moved rather than post a
+      // variance against a snapshot that no longer describes the shelf.
+      await seedStock(1);
+
+      await expect(countService.settle(order.id)).rejects.toThrow(/moved/);
+
+      await seedStock(-1);
+      await countService.cancel(order.id);
+
+      expect(await stockAt()).toBe(100);
+    });
+  });
+
+  describe('transactions', () => {
+    it('leaves nothing behind when creating a count fails halfway', async () => {
+      // The header saves first and the sheet is built afterwards; without a
+      // transaction a rebuild that throws would strand a PENDING order with
+      // no lines, which the list would happily show.
+      const spy = jest
+        .spyOn(countService as never, 'rebuildItems' as never)
+        .mockRejectedValueOnce(new Error('sheet build failed') as never);
+
+      await expect(
+        countService.create({
+          name: 'half-created',
+          countDate: '2026-07-01',
+          locationIds: [aisleId],
+        }),
+      ).rejects.toThrow(/sheet build failed/);
+
+      spy.mockRestore();
+
+      const [orphans] = await countService.findMany({ name: 'half-created' });
+
+      expect(orphans).toEqual([]);
     });
   });
 
