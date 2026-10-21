@@ -12,6 +12,7 @@ import {
   InventoryCountOrderItemsDocument,
   InventoryCountOrdersDocument,
   InventoryCountStatus,
+  MaterialDocument,
   RemoveInventoryCountItemDocument,
   ResetInventoryCountDocument,
   SettleInventoryCountDocument,
@@ -29,6 +30,19 @@ const refetchOrder = [
   InventoryCountOrderDocument,
   InventoryCountOrderItemsDocument,
 ];
+
+/**
+ * The add-stock modal needs the chosen material's unit list (base unit +
+ * conversions) to offer the 單位 select — the material picker itself only
+ * carries `{ id, key }`.
+ */
+export function useLazyQueryMaterial() {
+  const [fetchMaterial] = useLazyQuery(MaterialDocument, {
+    fetchPolicy: 'cache-and-network',
+  });
+
+  return { fetchMaterial };
+}
 
 export function useQueryInventoryCountOrders(filter?: FilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();

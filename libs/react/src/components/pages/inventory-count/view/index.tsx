@@ -46,6 +46,7 @@ import {
   InventoryCountStatus,
 } from '../../../../graphql/generated/.graphql';
 import { BASE_UNIT } from '../../../../utils/share';
+import { NextPath } from '../../../../utils/nextpath';
 import { buildCountSheetCsv, downloadCsv, parseCountSheetCsv } from '../csv';
 import { ItemFilterValues, QuickFilterKey } from '../typing';
 import classes from './index.module.scss';
@@ -240,11 +241,33 @@ function ViewInventoryCount() {
   }, [saveDraft]);
 
   const onStart = useCallback(async () => {
+    // Starting locks every scoped location against stock movement, so the
+    // operator confirms before the rest of the warehouse feels it.
+    const isConfirm = await openDialog({
+      title: '確認開始盤點',
+      children:
+        '系統將鎖定盤點範圍的庫存禁止異動行為。請確認是否要繼續，以便順利完成操作。',
+      modalStatusType: 'info',
+      confirmText: '繼續',
+    });
+
+    if (!isConfirm) return;
+
     await startInventoryCount({ variables: { id } });
     Message.success('已開始盤點');
-  }, [id, startInventoryCount]);
+  }, [id, openDialog, startInventoryCount]);
 
   const onSettle = useCallback(async () => {
+    const isConfirm = await openDialog({
+      title: '資訊提示',
+      children:
+        '系統將根據盤點數量以及帳面數量進行帳面數量的盤差。請確認是否要繼續，以便順利完成操作。',
+      modalStatusType: 'info',
+      confirmText: '繼續',
+    });
+
+    if (!isConfirm) return;
+
     setSettling(true);
 
     try {
@@ -252,33 +275,44 @@ function ViewInventoryCount() {
       // the only behaviour that cannot surprise the operator.
       await saveDraft();
       await settleInventoryCount({ variables: { id } });
-      Message.success('盤差執行成功');
+      Message.success('執行盤差成功');
     } finally {
       setSettling(false);
     }
-  }, [id, saveDraft, settleInventoryCount]);
+  }, [id, openDialog, saveDraft, settleInventoryCount]);
 
-  const onCancel = useCallback(() => {
-    openDialog({
-      title: '取消盤點',
-      children: '取消後此張盤點單將無法繼續執行，確定要取消嗎？',
-      onConfirm: async () => {
-        await cancelInventoryCount({ variables: { id } });
-        Message.success('已取消盤點');
+  const onCancel = useCallback(async () => {
+    const isConfirm = await openDialog({
+      title: '確認取消盤點',
+      children:
+        '您目前的盤點尚未完成，取消盤點將捨棄未保存的內容。確定要取消盤點嗎？',
+      cancelText: '繼續編輯',
+      confirmText: '取消盤點',
+      confirmButtonProps: {
+        variant: 'destructive-primary',
       },
     });
+
+    if (!isConfirm) return;
+
+    await cancelInventoryCount({ variables: { id } });
+    Message.success('已成功取消盤點');
   }, [cancelInventoryCount, id, openDialog]);
 
-  const onReset = useCallback(() => {
-    openDialog({
+  const onReset = useCallback(async () => {
+    const isConfirm = await openDialog({
       title: '清空重填',
       children: '將清除所有已填寫的盤點數量與新增的庫存項目，確定嗎？',
-      onConfirm: async () => {
-        await resetInventoryCount({ variables: { id } });
-        setDraft({});
-        Message.success('已清空盤點內容');
+      confirmButtonProps: {
+        variant: 'destructive-primary',
       },
     });
+
+    if (!isConfirm) return;
+
+    await resetInventoryCount({ variables: { id } });
+    setDraft({});
+    Message.success('已清空盤點內容');
   }, [id, openDialog, resetInventoryCount]);
 
   /**
@@ -481,7 +515,7 @@ function ViewInventoryCount() {
      */
     {
       key: 'inspectionResult',
-      title: '檢驗',
+      title: '待檢驗',
       width: 48,
       align: 'center',
       render: (item) =>
@@ -579,7 +613,7 @@ function ViewInventoryCount() {
     <Toggle
       className={classes.varianceToggle}
       checked={itemFilter.onlyVariance ?? false}
-      label="顯示盤差項目"
+      label="僅顯示盤差項目"
       onChange={(event) => {
         setItemFilter((previous) => ({
           ...previous,
@@ -608,7 +642,14 @@ function ViewInventoryCount() {
   );
 
   return (
-    <PageWrapper title={order.name}>
+    <PageWrapper
+      title={order.name}
+      breadcrumb={[
+        { label: '盤點', href: NextPath.INVENTORYCOUNT },
+        { label: order.name },
+      ]}
+      haveBack
+    >
       <SectionWrapper>
         {isPending ? (
           <FormProvider {...infoMethods}>
@@ -755,8 +796,11 @@ function ViewInventoryCount() {
 
       {settling && (
         <div className={classes.settlingOverlay}>
-          <Loading />
-          <Typography variant="body">盤差執行中，請勿離開此頁面…</Typography>
+          <div className={classes.settlingCard}>
+            <Loading />
+            <Typography variant="h3">執行盤差中</Typography>
+            <Typography variant="body">執行盤差作業中，請稍候 ...</Typography>
+          </div>
         </div>
       )}
 

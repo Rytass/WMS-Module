@@ -36,11 +36,22 @@
   inset: 0;
   z-index: 100;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
   background: rgb(0 0 0 / 40%);
+}
+
+/* The design presents settlement as a small blocking card, not a bare spinner:
+ * the operator must see that the page is deliberately locked. */
+.settlingCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 320px;
+  padding: 32px 24px;
+  border-radius: 8px;
+  background: var(--mzn-color-surface, #fff);
 }
 
 /*

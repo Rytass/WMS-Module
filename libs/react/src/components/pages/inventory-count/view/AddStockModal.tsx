@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
@@ -9,7 +9,10 @@ import BatchesField from '../../../fields/BatchesField';
 import LocationsField from '../../../fields/LocationsField';
 import AvailableLoadersField from '../../../fields/AvailableLoadersField';
 import NumberInputField from '../../../fields/NumberInputField';
-import { useInventoryCountMutations } from '../useApi';
+import { SingleSelectByIdField } from '../../../fields/SingleSelectByIdField';
+import { getMaterialUnitOptions } from '../../../inventoryActions/utils';
+import { BASE_UNIT } from '../../../../utils/share';
+import { useInventoryCountMutations, useLazyQueryMaterial } from '../useApi';
 import classes from './AddStockModal.module.scss';
 
 interface AddStockFormValues {
@@ -18,6 +21,8 @@ interface AddStockFormValues {
   location: SelectValue<string> | null;
   loader: SelectValue<string> | null;
   countedQuantity: number | string;
+  /** The unit id, or `BASE_UNIT` for the material's base unit. */
+  unit: string;
 }
 
 const schema: Yup.ObjectSchema<AddStockFormValues> = Yup.object({
@@ -48,6 +53,7 @@ const schema: Yup.ObjectSchema<AddStockFormValues> = Yup.object({
   countedQuantity: Yup.mixed<number | string>()
     .test('positive', '需為大於 0 的數字', (value) => Number(value) > 0)
     .required('必填'),
+  unit: Yup.string().required('必填'),
 }) as Yup.ObjectSchema<AddStockFormValues>;
 
 interface AddStockModalProps {
@@ -77,6 +83,9 @@ const AddStockModal: FC<AddStockModalProps> = ({
   onCreated,
 }) => {
   const { addInventoryCountItem } = useInventoryCountMutations();
+  const { fetchMaterial } = useLazyQueryMaterial();
+
+  const [unitOptions, setUnitOptions] = useState<SelectValue<string>[]>([]);
 
   const methods = useForm<AddStockFormValues>({
     resolver: yupResolver(schema),
@@ -86,6 +95,7 @@ const AddStockModal: FC<AddStockModalProps> = ({
       location: null,
       loader: null,
       countedQuantity: '',
+      unit: '',
     },
   });
 
@@ -97,6 +107,36 @@ const AddStockModal: FC<AddStockModalProps> = ({
     control: methods.control,
     name: 'location',
   });
+
+  /**
+   * 單位 follows 料號: picking a material loads its unit list and pre-selects
+   * the base unit, clearing it empties and disables the select again.
+   */
+  useEffect(() => {
+    let stale = false;
+
+    if (!material) {
+      setUnitOptions([]);
+      methods.setValue('unit', '');
+
+      return undefined;
+    }
+
+    (async () => {
+      const { data } = await fetchMaterial({
+        variables: { materialId: material.id },
+      });
+
+      if (stale || !data?.material) return;
+
+      setUnitOptions(getMaterialUnitOptions(data.material));
+      methods.setValue('unit', BASE_UNIT);
+    })();
+
+    return () => {
+      stale = true;
+    };
+  }, [fetchMaterial, material, methods]);
 
   const onSubmit = useCallback(
     async (values: AddStockFormValues) => {
@@ -110,10 +150,13 @@ const AddStockModal: FC<AddStockModalProps> = ({
           locationId: values.location?.id ?? '',
           loaderId: values.loader?.id ?? null,
           countedQuantity: Number(values.countedQuantity),
+          // `null` means the base unit — the backend stores the conversion id
+          // only when the count was taken in a derived unit.
+          unitId: values.unit && values.unit !== BASE_UNIT ? values.unit : null,
         },
       });
 
-      Message.success('新增庫存成功');
+      Message.success('項目新增成功');
 
       const createdId = data?.addInventoryCountItem.id;
 
@@ -166,6 +209,14 @@ const AddStockModal: FC<AddStockModalProps> = ({
           name="countedQuantity"
           label="盤點數量"
           placeholder="輸入盤點數量"
+          required
+        />
+        <SingleSelectByIdField
+          name="unit"
+          label="單位"
+          placeholder="輸入單位"
+          options={unitOptions}
+          disabled={!material}
           required
         />
       </div>
