@@ -111,31 +111,37 @@ const AddStockModal: FC<AddStockModalProps> = ({
   /**
    * 單位 follows 料號: picking a material loads its unit list and pre-selects
    * the base unit, clearing it empties and disables the select again.
+   *
+   * The clear runs on *every* material change, not only on removal — switching
+   * from material A to B must not leave A's units selectable (or displayed)
+   * during the round-trip for B's. The field stays disabled until the new
+   * options have actually arrived, which the `unitOptions.length` half of the
+   * `disabled` prop below enforces.
    */
   useEffect(() => {
-    let stale = false;
+    setUnitOptions([]);
+    methods.setValue('unit', '');
+    // A leftover "必填" on a field that is now disabled would read as a dead
+    // end — the operator cannot interact with it to clear the error.
+    methods.clearErrors('unit');
 
-    if (!material) {
-      setUnitOptions([]);
-      methods.setValue('unit', '');
-
-      return undefined;
-    }
+    if (!material) return;
 
     (async () => {
       const { data } = await fetchMaterial({
         variables: { materialId: material.id },
       });
 
-      if (stale || !data?.material) return;
+      // The guard against a slow response racing a newer selection: the form
+      // itself knows which material is current, so a reply for anything else
+      // (switched or cleared meanwhile) is simply out of date — drop it.
+      if (!data?.material || data.material.id !== methods.getValues('material')?.id) {
+        return;
+      }
 
       setUnitOptions(getMaterialUnitOptions(data.material));
-      methods.setValue('unit', BASE_UNIT);
+      methods.setValue('unit', BASE_UNIT, { shouldValidate: true });
     })();
-
-    return () => {
-      stale = true;
-    };
   }, [fetchMaterial, material, methods]);
 
   const onSubmit = useCallback(
@@ -216,7 +222,7 @@ const AddStockModal: FC<AddStockModalProps> = ({
           label="單位"
           placeholder="輸入單位"
           options={unitOptions}
-          disabled={!material}
+          disabled={!material || !unitOptions.length}
           required
         />
       </div>
