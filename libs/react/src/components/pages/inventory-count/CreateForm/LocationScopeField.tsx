@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { AutoComplete, SelectValue } from '@mezzanine-ui/react';
+import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import BaseField from '../../../fields/BaseField';
 import { useFetchMoreOptions } from '../../../../hooks/useSelectorOptions';
 import { useLazyQueryLocations } from '../../../fields/LocationsField/useApi';
@@ -56,7 +57,12 @@ const LocationScopeField: FC<LocationScopeFieldProps> = ({
   const selected = useMemo(() => value ?? [], [value]);
 
   return (
-    <BaseField name={name} label={label} required={required}>
+    <BaseField
+      name={name}
+      label={label}
+      controlFieldSlotLayout={ControlFieldSlotLayout.SUB}
+      required={required}
+    >
       <AutoComplete
         mode="multiple"
         options={currentOptions}
@@ -67,7 +73,7 @@ const LocationScopeField: FC<LocationScopeFieldProps> = ({
         onReachBottom={onReachBottom}
         disabled={disabled}
         placeholder="選擇範圍"
-        size="main"
+        size="sub"
       />
     </BaseField>
   );

@@ -1,22 +1,20 @@
 import { useCallback } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
-import { Button, SelectValue } from '@mezzanine-ui/react';
-import SectionWrapper from '../../../SectionWrapper';
+import { SelectValue } from '@mezzanine-ui/react';
+import FilterWrapper from '../../../FilterWrapper';
 import InputField from '../../../fields/InputField';
 import DateField from '../../../fields/DateField';
+import SingleSelectByIdField from '../../../fields/SingleSelectByIdField';
+import LocationScopeField from '../CreateForm/LocationScopeField';
 import { InventoryCountStatus } from '../../../../graphql/generated/.graphql';
 import { inventoryCountStatusName } from '../../../../utils/share';
 import { FilterValues } from '../typing';
-import SingleSelectByIdField from '../../../fields/SingleSelectByIdField';
-import LocationScopeField from '../CreateForm/LocationScopeField';
-import classes from './index.module.scss';
 
 interface FiltersFormValues {
   name: string;
   createdBy: string;
   countDateFrom: string;
   countDateTo: string;
-  status: SelectValue<string> | null;
+  status: string;
   locations: SelectValue<string>[];
 }
 
@@ -36,16 +34,14 @@ const DEFAULT_VALUES: FiltersFormValues = {
   createdBy: '',
   countDateFrom: '',
   countDateTo: '',
-  status: null,
+  status: '',
   locations: [],
 };
 
 const Filters: FC<FiltersProps> = ({ onSubmit }) => {
-  const methods = useForm<FiltersFormValues>({
-    defaultValues: DEFAULT_VALUES,
-  });
-
   const submit = useCallback(
+    // `FilterWrapper`'s reset submits `{}`, so every field read must tolerate
+    // being absent — hence the optional chaining on the array field.
     (values: FiltersFormValues) => {
       onSubmit({
         name: values.name || undefined,
@@ -53,11 +49,11 @@ const Filters: FC<FiltersProps> = ({ onSubmit }) => {
         countDateFrom: values.countDateFrom || undefined,
         countDateTo: values.countDateTo || undefined,
         statuses: values.status
-          ? [values.status.id as InventoryCountStatus]
+          ? [values.status as InventoryCountStatus]
           : undefined,
         // Matched against the *expanded* scope server-side, so picking a shelf
         // finds the count that covers its whole aisle.
-        locationIds: values.locations.length
+        locationIds: values.locations?.length
           ? values.locations.map((location) => location.id)
           : undefined,
       });
@@ -66,50 +62,51 @@ const Filters: FC<FiltersProps> = ({ onSubmit }) => {
   );
 
   return (
-    <FormProvider {...methods}>
-      <SectionWrapper>
-        <form className={classes.host} onSubmit={methods.handleSubmit(submit)}>
-          <InputField name="name" label="名稱" placeholder="輸入名稱" />
+    <FilterWrapper<FiltersFormValues>
+      defaultValues={DEFAULT_VALUES}
+      onSubmit={submit}
+      baseFilters={{
+        gridTemplateColumns: 'repeat(6, 1fr)',
+        filters: [
+          <InputField
+            key="name"
+            name="name"
+            label="名稱"
+            placeholder="輸入名稱"
+          />,
           <DateField
+            key="countDateFrom"
             name="countDateFrom"
             label="盤點日期（起）"
             placeholder="開始日期"
-          />
+          />,
           <DateField
+            key="countDateTo"
             name="countDateTo"
             label="盤點日期（迄）"
             placeholder="結束日期"
-          />
+          />,
           <InputField
+            key="createdBy"
             name="createdBy"
             label="建立者"
             placeholder="輸入建立者"
-          />
+          />,
           <SingleSelectByIdField
+            key="status"
             name="status"
             label="狀態"
             options={STATUS_OPTIONS}
             placeholder="選擇狀態"
-          />
-          <LocationScopeField name="locations" required={false} />
-          <div className={classes.actions}>
-            <Button
-              type="button"
-              variant="base-secondary"
-              onClick={() => {
-                methods.reset(DEFAULT_VALUES);
-                onSubmit({});
-              }}
-            >
-              重置
-            </Button>
-            <Button type="submit" variant="base-primary">
-              查詢
-            </Button>
-          </div>
-        </form>
-      </SectionWrapper>
-    </FormProvider>
+          />,
+          <LocationScopeField
+            key="locations"
+            name="locations"
+            required={false}
+          />,
+        ],
+      }}
+    />
   );
 };
 
