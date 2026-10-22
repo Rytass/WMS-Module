@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
-import { AutoComplete, SelectValue } from '@mezzanine-ui/react';
+import { AutoComplete, SelectValue, TextFieldSize } from '@mezzanine-ui/react';
 import { ControlFieldSlotLayout } from '@mezzanine-ui/core/form';
 import BaseField from '../../../fields/BaseField';
 import { useFetchMoreOptions } from '../../../../hooks/useSelectorOptions';
@@ -11,7 +11,7 @@ interface LocationScopeFieldProps {
   name: string;
   label?: string;
   disabled?: boolean;
-  /** The create form demands a scope; the list filter treats it as optional. */
+  size?: TextFieldSize;
   required?: boolean;
 }
 
@@ -25,6 +25,7 @@ const LocationScopeField: FC<LocationScopeFieldProps> = ({
   name,
   label = '盤點範圍',
   disabled,
+  size = 'main',
   required = true,
 }) => {
   const { setValue } = useFormContext();
@@ -60,7 +61,11 @@ const LocationScopeField: FC<LocationScopeFieldProps> = ({
     <BaseField
       name={name}
       label={label}
-      controlFieldSlotLayout={ControlFieldSlotLayout.SUB}
+      controlFieldSlotLayout={
+        size === 'sub'
+          ? ControlFieldSlotLayout.SUB
+          : ControlFieldSlotLayout.MAIN
+      }
       required={required}
     >
       <AutoComplete
@@ -73,7 +78,7 @@ const LocationScopeField: FC<LocationScopeFieldProps> = ({
         onReachBottom={onReachBottom}
         disabled={disabled}
         placeholder="選擇範圍"
-        size="sub"
+        size={size}
       />
     </BaseField>
   );

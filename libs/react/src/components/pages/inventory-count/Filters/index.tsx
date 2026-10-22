@@ -102,6 +102,7 @@ const Filters: FC<FiltersProps> = ({ onSubmit }) => {
           <LocationScopeField
             key="locations"
             name="locations"
+            size="sub"
             required={false}
           />,
         ],
