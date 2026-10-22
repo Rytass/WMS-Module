@@ -79,6 +79,7 @@ const LocationScopeField: FC<LocationScopeFieldProps> = ({
         disabled={disabled}
         placeholder="選擇範圍"
         size={size}
+        menuMaxHeight={300}
       />
     </BaseField>
   );
