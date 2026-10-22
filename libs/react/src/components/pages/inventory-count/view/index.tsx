@@ -290,7 +290,7 @@ function ViewInventoryCount() {
   const onCancel = useCallback(async () => {
     const isConfirm = await openDialog({
       title: '確認取消盤點',
-      children:
+      supportingText:
         '您目前的盤點尚未完成，取消盤點將捨棄未保存的內容。確定要取消盤點嗎？',
       cancelText: '繼續編輯',
       confirmText: '取消盤點',
