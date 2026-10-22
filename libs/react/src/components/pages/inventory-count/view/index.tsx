@@ -4,9 +4,12 @@ import { isNull } from 'lodash';
 import { FormProvider, useForm } from 'react-hook-form';
 import {
   Button,
+  Description,
+  DescriptionContent,
   Icon,
   Input,
   Message,
+  PageFooter,
   Select,
   SelectValue,
   TableColumn,
@@ -107,6 +110,7 @@ function ViewInventoryCount() {
   const status = order?.status;
   const isCounting = status === InventoryCountStatus.COUNTING;
   const isPending = status === InventoryCountStatus.PENDING;
+  const isCompleted = status === InventoryCountStatus.COMPLETED;
 
   const items = useMemo(
     (): InventoryCountOrderItemFragment[] =>
@@ -153,7 +157,9 @@ function ViewInventoryCount() {
    * should not fire a mutation.
    */
   const onInfoBlur = useCallback(async () => {
-    if (!order) return;
+    // The header renders the same (disabled) fields in every other status, so
+    // the blur handler must only ever save while editing is actually allowed.
+    if (!order || order.status !== InventoryCountStatus.PENDING) return;
 
     const values = infoMethods.getValues();
     const locationIds = values.locations.map((location) => location.id);
@@ -245,7 +251,7 @@ function ViewInventoryCount() {
     // operator confirms before the rest of the warehouse feels it.
     const isConfirm = await openDialog({
       title: '確認開始盤點',
-      children:
+      supportingText:
         '系統將鎖定盤點範圍的庫存禁止異動行為。請確認是否要繼續，以便順利完成操作。',
       modalStatusType: 'info',
       confirmText: '繼續',
@@ -624,6 +630,48 @@ function ViewInventoryCount() {
     />
   );
 
+  /*
+   * 清空重填 lives in the card's title row rather than the page footer: the
+   * design's footer carries exactly 暫存結果/執行盤差, and the reset acts on the
+   * sheet in this card, next to 新增庫存 which also does.
+   */
+  const resetButton = (
+    <Button type="button" size="sub" variant="base-secondary" onClick={onReset}>
+      清空重填
+    </Button>
+  );
+
+  const itemFilters = (
+    <ItemFilters onSubmit={onFilterSubmit} values={itemFilter} />
+  );
+
+  const titleButtons = [
+    <Button
+      key="download"
+      type="button"
+      variant="base-secondary"
+      icon={DownloadIcon}
+      iconType="leading"
+      onClick={onDownload}
+    >
+      下載盤點清單
+    </Button>,
+    ...(isCounting
+      ? [
+          <Button
+            key="upload"
+            type="button"
+            variant="base-secondary"
+            icon={UploadIcon}
+            iconType="leading"
+            onClick={() => uploadRef.current?.click()}
+          >
+            上傳盤點結果
+          </Button>,
+        ]
+      : []),
+  ];
+
   const itemsTable = (
     <Table<InventoryCountOrderItemFragment>
       tableKey="InventoryCountItems"
@@ -642,183 +690,166 @@ function ViewInventoryCount() {
   );
 
   return (
-    <PageWrapper
-      title={order.name}
-      breadcrumb={[
-        { label: '盤點', href: NextPath.INVENTORYCOUNT },
-        { label: order.name },
-      ]}
-      haveBack
-    >
-      <SectionWrapper>
-        {isPending ? (
+    <>
+      <PageWrapper
+        title={order.name}
+        breadcrumb={[
+          { label: '盤點', href: NextPath.INVENTORYCOUNT },
+          { label: order.name },
+        ]}
+        haveBack
+        titleButtons={titleButtons}
+      >
+        <SectionWrapper>
+          {/* One form for every status: the design keeps the three header
+              fields visible as (disabled) inputs after the count starts, so
+              the fields stay and only their editability changes. Blur-save is
+              guarded to PENDING inside `onInfoBlur`. */}
           <FormProvider {...infoMethods}>
-            {/* Blur-save: the header is a handful of fields, and an explicit
-                save button here competes with the page's real actions. */}
             <div className={classes.info} onBlur={onInfoBlur}>
-              <InputField name="name" label="名稱" placeholder="輸入名稱" />
+              <InputField
+                name="name"
+                label="名稱"
+                placeholder="輸入名稱"
+                // Mezzanine's TextField types `disabled` as the literal `true`
+                // (mutually exclusive with typing/readonly), so no booleans.
+                disabled={!isPending ? true : undefined}
+              />
               <DateField
                 name="countDate"
                 label="盤點日期"
                 placeholder="選擇日期"
+                disabled={!isPending}
               />
-              <LocationScopeField name="locations" />
-              <div>
-                <Typography variant="caption">建立者</Typography>
-                <Typography variant="body">{order.createdBy || '-'}</Typography>
-              </div>
-              <div>
-                <Typography variant="caption">狀態</Typography>
+              <LocationScopeField
+                name="locations"
+                size="sub"
+                disabled={!isPending}
+              />
+              <Description
+                widthType="stretch"
+                orientation="vertical"
+                title="建立者"
+              >
+                <DescriptionContent>
+                  {order.createdBy || '-'}
+                </DescriptionContent>
+              </Description>
+              <Description
+                widthType="stretch"
+                orientation="vertical"
+                title="狀態"
+              >
                 <Status status={order.status} />
-              </div>
+              </Description>
             </div>
           </FormProvider>
-        ) : (
-          <div className={classes.info}>
-            <div>
-              <Typography variant="caption">名稱</Typography>
-              <Typography variant="body">{order.name}</Typography>
-            </div>
-            <div>
-              <Typography variant="caption">盤點日期</Typography>
-              <Typography variant="body">
-                {dayjs(order.countDate).format('YYYY-MM-DD')}
-              </Typography>
-            </div>
-            <div>
-              <Typography variant="caption">盤點範圍</Typography>
-              <Typography variant="body">
-                {order.locations.map(({ key }) => key).join('、') || '-'}
-              </Typography>
-            </div>
-            <div>
-              <Typography variant="caption">建立者</Typography>
-              <Typography variant="body">{order.createdBy || '-'}</Typography>
-            </div>
-            <div>
-              <Typography variant="caption">狀態</Typography>
-              <Status status={order.status} />
-            </div>
-          </div>
-        )}
-        <div className={classes.fileActions}>
-          <Button
-            type="button"
-            variant="base-secondary"
-            icon={DownloadIcon}
-            iconType="leading"
-            onClick={onDownload}
-          >
-            下載盤點清單
-          </Button>
-          {isCounting && (
-            <>
-              <Button
-                type="button"
-                variant="base-secondary"
-                icon={UploadIcon}
-                iconType="leading"
-                onClick={() => uploadRef.current?.click()}
-              >
-                上傳盤點結果
-              </Button>
-              <input
-                ref={uploadRef}
-                type="file"
-                accept=".csv,text/csv"
-                hidden
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
+        </SectionWrapper>
 
-                  if (file) onUpload(file);
-
-                  event.target.value = '';
-                }}
-              />
-            </>
-          )}
-        </div>
-      </SectionWrapper>
-
-      <ItemFilters onSubmit={onFilterSubmit} values={itemFilter} />
-
-      {/* `TableWrapper`'s create slot is a discriminated union — the two
+        {/* `TableWrapper`'s create slot is a discriminated union — the two
           props are either both present or both absent — so the counting and
-          read-only cases are two elements rather than one with spread props. */}
-      {isCounting ? (
-        <TableWrapper
-          title="庫存項目"
-          otherActions={varianceToggle}
-          createText="新增庫存"
-          onCreate={() => setAddModalOpened(true)}
-        >
-          {itemsTable}
-        </TableWrapper>
-      ) : (
-        <TableWrapper title="庫存項目" otherActions={varianceToggle}>
-          {itemsTable}
-        </TableWrapper>
-      )}
-
-      <div className={classes.footer}>
-        {(isPending || isCounting) && (
-          <Button type="button" variant="destructive-ghost" onClick={onCancel}>
-            取消盤點
-          </Button>
+          read-only cases are two elements rather than one with spread props.
+          Per the design, the variance toggle appears once there is a settled
+          variance to show (COMPLETED); during counting the title row carries
+          the sheet actions instead. */}
+        {isCounting ? (
+          <TableWrapper
+            title="庫存項目"
+            filters={itemFilters}
+            otherActions={resetButton}
+            createText="新增庫存"
+            onCreate={() => setAddModalOpened(true)}
+          >
+            {itemsTable}
+          </TableWrapper>
+        ) : (
+          <TableWrapper
+            title="庫存項目"
+            filters={itemFilters}
+            otherActions={isCompleted ? varianceToggle : undefined}
+          >
+            {itemsTable}
+          </TableWrapper>
         )}
-        <div className={classes.footerRight}>
-          {isPending && (
-            <Button type="button" variant="base-primary" onClick={onStart}>
-              開始盤點
-            </Button>
-          )}
-          {isCounting && (
-            <>
-              <Button type="button" variant="base-secondary" onClick={onReset}>
-                清空重填
-              </Button>
-              <Button type="button" variant="base-secondary" onClick={onSave}>
-                暫存結果
-              </Button>
-              <Button
-                type="button"
-                variant="base-primary"
-                loading={settling}
-                disabled={settling}
-                onClick={onSettle}
-              >
-                執行盤差
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
 
-      {settling && (
-        <div className={classes.settlingOverlay}>
-          <div className={classes.settlingCard}>
-            <Loading />
-            <Typography variant="h3">執行盤差中</Typography>
-            <Typography variant="body">執行盤差作業中，請稍候 ...</Typography>
+        {settling && (
+          <div className={classes.settlingOverlay}>
+            <div className={classes.settlingCard}>
+              <Loading />
+              <Typography variant="h3">執行盤差中</Typography>
+              <Typography variant="body">執行盤差作業中，請稍候 ...</Typography>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <AddStockModal
-        orderId={id}
-        open={addModalOpened}
-        closeModal={() => setAddModalOpened(false)}
-        onCreated={(itemId) => {
-          // Additions already sort first server-side, so clearing the filters
-          // and going back to page 1 is what actually puts the new line on top;
-          // the highlight then says which one it is.
-          setItemFilter({});
-          setPage(1);
-          setHighlightedId(itemId);
-          setTimeout(() => setHighlightedId(null), HIGHLIGHT_MS);
-        }}
-      />
-    </PageWrapper>
+        <input
+          ref={uploadRef}
+          type="file"
+          accept=".csv,text/csv"
+          hidden
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+
+            if (file) onUpload(file);
+
+            event.target.value = '';
+          }}
+        />
+
+        <AddStockModal
+          orderId={id}
+          open={addModalOpened}
+          closeModal={() => setAddModalOpened(false)}
+          onCreated={(itemId) => {
+            // Additions already sort first server-side, so clearing the filters
+            // and going back to page 1 is what actually puts the new line on top;
+            // the highlight then says which one it is.
+            setItemFilter({});
+            setPage(1);
+            setHighlightedId(itemId);
+            setTimeout(() => setHighlightedId(null), HIGHLIGHT_MS);
+          }}
+        />
+      </PageWrapper>
+
+      {/* The action bar pins to the bottom of the viewport, outside the padded
+          page body, exactly as the design draws it. Terminal statuses have no
+          actions left, so no bar. */}
+      {(isPending || isCounting) && (
+        <PageFooter
+          className={classes.pageFooter}
+          type="standard"
+          supportingActionName="取消盤點"
+          supportingActionType="button"
+          supportingActionVariant="destructive-ghost"
+          supportingActionOnClick={onCancel}
+          actions={
+            isPending
+              ? {
+                  primaryButton: {
+                    type: 'button',
+                    children: '開始盤點',
+                    onClick: onStart,
+                  },
+                }
+              : {
+                  secondaryButton: {
+                    type: 'button',
+                    children: '暫存結果',
+                    onClick: onSave,
+                  },
+                  primaryButton: {
+                    type: 'button',
+                    children: '執行盤差',
+                    loading: settling,
+                    disabled: settling,
+                    onClick: onSettle,
+                  },
+                }
+          }
+        />
+      )}
+    </>
   );
 }
 
