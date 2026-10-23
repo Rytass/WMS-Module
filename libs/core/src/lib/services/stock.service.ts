@@ -694,11 +694,17 @@ export class StockService<
     // Add changeType CASE only after we have the filtered result set, apply pagination
     const resultQueryBuilder = changesQueryBuilder.clone();
 
+    // Raw query with eleven joins: `skip`/`take` are entity-mode pagination
+    // and TypeORM drops them from a raw query that has a join, so the whole
+    // history came back on every page. `offset`/`limit` are emitted as SQL.
+    // Every join here is on a primary key (`<change>.id` is the base order
+    // id) or a one-row-per-stock subquery, so no row is ever multiplied and
+    // a page is exactly `limit` rows.
     if (options.offset !== undefined && options.offset >= 0) {
-      resultQueryBuilder.skip(options.offset);
+      resultQueryBuilder.offset(options.offset);
     }
     if (options.limit !== undefined && options.limit > 0) {
-      resultQueryBuilder.take(options.limit);
+      resultQueryBuilder.limit(options.limit);
     }
 
     // Explicitly select only the fields needed for ChangeLog
@@ -740,8 +746,11 @@ export class StockService<
         'changeType',
       );
 
+    // The id tiebreaker is what keeps two pages from overlapping when several
+    // rows share a timestamp, which a multi-line order always produces.
     const items = await resultQueryBuilder
       .addOrderBy('stock."createdAt"', 'DESC')
+      .addOrderBy('stock.id', 'ASC')
       .getRawMany<ChangeLog>();
 
     return [items, count];
