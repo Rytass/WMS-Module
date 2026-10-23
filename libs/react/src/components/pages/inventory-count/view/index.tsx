@@ -459,6 +459,8 @@ function ViewInventoryCount() {
         isCounting ? (
           <Input
             size="sub"
+            variant="measure"
+            inputType="number"
             value={quantityOf(item)}
             placeholder="輸入數量"
             onChange={(event) =>
