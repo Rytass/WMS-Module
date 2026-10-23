@@ -707,15 +707,23 @@ export class ShipInventoryOrderService<
 
     const total = await queryBuilder.getCount();
 
+    // Raw query with a join (see ReceiveInventoryOrderService.findMany):
+    // `skip`/`take` would be dropped silently, `offset`/`limit` are honoured.
+    // `order_status` is one row per order, so the page size is exact.
+    queryBuilder
+      .orderBy('orders."createdAt"', 'DESC')
+      .addOrderBy('orders.id', 'ASC');
+
     if (options.offset !== undefined && options.offset >= 0)
-      queryBuilder.skip(options.offset);
+      queryBuilder.offset(options.offset);
 
     if (options.limit !== undefined && options.limit > 0)
-      queryBuilder.take(options.limit);
+      queryBuilder.limit(options.limit);
 
     const items = await queryBuilder.getRawMany();
 
     return [items, total];
+
   }
 
   async addShipInventoryOrderItems(

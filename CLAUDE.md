@@ -167,7 +167,22 @@ The regression guards are `libs/graphql/src/lib/custom-material-entity.integrati
 
 Consequence: the module **cannot** register a consumer's entity with TypeORM — `forFeature()` runs before the options resolve. `WmsEntities`' constructor checks `dataSource.hasMetadata` for all six and throws instead, because forgetting to register almost works (TypeORM copies a single-table child's columns into the parent, so `synchronize` still builds the right schema) and would otherwise surface as a bare `EntityMetadataNotFoundError` from inside a resolver.
 
+#### A raw list query paginates with `offset`/`limit`, never `skip`/`take`
+
+`skip`/`take` are entity-mode pagination. On a `getRawMany()` query TypeORM only turns them
+into `LIMIT`/`OFFSET` when the builder has **no joins** (`createLimitOffsetExpression`); add
+one join and they are dropped without an error, so the list comes back whole while `total`
+stays right. `ReceiveInventoryOrderService.findMany`, `ShipInventoryOrderService.findMany`
+and `StockService.findChangeLogs` all went raw to carry a computed column (`status`,
+`changeType`) and all three shipped unpaginated for months because nobody had more than a
+page of data. Rules: a raw list uses `offset`/`limit`; it carries a deterministic `ORDER BY`
+with an id tiebreaker (without one `LIMIT`/`OFFSET` pages can repeat or skip rows); and its
+joins must stay one-row-per-line, or `LIMIT` cuts a record in half — the regression guard is
+`libs/graphql/src/lib/raw-list-pagination.integration.spec.ts`, which pages each list
+directly through the service and checks that the pages are disjoint and add up to `total`.
+
 #### A service query method needs a test that calls it directly
+
 
 Every one of the integration specs enters through the GraphQL schema, and every resolver on
 the way in fills in the arguments it cares about. That leaves a whole class of defect

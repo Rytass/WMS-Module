@@ -395,11 +395,22 @@ export class ReceiveInventoryOrderService<
 
     const total = await queryBuilder.getCount();
 
+    // This is a raw query (`getRawMany`, because `status` is computed by the
+    // `order_status` join and has no column to hydrate into). `skip`/`take`
+    // are entity-mode pagination: with a join on the builder TypeORM drops
+    // them from a raw query without a word, and the list came back whole.
+    // `offset`/`limit` go straight into the SQL. The join is one row per
+    // order, so a page is exactly `limit` orders — and a page is only a page
+    // with a stable order underneath it.
+    queryBuilder
+      .orderBy('orders."createdAt"', 'DESC')
+      .addOrderBy('orders.id', 'ASC');
+
     if (options.offset !== undefined && options.offset >= 0)
-      queryBuilder.skip(options.offset);
+      queryBuilder.offset(options.offset);
 
     if (options.limit !== undefined && options.limit > 0)
-      queryBuilder.take(options.limit);
+      queryBuilder.limit(options.limit);
 
     const items = await queryBuilder.getRawMany();
 
