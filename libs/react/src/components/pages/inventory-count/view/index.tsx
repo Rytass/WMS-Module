@@ -496,6 +496,7 @@ function ViewInventoryCount() {
         return isCounting ? (
           <Select
             size="sub"
+            fullWidth
             value={current}
             options={options}
             onChange={(value) =>
