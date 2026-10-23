@@ -1,0 +1,15 @@
+@use '@mezzanine-ui/system/spacing';
+
+.host {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.semantic-variable(gap, base);
+}
+
+.link {
+  color: inherit;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

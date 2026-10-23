@@ -7,6 +7,8 @@ import {
   UpdateTransferVendorOrderArgs,
 } from '../inputs/create-transfer-vendor-order.args';
 import { ReturnTransferVendorOrderArgs } from '../inputs/return-transfer-vendor-order.args';
+import { WmsOperation } from '../auth';
+import { WmsMutationEvent } from '../events';
 
 @Injectable()
 export class TransferVendorOrderMutation {
@@ -16,6 +18,8 @@ export class TransferVendorOrderMutation {
   ) {}
 
   @Mutation(() => TransferVendorOrderDto)
+  @WmsOperation({ resource: 'transfer-vendor-order', action: 'create' })
+  @WmsMutationEvent({ event: 'transfer-vendor-order.created' })
   async createTransferVendorOrder(
     @Args() args: CreateTransferVendorOrderArgs,
   ): Promise<TransferVendorOrderDto> {
@@ -32,6 +36,8 @@ export class TransferVendorOrderMutation {
   }
 
   @Mutation(() => TransferVendorOrderDto)
+  @WmsOperation({ resource: 'transfer-vendor-order', action: 'update' })
+  @WmsMutationEvent({ event: 'transfer-vendor-order.updated' })
   async updateTransferVendorOrder(
     @Args() args: UpdateTransferVendorOrderArgs,
   ): Promise<TransferVendorOrderDto> {
@@ -50,6 +56,8 @@ export class TransferVendorOrderMutation {
   }
 
   @Mutation(() => Boolean)
+  @WmsOperation({ resource: 'transfer-vendor-order', action: 'return' })
+  @WmsMutationEvent({ event: 'transfer-vendor-order.returned' })
   async returnTransferVendorOrder(
     @Args('items', { type: () => [ReturnTransferVendorOrderArgs] })
     args: ReturnTransferVendorOrderArgs[],

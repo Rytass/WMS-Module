@@ -2,4 +2,19 @@
   min-height: 500px;
   width: 100%;
   position: relative;
+
+  /*
+   * Workaround for @rytass/wms-map-react-components@0.1.10: its image node
+   * puts `max-width/max-height: 100%` inline on the background <img>, which an
+   * absolutely-positioned React Flow node resolves against the *canvas* width —
+   * so a narrow viewport shrinks the background while the drawn rectangles keep
+   * their flow coordinates and drift off it. Forcing the caps off keeps the
+   * image at its flow-space size so everything scales together through the
+   * viewport transform. `!important` is required to beat the inline style.
+   * Remove once the max-width is dropped upstream (Rytass/Utils image-node).
+   */
+  :global(.react-flow__node) img {
+    max-width: none !important;
+    max-height: none !important;
+  }
 }

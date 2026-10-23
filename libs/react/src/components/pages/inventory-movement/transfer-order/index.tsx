@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../../../router/context';
 import Loading from '../../../Loading';
 import TransferOrderForm from './Form';
 import { useQueryTransferOrder } from '../useApi';
@@ -7,8 +7,8 @@ import { BASE_UNIT } from '../../../../utils/share';
 import { getMaterialUnitOptions } from '../../../inventoryActions/utils';
 
 function EditTransferOrder() {
-  const { query } = useRouter();
-  const id = useMemo(() => (query?.id as string) ?? '', [query.id]);
+  const { params } = useWmsRouter();
+  const id = useMemo(() => (params?.id as string) ?? '', [params.id]);
 
   const { data, loading } = useQueryTransferOrder(id);
 

@@ -30,6 +30,7 @@ import { CancelTransferOrderInput } from '../typings/cancel-transfer-order.input
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class TransferOrderService<
@@ -40,6 +41,7 @@ export class TransferOrderService<
   readonly transferOrderRepository: Repository<T>;
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
@@ -66,7 +68,7 @@ export class TransferOrderService<
       transferOrderChange: manager.getRepository(
         TransferOrderChangeEntityClass,
       ),
-      order: manager.getRepository(OrderEntity),
+      order: manager.getRepository(this.entities.order),
       stock: manager.getRepository<StockEntityClass>(this.stockEntity),
       loader: manager.getRepository(LoadersEntityClass),
     };
@@ -168,7 +170,7 @@ export class TransferOrderService<
     const repos = this.getRepositories(manager);
     const items = await repos.transferOrderItem.find({
       where: { id: In(options.map((o) => o.itemId)) },
-      relations: ['changes'],
+      relations: { changes: true },
     });
 
     const itemMap = new Map(items.map((item) => [item.id, item]));
@@ -311,7 +313,7 @@ export class TransferOrderService<
       // Find all items with changes to calculate cancellable quantities
       const items = await repos.transferOrderItem.find({
         where: { orderId: id },
-        relations: ['changes'],
+        relations: { changes: true },
       });
 
       // Build cancel inputs for items with remaining pending quantity
@@ -373,7 +375,6 @@ export class TransferOrderService<
       for (const srcLoaderId of wholeLoaderSourceIds) {
         const [aggRows] = await this.stockService.findAggregatedStocks({
           loaderId: srcLoaderId,
-          aggregated: true,
         });
         // Gate 1
         const nonFree = aggRows.filter((r) => r.status !== StockStatus.FREE);
@@ -646,7 +647,7 @@ export class TransferOrderService<
 
       const items = await itemRepository.find({
         where: { id: In(options.map((o) => o.itemId)) },
-        relations: ['changes'],
+        relations: { changes: true },
       });
 
       const itemMap = new Map(items.map((item) => [item.id, item]));
@@ -675,7 +676,7 @@ export class TransferOrderService<
       if (orderId) {
         const allOrderItems = await itemRepository.find({
           where: { orderId },
-          relations: ['changes'],
+          relations: { changes: true },
         });
         for (const orderItem of allOrderItems) {
           if (orderItem.removedAt) continue;
@@ -724,7 +725,6 @@ export class TransferOrderService<
       for (const [srcLoaderId, subTotalQty] of wholeLoaderGroupSums) {
         const [aggRows] = await this.stockService.findAggregatedStocks({
           loaderId: srcLoaderId,
-          aggregated: true,
         });
         const loaderTotalQty = aggRows.reduce(
           (s, r) => s + Number(r.quantity),
@@ -775,7 +775,7 @@ export class TransferOrderService<
           });
 
           // Record the transfer change
-          const base = await manager.getRepository(OrderEntity).save({});
+          const base = await manager.getRepository(this.entities.order).save({});
 
           // Availability check at the IN_TRANSFER coord — must have ≥ qty to drain
           await this.stockService.validateStockAvailability(

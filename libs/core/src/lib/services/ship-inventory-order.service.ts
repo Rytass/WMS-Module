@@ -42,6 +42,7 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -59,6 +60,7 @@ export class ShipInventoryOrderService<
 
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly stockService: StockService,
@@ -137,8 +139,9 @@ export class ShipInventoryOrderService<
     references: Partial<CreateShipInventoryOrderReferenceInput>[],
     manager: EntityManager,
   ): Promise<DeepPartial<ShipInventoryOrderReferenceEntityClass>[]> {
-    const materialRepository =
-      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
+    const materialRepository = manager.getRepository<MaterialEntityClass>(
+      this.materialService.materialEntity,
+    );
     const saleOrderRepository = manager.getRepository<SaleOrderEntityClass>(
       this.saleOrderEntity,
     );
@@ -188,9 +191,9 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderChangeEntityClass>(
         ShipInventoryOrderChangeEntityClass,
       );
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
     const stockRepository =
-      manager.getRepository<StockEntityClass>(StockEntityClass);
+      manager.getRepository<StockEntityClass>(this.entities.stock);
 
     await Promise.all(
       items.map(async (data) => {
@@ -264,7 +267,7 @@ export class ShipInventoryOrderService<
     manager = this.dataSource.manager,
     ...options
   }: CreateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
     const shipInventoryOrderRepository =
       manager.getRepository<ShipInventoryOrderEntityClass>(
         this.shipInventoryOrderEntity,
@@ -325,8 +328,9 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderItemEntityClass>(
         this.shipInventoryOrderItemEntity,
       );
-    const materialRepository =
-      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
+    const materialRepository = manager.getRepository<MaterialEntityClass>(
+      this.materialService.materialEntity,
+    );
 
     const order = await shipInventoryOrderRepository.findOneByOrFail({
       id,
@@ -452,7 +456,7 @@ export class ShipInventoryOrderService<
       // Find all items with changes to calculate cancellable quantities
       const items = await itemRepository.find({
         where: { orderId: id },
-        relations: ['changes'],
+        relations: { changes: true },
       });
 
       // Build cancel inputs for items with remaining prepared quantity
@@ -513,13 +517,13 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderItemEntityClass>(
         this.shipInventoryOrderItemEntity,
       );
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
     const stockRepository =
-      manager.getRepository<StockEntityClass>(StockEntityClass);
+      manager.getRepository<StockEntityClass>(this.entities.stock);
 
     const items = await itemRepository.find({
       where: { id: In(options.map((o) => o.itemId)) },
-      relations: ['changes'],
+      relations: { changes: true },
     });
     const itemMap = new Map(items.map((item) => [item.id, item]));
 
@@ -753,13 +757,13 @@ export class ShipInventoryOrderService<
           this.shipInventoryOrderItemEntity,
         );
 
-      const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+      const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
       const stockRepository =
-        manager.getRepository<StockEntityClass>(StockEntityClass);
+        manager.getRepository<StockEntityClass>(this.entities.stock);
 
       const items = await itemRepository.find({
         where: { id: In(options.map((option) => option.itemId)) },
-        relations: ['changes'],
+        relations: { changes: true },
       });
       const itemMap = new Map(items.map((item) => [item.id, item]));
       await Promise.all(

@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { useRouter } from 'next/router';
+import { parseAsString, useQueryState } from 'nuqs';
 import PageWrapper from '../../PageWrapper';
 import PageTabs from '../../PageTabs';
 import LoadersManagementList from './List';
@@ -7,8 +6,7 @@ import LoadersManagementTypes from './Types';
 import { PageTab } from './typing';
 
 function LoadersManagement() {
-  const { query } = useRouter();
-  const tab = useMemo(() => (query?.tab as PageTab) ?? '', [query.tab]);
+  const [tab] = useQueryState('tab', parseAsString.withDefault(''));
 
   return (
     <PageWrapper title="載具管理">

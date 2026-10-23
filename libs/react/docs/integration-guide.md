@@ -340,23 +340,32 @@ The `DEFAULT` location/loader/loaderType returned by the second query was seeded
 
 ### 4.6 Version compatibility matrix
 
-Tested combinations as of 0.1.2:
+Two different questions, so two columns. **Accepted** is what the published
+`peerDependencies` allow — a version outside it fails to install. **Tested** is what the
+repo's own `apps/client` is built and clicked through against.
 
-| Package                          | Tested version          | Notes                                                              |
-|----------------------------------|-------------------------|--------------------------------------------------------------------|
-| NestJS (`@nestjs/*`)             | 11.x                    | 10.x untested; some Express-5-related APIs differ                  |
-| `@nestjs/graphql`                | 13.x                    | Required for `@nestjs/apollo@13`                                   |
-| `@nestjs/apollo`                 | 13.0.x – 13.1.x         | 13.2+ requires @apollo/server@^5 which breaks lib's v4 plugin usage |
-| `@apollo/server`                 | 4.x                     | v5 is breaking; not supported                                      |
-| `@as-integrations/express5`      | 1.x                     | Required runtime peer                                              |
-| TypeORM                          | 0.3.x                   | 0.2.x not supported (different DataSource API)                     |
-| PostgreSQL                       | 14+                     | Native dialect                                                     |
-| `graphql`                        | 16.x                    | 15.x untested                                                      |
-| Node.js                          | 20 LTS or 22            | 18 deprecated, 24 untested                                         |
-| Next.js                          | 15.x Pages Router       | App Router unsupported (see §13.11)                                |
-| React                            | 19.x                    | 18.x likely works but untested                                     |
-| `@mezzanine-ui/react`            | 1.3.x                   | Earlier versions untested                                          |
-| `nuqs`                           | 2.x (Pages adapter)     | App Router adapter untested (see §13.11)                           |
+| Package                            | Accepted (peer range) | Tested        | Notes                                                                     |
+|------------------------------------|-----------------------|---------------|---------------------------------------------------------------------------|
+| React / React DOM                  | 18.x – 19.x           | 19.2.x        | No React-19-only API is used, and `@mezzanine-ui/react` peers `>=18`      |
+| Next.js                            | 15.x – 16.x           | 15.5.x Pages  | Only `next/router` and `next/navigation` are imported; App Router unsupported (see §13.11) |
+| `@apollo/client`                   | 4.x                   | 4.2.12        | v3 is a different API surface                                             |
+| `graphql`                          | 16.x – 17.x           | 16.12.0       | Never imported by this package; declared because `@apollo/client` needs it |
+| `@mezzanine-ui/react` / `core` / `system` / `icons` | 1.x  | 1.4.1 / 1.1.0 / 1.0.2 / 1.0.2 | **All four are required.** `system` backs 45 of this package's SCSS files, `icons` is imported in 31 source files |
+| `@rytass/wms-map-react-components` | 0.1.x                 | 0.1.10        | **Required** — imported statically by the Maps and 庫位管理 pages          |
+| `react-hook-form`                  | 7.x                   | 7.71.x        | 93 import sites                                                           |
+| `@hookform/resolvers`              | 5.x                   | 5.2.x         | 40 import sites (`yupResolver`)                                           |
+| `yup`                              | 1.x                   | 1.7.x         | 51 import sites                                                           |
+| `lodash`                           | 4.x                   | 4.17.x        | 22 import sites                                                           |
+| `nuqs`                             | 2.x                   | 2.8.x         | Pages adapter; App Router adapter untested (see §13.11)                   |
+| Node.js                            | —                     | 20 LTS / 22   | 18 deprecated, 24 untested                                                |
+
+> `@mezzanine-ui/icons` and `@rytass/wms-map-react-components` used to be marked optional.
+> They are not: both are static top-level imports reachable from the package barrel, so a
+> consumer who left them out got a module-not-found at build time rather than a degraded
+> UI. The `peerDependenciesMeta` block has been dropped.
+
+For the backend packages' matrix see
+[`@rytass/wms-module-graphql`](https://www.npmjs.com/package/@rytass/wms-module-graphql) §4.6.
 
 ---
 

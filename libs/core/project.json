@@ -4,12 +4,23 @@
   "sourceRoot": "libs/core/src",
   "prefix": "wms-module",
   "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "cwd": "libs/core",
+        "command": "tsc -p tsconfig.typecheck.json"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "outputs": [
         "{projectRoot}/index.cjs.js",
-        "{projectRoot}/index.js",
+        "{projectRoot}/index.mjs",
         "{projectRoot}/index.d.ts",
+        "{projectRoot}/index.d.mts",
         "{projectRoot}/lib",
         "{projectRoot}/constants",
         "{projectRoot}/models",
@@ -18,7 +29,11 @@
       ],
       "options": {
         "cwd": "libs/core",
-        "command": "rollup -c rollup.config.mjs"
+        "parallel": false,
+        "commands": [
+          "rollup -c rollup.config.mjs",
+          "node ../../tools/emit-esm-type-shims.mjs . index"
+        ]
       }
     },
     "clean": {
@@ -26,7 +41,7 @@
       "options": {
         "cwd": "libs/core",
         "commands": [
-          "rm -rf index.cjs.js index.js index.d.ts lib constants models services typings"
+          "rm -rf index.cjs.js index.js index.mjs index.d.ts index.d.mts lib constants models services typings tsconfig.tsbuildinfo"
         ],
         "parallel": false
       }
@@ -37,22 +52,8 @@
         "build"
       ],
       "options": {
-        "command": "npx -y publint run libs/core --pack false",
+        "command": "node tools/pkg-gate.mjs libs/core",
         "parallel": false
-      }
-    },
-    "pkg-quality-attw": {
-      "executor": "nx:run-commands",
-      "dependsOn": [
-        "build"
-      ],
-      "options": {
-        "parallel": false,
-        "commands": [
-          "npm pack --pack-destination ./libs/core ./libs/core",
-          "npx -y @arethetypeswrong/cli ./libs/core/*.tgz",
-          "rm -f ./libs/core/*.tgz"
-        ]
       }
     },
     "prepublish-check": {

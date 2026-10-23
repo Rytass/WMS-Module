@@ -13,6 +13,14 @@ export class FindStockArgs extends PaginationArgs {
   @Field(() => ID, { nullable: true })
   locationId?: string;
 
+  /**
+   * Locations to leave out of the result. Subtractive counterpart to
+   * `locationId`: a stock report uses it to drop locations that do not hold
+   * available inventory (staging, quarantine, a host's work-in-progress lane).
+   */
+  @Field(() => [ID], { nullable: true })
+  excludeLocationIds?: string[];
+
   @Field(() => ID, { nullable: true })
   loaderId?: string;
 
@@ -36,4 +44,21 @@ export class FindStockArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   loaderKey?: string;
+
+  /**
+   * Commercial attributes carried by the stock's batch. Matched exactly — they
+   * are identifiers from the host system, and a partial match on 「SO-1」 would
+   * quietly sweep in 「SO-10」.
+   */
+  @Field(() => String, { nullable: true })
+  vendorId?: string;
+
+  @Field(() => String, { nullable: true })
+  customerId?: string;
+
+  @Field(() => String, { nullable: true })
+  saleId?: string;
+
+  @Field(() => String, { nullable: true })
+  saleSerialId?: string;
 }

@@ -1,6 +1,6 @@
 {
   "name": "@rytass/wms-module-core",
-  "version": "0.1.6",
+  "version": "0.9.1",
   "description": "Rytass WMS Module — NestJS services and TypeORM entities for warehouse management",
   "keywords": [
     "rytass",
@@ -12,6 +12,7 @@
   "author": "Chia Yu Pai <fantasyatelier@gmail.com>",
   "homepage": "https://github.com/Rytass/WMS-Module#readme",
   "license": "MIT",
+  "type": "commonjs",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Rytass/WMS-Module.git"
@@ -20,34 +21,45 @@
     "url": "https://github.com/Rytass/WMS-Module/issues"
   },
   "main": "./index.cjs.js",
-  "module": "./index.js",
+  "module": "./index.mjs",
   "typings": "./index.d.ts",
   "exports": {
     ".": {
-      "types": "./index.d.ts",
-      "require": "./index.cjs.js",
-      "import": "./index.js"
+      "import": {
+        "types": "./index.d.mts",
+        "default": "./index.mjs"
+      },
+      "require": {
+        "types": "./index.d.ts",
+        "default": "./index.cjs.js"
+      }
     },
     "./package.json": "./package.json"
   },
   "files": [
     "**/*.js",
+    "**/*.mjs",
     "**/*.d.ts",
+    "**/*.d.mts",
     "README.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "!src",
+    "!*.config.mjs",
+    "!scripts"
   ],
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@rytass/wms-base-nestjs-module": "0.1.11"
+    "luxon": "^3.0.0",
+    "tslib": "^2.6.0"
   },
   "peerDependencies": {
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/common": "^10.0.0 || ^11.0.0",
+    "@nestjs/typeorm": "^10.0.0 || ^11.0.0",
+    "@rytass/wms-base-nestjs-module": "^0.4.0",
     "reflect-metadata": "^0.1.13 || ^0.2.0",
-    "rxjs": "^7.8.0",
-    "typeorm": "^0.3.0"
+    "typeorm": "^0.3.0 || ^1.0.0"
   }
 }

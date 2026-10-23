@@ -61,8 +61,16 @@ const Table = <T extends TableDataSource>({
         actions={actions}
         fullWidth
         resizable
+        /*
+         * Caller-first. This used to be a hard-coded `{ title: '查無資料' }`
+         * placed after the spread, which silently swallowed every caller's
+         * `emptyProps` — the inventory list could not tell "you have not
+         * searched yet" apart from "your search matched nothing", which the
+         * design treats as two different screens.
+         */
         emptyProps={{
           title: '查無資料',
+          ...props.emptyProps,
         }}
         pagination={{
           showPageSizeOptions: true,

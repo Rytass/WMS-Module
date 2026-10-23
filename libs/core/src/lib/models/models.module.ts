@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { WmsEventCollector } from '../events/wms-event.collector';
 import { WarehouseMapEntity as WarehouseMapEntityClass } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
 import {
   BatchEntity,
@@ -101,6 +102,22 @@ import {
   ScrapeOrderItemEntityClass,
   ScrapeOrderChangeEntity,
   ScrapeOrderChangeEntityClass,
+  InventoryCountOrderEntity,
+  InventoryCountOrderEntityClass,
+  InventoryCountOrderLocationEntity,
+  InventoryCountOrderLocationEntityClass,
+  InventoryCountOrderItemEntity,
+  InventoryCountOrderItemEntityClass,
+  InventoryCountOrderChangeEntity,
+  InventoryCountOrderChangeEntityClass,
+  OrderReferenceEntity,
+  OrderReferenceEntityClass,
+  ConsumptionOrderEntity,
+  ConsumptionOrderEntityClass,
+  ConsumptionOrderItemEntity,
+  ConsumptionOrderItemEntityClass,
+  ConsumptionOrderChangeEntity,
+  ConsumptionOrderChangeEntityClass,
 } from './extensions';
 
 const entities = [
@@ -156,16 +173,44 @@ const entities = [
   [ScrapeOrderEntity, ScrapeOrderEntityClass],
   [ScrapeOrderItemEntity, ScrapeOrderItemEntityClass],
   [ScrapeOrderChangeEntity, ScrapeOrderChangeEntityClass],
+  [InventoryCountOrderEntity, InventoryCountOrderEntityClass],
+  [InventoryCountOrderLocationEntity, InventoryCountOrderLocationEntityClass],
+  [InventoryCountOrderItemEntity, InventoryCountOrderItemEntityClass],
+  [InventoryCountOrderChangeEntity, InventoryCountOrderChangeEntityClass],
+  [OrderReferenceEntity, OrderReferenceEntityClass],
+  [ConsumptionOrderEntity, ConsumptionOrderEntityClass],
+  [ConsumptionOrderItemEntity, ConsumptionOrderItemEntityClass],
+  [ConsumptionOrderChangeEntity, ConsumptionOrderChangeEntityClass],
 ] as [symbol, new () => object][];
 
-export const ResolvedEntitiesProviders = entities.map(([token, entity]) => ({
-  provide: token,
-  useValue: entity,
-}));
+/**
+ * The overridable entities are deliberately absent: `WmsModuleCoreModule` binds
+ * each of them to whatever the matching `WMSBaseModuleOptions` entity resolved
+ * to, which only a module importing `WMSBaseModule` can read. Binding them here
+ * as well would leave two live bindings for one token, and the loser would be
+ * whichever module the injector happened to reach first.
+ *
+ * Their classes stay in `entities` above so TypeORM still registers them — each
+ * is the root of the single-table hierarchy a consumer's override extends.
+ */
+const EXTERNALLY_BOUND_ENTITIES = new Set<symbol>([
+  MaterialEntity,
+  BatchEntity,
+  LocationEntity,
+  StockEntity,
+  WarehouseMapEntity,
+]);
+
+export const ResolvedEntitiesProviders = entities
+  .filter(([token]) => !EXTERNALLY_BOUND_ENTITIES.has(token))
+  .map(([token, entity]) => ({
+    provide: token,
+    useValue: entity,
+  }));
 
 @Module({
   imports: [TypeOrmModule.forFeature(entities.map(([_, entity]) => entity))],
-  providers: ResolvedEntitiesProviders,
-  exports: [TypeOrmModule, ...ResolvedEntitiesProviders],
+  providers: [...ResolvedEntitiesProviders, WmsEventCollector],
+  exports: [TypeOrmModule, ...ResolvedEntitiesProviders, WmsEventCollector],
 })
 export class ModelsModule {}

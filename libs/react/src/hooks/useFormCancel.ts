@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../router/context';
 import { useDialog } from '../components/dialog/useDialog';
 
 interface FormCancelProps {
@@ -8,7 +8,7 @@ interface FormCancelProps {
 
 export function useFormCancel({ onCancel }: FormCancelProps) {
   const { openDialog } = useDialog();
-  const { back } = useRouter();
+  const { back } = useWmsRouter();
 
   const onFormCancel = useCallback(async () => {
     const isConfirm = await openDialog({

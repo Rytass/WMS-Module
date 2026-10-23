@@ -1,0 +1,276 @@
+import type { ExecutionContext } from '@nestjs/common';
+import type { ChangeType } from '../constants/stock-status';
+
+/**
+ * Host-neutral event/hook contracts for WMS mutations.
+ *
+ * Two tiers of events:
+ * - **Operation events** (`<domain>.<past-tense-action>`): exactly one per root
+ *   mutation, emitted by the GraphQL interceptor after the handler resolves
+ *   (post-commit) carrying the operation result.
+ * - **Stock domain events** (`stock.<change-type>`): driven by the `ChangeType`
+ *   state machine, collected inside core services (possibly many per operation)
+ *   and flushed post-commit.
+ *
+ * The library never knows what a consumer does with these — it only declares the
+ * names and payloads. Wiring is opt-in via `forRootAsync({ beforeHooks,
+ * afterListeners })`; when nothing is configured the whole chain is inert.
+ */
+
+// --- Operation event names (one per root mutation) ------------------------
+
+export type WmsOperationEventName =
+  | 'receive-inventory-order.created'
+  | 'receive-inventory-order.updated'
+  | 'receive-inventory-order.received'
+  | 'ship-inventory-order.created'
+  | 'ship-inventory-order.updated'
+  | 'ship-inventory-order.shipped'
+  | 'ship-inventory-order.ship-cancelled'
+  | 'transfer-order.created'
+  | 'transfer-order.updated'
+  | 'transfer-order.transferred'
+  | 'transfer-order.transfer-cancelled'
+  | 'hold-inventory-order.created'
+  | 'hold-inventory-order.updated'
+  | 'hold-inventory-order.released'
+  | 'allocate-inventory-order.created'
+  | 'allocate-inventory-order.updated'
+  | 'allocate-inventory-order.deallocated'
+  | 'transfer-vendor-order.created'
+  | 'transfer-vendor-order.updated'
+  | 'transfer-vendor-order.returned'
+  | 'transfer-customer-order.created'
+  | 'transfer-customer-order.updated'
+  | 'transfer-customer-order.returned'
+  | 'quality-inspection-order.inspected'
+  | 'scrape-order.scraped'
+  | 'reclassify-inventory-order.reclassified'
+  | 'batch.merged'
+  | 'batch.splitted'
+  | 'material.created'
+  | 'material.updated'
+  | 'loader.created'
+  | 'loader.batch-created'
+  | 'loader.updated'
+  | 'loader.type-created'
+  | 'loader.type-updated'
+  | 'location.created'
+  | 'location.updated'
+  | 'warehouse-map.updated'
+  | 'inventory-count-order.created'
+  | 'inventory-count-order.updated'
+  | 'inventory-count-order.started'
+  | 'inventory-count-order.counted'
+  | 'inventory-count-order.reset'
+  | 'inventory-count-order.cancelled'
+  | 'inventory-count-order.settled'
+  | 'consumption-order.created'
+  | 'consumption-order.updated'
+  | 'consumption-order.issued'
+  | 'consumption-order.returned'
+  | 'consumption-order.settled'
+  | 'order-reference.attached'
+  | 'order-reference.detached';
+
+// --- Stock domain event names (driven by ChangeType) ----------------------
+
+export type WmsStockEventName =
+  | 'stock.received'
+  | 'stock.in-shipment'
+  | 'stock.shipped'
+  | 'stock.in-transfer'
+  | 'stock.transferred'
+  | 'stock.vendor-transferred'
+  | 'stock.vendor-returned'
+  | 'stock.held'
+  | 'stock.released'
+  | 'stock.customer-held'
+  | 'stock.customer-returned'
+  | 'stock.splitted'
+  | 'stock.merged'
+  | 'stock.allocated'
+  | 'stock.deallocated'
+  | 'stock.reclassified'
+  | 'stock.scraped'
+  // No dedicated ChangeType — quality inspection only flips the
+  // inspectionResult flag; surfaced as its own event to fill the gap.
+  | 'stock.inspection-resolved'
+  // Settled inventory-count variance, split by the sign of the adjustment.
+  | 'stock.count-gained'
+  | 'stock.count-lost'
+  // Consumption order: out to the consuming location, back from it, used up.
+  | 'stock.issued'
+  | 'stock.returned'
+  | 'stock.consumed'
+  /**
+   * A movement on a change table the host registered through
+   * `customChangeTables`, whose kind this package has no name for. The host's
+   * own string arrives as `payload.customChangeType`.
+   *
+   * One event name rather than an open union on purpose: `WmsStockEventName`
+   * stays closed, so the typed listener map, the GraphQL `ChangeType` enum and
+   * every exhaustive switch a consumer wrote keep working.
+   */
+  | 'stock.custom';
+
+export type WmsEventName = WmsOperationEventName | WmsStockEventName;
+
+// --- Actor ----------------------------------------------------------------
+
+/**
+ * The authenticated identity that performed a mutation, in a host-neutral shape.
+ * Populated by a consumer-supplied {@link WmsActorExtractor}; `null` when no
+ * extractor is configured or the request is unauthenticated.
+ */
+export interface WmsActor {
+  readonly id: string;
+  readonly domain?: string;
+  /** Host-specific extras (e.g. the raw token payload), if the extractor adds them. */
+  readonly raw?: unknown;
+}
+
+/**
+ * Host-neutral function that derives the current {@link WmsActor} from the
+ * NestJS execution context. Wired via `forRootAsync({ actorExtractor })`; the
+ * `@rytass/wms-module-graphql/adapters/member-base` entrypoint ships a default.
+ */
+export type WmsActorExtractor = (context: ExecutionContext) => WmsActor | null;
+
+// --- Payloads -------------------------------------------------------------
+
+/**
+ * Payload for an operation event. `id` is the primary key of the operation's
+ * main entity/order (correlation id shared with the stock events it fans out
+ * to); `result` is the mutation's return value (a DTO, or `boolean` for action
+ * mutations); `args` is the raw GraphQL input (the intent — useful for action
+ * mutations whose `result` is just `boolean`); `actor` is who performed it.
+ */
+export interface WmsOperationEventPayload<TResult = unknown> {
+  readonly id: string | null;
+  readonly result: TResult;
+  readonly args: Readonly<Record<string, unknown>>;
+  readonly actor: WmsActor | null;
+}
+
+/**
+ * Payload for a stock domain event, built from the inserted `*_order_change`
+ * row. These four fields are reliably available the moment the change is
+ * written (no extra query). For richer batch/material/location details a
+ * listener can look them up by `orderId` / `itemId` after commit.
+ */
+export interface WmsStockEventPayload {
+  /** Base order id (`change.id`) — correlation id shared with the operation event. */
+  readonly orderId: string;
+  /** The order item this change applies to (`change.itemId`). */
+  readonly itemId: string;
+  /** `change.quantityChanged` — sign carries direction (in: +, out: -). */
+  readonly quantityDelta: number;
+  /**
+   * The resolved `ChangeType` for this stock movement. `null` for a quality
+   * inspection, which has none, and for a `stock.custom` movement, which
+   * carries the host's own name in {@link WmsStockEventPayload.customChangeType}
+   * instead.
+   */
+  readonly changeType: ChangeType | null;
+  /**
+   * The host's own change type, present only on `stock.custom`. Opaque: this
+   * package never interprets it.
+   */
+  readonly customChangeType?: string;
+  /** Quality-inspection result, present only on `stock.inspection-resolved`. */
+  readonly inspectionResult?: boolean | null;
+  // --- enrichment fields (present only when `enrichStockEvents` is enabled) ---
+  // Loaded from the change's order item. split/merge/reclassify items have no
+  // material/batch (that metadata lives on the parent order), so those stay null.
+  readonly materialId?: string | null;
+  readonly batchId?: string | null;
+  readonly locationId?: string | null;
+  readonly loaderId?: string | null;
+}
+
+/** Maps every event name to its payload type. */
+export type WmsEventPayloadMap = {
+  readonly [N in WmsOperationEventName]: WmsOperationEventPayload;
+} & {
+  readonly [N in WmsStockEventName]: WmsStockEventPayload;
+};
+
+/** A collected domain event: a name plus its typed payload. */
+export interface WmsDomainEvent<N extends WmsEventName = WmsEventName> {
+  readonly name: N;
+  readonly payload: WmsEventPayloadMap[N];
+}
+
+// --- Hook / listener contracts -------------------------------------------
+
+/**
+ * Context handed to a before-hook. Runs *before* any DB work, so it sees the
+ * operation **intent** (the raw arguments) rather than a result. Throwing
+ * vetoes the whole operation with zero side effects.
+ */
+export interface WmsBeforeHookContext<N extends WmsEventName = WmsEventName> {
+  readonly event: N;
+  readonly args: Readonly<Record<string, unknown>>;
+  /**
+   * The NestJS execution context, or `null` when the operation did not arrive
+   * through one.
+   *
+   * A host calling a domain service directly through `WmsOperationRunner` has
+   * no execution context to offer, and fabricating one would be worse than
+   * admitting it: a hook that reaches into the request would get a lie instead
+   * of an obvious `null`. Branch on {@link WmsBeforeHookContext.source} rather
+   * than on this field being present.
+   */
+  readonly executionContext: ExecutionContext | null;
+  /** Where the operation came in from. `'host'` means a direct service call. */
+  readonly source: 'graphql' | 'host';
+  readonly actor: WmsActor | null;
+}
+
+/** Context handed to an after-listener. Runs post-commit with the event payload. */
+export interface WmsAfterEventContext<N extends WmsEventName = WmsEventName> {
+  readonly event: N;
+  readonly payload: WmsEventPayloadMap[N];
+}
+
+export type WmsBeforeHook<N extends WmsEventName = WmsEventName> = (
+  context: WmsBeforeHookContext<N>,
+) => void | Promise<void>;
+
+export type WmsAfterListener<N extends WmsEventName = WmsEventName> = (
+  context: WmsAfterEventContext<N>,
+) => void | Promise<void>;
+
+export type WmsBeforeHookMap = {
+  readonly [N in WmsEventName]?: WmsBeforeHook<N>;
+};
+
+export type WmsAfterListenerMap = {
+  readonly [N in WmsEventName]?: WmsAfterListener<N>;
+};
+
+/**
+ * Event options merged into the module options. All optional — omit everything
+ * to keep the module inert (pre-event behaviour).
+ */
+export interface WmsEventModuleOptions {
+  readonly beforeHooks?: WmsBeforeHookMap;
+  readonly afterListeners?: WmsAfterListenerMap;
+  /**
+   * When `true`, stock events are enriched (in the same transaction, one PK
+   * lookup per event) with `materialId / batchId / locationId / loaderId` from
+   * the change's order item. Off by default (lazy: ids only). See
+   * {@link WmsActorExtractor} for the separately-wired actor.
+   */
+  readonly enrichStockEvents?: boolean;
+}
+
+/**
+ * Runtime bridge to an external emitter (e.g. `@nestjs/event-emitter`). The
+ * graphql package provides an implementation; when absent, dispatch simply
+ * skips it.
+ */
+export interface WmsEventEmitterBridge {
+  forward(event: WmsDomainEvent): void;
+}

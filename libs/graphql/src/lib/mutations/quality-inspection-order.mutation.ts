@@ -3,6 +3,8 @@ import { Args, Mutation } from '@nestjs/graphql';
 import { QualityInspectionOrderService, StockService } from '@rytass/wms-module-core';
 import { QualityInspectionOrderDto } from '../dto/quality-inspection-order.dto';
 import { CreateQualityInspectionOrderArgs } from '../inputs/create-quality-inspection-order.args';
+import { WmsOperation } from '../auth';
+import { WmsMutationEvent } from '../events';
 
 @Injectable()
 export class QualityInspectionOrderMutation {
@@ -12,6 +14,8 @@ export class QualityInspectionOrderMutation {
   ) {}
 
   @Mutation(() => QualityInspectionOrderDto)
+  @WmsOperation({ resource: 'quality-inspection-order', action: 'inspect' })
+  @WmsMutationEvent({ event: 'quality-inspection-order.inspected' })
   async inspectMaterials(
     @Args() args: CreateQualityInspectionOrderArgs,
   ): Promise<QualityInspectionOrderDto> {

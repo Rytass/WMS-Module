@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { TableColumn } from '@mezzanine-ui/react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../../../router/context';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
 import Actions from './Actions';
@@ -18,7 +18,7 @@ import { nextDynamicPath } from '../../../../utils/path';
 
 function ReceiveInventoryOrdersTable() {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
-  const { push } = useRouter();
+  const { push } = useWmsRouter();
 
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryReceiveInventoryOrders();

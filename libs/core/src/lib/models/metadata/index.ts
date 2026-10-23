@@ -6,6 +6,7 @@ export * from './loader-unit.entity';
 export * from './location.entity';
 export * from './material.entity';
 export * from './material-unit.entity';
+export * from './order.entity';
 export * from './sale-order.entity';
 export * from './stock.entity';
 export * from './unit.entity';

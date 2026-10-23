@@ -10,17 +10,24 @@
         "command": "graphql-codegen -c libs/react/src/graphql/codegen.ts"
       }
     },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "libs/react",
+        "command": "tsc -p tsconfig.typecheck.json"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "outputs": [
         "{projectRoot}/index.js",
         "{projectRoot}/index.d.ts",
-        "{projectRoot}/globals.js",
         "{projectRoot}/globals.d.ts",
         "{projectRoot}/components",
         "{projectRoot}/hooks",
         "{projectRoot}/icons",
         "{projectRoot}/utils",
+        "{projectRoot}/router",
         "{projectRoot}/apollo",
         "{projectRoot}/graphql"
       ],
@@ -29,7 +36,8 @@
         "parallel": false,
         "commands": [
           "rollup -c rollup.config.mjs",
-          "rsync -a --include='*/' --include='*.scss' --exclude='*' src/ ./"
+          "rsync -a --include='*/' --include='*.scss' --exclude='*' src/ ./",
+          "node scripts/fix-dts-specifiers.mjs ."
         ]
       }
     },
@@ -38,7 +46,7 @@
       "options": {
         "cwd": "libs/react",
         "commands": [
-          "rm -rf index.js index.d.ts globals.js globals.d.ts components hooks icons utils apollo graphql/generated"
+          "rm -rf index.js index.d.ts globals.js globals.d.ts components hooks icons utils apollo router graphql/generated"
         ],
         "parallel": false
       }
@@ -49,22 +57,8 @@
         "build"
       ],
       "options": {
-        "command": "npx -y publint run libs/react --pack false",
+        "command": "node tools/pkg-gate.mjs libs/react --attw-ignore cjs-resolves-to-esm",
         "parallel": false
-      }
-    },
-    "pkg-quality-attw": {
-      "executor": "nx:run-commands",
-      "dependsOn": [
-        "build"
-      ],
-      "options": {
-        "parallel": false,
-        "commands": [
-          "npm pack --pack-destination ./libs/react ./libs/react",
-          "npx -y @arethetypeswrong/cli ./libs/react/*.tgz",
-          "rm -f ./libs/react/*.tgz"
-        ]
       }
     },
     "prepublish-check": {
@@ -75,6 +69,16 @@
         "build",
         "pkg-quality"
       ]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "parallel": false,
+        "commands": [
+          "tsc -p libs/react/tsconfig.spec.json",
+          "jest -c libs/react/jest.config.mjs"
+        ]
+      }
     }
   },
   "tags": []

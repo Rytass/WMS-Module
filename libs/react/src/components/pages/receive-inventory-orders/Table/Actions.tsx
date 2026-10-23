@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../../../router/context';
 import { Button, ButtonGroup, Message } from '@mezzanine-ui/react';
 import {
   SimpleReceiveInventoryOrderFragment,
@@ -15,7 +15,7 @@ interface ActionsProps {
 }
 
 const Actions: FC<ActionsProps> = ({ source }) => {
-  const { push } = useRouter();
+  const { push } = useWmsRouter();
   const { openDialog } = useDialog();
   const { updateReceiveInventoryOrder, loading } =
     useUpdateReceiveInventoryOrder();

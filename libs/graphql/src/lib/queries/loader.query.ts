@@ -11,6 +11,7 @@ import { LoaderDto, Loaders, LoaderTypeDto, LoaderTypes } from '../dto';
 import { FindLoaderArgs } from '../inputs/find-loader.args';
 import { FindLoaderTypeArgs } from '../inputs/find-loader-type.args';
 import { LoaderUnit, LoaderUnitDto } from '../dto/loader-unit.dto';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class LoaderQuery {
@@ -21,11 +22,13 @@ export class LoaderQuery {
   ) {}
 
   @Query(() => LoaderDto)
+  @WmsOperation({ resource: 'loader', action: 'read' })
   loader(@Args('id', { type: () => ID }) id: string): Promise<LoaderDto> {
     return this.loaderService.loaderRepository.findOneByOrFail({ id });
   }
 
   @Query(() => Loaders)
+  @WmsOperation({ resource: 'loader', action: 'read' })
   async loaders(@Args() args: FindLoaderArgs): Promise<Loaders> {
     const [items, total] = await this.loaderService.findManyLoaders({
       ...args,
@@ -35,6 +38,7 @@ export class LoaderQuery {
   }
 
   @Query(() => LoaderTypeDto)
+  @WmsOperation({ resource: 'loader', action: 'read' })
   async loaderType(
     @Args('id', { type: () => ID }) id: string,
   ): Promise<LoaderTypeDto> {
@@ -42,6 +46,7 @@ export class LoaderQuery {
   }
 
   @Query(() => LoaderTypes)
+  @WmsOperation({ resource: 'loader', action: 'read' })
   async loaderTypes(@Args() args: FindLoaderTypeArgs): Promise<LoaderTypes> {
     const [items, total] = await this.loaderService.findManyLoaderTypes({
       ...args,
@@ -51,6 +56,7 @@ export class LoaderQuery {
   }
 
   @Query(() => [LoaderUnitDto])
+  @WmsOperation({ resource: 'loader', action: 'read' })
   loaderUnits(
     @Args('type', { type: () => LoaderUnit }) type: LoaderUnit,
   ): Promise<LoaderUnitDto[]> {
@@ -60,6 +66,7 @@ export class LoaderQuery {
   }
 
   @Query(() => [LoaderDto])
+  @WmsOperation({ resource: 'loader', action: 'read' })
   async availableLoaders(
     @Args('locationId', { type: () => ID, nullable: true }) locationId?: string,
   ) {
@@ -74,7 +81,6 @@ export class LoaderQuery {
         if (loader.locationId === locationId) loaders.push(loader);
       });
     const [aggregatedStocks] = await this.stockService.findAggregatedStocks({
-      aggregated: true,
     });
 
     // Collect loaderIds that currently have stock

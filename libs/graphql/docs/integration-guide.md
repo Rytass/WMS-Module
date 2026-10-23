@@ -16,7 +16,9 @@ Target audience: engineers integrating WMS into a new product who want a working
 5. [Frontend setup (Next.js Pages Router)](#5-frontend-setup-nextjs-pages-router)
 6. [Pages Router shell pattern (the 19 thin shells)](#6-pages-router-shell-pattern-the-19-thin-shells)
 7. [Apollo client wiring](#7-apollo-client-wiring)
-8. [Authentication / authorization](#8-authentication--authorization)
+8. [Authentication, authorization & events](#8-authentication-authorization--events)
+   - [8.5 Backend authorization (resolver-level)](#85-backend-authorization-resolver-level)
+   - [8.6 Mutation events & hooks](#86-mutation-events--hooks)
 9. [Database support matrix](#9-database-support-matrix)
 10. [Seed data for demos](#10-seed-data-for-demos)
 11. [Deployment notes](#11-deployment-notes)
@@ -346,23 +348,37 @@ The `DEFAULT` location/loader/loaderType returned by the second query was seeded
 
 ### 4.6 Version compatibility matrix
 
-Tested combinations as of 0.1.2:
+Two different questions, so two columns. **Accepted** is what the published
+`peerDependencies` allow — a version outside it fails to install. **Tested** is the
+combination CI and the integration suite actually run against; anything else is
+accepted because nothing in the lib's use of that package is known to break, not
+because it was exercised.
 
-| Package                          | Tested version          | Notes                                                              |
-|----------------------------------|-------------------------|--------------------------------------------------------------------|
-| NestJS (`@nestjs/*`)             | 11.x                    | 10.x untested; some Express-5-related APIs differ                  |
-| `@nestjs/graphql`                | 13.x                    | Required for `@nestjs/apollo@13`                                   |
-| `@nestjs/apollo`                 | 13.0.x – 13.1.x         | 13.2+ requires @apollo/server@^5 which breaks lib's v4 plugin usage |
-| `@apollo/server`                 | 4.x                     | v5 is breaking; not supported                                      |
-| `@as-integrations/express5`      | 1.x                     | Required runtime peer                                              |
-| TypeORM                          | 0.3.x                   | 0.2.x not supported (different DataSource API)                     |
-| PostgreSQL                       | 14+                     | Native dialect                                                     |
-| `graphql`                        | 16.x                    | 15.x untested                                                      |
-| Node.js                          | 20 LTS or 22            | 18 deprecated, 24 untested                                         |
-| Next.js                          | 15.x Pages Router       | App Router unsupported (see §13.11)                                |
-| React                            | 19.x                    | 18.x likely works but untested                                     |
-| `@mezzanine-ui/react`            | 1.3.x                   | Earlier versions untested                                          |
-| `nuqs`                           | 2.x (Pages adapter)     | App Router adapter untested (see §13.11)                           |
+| Package                     | Accepted (peer range)     | Tested            | Notes                                                                       |
+|-----------------------------|---------------------------|-------------------|-----------------------------------------------------------------------------|
+| `@nestjs/common` / `core`   | 10.x – 11.x               | 11.1.x            | **12.x is not accepted**: the whole NestJS 12 line is ESM-only, which this package (dual CJS+ESM) and a webpack-bundled host cannot consume yet |
+| `@nestjs/graphql`           | 13.x                      | 13.4.5            | 14.x requires NestJS 12 (ESM-only)                                          |
+| `@nestjs/apollo`            | 13.x                      | 13.4.5            | The lib itself imports neither `@nestjs/apollo` nor `@apollo/server`; the peer records that a driver is required |
+| `@apollo/server`            | not a peer                | 5.5.1             | Chosen by your driver, not by this package                                   |
+| `@as-integrations/express5` | 1.x                       | 1.1.2             | Required runtime peer of the Express driver                                  |
+| `graphql`                   | 16.x                      | 16.12.0           | 17.x is blocked upstream — `@apollo/server@5` still peers `^16.11.0`         |
+| `rxjs`                      | 7.x                       | 7.8.x             | One import (the mutation interceptor)                                        |
+| `@nestjs/event-emitter`     | 2.x – 3.x (optional)      | 3.1.0             | The next release is 12.x, which is ESM-only                                  |
+| `@rytass/wms-base-nestjs-module` | 0.4.x                | 0.4.0             | Imported directly by this package (the warehouse-map mutation and the location resolver) and shared with `@rytass/wms-module-core`. Declared as a peer since 0.10.0 so both see the same copy |
+| TypeORM                     | 0.3.x – 1.x               | 1.1.1             | The suite is run against both 0.3.31 and 1.1.1. 0.2.x is not supported. TypeORM 1.x additionally needs `@nestjs/typeorm` >= 11.0.1 |
+| PostgreSQL                  | —                         | 14+               | Native dialect                                                              |
+| Node.js                     | —                         | 20 LTS / 22       | 18 deprecated, 24 untested                                                  |
+| Next.js                     | 15.x – 16.x               | 15.5.x Pages      | Only `next/router` and `next/navigation` are used; App Router unsupported (see §13.11) |
+| React / React DOM           | 18.x – 19.x               | 19.2.x            | No React-19-only API is used, and `@mezzanine-ui/react` peers `>=18`        |
+| `@mezzanine-ui/react`       | 1.x                       | 1.4.1             | `@mezzanine-ui/system` is required — 45 of the lib's SCSS files `@use` it   |
+| `nuqs`                      | 2.x                       | 2.8.x             | Pages adapter; App Router adapter untested (see §13.11)                     |
+
+> **Why `@apollo/server` v5 is fine.** An earlier release pinned `@nestjs/apollo` to
+> `>=13.0.0 <13.2.0`, on the grounds that 13.2+ moved to `@apollo/server@^5` and "the lib
+> uses v4 plugin APIs". That was wrong: the only `ApolloServerPluginLandingPageLocalDefault`
+> usage lives in this repo's own `apps/api`, never in the published package, which imports
+> nothing from `@apollo/server` at all. The pin excluded the very combination the test suite
+> runs on, so it has been widened back to `^13.0.0`.
 
 ---
 
@@ -739,9 +755,9 @@ The full list of generated `Document` constants and their types is in
 
 ---
 
-## 8. Authentication / authorization
+## 8. Authentication, authorization & events
 
-The lib **does not** ship an auth system. The page components assume they render in an authenticated context — they call queries on mount without checking session state.
+The lib ships **no frontend auth** — the page components assume they render in an authenticated context and call queries on mount without checking session state. On the **backend**, `@rytass/wms-module-graphql` ships an *opt-in, host-neutral authorization protocol* you wire to your own permission system (member-base / Casbin / JWT / anything). See [§8.5 Backend authorization](#85-backend-authorization-resolver-level).
 
 ### 8.1 Stub for demos
 
@@ -829,7 +845,150 @@ Replace the `AuthGuard` stub with your own logic that:
 2. Provides member identity to GraphQL via the Apollo client's `context` link.
 3. Handles 401 responses (logout / redirect).
 
-The lib's resolvers do not enforce auth themselves. If you need RBAC, layer your own guard/decorator on top of the resolvers or apply NestJS-level guards globally in `app.module.ts`.
+### 8.5 Backend authorization (resolver-level)
+
+> 📖 This is the condensed version. The full design — execution order, member-base / custom-JWT / no-guard recipes, the single coupling point, the exported API, and a troubleshooting FAQ — lives in [**`docs/authorization.md`**](./authorization.md).
+
+Every WMS root `@Query` / `@Mutation` is annotated with `@WmsOperation({ resource, action })` — a host-neutral permission requirement. The library enforces it through its own route-level `WmsAuthGuard`, which delegates the actual allow/deny decision to an `authChecker` **you** supply at module registration. The library never imports your auth system; you map WMS's `resource`/`action` onto whatever your system understands.
+
+> ⚠️ **The global-guard pitfall.** A deny-by-default global guard — e.g. the `CasbinGuard` that `@rytass/member-base-nestjs-module` registers as `APP_GUARD` — blankets *every* resolver in the compiled schema, including WMS's. Because WMS resolvers carry no host-specific permission metadata, such a guard rejects them all ("every WMS query/mutation is forbidden"). WMS solves this by stamping each operation with a host-skip marker (default: member-base's `IS_ROUTE_PUBLIC`) so the global guard defers, while `WmsAuthGuard` does the real enforcement. **You do not need to touch your global guard.**
+
+#### Wire it up (member-base / Casbin)
+
+```ts
+// app.module.ts
+import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+import { createMemberBaseWmsAuthChecker } from '@rytass/wms-module-graphql/adapters/member-base';
+
+WmsModuleGraphqlModule.forRootAsync({
+  // ...existing core options (defaultLoaderSerialId, useFactory, etc.)...
+  authChecker: createMemberBaseWmsAuthChecker({
+    // Map WMS resource/action onto your Casbin [subject, action] tuples.
+    // Return multiple tuples to mean "allow if ANY passes" (OR semantics).
+    map: ({ resource, action }) => [[`wms:${resource}`, action]],
+    //  e.g. material:read -> enforce(memberId, domain, 'wms:material', 'read')
+  }),
+});
+```
+
+The member-base adapter reuses everything `CasbinGuard` already prepared on the request (the verified `payload`, the `enforcer`, and your possibly-customized `casbinPermissionChecker`), so WMS enforces with the **exact same** policy engine as your own resolvers — with zero member-base import on the WMS side. Requirement: keep member-base's global guard enabled (default) and expose the request on the GraphQL context as `req` (Apollo's default).
+
+#### Other auth systems
+
+`authChecker` is a plain function — `(execContext, { resource, action }) => boolean | Promise<boolean>`. For JWT/RBAC without Casbin, read your session off the `ExecutionContext` and decide there. If your global guard uses a different "public/skip" metadata key than member-base's `IS_ROUTE_PUBLIC`, change the single `HOST_SKIP_METADATA_KEY` constant in `libs/graphql/src/lib/auth/host-skip.constant.ts`.
+
+#### No global guard at all
+
+If you omit `authChecker`, the module stays fully permissive (handy for local dev). If you protect your own resolvers with explicit `@UseGuards(...)` instead of a global `APP_GUARD`, the host-skip marker is simply inert and WMS still self-enforces through `authChecker`.
+
+The WMS `resource`/`action` strings are **internal metadata only** — they are not part of the GraphQL schema, so refining them later is not a breaking change for GraphQL consumers (it only affects your `map`).
+
+---
+
+### 8.6 Mutation events & hooks
+
+> 📖 Condensed version. The full design, the complete list of 38 operation + 18 stock domain events, payloads, and limitations live in [**`docs/events.md`**](./events.md).
+
+Every WMS mutation can be **intervened in** and **observed** through two opt-in hook points wired on the same `WmsModuleGraphqlModule.forRootAsync({ ... })` call as everything else:
+
+- **`beforeHooks`** run *before any DB work* — `throw` to **veto** the mutation (zero side effects).
+- **`afterListeners`** run *after the outermost transaction commits* — you are never notified about a rolled-back change.
+
+```ts
+// apps/api/src/app/app.module.ts
+import { ForbiddenException } from '@nestjs/common';
+import { WmsModuleGraphqlModule } from '@rytass/wms-module-graphql';
+import { memberBaseActorExtractor } from '@rytass/wms-module-graphql/adapters/member-base';
+
+WmsModuleGraphqlModule.forRootAsync({
+  // ...the same core options as §4.2 (defaultLoaderSerialId, useFactory, etc.)...
+
+  // (v2) extract actor from the request: memberBaseActorExtractor reads
+  //      req.payload → { id, domain } (the same JWT payload CasbinGuard uses)
+  actorExtractor: memberBaseActorExtractor,
+
+  // (v2) append materialId/batchId/locationId/loaderId to stock event payloads
+  //      via a single indexed PK lookup per event, inside the same transaction
+  enrichStockEvents: true,
+
+  beforeHooks: {
+    // intent payload = the raw GraphQL args; v2 also receives actor
+    'ship-inventory-order.shipped': async ({ args, actor, executionContext }) => {
+      if (!(await canShip(args, actor, executionContext))) {
+        throw new ForbiddenException('shipment blocked');
+      }
+    },
+  },
+
+  afterListeners: {
+    // operation event — fires once per mutation, with the result
+    // v2: payload also carries args (the items[] input) and actor
+    'ship-inventory-order.shipped': async ({ payload }) => {
+      await erp.markShipped(payload.id, payload.result, payload.actor);
+    },
+    // stock domain event — fires once per affected item (post-commit)
+    // v2 with enrichStockEvents: materialId/batchId/locationId/loaderId also present
+    'stock.allocated': async ({ payload }) => {
+      await erp.reserve(payload.orderId, payload.itemId, payload.quantityDelta);
+    },
+  },
+});
+```
+
+Two tiers of events you can listen to:
+
+- **Operation events** — one per mutation: `material.created`, `receive-inventory-order.received`, `ship-inventory-order.shipped`, … (38 total). v1 payload: `{ id, result }`. v2 payload: `{ id, result, args, actor }`.
+- **Stock domain events** — driven by the `ChangeType` state machine: `stock.allocated`, `stock.shipped`, `stock.held`, … (18 total). Payload: `{ orderId, itemId, quantityDelta, changeType, inspectionResult? }`. `orderId` matches the operation event's `id`, so you can correlate the two tiers. With `enrichStockEvents: true` the payload also carries `materialId?`, `batchId?`, `locationId?`, `loaderId?`.
+
+Both maps are fully typed — the payload is inferred from the event-name key. With neither configured, the interceptor passes through with **zero overhead** (no behaviour change).
+
+#### v2: The 9 boolean action events
+
+Nine mutations — `received`, `deallocated`, `released`, `shipped`, `ship-cancelled`,
+`transferred`, `transfer-cancelled`, customer/vendor `returned` — return `boolean` and
+cannot carry a richer `result` without a breaking GraphQL schema change. For subscribers,
+the full signal comes from **`payload.args`** (the exact items input) and the **stock events
+they fan out** (one per affected item). The operation event confirms success; `args` carries
+the intent.
+
+> ⚠️ **`enrichStockEvents` partial coverage**: split / merge / reclassify order-items have
+> **no `materialId` / `batchId`** at the item level (these domains keep that metadata on the
+> parent order). With `enrichStockEvents: true`, `stock.splitted`, `stock.merged`, and
+> `stock.reclassified` only receive `locationId` / `loaderId` — look up `materialId` /
+> `batchId` from the parent order by `orderId` if you need them.
+
+#### Optional: `@OnEvent` via `@nestjs/event-emitter`
+
+Prefer decoupled subscribers? Install `@nestjs/event-emitter` (an optional peer dependency) and opt into the bridge — every event is then also emitted as `wms.<event-name>`:
+
+```ts
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { wmsEventEmitterBridgeProvider } from '@rytass/wms-module-graphql/adapters/event-emitter';
+
+@Module({
+  imports: [
+    EventEmitterModule.forRoot(),
+    WmsModuleGraphqlModule.forRootAsync({
+      ...coreOptions,
+      actorExtractor: memberBaseActorExtractor,   // v2 — optional
+      enrichStockEvents: true,                    // v2 — optional
+      eventEmitterBridge: wmsEventEmitterBridgeProvider,
+    }),
+  ],
+})
+export class AppModule {}
+
+// elsewhere
+@Injectable()
+class StockSync {
+  @OnEvent('wms.stock.allocated')
+  handle(payload: WmsStockEventPayload) { /* ... */ }
+}
+```
+
+The bridge is the only thing that imports `@nestjs/event-emitter`, so it stays an entirely optional dependency — the core module never requires it. `afterListeners` and the bridge can be used together.
+
+> ⚠️ Delivery is **in-process and post-commit**, not a durable outbox: if the process crashes after commit but before dispatch, those events are lost. See [`docs/events.md` §7](./events.md#7-guarantees--limitations) for the full guarantees.
 
 ---
 

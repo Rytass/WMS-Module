@@ -3,6 +3,7 @@ import {
   FolderMoveIcon,
   SearchHistoryIcon,
   FileSearchIcon,
+  BoxIcon,
   SystemIcon,
 } from '@mezzanine-ui/icons';
 import { NextPath } from '../utils/nextpath';
@@ -41,6 +42,11 @@ export function useRoutes() {
       title: '盤點',
       icon: FileSearchIcon,
       href: NextPath.INVENTORYCOUNT,
+    },
+    {
+      title: '領用單',
+      icon: BoxIcon,
+      href: NextPath.CONSUMPTIONORDERS,
     },
     {
       title: '主檔管理',

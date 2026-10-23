@@ -16,6 +16,7 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class ReclassifyInventoryOrderService<
@@ -27,6 +28,7 @@ export class ReclassifyInventoryOrderService<
   private readonly seqPrefix = 'RCO';
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly helperService: HelperService,
@@ -49,10 +51,12 @@ export class ReclassifyInventoryOrderService<
       const reclassifyOrderChangeRepository = manager.getRepository(
         ReclassifyInventoryOrderChangeEntityClass,
       );
-      const orderRepository = manager.getRepository(OrderEntity);
-      const stockRepository = manager.getRepository(StockEntityClass);
-      const batchRepository = manager.getRepository(BatchEntityClass);
-      const materialRepository = manager.getRepository(MaterialEntityClass);
+      const orderRepository = manager.getRepository(this.entities.order);
+      const stockRepository = manager.getRepository(this.entities.stock);
+      const batchRepository = manager.getRepository(this.entities.batch);
+      const materialRepository = manager.getRepository<MaterialEntityClass>(
+        this.materialService.materialEntity,
+      );
 
       // Ensure new material exists
       const material = await materialRepository.findOneOrFail({

@@ -27,6 +27,7 @@ import {
 } from '../models';
 import { WMS_CORE_MODULE_OPTIONS } from '../typings/core-module-options';
 import type { WmsModuleCoreModuleOptions } from '../typings/core-module-options';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class StockService<
@@ -64,8 +65,12 @@ export class StockService<
   };
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     @Inject(StockEntity) private readonly stockEntity: EntityTarget<T>,
-    @Inject(MaterialEntity) private readonly materialEntity: EntityTarget<K>,
+    // Declared as a class rather than the wider `EntityTarget<K>`: `ModelsModule`
+    // only ever binds this Symbol to an entity class, and `materialKey` needs a
+    // `Function` to join against.
+    @Inject(MaterialEntity) private readonly materialEntity: new () => K,
     @Inject(WMS_CORE_MODULE_OPTIONS)
     private readonly coreOptions: WmsModuleCoreModuleOptions,
   ) {
@@ -97,6 +102,7 @@ export class StockService<
               .addSelect('b."held"', 'held')
               .addSelect('b."inShipment"', 'inShipment')
               .addSelect('b."inspectionResult"', 'inspectionResult')
+              .addSelect('b."requiresInspection"', 'requiresInspection')
               .addSelect('b."saleId"', 'saleId')
               .addSelect('b."vendorId"', 'vendorId')
               .addSelect('b."customerId"', 'customerId')
@@ -110,6 +116,7 @@ export class StockService<
         .addSelect('stock_status.held', 'held')
         .addSelect('stock_status."inShipment"', 'inShipment')
         .addSelect('stock_status."inspectionResult"', 'inspectionResult')
+        .addSelect('stock_status."requiresInspection"', 'requiresInspection')
         .addSelect('stock_status."saleId"', 'saleId')
         .addSelect('stock_status."vendorId"', 'vendorId')
         .addSelect('stock_status."customerId"', 'customerId')
@@ -118,7 +125,7 @@ export class StockService<
 
   async onModuleInit() {
     const loaderTypeRepo = this.dataSource.getRepository(LoaderTypeEntityClass);
-    const locationRepo = this.dataSource.getRepository(LocationEntityClass);
+    const locationRepo = this.dataSource.getRepository(this.entities.location);
     const loaderRepo = this.dataSource.getRepository(LoadersEntityClass);
 
     // Ensure default loader type exists
@@ -193,6 +200,12 @@ export class StockService<
         locationId: options.locationId,
       });
 
+    if (options.excludeLocationIds?.length)
+      queryBuilder.andWhere(
+        'stock."locationId" NOT IN (:...excludeLocationIds)',
+        { excludeLocationIds: options.excludeLocationIds },
+      );
+
     if (options.loaderId)
       queryBuilder.andWhere('stock."loaderId" = :loaderId', {
         loaderId: options.loaderId,
@@ -213,7 +226,15 @@ export class StockService<
     if (options.status) {
       switch (options.status) {
         case StockStatus.PENDING_INSPECTION:
-          queryBuilder.andWhere('stock_status."inspectionResult" IS NULL');
+          /*
+           * Both halves are required. `inspectionResult IS NULL` alone is the
+           * resting state of every batch nobody ever asked to inspect, so on
+           * its own it reported the whole warehouse as awaiting inspection --
+           * a wrong answer that looked plausible because it was never zero.
+           */
+          queryBuilder.andWhere(
+            'stock_status."requiresInspection" = true AND stock_status."inspectionResult" IS NULL',
+          );
           break;
         case StockStatus.INSPECTION_FAILED:
           queryBuilder.andWhere('stock_status."inspectionResult" = false');
@@ -238,7 +259,9 @@ export class StockService<
     if (options.negateStatus) {
       switch (options.negateStatus) {
         case StockStatus.PENDING_INSPECTION:
-          queryBuilder.andWhere('stock_status."inspectionResult" IS NOT NULL');
+          queryBuilder.andWhere(
+            'NOT (stock_status."requiresInspection" = true AND stock_status."inspectionResult" IS NULL)',
+          );
           break;
         case StockStatus.INSPECTION_FAILED:
           queryBuilder.andWhere(
@@ -264,7 +287,13 @@ export class StockService<
 
     if (options.materialKey)
       queryBuilder.innerJoin(
-        MaterialEntityClass,
+        // The configured entity, not the built-in class: this follows whatever
+        // table that entity is mapped to. (TypeORM resolves an entity in a
+        // hand-written join to its table name and does not append the
+        // single-table discriminator, so for a child of `MaterialEntityClass` the
+        // emitted SQL is unchanged — this keeps the service from reaching past
+        // its own configuration, it is not a behaviour fix on its own.)
+        this.materialEntity,
         'mk',
         'mk.id = stock."materialId" AND mk.key ILIKE :materialKey',
         {
@@ -274,7 +303,7 @@ export class StockService<
 
     if (options.batchKey)
       queryBuilder.innerJoin(
-        BatchEntity,
+        this.entities.batch,
         'bk',
         'bk.id = stock."batchId" AND bk.key ILIKE :batchKey',
         {
@@ -284,7 +313,7 @@ export class StockService<
 
     if (options.locationKey)
       queryBuilder.innerJoin(
-        LocationEntityClass,
+        this.entities.location,
         'lk',
         'lk.id = stock."locationId" AND lk.key ILIKE :locationKey',
         {
@@ -301,6 +330,39 @@ export class StockService<
           loaderKey: `%${options.loaderKey}%`,
         },
       );
+
+    /*
+     * Vendor / customer / sale order live on the batch, so they need their own
+     * join. One join for all four rather than four joins: they are conditions on
+     * the same row, and repeating the join would multiply nothing but the plan.
+     *
+     * Exact match, not ILIKE: these are identifiers handed over by the host
+     * system, and a partial match on 「SO-1」 quietly sweeping in 「SO-10」 is the
+     * kind of wrong answer nobody notices. It also keeps this in step with the
+     * inventory count sheet, whose four filters match the same way.
+     */
+    const batchAttributeFilters = (
+      [
+        ['vendorId', options.vendorId],
+        ['customerId', options.customerId],
+        ['saleId', options.saleId],
+        ['saleSerialId', options.saleSerialId],
+      ] as const
+    ).filter(([, value]) => Boolean(value));
+
+    if (batchAttributeFilters.length) {
+      queryBuilder.innerJoin(
+        this.entities.batch,
+        'ba',
+        'ba.id = stock."batchId"',
+      );
+
+      for (const [column, value] of batchAttributeFilters) {
+        queryBuilder.andWhere(`ba."${column}" = :${column}`, {
+          [column]: value,
+        });
+      }
+    }
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
@@ -323,6 +385,16 @@ export class StockService<
       queryBuilder.addSelect('b."customerId"', 'customerId');
       queryBuilder.addSelect('b."vendorId"', 'vendorId');
       queryBuilder.addSelect('b."inspectionResult"', 'inspectionResult');
+      queryBuilder.addSelect('b."requiresInspection"', 'requiresInspection');
+      /*
+       * Lineage and the host's own attributes, carried along the same way the
+       * commercial attributes above are. Both are functionally dependent on
+       * `batchId`, which is already a grouping key, but SQL still wants them
+       * named in GROUP BY. `attributes` is jsonb, which groups fine — jsonb has
+       * equality and a btree opclass.
+       */
+      queryBuilder.addSelect('b."parentBatchId"', 'parentBatchId');
+      queryBuilder.addSelect('b."attributes"', 'attributes');
       queryBuilder.addSelect('SUM(stock.quantity)', 'quantity');
       queryBuilder.groupBy('stock."materialId"');
       queryBuilder.addGroupBy('stock."batchId"');
@@ -337,6 +409,9 @@ export class StockService<
       queryBuilder.addGroupBy('b."customerId"');
       queryBuilder.addGroupBy('b."vendorId"');
       queryBuilder.addGroupBy('b."inspectionResult"');
+      queryBuilder.addGroupBy('b."requiresInspection"');
+      queryBuilder.addGroupBy('b."parentBatchId"');
+      queryBuilder.addGroupBy('b."attributes"');
       queryBuilder.having('SUM(stock.quantity) <> 0');
 
       if (options.aggregatedKeys?.length)
@@ -453,7 +528,13 @@ export class StockService<
     const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
-      options.aggregated ? true : false,
+      // Always aggregated. The outer projection below is hard-wired to the
+      // aggregated shape (it selects agg."saleSerialId" and friends), so letting
+      // the caller switch the inner subquery off asked the outer query for a
+      // column the inner one never produced — a hard `column agg."saleSerialId"
+      // does not exist`. There was never a working `false` here: this method
+      // returns AggregatedStock[], so aggregating is its only meaning.
+      true,
     );
 
     // Wrap the aggregated subquery and apply pagination on top
@@ -477,6 +558,12 @@ export class StockService<
       'agg."inspectionResult"',
       'inspectionResult',
     );
+    paginatedQueryBuilder.addSelect(
+      'agg."requiresInspection"',
+      'requiresInspection',
+    );
+    paginatedQueryBuilder.addSelect('agg."parentBatchId"', 'parentBatchId');
+    paginatedQueryBuilder.addSelect('agg."attributes"', 'attributes');
 
     // Apply pagination to the outer query
     if (options.offset !== undefined && options.offset >= 0) {
@@ -490,7 +577,13 @@ export class StockService<
     const countBuilder = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
-      options.aggregated ? true : false,
+      // Always aggregated. The outer projection below is hard-wired to the
+      // aggregated shape (it selects agg."saleSerialId" and friends), so letting
+      // the caller switch the inner subquery off asked the outer query for a
+      // column the inner one never produced — a hard `column agg."saleSerialId"
+      // does not exist`. There was never a working `false` here: this method
+      // returns AggregatedStock[], so aggregating is its only meaning.
+      true,
     );
 
     const countResult = await this.dataSource

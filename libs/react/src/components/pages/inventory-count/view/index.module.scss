@@ -1,0 +1,66 @@
+/*
+ * The design's header card: 名稱／盤點日期／盤點範圍 share the first row three
+ * across, 建立者／狀態 sit under the first two columns as plain text.
+ */
+.info {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.varianceToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.pageFooter {
+  position: sticky;
+  bottom: 0;
+}
+
+
+.settlingOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 40%);
+}
+
+/* The design presents settlement as a small blocking card, not a bare spinner:
+ * the operator must see that the page is deliberately locked. */
+.settlingCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 320px;
+  padding: 32px 24px;
+  border-radius: 8px;
+  background: var(--mzn-color-surface, #fff);
+}
+
+/*
+ * A cell that doubles as a filter. Styled as text, not a button: the row still
+ * has to read as data — the affordance is the pointer and the underline on
+ * hover, which is what the design shows for 快速帶入篩選條件.
+ */
+.quickFilter {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}

@@ -28,6 +28,7 @@ import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 export type TransferVendorOrderItemInput = {
   materialId: string;
@@ -49,6 +50,7 @@ export class TransferVendorOrderService<
 
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly helperService: HelperService,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
@@ -73,9 +75,9 @@ export class TransferVendorOrderService<
       transferVendorOrderChange: manager.getRepository(
         TransferVendorOrderChangeEntityClass,
       ),
-      order: manager.getRepository<OrderEntity>(OrderEntity),
+      order: manager.getRepository<OrderEntity>(this.entities.order),
       stock: manager.getRepository<StockEntityClass>(this.stockEntity),
-      location: manager.getRepository(LocationEntityClass),
+      location: manager.getRepository(this.entities.location),
       loader: manager.getRepository(LoadersEntityClass),
     };
   }
@@ -203,7 +205,7 @@ export class TransferVendorOrderService<
         (
           await repos.transferVendorOrderItem.find({
             where: { orderId: id },
-            relations: ['changes'],
+            relations: { changes: true },
           })
         ).map((item) => item.id),
       );

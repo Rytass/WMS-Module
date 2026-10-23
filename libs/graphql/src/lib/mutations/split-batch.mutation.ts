@@ -3,6 +3,8 @@ import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { SplitBatchOrderService, StockService } from '@rytass/wms-module-core';
 import { SplitBatchArgs } from '../inputs/split-batch.args';
 import { SplitBatchOrderDto } from '../dto/split-batch-order.dto';
+import { WmsOperation } from '../auth';
+import { WmsMutationEvent } from '../events';
 
 @Injectable()
 @Resolver()
@@ -13,6 +15,8 @@ export class SplitBatchMutation {
   ) {}
 
   @Mutation(() => SplitBatchOrderDto)
+  @WmsOperation({ resource: 'batch', action: 'split' })
+  @WmsMutationEvent({ event: 'batch.splitted' })
   async splitBatch(@Args() args: SplitBatchArgs): Promise<SplitBatchOrderDto> {
     const { batchId, locationId, loaderId } =
       this.stockService.destructAggregateKey(args.aggregatedKey);

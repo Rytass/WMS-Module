@@ -1,6 +1,7 @@
 import {
   ShipInventoryOrderStatus,
   ReceiveInventoryOrderStatus,
+  InventoryCountStatus,
   ChangeType,
 } from '../graphql/generated/.graphql';
 
@@ -98,8 +99,36 @@ export function changeTypeName(type: ChangeType): string {
     case ChangeType.SCRAPED:
       return '報廢';
 
+    case ChangeType.ISSUED:
+      return '領用';
+
+    case ChangeType.RETURNED:
+      return '領用退回';
+
+    case ChangeType.CONSUMED:
+      return '耗用';
+
     default:
       return type;
+  }
+}
+
+export function inventoryCountStatusName(status: InventoryCountStatus): string {
+  switch (status) {
+    case InventoryCountStatus.PENDING:
+      return '尚未執行';
+
+    case InventoryCountStatus.COUNTING:
+      return '盤點中';
+
+    case InventoryCountStatus.COMPLETED:
+      return '已完成';
+
+    case InventoryCountStatus.CANCELLED:
+      return '已取消';
+
+    default:
+      return '';
   }
 }
 

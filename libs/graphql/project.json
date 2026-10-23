@@ -4,6 +4,16 @@
   "sourceRoot": "libs/graphql/src",
   "prefix": "wms-module",
   "targets": {
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "dependsOn": [
+        "^build"
+      ],
+      "options": {
+        "cwd": "libs/graphql",
+        "command": "tsc -p tsconfig.typecheck.json"
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "dependsOn": [
@@ -11,13 +21,19 @@
       ],
       "outputs": [
         "{projectRoot}/index.cjs.js",
-        "{projectRoot}/index.js",
+        "{projectRoot}/index.mjs",
         "{projectRoot}/index.d.ts",
-        "{projectRoot}/lib"
+        "{projectRoot}/index.d.mts",
+        "{projectRoot}/lib",
+        "{projectRoot}/adapters"
       ],
       "options": {
         "cwd": "libs/graphql",
-        "command": "rollup -c rollup.config.mjs"
+        "parallel": false,
+        "commands": [
+          "rollup -c rollup.config.mjs",
+          "node ../../tools/emit-esm-type-shims.mjs . index adapters/member-base adapters/event-emitter"
+        ]
       }
     },
     "clean": {
@@ -25,9 +41,19 @@
       "options": {
         "cwd": "libs/graphql",
         "commands": [
-          "rm -rf index.cjs.js index.js index.d.ts lib"
+          "rm -rf index.cjs.js index.js index.mjs index.d.ts index.d.mts lib adapters tsconfig.tsbuildinfo"
         ],
         "parallel": false
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "parallel": false,
+        "commands": [
+          "tsc -p libs/graphql/tsconfig.spec.json",
+          "jest -c libs/graphql/jest.config.mjs"
+        ]
       }
     },
     "pkg-quality": {
@@ -36,22 +62,8 @@
         "build"
       ],
       "options": {
-        "command": "npx -y publint run libs/graphql --pack false",
+        "command": "node tools/pkg-gate.mjs libs/graphql",
         "parallel": false
-      }
-    },
-    "pkg-quality-attw": {
-      "executor": "nx:run-commands",
-      "dependsOn": [
-        "build"
-      ],
-      "options": {
-        "parallel": false,
-        "commands": [
-          "npm pack --pack-destination ./libs/graphql ./libs/graphql",
-          "npx -y @arethetypeswrong/cli ./libs/graphql/*.tgz",
-          "rm -f ./libs/graphql/*.tgz"
-        ]
       }
     },
     "prepublish-check": {

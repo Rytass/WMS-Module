@@ -6,15 +6,20 @@ import {
   BatchGroupEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
+  MaterialEntity,
   MaterialEntityClass,
   StockService,
+  WmsEntities,
 } from '@rytass/wms-module-core';
 import { BatchDto } from '../dto/batch.dto';
 import { LocationDto } from '../dto/location.dto';
 
 @Resolver(() => AggregatedStockDto)
 export class AggregatedStockResolver {
-  constructor(private readonly stockService: StockService) {}
+  constructor(
+    private readonly stockService: StockService,
+    private readonly entities: WmsEntities,
+  ) {}
 
   @ResolveField(() => ID)
   async id(@Parent() stock: AggregatedStockDto): Promise<string> {
@@ -27,7 +32,7 @@ export class AggregatedStockResolver {
     @Context() { loaders }: LoaderType<MaterialEntityClass>,
   ): Promise<MaterialDto> {
     return loaders.batchSingle.load({
-      __entity: MaterialEntityClass,
+      __entity: this.entities.material,
       __from: { id: materialId },
     });
   }
@@ -38,7 +43,7 @@ export class AggregatedStockResolver {
     @Context() { loaders }: LoaderType<BatchEntityClass>,
   ): Promise<BatchDto> {
     const { groupId } = await loaders.batchSingle.load({
-      __entity: BatchEntityClass,
+      __entity: this.entities.batch,
       __from: { id: batchId },
     });
 
@@ -54,7 +59,7 @@ export class AggregatedStockResolver {
     @Context() { loaders }: LoaderType<LocationEntityClass>,
   ): Promise<LocationDto> {
     return loaders.batchSingle.load({
-      __entity: LocationEntityClass,
+      __entity: this.entities.location,
       __from: { id: locationId },
     });
   }

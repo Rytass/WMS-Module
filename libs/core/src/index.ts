@@ -7,3 +7,5 @@ export * from './lib/services';
 export * from './lib/typings';
 
 export * from './lib/constants';
+
+export * from './lib/events';

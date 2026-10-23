@@ -3,11 +3,13 @@ import { Args, ID, Query } from '@nestjs/graphql';
 import { MaterialDto, Materials } from '../dto';
 import { MaterialService } from '@rytass/wms-module-core';
 import { FindMaterialArgs } from '../inputs/find-material.args';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class MaterialQuery {
   constructor(private readonly materialService: MaterialService) {}
   @Query(() => MaterialDto)
+  @WmsOperation({ resource: 'material', action: 'read' })
   material(
     @Args('id', { type: () => ID, nullable: true }) id?: string,
     @Args('key', { type: () => String, nullable: true }) key?: string,
@@ -20,6 +22,7 @@ export class MaterialQuery {
   }
 
   @Query(() => Materials)
+  @WmsOperation({ resource: 'material', action: 'read' })
   async materials(@Args() args: FindMaterialArgs): Promise<Materials> {
     const [items, total] = await this.materialService.findMany({
       ...args,

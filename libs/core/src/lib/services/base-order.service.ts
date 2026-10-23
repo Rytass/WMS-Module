@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { ObjectLiteral, Repository } from 'typeorm';
 import { StockEntityClass } from '../models';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { MaterialService } from './material.service';
@@ -16,12 +16,27 @@ export interface StockEntryParams {
 export interface Repositories {
   order: Repository<OrderEntity>;
   stock: Repository<StockEntityClass>;
-  [key: string]: Repository<any>;
+  [key: string]: Repository<ObjectLiteral>;
 }
 
 /**
  * Base service for order operations that create/deduct stock entries.
- * Provides common methods for adding and deducting inventory across different order types.
+ * Provides common methods for adding and deducting inventory across different
+ * order types.
+ *
+ * Public API, with one precondition that is easy to miss.
+ *
+ * `add` and `deduct` write an `orders` row and `stocks` rows — and nothing else.
+ * They do **not** write a `*_order_changes` row, and both `StockChangeSubscriber`
+ * and `InventoryCountLockSubscriber` hook the insert of that row. So a host that
+ * extends this and registers `customChangeTables`, but leaves its own change row
+ * unwritten, gets neither the `stock.*` event nor the inventory count lock: its
+ * movements pass a running count in silence. Writing the change row is the
+ * host's job, exactly as it is for every service in this package.
+ *
+ * What extending it does buy is unit conversion and
+ * `StockService.validateStockAvailability` around the stock write. See
+ * {@link WmsCustomChangeTable} for the rest of what a custom family inherits.
  */
 export abstract class BaseOrderService {
   protected abstract materialService: MaterialService;

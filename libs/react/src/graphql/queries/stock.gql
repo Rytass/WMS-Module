@@ -43,6 +43,10 @@ query StocksGroupedByMaterial(
   $batchKey: String
   $locationKey: String
   $loaderKey: String
+  $vendorId: String
+  $customerId: String
+  $saleId: String
+  $saleSerialId: String
 ) {
   stocksGroupedByMaterial(
     offset: $offset
@@ -57,6 +61,10 @@ query StocksGroupedByMaterial(
     batchKey: $batchKey
     locationKey: $locationKey
     loaderKey: $loaderKey
+    vendorId: $vendorId
+    customerId: $customerId
+    saleId: $saleId
+    saleSerialId: $saleSerialId
   ) {
     id
     items {
@@ -79,6 +87,10 @@ query AggregatedStocks(
   $batchKey: String
   $locationKey: String
   $loaderKey: String
+  $vendorId: String
+  $customerId: String
+  $saleId: String
+  $saleSerialId: String
 ) {
   aggregatedStocks(
     offset: $offset
@@ -93,6 +105,10 @@ query AggregatedStocks(
     batchKey: $batchKey
     locationKey: $locationKey
     loaderKey: $loaderKey
+    vendorId: $vendorId
+    customerId: $customerId
+    saleId: $saleId
+    saleSerialId: $saleSerialId
   ) {
     id
     items {

@@ -1,3 +1,223 @@
+## 0.11.1 (2026-09-05)
+
+### 🩹 Fixes
+
+- **graphql:** declare tslib and ship the ESM build as .mjs ([098723b](https://github.com/Rytass/WMS-Module/commit/098723b))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.9.1
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5 (1M context)
+
+## 0.11.0 (2026-09-05)
+
+### 🚀 Features
+
+- **core:** surface batch lineage and attributes on the aggregated stock ([be1df6c](https://github.com/Rytass/WMS-Module/commit/be1df6c))
+- **graphql:** expose the consumption order ([74a68ee](https://github.com/Rytass/WMS-Module/commit/74a68ee))
+- ⚠️  **core:** give a direct service call the same event guarantee as a mutation ([3914c32](https://github.com/Rytass/WMS-Module/commit/3914c32))
+- **graphql:** read and write order references ([802ca4e](https://github.com/Rytass/WMS-Module/commit/802ca4e))
+- **graphql:** expose excludeLocationIds on the stock queries ([de91544](https://github.com/Rytass/WMS-Module/commit/de91544))
+- **graphql:** expose batch attributes through a JSONObject scalar ([088abba](https://github.com/Rytass/WMS-Module/commit/088abba))
+
+### 🩹 Fixes
+
+- **core:** snapshot requiresInspection onto the count sheet ([5fc1963](https://github.com/Rytass/WMS-Module/commit/5fc1963))
+- **graphql:** restore per-event typing for inline hook and listener maps ([a8d3990](https://github.com/Rytass/WMS-Module/commit/a8d3990))
+- **core:** stop the inspection flag rewriting every default receipt's batch ([7a9bf57](https://github.com/Rytass/WMS-Module/commit/7a9bf57))
+- ⚠️  **core:** compare consumption quantities in base units, and guard the target ([59e299b](https://github.com/Rytass/WMS-Module/commit/59e299b))
+- **core:** order a paginated consumption order list by a property path ([ebdba4d](https://github.com/Rytass/WMS-Module/commit/ebdba4d))
+
+### ⚠️  Breaking Changes
+
+- **core:** compare consumption quantities in base units, and guard the target  ([59e299b](https://github.com/Rytass/WMS-Module/commit/59e299b))
+  `ConsumptionOrderItemProgress` now reports base units on
+  every field, including `target`. A consumer reading `target` as the
+  number the line was ordered in must divide by the line's conversion
+  factor. Nothing changes for a line already in its base unit.
+- **core:** give a direct service call the same event guarantee as a mutation  ([3914c32](https://github.com/Rytass/WMS-Module/commit/3914c32))
+  `WmsBeforeHookContext.executionContext` is now
+  `ExecutionContext | null`, with a `source: 'graphql' | 'host'`
+  discriminant beside it. A direct service call has no execution context,
+  and fabricating one would hand a hook a lie instead of an obvious null.
+  A hook that reaches into the request should branch on `source` first.
+  The same widening applies to `WmsTypedBeforeHookContext`.
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.9.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
+## 0.10.2 (2026-09-01)
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.8.1
+
+## 0.10.1 (2026-09-01)
+
+### 🚀 Features
+
+- **core:** support TypeORM 1.x alongside 0.3.x ([ca25f8d](https://github.com/Rytass/WMS-Module/commit/ca25f8d))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.8.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
+## 0.10.0 (2026-09-01)
+
+### 🚀 Features
+
+- **graphql:** expose the batch attribute filters on every stock query ([37bad6d](https://github.com/Rytass/WMS-Module/commit/37bad6d))
+- **graphql:** add a filtered, paginated count sheet query ([e25aeed](https://github.com/Rytass/WMS-Module/commit/e25aeed))
+- **core:** snapshot the batch attributes a count sheet displays ([6ff7487](https://github.com/Rytass/WMS-Module/commit/6ff7487))
+
+### 🩹 Fixes
+
+- **deps:** declare every package the published bundles actually require ([02aea88](https://github.com/Rytass/WMS-Module/commit/02aea88))
+- **deps:** correct two runtime dependency ranges that nothing was validating ([d7ed0c0](https://github.com/Rytass/WMS-Module/commit/d7ed0c0))
+- **repo:** make the pre-publish gate able to fail, and stop packing src twice ([f45a681](https://github.com/Rytass/WMS-Module/commit/f45a681))
+- **deps:** widen the published peer ranges to match what the code actually uses ([c9bd621](https://github.com/Rytass/WMS-Module/commit/c9bd621))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.7.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
+## 0.9.0 (2026-08-31)
+
+### 🚀 Features
+
+- **graphql:** expose the inventory count API ([419e2a5](https://github.com/Rytass/WMS-Module/commit/419e2a5))
+- **graphql:** let a deployment unregister operations ([dc55f77](https://github.com/Rytass/WMS-Module/commit/dc55f77))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.6.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
+## 0.8.0 (2026-08-27)
+
+### 🚀 Features
+
+- **graphql:** resolve every dataloader through the configured entities ([e2859aa](https://github.com/Rytass/WMS-Module/commit/e2859aa))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.5.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
+## 0.7.0 (2026-08-27)
+
+### 🚀 Features
+
+- **graphql:** resolve material dataloaders through the configured entity ([0344ebc](https://github.com/Rytass/WMS-Module/commit/0344ebc))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.4.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
+## 0.6.1 (2026-08-14)
+
+### 🩹 Fixes
+
+- **graphql:** resolve location children through the request-scoped loader ([8b9f8cb](https://github.com/Rytass/WMS-Module/commit/8b9f8cb))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.3.1
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5
+
+## 0.6.0 (2026-06-30)
+
+### 🚀 Features
+
+- **graphql:** add typed event result map and actor extractor wiring ([1b17299](https://github.com/Rytass/WMS-Module/commit/1b17299))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.3.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.8
+
+## 0.5.0 (2026-06-09)
+
+### 🚀 Features
+
+- **graphql:** annotate mutations with @WmsMutationEvent ([f04c9f7](https://github.com/Rytass/WMS-Module/commit/f04c9f7))
+- **graphql:** add @nestjs/event-emitter bridge entrypoint ([2debfe9](https://github.com/Rytass/WMS-Module/commit/2debfe9))
+- **graphql:** add mutation event interceptor and forRootAsync wiring ([c31e6dd](https://github.com/Rytass/WMS-Module/commit/c31e6dd))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.2.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.8 (1M context)
+
+## 0.4.0 (2026-06-08)
+
+### 🚀 Features
+
+- **graphql:** annotate root operations with @WmsOperation ([0231fb3](https://github.com/Rytass/WMS-Module/commit/0231fb3))
+- **graphql:** add member-base authChecker adapter ([41d3540](https://github.com/Rytass/WMS-Module/commit/41d3540))
+- **graphql:** add host-neutral resolver authorization layer ([fdf2aeb](https://github.com/Rytass/WMS-Module/commit/fdf2aeb))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.8 (1M context)
+
+## 0.3.0 (2026-06-08)
+
+### 🚀 Features
+
+- **graphql:** make createWmsLoaders return spreadable context fragment ([064865f](https://github.com/Rytass/WMS-Module/commit/064865f))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 4.7
+
 ## 0.2.0 (2026-06-04)
 
 ### 🚀 Features

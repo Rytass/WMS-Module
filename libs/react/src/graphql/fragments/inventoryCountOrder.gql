@@ -1,0 +1,57 @@
+fragment InventoryCountOrderItem on InventoryCountOrderItemDto {
+  id
+  orderId
+  materialId
+  batchId
+  locationId
+  loaderId
+  unitId
+  bookQuantity
+  countedQuantity
+  isAddition
+  held
+  inShipment
+  inspectionResult
+  requiresInspection
+  transferId
+  vendorId
+  customerId
+  saleId
+  saleSerialId
+  material {
+    ...Material
+  }
+  batch {
+    id
+    key
+  }
+  location {
+    id
+    key
+  }
+  loader {
+    id
+    serialId
+  }
+}
+
+fragment InventoryCountOrderListItem on InventoryCountOrderDto {
+  id
+  key
+  name
+  countDate
+  status
+  createdBy
+  createdAt
+  locations {
+    id
+    key
+  }
+}
+
+fragment InventoryCountOrder on InventoryCountOrderDto {
+  ...InventoryCountOrderListItem
+  startedAt
+  settledAt
+  cancelledAt
+}

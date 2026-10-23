@@ -1,6 +1,6 @@
 {
   "name": "@rytass/wms-module-react",
-  "version": "0.1.6",
+  "version": "0.5.1",
   "description": "Rytass WMS Module — React components, hooks, Apollo client factory and GraphQL operations for warehouse management",
   "keywords": [
     "rytass",
@@ -38,6 +38,14 @@
       "types": "./apollo/index.d.ts",
       "import": "./apollo/index.js"
     },
+    "./router/pages": {
+      "types": "./router/pages.d.ts",
+      "import": "./router/pages.js"
+    },
+    "./router/app": {
+      "types": "./router/app.d.ts",
+      "import": "./router/app.js"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
@@ -47,6 +55,12 @@
       ],
       "apollo": [
         "./apollo/index.d.ts"
+      ],
+      "router/pages": [
+        "./router/pages.d.ts"
+      ],
+      "router/app": [
+        "./router/app.d.ts"
       ]
     }
   },
@@ -56,40 +70,31 @@
     "**/*.scss",
     "README.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "!src"
   ],
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
     "axios": "^1.6.0",
-    "dayjs": "^1.11.0",
-    "luxon": "^3.7.2"
+    "dayjs": "^1.11.0"
   },
   "peerDependencies": {
     "@apollo/client": "^4.0.0",
-    "@hookform/error-message": "^2.0.0",
     "@hookform/resolvers": "^5.0.0",
     "@mezzanine-ui/core": "^1.0.0",
     "@mezzanine-ui/icons": "^1.0.0",
     "@mezzanine-ui/react": "^1.0.0",
     "@mezzanine-ui/system": "^1.0.0",
     "@rytass/wms-map-react-components": "^0.1.0",
-    "graphql": "^16.0.0",
+    "graphql": "^16.0.0 || ^17.0.0",
     "lodash": "^4.17.0",
-    "next": "^15.0.0",
+    "next": "^15.0.0 || ^16.0.0",
     "nuqs": "^2.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0",
     "react-hook-form": "^7.0.0",
     "yup": "^1.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@mezzanine-ui/icons": {
-      "optional": true
-    },
-    "@rytass/wms-map-react-components": {
-      "optional": true
-    }
   }
 }

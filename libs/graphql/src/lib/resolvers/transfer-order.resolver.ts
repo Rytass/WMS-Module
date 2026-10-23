@@ -14,9 +14,11 @@ import {
   BatchGroupEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
+  MaterialEntity,
   MaterialEntityClass,
   TransferOrderChangeEntityClass,
   TransferOrderItemEntityClass,
+  WmsEntities,
 } from '@rytass/wms-module-core';
 import { LoaderDto, MaterialDto } from '../dto';
 import { BatchDto } from '../dto/batch.dto';
@@ -24,6 +26,15 @@ import { LocationDto } from '../dto/location.dto';
 
 @Resolver(() => TransferOrderDto)
 export class TransferOrderResolver {
+  /**
+   * The configured entities, not the built-in classes: `__entity` decides which
+   * repository the DataLoader opens, so it has to follow whatever the consumer
+   * passed to `WMSBaseModuleOptions`. Loading a built-in class outright filters
+   * on its single-table-inheritance discriminator and resolves nothing for an
+   * override.
+   */
+  constructor(private readonly entities: WmsEntities) {}
+
   @ResolveField(() => [TransferOrderItemDto])
   items(
     @Parent() { id }: TransferOrderDto,
@@ -48,7 +59,7 @@ export class TransferOrderResolver {
 
     if (!item?.targetLocationId) return null;
     return locationLoader.loaders.batchSingle.load({
-      __entity: LocationEntityClass,
+      __entity: this.entities.location,
       __from: { id: item.targetLocationId },
     });
   }
@@ -74,13 +85,22 @@ export class TransferOrderResolver {
 
 @Resolver(() => TransferOrderItemDto)
 export class TransferOrderItemResolver {
+  /**
+   * The configured entities, not the built-in classes: `__entity` decides which
+   * repository the DataLoader opens, so it has to follow whatever the consumer
+   * passed to `WMSBaseModuleOptions`. Loading a built-in class outright filters
+   * on its single-table-inheritance discriminator and resolves nothing for an
+   * override.
+   */
+  constructor(private readonly entities: WmsEntities) {}
+
   @ResolveField(() => MaterialDto)
   material(
     @Parent() { materialId }: TransferOrderItemEntityClass,
     @Context() { loaders }: LoaderType<MaterialEntityClass>,
   ): Promise<MaterialDto> {
     return loaders.batchSingle.load({
-      __entity: MaterialEntityClass,
+      __entity: this.entities.material,
       __from: { id: materialId },
     });
   }
@@ -92,7 +112,7 @@ export class TransferOrderItemResolver {
   ): Promise<BatchDto | null> {
     if (!batchId) return null;
     const { groupId } = await loaders.batchSingle.load({
-      __entity: BatchEntityClass,
+      __entity: this.entities.batch,
       __from: { id: batchId },
     });
 
@@ -109,7 +129,7 @@ export class TransferOrderItemResolver {
   ): Promise<LocationDto | null> {
     if (!locationId) return null;
     return loaders.batchSingle.load({
-      __entity: LocationEntityClass,
+      __entity: this.entities.location,
       __from: { id: locationId },
     });
   }
@@ -134,7 +154,7 @@ export class TransferOrderItemResolver {
     if (!batchId) return null;
     return loaders.batchSingle
       .load({
-        __entity: BatchEntityClass,
+        __entity: this.entities.batch,
         __from: { id: batchId },
       })
       .then((batch) => batch.saleId);
@@ -148,7 +168,7 @@ export class TransferOrderItemResolver {
     if (!batchId) return null;
     return loaders.batchSingle
       .load({
-        __entity: BatchEntityClass,
+        __entity: this.entities.batch,
         __from: { id: batchId },
       })
       .then((batch) => batch.saleSerialId);

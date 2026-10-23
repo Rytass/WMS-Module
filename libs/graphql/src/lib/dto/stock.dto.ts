@@ -1,6 +1,7 @@
 import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 import { PaginatedResponse } from './pagination.dto';
 import { ChangeType, StockStatus } from '@rytass/wms-module-core';
+import { GraphQLJSONObject } from '../scalars';
 
 @ObjectType()
 export class StockDto {
@@ -56,6 +57,27 @@ export class AggregatedStockDto {
 
   @Field(() => Boolean, { nullable: true })
   inspectionResult?: boolean;
+
+  /**
+   * Whether anyone asked for this batch to be inspected. Paired with
+   * `inspectionResult`, it is what separates "awaiting inspection" from
+   * "nobody ever intended to inspect this", which `inspectionResult` alone
+   * cannot say.
+   */
+  @Field(() => Boolean, { nullable: true })
+  requiresInspection?: boolean;
+
+  /**
+   * Batch lineage and the host's own attributes, flattened onto the row the way
+   * every other batch column here already is. `batch` resolves to the batch
+   * *group*, which is what carries the human-readable key — these two live on
+   * the batch itself and would otherwise be unreachable from a stock list.
+   */
+  @Field(() => ID, { nullable: true })
+  parentBatchId?: string | null;
+
+  @Field(() => GraphQLJSONObject, { nullable: true })
+  attributes?: Record<string, unknown> | null;
 }
 
 registerEnumType(StockStatus, {

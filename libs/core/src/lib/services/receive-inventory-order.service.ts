@@ -38,6 +38,7 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 /**
  * Service for managing receive inventory orders and their items
@@ -54,6 +55,7 @@ export class ReceiveInventoryOrderService<
   readonly selectQueryBuilder: (alias: string) => SelectQueryBuilder<T>;
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly helperService: HelperService,
@@ -127,10 +129,12 @@ export class ReceiveInventoryOrderService<
     orderId: string,
     manager: EntityManager,
   ): Promise<DeepPartial<ReceiveInventoryOrderItemEntityClass>[]> {
-    const materialRepository =
-      manager.getRepository<MaterialEntityClass>(MaterialEntityClass);
-    const locationRepository =
-      manager.getRepository<LocationEntityClass>(LocationEntityClass);
+    const materialRepository = manager.getRepository<MaterialEntityClass>(
+      this.materialService.materialEntity,
+    );
+    const locationRepository = manager.getRepository<LocationEntityClass>(
+      this.entities.location,
+    );
     const loaderRepository =
       manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
 
@@ -190,7 +194,9 @@ export class ReceiveInventoryOrderService<
   }: CreateReceiveInventoryOrderInput & {
     manager?: EntityManager;
   }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
+    const orderRepository = manager.getRepository<OrderEntity>(
+      this.entities.order,
+    );
     const receiveInventoryOrderRepository =
       manager.getRepository<ReceiveInventoryOrderEntityClass>(
         this.receiveInventoryOrderEntity,
@@ -414,22 +420,34 @@ export class ReceiveInventoryOrderService<
         manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
           this.receiveInventoryOrderItemEntity,
         );
-      const orderRepository = manager.getRepository<OrderEntity>(OrderEntity);
-      const locationRepository =
-        manager.getRepository<LocationEntityClass>(LocationEntityClass);
+      const orderRepository = manager.getRepository<OrderEntity>(
+        this.entities.order,
+      );
+      const locationRepository = manager.getRepository<LocationEntityClass>(
+        this.entities.location,
+      );
       const loaderRepository =
         manager.getRepository<LoadersEntityClass>(LoadersEntityClass);
-      const stockRepository =
-        manager.getRepository<StockEntityClass>(StockEntityClass);
+      const stockRepository = manager.getRepository<StockEntityClass>(
+        this.entities.stock,
+      );
+      const batchRepository = manager.getRepository(this.entities.batch);
 
       const items = await itemRepository.find({
         where: { id: In(options.map((o) => o.itemId)) },
-        relations: ['changes'],
+        relations: { changes: true },
       });
       const itemMap = new Map(items.map((i) => [i.id, i]));
 
-      await Promise.all(
-        options.map(async (option) => {
+      /*
+       * Sequential, not `Promise.all`. Two options for one item both reach the
+       * batch lookups below before either has written, so `splitBatch`'s
+       * read-then-create misses twice and one receipt ends up fragmented across
+       * two batch identities. A receive order has a handful of lines; ordering
+       * them costs nothing worth measuring.
+       */
+      for (const option of options) {
+        await (async () => {
           const item = itemMap.get(option.itemId);
           if (!item) return;
           if (!item.batchId && option.batchKey) {
@@ -490,7 +508,7 @@ export class ReceiveInventoryOrderService<
               ? true
               : (option.inspectionResult ?? null);
 
-          if (inspectionResult != null)
+          if (inspectionResult != null) {
             batchId = await this.batchService
               .splitBatch({
                 manager,
@@ -498,6 +516,45 @@ export class ReceiveInventoryOrderService<
                 inspectionResult,
               })
               .then(({ id }) => id);
+          } else if (item.requireInspection) {
+            /*
+             * Somebody asked for this to be inspected and it has not been yet.
+             * Recording that on the batch is what lets `PENDING_INSPECTION`
+             * mean "awaiting inspection" rather than "never inspected" -- the
+             * latter being true of almost every batch in the warehouse.
+             *
+             * Split only when the batch already holds something. `require-
+             * Inspection` defaults to **true**, so this is the ordinary receive
+             * path, not an edge case: splitting unconditionally moved every
+             * default receipt off the batch key the caller asked for and onto a
+             * synthetic child, which an exact-id lookup then could not find.
+             *
+             * A batch with nothing on it yet has nothing to commingle with, so
+             * flagging it in place is both sufficient and invisible. Only a
+             * receipt joining stock that is already there needs its own batch,
+             * which is the same thing holding or shipping part of a batch does.
+             */
+            const onHand = await stockRepository
+              .createQueryBuilder('stock')
+              .select('COALESCE(SUM(stock.quantity), 0)', 'total')
+              .where('stock."batchId" = :batchId', { batchId })
+              .getRawOne<{ total: string }>()
+              .then((row) => parseFloat(row?.total ?? '0'));
+
+            if (onHand > 0) {
+              batchId = await this.batchService
+                .splitBatch({
+                  manager,
+                  id: batchId as string,
+                  requiresInspection: true,
+                })
+                .then(({ id }) => id);
+            } else {
+              await batchRepository.update({ id: batchId as string }, {
+                requiresInspection: true,
+              } as never);
+            }
+          }
 
           let locationId = item.locationId;
           if (option.locationKey && !locationId)
@@ -530,8 +587,8 @@ export class ReceiveInventoryOrderService<
               }),
             ),
           ]);
-        }),
-      );
+        })();
+      }
 
       return true;
     });

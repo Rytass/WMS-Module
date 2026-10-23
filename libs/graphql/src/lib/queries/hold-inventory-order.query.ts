@@ -3,6 +3,7 @@ import { Args, Query } from '@nestjs/graphql';
 import { HoldInventoryOrderService } from '@rytass/wms-module-core';
 import { HoldInventoryOrders } from '../dto/hold-inventory-order.dto';
 import { FindHoldInventoryOrderArgs } from '../inputs/find-hold-inventory-order.args';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class HoldInventoryOrderQuery {
@@ -11,6 +12,7 @@ export class HoldInventoryOrderQuery {
   ) {}
 
   @Query(() => HoldInventoryOrders)
+  @WmsOperation({ resource: 'hold-inventory-order', action: 'read' })
   async holdInventoryOrders(
     @Args() args: FindHoldInventoryOrderArgs,
   ): Promise<HoldInventoryOrders> {

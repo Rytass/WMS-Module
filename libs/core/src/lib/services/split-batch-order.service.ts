@@ -15,6 +15,7 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
 export class SplitBatchOrderService<
@@ -24,6 +25,7 @@ export class SplitBatchOrderService<
   private readonly seqPrefix = 'SBO';
   constructor(
     private readonly dataSource: DataSource,
+    private readonly entities: WmsEntities,
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly helperService: HelperService,
@@ -46,14 +48,30 @@ export class SplitBatchOrderService<
       const splitBatchOrderChangeRepository = manager.getRepository(
         SplitBatchOrderChangeEntityClass,
       );
-      const orderRepository = manager.getRepository(OrderEntity);
-      const stockRepository = manager.getRepository(StockEntityClass);
-      const batchRepository = manager.getRepository(BatchEntityClass);
+      const orderRepository = manager.getRepository(this.entities.order);
+      const stockRepository = manager.getRepository(this.entities.stock);
+      const batchRepository = manager.getRepository(this.entities.batch);
 
       // Get original batch information
       const originalBatch = await batchRepository.findOneOrFail({
         where: { id: options.batchId },
       });
+
+      /*
+       * `batches` carries `UNIQUE (key, materialId)`, so two items aiming at the
+       * same target key cannot both create one. Left alone they race
+       * `getBatch`'s read-then-create and the second insert aborts the whole
+       * split with a constraint violation that names neither item.
+       */
+      const duplicateKey = options.items
+        .map(({ batchKey }) => batchKey)
+        .find((batchKey, index, keys) => keys.indexOf(batchKey) !== index);
+
+      if (duplicateKey) {
+        throw new Error(
+          `Split order names batch key "${duplicateKey}" more than once; each child needs its own key.`,
+        );
+      }
 
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
       const order = await splitBatchOrderRepository.save(
@@ -67,13 +85,18 @@ export class SplitBatchOrderService<
         options.unitId || undefined,
       );
 
-      // Process each item split
-      await Promise.all(
-        options.items.map(async (item) => {
-          // Get or create target batch
+      // Sequential: two items can reference the same *source* batch, and the
+      // availability check below reads the ledger the earlier item just wrote.
+      for (const item of options.items) {
+        await (async () => {
+          // Get or create target batch. The genealogy link and the host's
+          // attributes only land when this call creates the batch — reusing an
+          // existing key keeps whatever it already carries.
           const targetBatch = await this.batchService.getBatch({
             key: item.batchKey,
             materialId: originalBatch.materialId,
+            parentBatchId: options.batchId,
+            attributes: item.attributes ?? null,
             manager,
           });
 
@@ -137,8 +160,8 @@ export class SplitBatchOrderService<
               } as DeepPartial<StockEntityClass>,
             ]),
           );
-        }),
-      );
+        })();
+      }
 
       return order as T;
     });

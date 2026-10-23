@@ -3,8 +3,10 @@ import {
   DataSource,
   EntityManager,
   EntityTarget,
+  FindOperator,
   FindOptionsWhere,
   IsNull,
+  Raw,
   Repository,
 } from 'typeorm';
 import { BatchEntity, BatchEntityClass } from '../models';
@@ -112,11 +114,30 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     }
   }
 
+  /**
+   * Find the unsplit batch carrying `key` for this material, or create it.
+   *
+   * `parentBatchId` and `attributes` are write-on-create only: the lookup still
+   * matches on key, material and the unsplit condition alone, so a caller that
+   * passes them for a key that already exists gets the existing batch back
+   * untouched. `key` is the batch's identity in this model — `batches` carries
+   * `UNIQUE (key, materialId)`, so there is exactly one row per key — and
+   * attributes describe a batch rather than distinguish one. A host that needs
+   * two distinct batches gives them two keys; asking for two here fails on the
+   * constraint.
+   *
+   * Deliberately **not** filtered on `requiresInspection`: a receipt awaiting
+   * inspection may flag the batch in place, and the flag must not then hide the
+   * key from the next lookup — which, given the unique constraint, would leave
+   * it trying to create a duplicate.
+   */
   async getBatch({
     manager = this.dataSource.manager,
     ...options
   }: GetBatchInput & { manager?: EntityManager }): Promise<T> {
-    const batchRepository = manager.getRepository(BatchEntityClass);
+    const batchRepository = manager.getRepository<BatchEntityClass>(
+      this.batchEntity,
+    );
     const batchGroupRepository = manager.getRepository(this.batchGroupEntity);
     const unsplittedCondition: FindOptionsWhere<BatchEntityClass> = {
       saleId: IsNull(),
@@ -158,10 +179,12 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     id: string;
     manager?: EntityManager;
   } & SplitBatchInput): Promise<BatchEntityClass> {
-    const batchRepository = manager.getRepository(BatchEntityClass);
+    const batchRepository = manager.getRepository<BatchEntityClass>(
+      this.batchEntity,
+    );
     const batch = await batchRepository.findOneOrFail({
       where: { id: options.id },
-      relations: ['batchGroup'],
+      relations: { batchGroup: true },
     });
 
     // Validate state transition before proceeding
@@ -174,17 +197,44 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       groupId: batch.batchGroup.id,
     };
 
-    // Build where condition dynamically to handle optional fields
-    const whereCondition: Record<string, unknown> = {
+    /*
+     * Absent attributes have to be matched with `IsNull()`, not with a bare
+     * `null`. A `null` on the right of a find condition compiles to `= NULL`,
+     * which is never true in SQL — so this lookup used to miss every batch whose
+     * attributes were unset and split off a duplicate instead of reusing the one
+     * already there. `getBatch` above has always done it this way; this call
+     * site did not. TypeORM 1.x refuses a bare `null` here outright, which is
+     * how the bug surfaced.
+     */
+    const orNull = <V>(value: V | null | undefined): V | FindOperator<V> =>
+      value === null || value === undefined ? IsNull() : value;
+
+    const whereCondition: FindOptionsWhere<BatchEntityClass> = {
       groupId: mergedBatch.groupId,
-      saleId: mergedBatch.saleId ?? null,
-      saleSerialId: mergedBatch.saleSerialId ?? null,
-      customerId: mergedBatch.customerId ?? null,
-      vendorId: mergedBatch.vendorId ?? null,
-      inspectionResult: mergedBatch.inspectionResult ?? null,
-      transferId: mergedBatch.transferId ?? null,
+      saleId: orNull(mergedBatch.saleId),
+      saleSerialId: orNull(mergedBatch.saleSerialId),
+      customerId: orNull(mergedBatch.customerId),
+      vendorId: orNull(mergedBatch.vendorId),
+      inspectionResult: orNull(mergedBatch.inspectionResult),
+      transferId: orNull(mergedBatch.transferId),
       held: mergedBatch.held ?? false,
       inShipment: mergedBatch.inShipment ?? false,
+      // Part of the batch's identity: material waiting on an inspection must
+      // not be merged back into the free stock it was split away from.
+      requiresInspection: mergedBatch.requiresInspection ?? false,
+      /*
+       * Attributes take part in the identity check, so a split that asks for
+       * `{ bin: 'B1' }` never lands on the sibling holding `{ bin: 'B2' }`.
+       * Compared as `jsonb`, whose equality is by content rather than by the
+       * text of the document, so key order and whitespace do not matter — which
+       * a plain string comparison on the serialized column would get wrong.
+       */
+      attributes:
+        mergedBatch.attributes === null || mergedBatch.attributes === undefined
+          ? IsNull()
+          : Raw((alias) => `${alias} = cast(:batchAttributes as jsonb)`, {
+              batchAttributes: JSON.stringify(mergedBatch.attributes),
+            }),
     };
 
     // Check if a batch with these exact metrics already exists in the same group
@@ -201,6 +251,10 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       batchRepository.create({
         ...mergedBatch,
         key: `${batch.batchGroup.key}_${Date.now().toString()}`,
+        // Not inherited from `mergedBatch`: spreading the source batch would
+        // copy *its* parent and flatten the chain by one link. The parent of
+        // the batch being created is the batch it was split out of.
+        parentBatchId: batch.id,
         id: undefined,
       }),
     );

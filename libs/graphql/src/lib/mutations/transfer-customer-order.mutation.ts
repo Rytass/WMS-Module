@@ -7,6 +7,8 @@ import {
   UpdateTransferCustomerOrderArgs,
 } from '../inputs/create-transfer-customer-order.args';
 import { ReturnTransferCustomerOrderArgs } from '../inputs/return-transfer-customer-order.args';
+import { WmsOperation } from '../auth';
+import { WmsMutationEvent } from '../events';
 
 @Injectable()
 export class TransferCustomerOrderMutation {
@@ -16,6 +18,8 @@ export class TransferCustomerOrderMutation {
   ) {}
 
   @Mutation(() => TransferCustomerOrderDto)
+  @WmsOperation({ resource: 'transfer-customer-order', action: 'create' })
+  @WmsMutationEvent({ event: 'transfer-customer-order.created' })
   async createTransferCustomerOrder(
     @Args() args: CreateTransferCustomerOrderArgs,
   ): Promise<TransferCustomerOrderDto> {
@@ -32,6 +36,8 @@ export class TransferCustomerOrderMutation {
   }
 
   @Mutation(() => TransferCustomerOrderDto)
+  @WmsOperation({ resource: 'transfer-customer-order', action: 'update' })
+  @WmsMutationEvent({ event: 'transfer-customer-order.updated' })
   async updateTransferCustomerOrder(
     @Args() args: UpdateTransferCustomerOrderArgs,
   ): Promise<TransferCustomerOrderDto> {
@@ -50,6 +56,8 @@ export class TransferCustomerOrderMutation {
   }
 
   @Mutation(() => Boolean)
+  @WmsOperation({ resource: 'transfer-customer-order', action: 'return' })
+  @WmsMutationEvent({ event: 'transfer-customer-order.returned' })
   async returnTransferCustomerOrder(
     @Args('items', { type: () => [ReturnTransferCustomerOrderArgs] })
     args: ReturnTransferCustomerOrderArgs[],

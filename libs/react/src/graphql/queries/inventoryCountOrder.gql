@@ -1,0 +1,69 @@
+query InventoryCountOrders(
+  $offset: Int
+  $limit: Int
+  $name: String
+  $statuses: [InventoryCountStatus!]
+  $createdBy: String
+  $countDateFrom: String
+  $countDateTo: String
+  $locationIds: [ID!]
+) {
+  inventoryCountOrders(
+    offset: $offset
+    limit: $limit
+    name: $name
+    statuses: $statuses
+    createdBy: $createdBy
+    countDateFrom: $countDateFrom
+    countDateTo: $countDateTo
+    locationIds: $locationIds
+  ) {
+    items {
+      ...InventoryCountOrderListItem
+    }
+    total
+  }
+}
+
+query InventoryCountOrder($id: ID!) {
+  inventoryCountOrder(id: $id) {
+    ...InventoryCountOrder
+  }
+}
+
+query InventoryCountOrderItems(
+  $id: ID!
+  $offset: Int
+  $limit: Int
+  $materialKey: String
+  $materialDescription: String
+  $batchKey: String
+  $locationKey: String
+  $loaderSerialId: String
+  $vendorId: String
+  $customerId: String
+  $saleId: String
+  $saleSerialId: String
+  $onlyVariance: Boolean
+) {
+  inventoryCountOrderItems(
+    id: $id
+    offset: $offset
+    limit: $limit
+    materialKey: $materialKey
+    materialDescription: $materialDescription
+    batchKey: $batchKey
+    locationKey: $locationKey
+    loaderSerialId: $loaderSerialId
+    vendorId: $vendorId
+    customerId: $customerId
+    saleId: $saleId
+    saleSerialId: $saleSerialId
+    onlyVariance: $onlyVariance
+  ) {
+    items {
+      ...InventoryCountOrderItem
+    }
+    total
+  }
+}

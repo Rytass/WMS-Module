@@ -1,5 +1,5 @@
 import { useCallback, useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../../../../router/context';
 import { Button, ButtonGroup, Message } from '@mezzanine-ui/react';
 import { TransferOrderFragment } from '../../../../../graphql/generated/.graphql';
 import { useLazyQueryTransferOrder, useCancelTransfer } from '../../useApi';
@@ -13,7 +13,7 @@ interface ActionsProps {
 }
 
 const Actions: FC<ActionsProps> = ({ source }) => {
-  const { push } = useRouter();
+  const { push } = useWmsRouter();
   const { openDialog } = useDialog();
   const [transferModalOpened, setTransferModalOpened] =
     useState<boolean>(false);

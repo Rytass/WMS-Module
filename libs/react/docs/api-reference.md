@@ -169,6 +169,7 @@ static forRootAsync(
 | `MergeBatchOrderService<T>` | `merge` | 批號合併 | `lib/services/merge-batch-order.service.ts` |
 | `ReclassifyInventoryOrderService<T>` | `reclassify` | 庫存轉料號 | `lib/services/reclassify-inventory-order.service.ts` |
 | `ScrapeService<T>` | `scrape` | 庫存報廢 | `lib/services/scrape.service.ts` |
+| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `findItems`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法。`findItems` 是單身的分頁查詢 | `lib/services/inventory-count-order.service.ts` |
 | `QualityInspectionOrderService<T>` | `inspect` | 品質檢驗 | `lib/services/quality-inspection-order.service.ts` |
 | `SaleOrderService` | （DataSource 直接操作） | 銷售訂單查詢 | `lib/services/sale-order.service.ts` |
 | `HelperService` | `getSeq` | 序號產生工具 | `lib/services/helper.service.ts` |
@@ -260,7 +261,8 @@ enum ChangeType {
   RECEIVED, IN_SHIPMENT, SHIPPED, IN_TRANSFER, TRANSFERRED,
   VENDOR_TRANSFERRED, VENDOR_RETURNED, HELD, RELEASED,
   CUSTOMER_HELD, CUSTOMER_RETURNED, SPLITTED, MERGED,
-  ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED
+  ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED,
+  COUNT_GAINED, COUNT_LOST
 }
 ```
 來源: `lib/constants/stock-status.ts`
@@ -356,6 +358,7 @@ static forRootAsync(
 | `MaterialQuery` | `material`, `materials` | `MaterialDto`, `Materials` | `lib/queries/material.query.ts` |
 | `StockQuery` | `stock`, `stocks`, `stocksGroupedByMaterial`, `aggregatedStocks`, `changeLogs` | `StockDto`, `Stocks`, `Materials`, `AggregatedStocks`, `ChangeLogs` | `lib/queries/stock.query.ts` |
 | `BatchQuery` | `batches` | `Batches` | `lib/queries/batch.query.ts` |
+| `InventoryCountOrderQuery` | `inventoryCountOrders`, `inventoryCountOrder`, `inventoryCountOrderItems` | `InventoryCountOrders`, `InventoryCountOrderDto`, `InventoryCountOrderItems` | `lib/queries/inventory-count-order.query.ts` |
 | `LocationQuery` | `location`, `locations` | `LocationDto`, `Locations` | `lib/queries/location.query.ts` |
 | `ReceiveInventoryOrderQuery` | `receiveInventoryOrder`, `receiveInventoryOrders` | `ReceiveInventoryOrderDto`, `ReceiveInventoryOrders` | `lib/queries/recieve-inventory-order.query.ts` |
 | `ShipInventoryOrderQuery` | `shipInventoryOrder`, `shipInventoryOrders` | `ShipInventoryOrderDto`, `ShipInventoryOrders` | `lib/queries/ship-inventory-order.query.ts` |
@@ -374,6 +377,7 @@ static forRootAsync(
 | `LoaderMutation` | `createLoader`, `createBatchLoader`, `updateLoader`, `createLoaderType`（方法名未確認）, `updateLoaderType` | 載具與類型 | `lib/mutations/loader.mutation.ts` |
 | `LocationMutation` | `createLocation`, `updateLocation` | 庫位 | `lib/mutations/location.mutation.ts` |
 | `MaterialMutation` | `createMaterial`, `updateMaterial` | 料號 | `lib/mutations/material.mutation.ts` |
+| `InventoryCountOrderMutation` | `createInventoryCountOrder`, `updateInventoryCountOrder`, `startInventoryCount`, `countInventory`, `addInventoryCountItem`, `removeInventoryCountItem`, `resetInventoryCount`, `cancelInventoryCount`, `settleInventoryCount` | 盤點單。`startInventoryCount` 會鎖定範圍內儲位；`settleInventoryCount` 是唯一會改動庫存的一支 | `lib/mutations/inventory-count-order.mutation.ts` |
 | `ReceiveInventoryOrderMutation` | `createReceiveInventoryOrder`, `updateReceiveInventoryOrder`, `receive` | 入庫單 | `lib/mutations/receive-inventory-order.mutation.ts` |
 | `ShipInventoryOrderMutation` | `createShipInventoryOrder`, `updateShipInventoryOrder`, `ship`, `cancelShip` | 出庫單 | `lib/mutations/ship-inventory-order.mutation.ts` |
 | `TransferOrderMutation` | `createTransferOrder`, `updateTransferOrder`, `transfer`, `cancelTransfer` | 調撥單 | `lib/mutations/transfer-order.mutation.ts` |
@@ -645,8 +649,8 @@ import { InventoryActionsProvider } from '@rytass/wms-module-react';
 
 ### Page-level Components (for Next.js Pages-Router shells)
 
-All 11 page components take no props (fully self-contained) and are default-exported from their
-source file, re-exported as named exports from the barrel.
+All 11 page components are default-exported from their source file and re-exported as named
+exports from the barrel. All take no props except `Maps` (see below).
 
 | Named Export              | Route                       |
 |---------------------------|-----------------------------|
@@ -679,6 +683,101 @@ export default function Page() { return <MaterialsManagement />; }
 | `EditShipInventoryOrder`     | `/ship-inventory-orders/[id]/edit`               |
 | `ViewShipInventoryOrder`     | `/ship-inventory-orders/[id]/view`               |
 | `EditTransferOrder`          | `/inventory-movement/transfer-order/[id]`        |
+| `ViewInventoryCount`         | `/inventory-count/[id]`                          |
+
+> **`ViewInventoryCount` is not optional if you mount `InventoryCount`.** The list's 檢視
+> button navigates to `/inventory-count/[id]`; without that shell it 404s.
+
+---
+
+### 頁面行為變更（消費端會看到的差異）
+
+**`InventoryList` / `Maps` — 多了四個進階篩選**
+
+篩選列的「進階搜尋」多出 供應商 / 客戶 / 銷售訂單號碼 / 銷售訂單項次。這四個屬性掛在批號上，
+一直都在表格欄位裡，現在才可以拿來篩。後端是**完全比對**（見 `FindStockArgs`），所以
+`SO-1` 不會撈到 `SO-10`；料號模式的展開子列也套同一組條件。
+
+需要在 host 端關掉的話，用 `disabledOperations` 關掉 `stock:read` 會連整個庫存清單一起關，
+沒有只關這四個篩選的開關——它們是同一支 query 的參數。
+
+**`InventoryList` / `Maps` — 空狀態分兩種**
+
+沒套篩選而查不到 → 「目前沒有庫存資料」；套了篩選而查不到 → 「查無符合條件的資料」。
+共用的內部 `Table` 現在也讓呼叫端覆寫 `emptyProps`（以前會被硬寫死的「查無資料」蓋掉）。
+
+**`ViewInventoryCount` — 單身改為伺服器端分頁與篩選**
+
+盤點單身不再隨 `inventoryCountOrder` 一次全撈，改走 `inventoryCountOrderItems`
+（分頁 + 9 個欄位篩選 + 只看盤差）。連帶的行為：
+
+- 表格新增 檢驗 / 凍結 / 調撥 三個 icon 欄與 供應商 / 客戶 / 銷售訂單號碼 / 銷售訂單項次 四欄，
+  資料來自開始盤點時的快照，不會跟著之後的庫存變動。
+- 點欄位值會把該欄設成篩選條件（快速帶入篩選條件），只替換該欄、不疊加。
+- 「下載盤點清單」與「上傳盤點結果」對的是**整張清單**，不是當頁——另外發一次不分頁查詢，
+  避免操作人員拿到被截斷的檔案後把漏掉的品項全部盤成短少。
+- 狀態為「尚未執行」時，上方 info 區的 名稱 / 盤點日期 / 盤點範圍 可直接編輯，
+  焦點離開該區塊即送出 `updateInventoryCountOrder`。開始盤點後鎖定（快照已成立）。
+
+host 若要關掉單身查詢，operation 名稱是 `inventory-count-order:read-items`。
+
+---
+
+### `MapsProps`
+
+`Maps` embeds the full inventory table, so mounting it grants every inventory action even
+though hosts usually gate the page on a read-only-sounding `warehouse-map` resource.
+
+```ts
+interface MapsProps {
+  /** @default true — flips to false in the next major. */
+  readonly haveInventoryActionsSystem?: boolean;
+}
+```
+
+---
+
+### Inventory actions
+
+#### `InventoryActionsProviderProps`
+
+Deployment-level control over the 15 stock actions. Set once on the provider; the
+`InventoryList` dropdown, the `LabelSearch` button row and the `Maps` embedded table all
+follow, and a disabled action's drawer will not mount even if `targetAction` is set
+programmatically.
+
+```ts
+interface InventoryActionsProviderProps {
+  readonly enabledActions?: readonly InventoryActions[];   // allow-list
+  readonly disabledActions?: readonly InventoryActions[];  // deny-list (mutually exclusive)
+  readonly actionFilter?: (action: InventoryActions) => boolean;
+  readonly onError?: (action: InventoryActions, error: unknown) => void;
+  readonly errorMessageFallback?: string;
+}
+```
+
+Every action reports its own failures: on a rejected mutation the message is shown, the
+drawer stays open and the form keeps its values so the operator can retry. `onError` takes
+that over. `createApolloClient()`'s `ErrorLink` deliberately skips these 15 documents so the
+same error is never shown twice.
+
+#### `INVENTORY_ACTION_OPERATIONS` / `inventoryActionsForOperation`
+
+Maps each UI action to the GraphQL document it sends and the backend
+`` `${resource}:${action}` `` name that guards it, so one host-side constant can drive both
+`disabledActions` here and `disabledOperations` in `@rytass/wms-module-graphql`.
+
+```ts
+INVENTORY_ACTION_OPERATIONS[InventoryActions.ShipInventory];
+// { document: 'UpdateShipInventoryOrder', operation: 'ship-inventory-order:update' }
+
+inventoryActionsForOperation('batch:split'); // [InventoryActions.SplitBatch]
+```
+
+Also exported: `InventoryActions` (the enum), `InventoryActionItem`,
+`InventoryActionOperation`, `INVENTORY_ACTION_DOCUMENT_NAMES`, `useInventoryActions`,
+`useAddInventories`, `InventoryActionsContextValues`,
+`DEFAULT_INVENTORY_ACTION_ERROR_MESSAGE`.
 
 ---
 

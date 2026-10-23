@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
 import { SaleOrderService } from '@rytass/wms-module-core';
 import { FindSaleOrderArgs } from '../inputs/find-sale-order.args';
+import { WmsOperation } from '../auth';
 
 @Injectable()
 export class SaleOrderQuery {
   constructor(private readonly saleOrderService: SaleOrderService) {}
 
   @Query(() => [String])
+  @WmsOperation({ resource: 'sale-order', action: 'read' })
   async saleOrderDistinctIds(
     @Args() args?: FindSaleOrderArgs,
   ): Promise<string[]> {
@@ -30,6 +32,7 @@ export class SaleOrderQuery {
   }
 
   @Query(() => [String])
+  @WmsOperation({ resource: 'sale-order', action: 'read' })
   async saleOrders(
     @Args('id', { type: () => ID }) id: string,
   ): Promise<string[]> {

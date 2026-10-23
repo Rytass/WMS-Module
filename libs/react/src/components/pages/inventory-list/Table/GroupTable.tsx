@@ -32,6 +32,7 @@ import { formatKeyName } from '../../../../utils/share';
 import { aggregatedStockColumns } from '../../../../utils/columns';
 import { stockStatusName } from '../../../inventoryActions/utils';
 import { useQueryStocksGrouped } from '../useApi';
+import { stockEmptyProps } from '../emptyState';
 import { FilterValues } from '../typing';
 import classes from './group-table.module.scss';
 import { FilterType } from '../../../FilterWrapper/typing';
@@ -46,6 +47,14 @@ interface InventoryGroupTableProps {
   setTargetStocks: Dispatch<SetStateAction<AggregatedStockFragment[]>>;
   needClearSelectedRows: boolean;
   setNeedClearSelectedRows: Dispatch<SetStateAction<boolean>>;
+}
+
+/** An empty filter matches everything; otherwise the value has to be identical. */
+function matchesExactly(
+  value: string | null | undefined,
+  filter: string | undefined,
+): boolean {
+  return !filter || value === filter;
 }
 
 function InventoryGroupTable({
@@ -115,6 +124,14 @@ function InventoryGroupTable({
         key: item.key,
         id: item.id,
         aggregatedStock: item.aggregatedStock,
+        /*
+         * The child rows are narrowed client-side because the query groups by
+         * material: the server hands back every position of a matching material,
+         * so without this the expanded rows would ignore the filter the user
+         * just typed. The four commercial attributes match exactly, the same way
+         * the backend matches them; the four identifiers stay substring matches
+         * so a partial 儲位 keeps working.
+         */
         filteredAggregatedStock: item.aggregatedStock.filter(
           (stock) =>
             stock.batch.key.includes(
@@ -131,7 +148,11 @@ function InventoryGroupTable({
               currentFilter?.[FilterType.loader]?.name ||
                 currentFilter?.['loader-search'] ||
                 '',
-            ), // 之後應該要加上供應商、客戶、銷售訂單編號、銷售訂單項次
+            ) &&
+            matchesExactly(stock.vendorId, currentFilter?.vendorId) &&
+            matchesExactly(stock.customerId, currentFilter?.customerId) &&
+            matchesExactly(stock.saleId, currentFilter?.saleId) &&
+            matchesExactly(stock.saleSerialId, currentFilter?.saleSerialId),
         ),
       })),
     [data?.stocksGroupedByMaterial.items, currentFilter],
@@ -196,10 +217,17 @@ function InventoryGroupTable({
       title: '檢驗',
       width: 48,
       align: 'center',
+      /*
+       * Both halves, as in `aggregatedStockColumns`. A null `inspectionResult`
+       * alone is the resting state of every batch nobody asked to inspect, so
+       * on its own it put the waiting icon on every material in the warehouse.
+       */
       render: (source) =>
-        source.aggregatedStock?.some((s) => isNull(s.inspectionResult)) ? (
+        source.aggregatedStock?.some(
+          (s) => s.requiresInspection && isNull(s.inspectionResult),
+        ) ? (
           <Icon icon={WaitIcon} color="neutral" size={16} />
-        ) : source.aggregatedStock?.some((s) => !s.inspectionResult) ? (
+        ) : source.aggregatedStock?.some((s) => s.inspectionResult === false) ? (
           <Icon icon={DangerousOutlineIcon} color="neutral" size={16} />
         ) : null,
     },
@@ -418,6 +446,7 @@ function InventoryGroupTable({
       tableKey="InventoryGroupTable"
       columns={baseColumns}
       dataSource={dataSource}
+      emptyProps={stockEmptyProps(currentFilter)}
       rowState={(source) =>
         source.aggregatedStock?.length === 1 &&
         targetInventoryIds.includes(source.aggregatedStock[0].id)

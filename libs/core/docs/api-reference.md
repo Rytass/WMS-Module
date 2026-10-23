@@ -26,7 +26,7 @@ This document mirrors the actual `src/index.ts` barrel exports and is generated 
 **`forRoot(options, coreOptions): DynamicModule`**
 ```ts
 static forRoot(
-  options: WMSBaseModuleOptions,          // @rytass/wms-base-nestjs-module 選項（DB 連線等）
+  options: WMSBaseModuleOptions,           // @rytass/wms-base-nestjs-module 選項（DB 連線、entity override 等）
   coreOptions: WmsModuleCoreModuleOptions, // defaultLoaderSerialId / defaultLoaderTypeKey / defaultLocationKey
 ): DynamicModule
 ```
@@ -38,8 +38,44 @@ static forRootAsync(
 ): DynamicModule
 ```
 
+**Entity override（since 0.5.0，需 `@rytass/wms-base-nestjs-module` >= 0.4.0）**
+
+`WMSBaseModuleOptions` 的六個 entity 選項現在會一路作用到 core 與 graphql。每個都必須是它所取代的 class 的 `@ChildEntity()`：
+
+| 選項 | 資料表 | 取代 |
+|---|---|---|
+| `materialEntity` | `materials` | `MaterialEntityClass` |
+| `batchEntity` | `batches` | `BatchEntityClass` |
+| `locationEntity` | `locations` | `LocationEntityClass` |
+| `stockEntity` | `stocks` | `StockEntityClass` |
+| `orderEntity` | `orders` | `OrderEntityClass` |
+| `warehouseMapEntity` | `warehouse_maps` | `WarehouseMapEntity`（基座） |
+
+```ts
+WmsModuleCoreModule.forRootAsync({
+  useFactory: async () => ({
+    materialEntity: ItemMasterEntity,
+    batchEntity: LotEntity,
+  }),
+  defaultLoaderSerialId: 'DEFAULT',
+  defaultLoaderTypeKey: 'DEFAULT',
+  defaultLocationKey: 'DEFAULT',
+});
+```
+
+- `forRoot` 與 async factory 皆可，因為各 Symbol 是在 **DI 時**由基座 export 的 `PROVIDE_*_ENTITY` 綁定，不是在 module graph 組裝時。
+- 基座的 `RESOLVED_*_REPO` 與 core 的 Symbol 由**同一個 option** 推導，結構上不可能不一致。
+- **entity 需自行註冊給 TypeORM**（`TypeOrmModule.forFeature([...])` 或 DataSource `entities`）；模組無法代勞，漏掉時會在啟動階段列出缺哪幾個。
+- 未繼承正確 class 者會在啟動時被拒絕（TypeScript 結構型別擋不住兄弟類別）。
+- 可只覆寫其中幾個，其餘沿用內建 class。詳見 [`custom-entities.md`](./custom-entities.md)。
+
+### `WmsEntities`
+- 用途: 套用覆寫後**實際**被讀寫的 entity class 集合。`material` / `batch` / `location` / `stock` / `order` / `warehouseMap` 六個唯讀屬性。消費端需要同一份答案時可直接注入。建構時會驗證每個 entity 都已註冊給 TypeORM。
+- 來源: `lib/models/wms-entities.ts`
+
 ### `ModelsModule`
 - 用途: 內部模組，向 TypeORM 註冊所有 WMS 實體（via DI token 形式），並透過 `ResolvedEntitiesProviders` 提供 DI。**消費端不直接 import**；它由 `WmsModuleCoreModule.forRoot` 自動引入並 re-export。
+- 六個可覆寫的 Symbol **不由此模組綁定**：它們在 `WmsModuleCoreModule` 內由對應的 `PROVIDE_*_ENTITY` 推導，避免同一個 token 出現兩個繫結。內建 class 仍註冊進 `forFeature()`（它們是各自單表繼承的根）。
 - 來源: `lib/models/models.module.ts`
 
 ---
@@ -52,6 +88,7 @@ static forRootAsync(
 |---|---|---|---|
 | `UnitEntity` | `UnitEntityClass` | 單位主檔（kg / pcs 等） | `lib/models/metadata/unit.entity.ts` |
 | `MaterialEntity` | `MaterialEntityClass` | 料號主檔，繼承 `BaseMaterialEntity` | `lib/models/metadata/material.entity.ts` |
+| `OrderEntity` | `OrderEntityClass` | 訂單基底（本套件未加欄位，`OrderEntityClass` 即基座 class） | `lib/models/metadata/order.entity.ts` |
 | `MaterialUnitEntity` | `MaterialUnitEntityClass` | 料號換算單位（含換算係數） | `lib/models/metadata/material-unit.entity.ts` |
 | `BatchEntity` | `BatchEntityClass` | 批號主檔，繼承 `BaseBatchEntity` | `lib/models/metadata/batch.entity.ts` |
 | `BatchGroupEntity` | `BatchGroupEntityClass` | 批號群組，支援多批合併情境 | `lib/models/metadata/batch-group.entity.ts` |
@@ -68,6 +105,15 @@ static forRootAsync(
 ## TypeORM Entities（Extensions — 訂單與作業）
 
 同樣每個都有 Symbol + EntityClass 雙匯出，共 37 個：
+
+**盤點單 (Inventory Count Order)**
+- `InventoryCountOrderEntity` / `InventoryCountOrderEntityClass` — 盤點單主檔（`countDate` 為盤差記帳基準日）
+- `InventoryCountOrderLocationEntity` / `InventoryCountOrderLocationEntityClass` — 盤點範圍，已展開至所有下層儲位（`isRoot` 標示使用者實際選的節點）
+- `InventoryCountOrderItemEntity` / `InventoryCountOrderItemEntityClass` — 盤點單身（`isAddition` 標示盤盈新增列）。
+  開始盤點時另外快照 8 個當下屬性，供檢視頁顯示與篩選，之後不再隨庫存變動：
+  `held`、`inShipment`、`inspectionResult`、`transferId`、`vendorId`、`customerId`、`saleId`、`saleSerialId`
+- `InventoryCountOrderChangeEntity` / `InventoryCountOrderChangeEntityClass` — 盤差異動（正=盤盈、負=盤虧）
+- 來源: `lib/models/extensions/inventory-count-order/`
 
 **入庫訂單 (Receive Inventory Order)**
 - `ReceiveInventoryOrderEntity` / `ReceiveInventoryOrderEntityClass` — 入庫單主檔
@@ -169,6 +215,7 @@ static forRootAsync(
 | `MergeBatchOrderService<T>` | `merge` | 批號合併 | `lib/services/merge-batch-order.service.ts` |
 | `ReclassifyInventoryOrderService<T>` | `reclassify` | 庫存轉料號 | `lib/services/reclassify-inventory-order.service.ts` |
 | `ScrapeService<T>` | `scrape` | 庫存報廢 | `lib/services/scrape.service.ts` |
+| `InventoryCountOrderService<T>` | `findMany`, `findOne`, `findItems`, `create`, `update`, `start`, `count`, `addItem`, `removeItem`, `reset`, `cancel`, `settle` | 盤點單管理。`start` 會鎖定盤點範圍內的儲位，`settle` 是唯一會改動庫存的方法。`findItems` 是單身的分頁查詢，支援 9 個欄位篩選與「只看盤差」 | `lib/services/inventory-count-order.service.ts` |
 | `QualityInspectionOrderService<T>` | `inspect` | 品質檢驗 | `lib/services/quality-inspection-order.service.ts` |
 | `SaleOrderService` | （DataSource 直接操作） | 銷售訂單查詢 | `lib/services/sale-order.service.ts` |
 | `HelperService` | `getSeq` | 序號產生工具 | `lib/services/helper.service.ts` |
@@ -201,6 +248,13 @@ static forRootAsync(
 
 **庫存**
 - `FindStockInput<U extends object>` (extends `PaginationInput`) — 來源: `lib/typings/find-stock.input.ts`
+  - `aggregated` 已 **deprecated 且被忽略**，下一個 minor 移除。每個讀這個 input 的方法都自己決定要不要聚合：
+    `findAggregatedStocks` / `findAggregatedStock` 一律聚合，`findMany` / `findChangeLogs` 一律不聚合。
+    在 0.8.0 之前對 `findAggregatedStocks` 傳 `false`（或省略）會拋 `column agg."saleSerialId" does not exist`，
+    而不是回傳未聚合的列——所以沒有任何行為依賴它。
+  - 除了 `materialKey` / `batchKey` / `locationKey` / `loaderKey`（皆為 ILIKE 模糊比對），另可用批號上的四個商業屬性
+    `vendorId` / `customerId` / `saleId` / `saleSerialId` 篩選。這四個是**完全比對**，不是模糊比對——它們是上游系統的識別碼，
+    模糊比對會讓 `SO-1` 撈到 `SO-10`。傳 `null` 等同不篩選。
 - `AggregatedStock`, `ValidateStockDeductionParams`, `ChangeLog` — 來源: `lib/typings/aggregated-stock.ts`
 
 **批號**
@@ -260,10 +314,31 @@ enum ChangeType {
   RECEIVED, IN_SHIPMENT, SHIPPED, IN_TRANSFER, TRANSFERRED,
   VENDOR_TRANSFERRED, VENDOR_RETURNED, HELD, RELEASED,
   CUSTOMER_HELD, CUSTOMER_RETURNED, SPLITTED, MERGED,
-  ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED
+  ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED,
+  COUNT_GAINED, COUNT_LOST
 }
 ```
 來源: `lib/constants/stock-status.ts`
+
+### `InventoryCountStatus` (enum)
+```ts
+enum InventoryCountStatus { PENDING, COUNTING, COMPLETED, CANCELLED }
+```
+盤點單狀態：尚未執行 / 盤點中 / 已完成 / 已取消。只有 `COUNTING` 接受盤點數量，也只有
+`COUNTING` 會鎖定範圍內儲位；`COMPLETED` 只能由執行盤差達成。
+來源: `lib/constants/inventory-count-status.ts`
+
+### `WmsOperationName` (type) / `WMS_OPERATION_NAMES` (const)
+```ts
+type WmsOperationName = 'material:read' | 'material:create' | /* …59 項… */;
+const WMS_OPERATION_NAMES: readonly WmsOperationName[];
+```
+本套件所有 root operation 的 `` `${resource}:${action}` `` 名稱。同一組字串有三個用途：
+`authChecker` 收到的 requirement、`@rytass/wms-module-graphql` 的
+`enabledOperations` / `disabledOperations`、以及
+`@rytass/wms-module-react` 的 `INVENTORY_ACTION_OPERATIONS` 對照表。
+**注意名稱不等於欄位**：多支 query 共用同一組 requirement（`loader:read` 對應 6 支）。
+來源: `lib/constants/operations.ts`
 
 ### `ReceiveInventoryOrderStatus` (enum)
 ```ts
@@ -356,6 +431,7 @@ static forRootAsync(
 | `MaterialQuery` | `material`, `materials` | `MaterialDto`, `Materials` | `lib/queries/material.query.ts` |
 | `StockQuery` | `stock`, `stocks`, `stocksGroupedByMaterial`, `aggregatedStocks`, `changeLogs` | `StockDto`, `Stocks`, `Materials`, `AggregatedStocks`, `ChangeLogs` | `lib/queries/stock.query.ts` |
 | `BatchQuery` | `batches` | `Batches` | `lib/queries/batch.query.ts` |
+| `InventoryCountOrderQuery` | `inventoryCountOrders`, `inventoryCountOrder` | `InventoryCountOrders`, `InventoryCountOrderDto` | `lib/queries/inventory-count-order.query.ts` |
 | `LocationQuery` | `location`, `locations` | `LocationDto`, `Locations` | `lib/queries/location.query.ts` |
 | `ReceiveInventoryOrderQuery` | `receiveInventoryOrder`, `receiveInventoryOrders` | `ReceiveInventoryOrderDto`, `ReceiveInventoryOrders` | `lib/queries/recieve-inventory-order.query.ts` |
 | `ShipInventoryOrderQuery` | `shipInventoryOrder`, `shipInventoryOrders` | `ShipInventoryOrderDto`, `ShipInventoryOrders` | `lib/queries/ship-inventory-order.query.ts` |
@@ -374,6 +450,7 @@ static forRootAsync(
 | `LoaderMutation` | `createLoader`, `createBatchLoader`, `updateLoader`, `createLoaderType`（方法名未確認）, `updateLoaderType` | 載具與類型 | `lib/mutations/loader.mutation.ts` |
 | `LocationMutation` | `createLocation`, `updateLocation` | 庫位 | `lib/mutations/location.mutation.ts` |
 | `MaterialMutation` | `createMaterial`, `updateMaterial` | 料號 | `lib/mutations/material.mutation.ts` |
+| `InventoryCountOrderMutation` | `createInventoryCountOrder`, `updateInventoryCountOrder`, `startInventoryCount`, `countInventory`, `addInventoryCountItem`, `removeInventoryCountItem`, `resetInventoryCount`, `cancelInventoryCount`, `settleInventoryCount` | 盤點單。`startInventoryCount` 會鎖定範圍內儲位；`settleInventoryCount` 是唯一會改動庫存的一支 | `lib/mutations/inventory-count-order.mutation.ts` |
 | `ReceiveInventoryOrderMutation` | `createReceiveInventoryOrder`, `updateReceiveInventoryOrder`, `receive` | 入庫單 | `lib/mutations/receive-inventory-order.mutation.ts` |
 | `ShipInventoryOrderMutation` | `createShipInventoryOrder`, `updateShipInventoryOrder`, `ship`, `cancelShip` | 出庫單 | `lib/mutations/ship-inventory-order.mutation.ts` |
 | `TransferOrderMutation` | `createTransferOrder`, `updateTransferOrder`, `transfer`, `cancelTransfer` | 調撥單 | `lib/mutations/transfer-order.mutation.ts` |

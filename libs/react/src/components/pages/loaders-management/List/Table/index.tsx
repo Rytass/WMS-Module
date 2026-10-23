@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useRouter } from 'next/router';
+import { useWmsRouter } from '../../../../../router/context';
 import dayjs from 'dayjs';
 import { TableColumn, Badge } from '@mezzanine-ui/react';
 import TableWrapper from '../../../../TableWrapper';
@@ -18,7 +18,7 @@ interface LoadersManagementListTableProps {
 function LoadersManagementListTable({
   currentFilter,
 }: LoadersManagementListTableProps) {
-  const { push } = useRouter();
+  const { push } = useWmsRouter();
   const { data, loading, pageTotal, page, setPage, limit, setLimit } =
     useQueryLoaders(currentFilter);
 

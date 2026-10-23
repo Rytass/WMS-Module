@@ -1,0 +1,21 @@
+* {
+  box-sizing: border-box;
+  outline: none;
+  touch-action: manipulation;
+  font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+  margin: 0;
+}
+
+html,
+body {
+  font-size: 1rem;
+  margin: 0;
+  padding: 0;
+  touch-action: manipulation; // 禁止double-tap手勢
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
+html {
+  width: 100%;
+}
