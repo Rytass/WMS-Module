@@ -91,6 +91,12 @@ export function buildCountSheetCsv(
 export interface ParsedCountRow {
   readonly itemId: string;
   readonly countedQuantity: number;
+  /**
+   * The unit the file names for this row: a material-unit id, `null` for the
+   * base unit, or absent when the 單位 cell was blank (keep the line's current
+   * unit).
+   */
+  readonly unitId?: string | null;
 }
 
 export interface ParsedCountSheet {
@@ -164,6 +170,7 @@ export function parseCountSheetCsv(
 
   const idColumn = columnOf('項目識別碼');
   const quantityColumn = columnOf('盤點數量');
+  const unitColumn = columnOf('單位');
 
   if (quantityColumn === -1) {
     return { rows: [], errors: ['找不到「盤點數量」欄位'] };
@@ -244,8 +251,55 @@ export function parseCountSheetCsv(
       return;
     }
 
+    /*
+     * The 單位 column is honoured, not ignored: the export prints it next to
+     * the quantity, so a number in the file is in that unit. A name outside
+     * the material's own vocabulary is an error for that line — silently
+     * falling back to another unit would record a quantity off by the
+     * conversion factor, which is the worst possible outcome.
+     */
+    const rawUnit =
+      unitColumn === -1 ? '' : (cells[unitColumn] ?? '').trim();
+    let unitId: string | null | undefined;
+
+    if (rawUnit) {
+      const baseUnitKey = item.material?.baseUnit?.key ?? '';
+      const materialUnits = item.material?.materialUnits ?? [];
+      const exact = materialUnits.find((unit) => unit.unit === rawUnit);
+
+      if (rawUnit === baseUnitKey) {
+        unitId = null;
+      } else if (exact) {
+        unitId = exact.id;
+      } else {
+        // Courtesy pass for Excel-style case changes — but only when the
+        // lowered name still points at exactly one unit.
+        const lowered = rawUnit.toLowerCase();
+        const caseInsensitive = [
+          ...(baseUnitKey.toLowerCase() === lowered ? [null] : []),
+          ...materialUnits
+            .filter((unit) => unit.unit.toLowerCase() === lowered)
+            .map((unit) => unit.id),
+        ];
+
+        if (caseInsensitive.length === 1) {
+          unitId = caseInsensitive[0];
+        } else {
+          errors.push(
+            `第 ${lineNumber} 列：單位「${rawUnit}」不是料號「${item.material?.key ?? ''}」的可用單位`,
+          );
+
+          return;
+        }
+      }
+    }
+
     seen.add(item.id);
-    rows.push({ itemId: item.id, countedQuantity: quantity });
+    rows.push({
+      itemId: item.id,
+      countedQuantity: quantity,
+      ...(unitId !== undefined ? { unitId } : {}),
+    });
   });
 
   return { rows, errors };

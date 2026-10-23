@@ -389,14 +389,29 @@ function ViewInventoryCount() {
 
       if (!rows.length) return;
 
+      // The export prints each line's saved unit next to the quantity column,
+      // so an uploaded number is in *that* unit. Falling back to `null` (base
+      // unit) here would silently reinterpret a BOX count as pieces — the
+      // line's stored unit must win when no draft already names one.
+      const unitByItemId = new Map(
+        sheet.map((item) => [item.id, item.unitId ?? null] as const),
+      );
+
       setDraft((previous) => ({
         ...previous,
         ...Object.fromEntries(
-          rows.map(({ itemId, countedQuantity }) => [
+          rows.map(({ itemId, countedQuantity, unitId }) => [
             itemId,
             {
               quantity: String(countedQuantity),
-              unitId: previous[itemId]?.unitId ?? null,
+              // A unit written in the file is the most explicit statement of
+              // what the number means, so it outranks a unit picked on screen.
+              unitId:
+                unitId !== undefined
+                  ? unitId
+                  : (previous[itemId]?.unitId ??
+                    unitByItemId.get(itemId) ??
+                    null),
             },
           ]),
         ),

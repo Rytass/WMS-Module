@@ -147,6 +147,81 @@ describe('count sheet CSV', () => {
     expect(errors).toEqual(['找不到「盤點數量」欄位']);
   });
 
+  it('applies the unit named in the 單位 column', () => {
+    const withUnits = [
+      item({
+        id: 'item-5',
+        material: {
+          key: 'WATER2B003',
+          description: '200ml 礦泉水',
+          baseUnit: { key: 'PCS' },
+          materialUnits: [{ id: 'mu-1', unit: 'BOX', conversionFactor: 24 }],
+        },
+      } as unknown as Partial<Item> & { id: string }),
+    ];
+
+    const csv = ['項目識別碼,單位,盤點數量', 'item-5,BOX,5'].join('\r\n');
+
+    const { rows, errors } = parseCountSheetCsv(csv, withUnits);
+
+    expect(errors).toEqual([]);
+    expect(rows).toEqual([
+      { itemId: 'item-5', countedQuantity: 5, unitId: 'mu-1' },
+    ]);
+  });
+
+  it('maps the base unit name to null and rejects unknown unit names', () => {
+    const withUnits = [
+      item({
+        id: 'item-5',
+        material: {
+          key: 'WATER2B003',
+          description: '200ml 礦泉水',
+          baseUnit: { key: 'PCS' },
+          materialUnits: [{ id: 'mu-1', unit: 'BOX', conversionFactor: 24 }],
+        },
+      } as unknown as Partial<Item> & { id: string }),
+      item({
+        id: 'item-6',
+        batch: { key: '2510310099' },
+        material: {
+          key: 'WATER2B003',
+          description: '200ml 礦泉水',
+          baseUnit: { key: 'PCS' },
+          materialUnits: [],
+        },
+      } as unknown as Partial<Item> & { id: string }),
+    ];
+
+    const csv = [
+      '項目識別碼,單位,盤點數量',
+      'item-5,PCS,5',
+      'item-6,KG,7',
+    ].join('\r\n');
+
+    const { rows, errors } = parseCountSheetCsv(csv, withUnits);
+
+    // 指名基本單位 → unitId null;不在料號字彙裡的單位 → 整列報錯,
+    // 不能默默用別的單位把數字差一個換算倍數。
+    expect(rows).toEqual([
+      { itemId: 'item-5', countedQuantity: 5, unitId: null },
+    ]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('KG');
+    expect(errors[0]).toContain('可用單位');
+  });
+
+  it('keeps the line unit untouched when the 單位 cell is blank', () => {
+    const csv = ['項目識別碼,單位,盤點數量', 'item-1,,12'].join('\r\n');
+
+    const { rows, errors } = parseCountSheetCsv(csv, items);
+
+    expect(errors).toEqual([]);
+    // 沒有 unitId 鍵:畫面沿用該列現有單位。
+    expect(rows).toEqual([{ itemId: 'item-1', countedQuantity: 12 }]);
+    expect('unitId' in rows[0]).toBe(false);
+  });
+
   it('handles quoted cells containing commas', () => {
     const csv = [
       '項目識別碼,物料說明,盤點數量',
