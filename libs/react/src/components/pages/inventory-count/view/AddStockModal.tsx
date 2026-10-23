@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useMemo, useCallback, useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
@@ -109,6 +109,16 @@ const AddStockModal: FC<AddStockModalProps> = ({
   });
 
   /**
+   * The effect below must key on this primitive, not on `material` itself:
+   * react-hook-form's `useWatch` hands its subscribers a deep *clone* of the
+   * form values on every notification — including the ones this effect's own
+   * `setValue('unit', …)` emits — so the object's identity changes on each
+   * save and an object dependency re-runs the effect forever. The id string
+   * compares by value and breaks that cycle.
+   */
+  const materialId = useMemo(() => material?.id, [material?.id]);
+
+  /**
    * 單位 follows 料號: picking a material loads its unit list and pre-selects
    * the base unit, clearing it empties and disables the select again.
    *
@@ -125,24 +135,27 @@ const AddStockModal: FC<AddStockModalProps> = ({
     // end — the operator cannot interact with it to clear the error.
     methods.clearErrors('unit');
 
-    if (!material) return;
+    if (materialId) {
+      (async () => {
+        const { data } = await fetchMaterial({
+          variables: { materialId },
+        });
 
-    (async () => {
-      const { data } = await fetchMaterial({
-        variables: { materialId: material.id },
-      });
+        // The guard against a slow response racing a newer selection: the form
+        // itself knows which material is current, so a reply for anything else
+        // (switched or cleared meanwhile) is simply out of date — drop it.
+        if (
+          !data?.material ||
+          data.material.id !== methods.getValues('material')?.id
+        ) {
+          return;
+        }
 
-      // The guard against a slow response racing a newer selection: the form
-      // itself knows which material is current, so a reply for anything else
-      // (switched or cleared meanwhile) is simply out of date — drop it.
-      if (!data?.material || data.material.id !== methods.getValues('material')?.id) {
-        return;
-      }
-
-      setUnitOptions(getMaterialUnitOptions(data.material));
-      methods.setValue('unit', BASE_UNIT, { shouldValidate: true });
-    })();
-  }, [fetchMaterial, material, methods]);
+        setUnitOptions(getMaterialUnitOptions(data.material));
+        methods.setValue('unit', BASE_UNIT, { shouldValidate: true });
+      })();
+    }
+  }, [fetchMaterial, materialId, methods]);
 
   const onSubmit = useCallback(
     async (values: AddStockFormValues) => {

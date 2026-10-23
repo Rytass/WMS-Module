@@ -9,6 +9,8 @@ interface TableWrapperBaseProps {
   children?: ReactElement<TableProps>;
   tableSectionClassName?: string;
   otherActions?: ReactNode;
+  /** Filter bar rendered inside the card, between the title row and the table. */
+  filters?: ReactNode;
 }
 
 interface TableWrapperWithCreate {
@@ -29,6 +31,7 @@ function TableWrapper({
   children,
   tableSectionClassName,
   otherActions,
+  filters,
   createText,
   onCreate,
 }: TableWrapperProps) {
@@ -53,6 +56,7 @@ function TableWrapper({
           )}
         </div>
       </div>
+      {filters}
       {children}
     </SectionWrapper>
   );

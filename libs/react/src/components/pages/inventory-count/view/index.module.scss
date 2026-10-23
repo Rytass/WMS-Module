@@ -1,15 +1,12 @@
+/*
+ * The design's header card: 名稱／盤點日期／盤點範圍 share the first row three
+ * across, 建立者／狀態 sit under the first two columns as plain text.
+ */
 .info {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   align-items: start;
-}
-
-.fileActions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  grid-column: 1 / -1;
 }
 
 .varianceToggle {
@@ -19,17 +16,11 @@
   padding: 8px 0;
 }
 
-.footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0;
+.pageFooter {
+  position: sticky;
+  bottom: 0;
 }
 
-.footerRight {
-  display: flex;
-  gap: 8px;
-}
 
 .settlingOverlay {
   position: fixed;
