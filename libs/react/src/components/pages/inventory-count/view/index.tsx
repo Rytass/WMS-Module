@@ -222,6 +222,39 @@ function ViewInventoryCount() {
     [],
   );
 
+  /** The conversion factor of the row's currently chosen unit (base unit = 1). */
+  const factorOf = useCallback(
+    (item: InventoryCountOrderItemFragment): number => {
+      const unitId = unitOf(item);
+
+      if (!unitId || unitId === BASE_UNIT) return 1;
+
+      return (
+        item.material?.materialUnits?.find((unit) => unit.id === unitId)
+          ?.conversionFactor ?? 1
+      );
+    },
+    [unitOf],
+  );
+
+  /**
+   * 帳面數量 shown in the row's *chosen* unit, so both quantities compare in
+   * the same unit the operator is counting in. Display-only: the ledger keeps
+   * base units, and settlement converts the counted quantity the other way
+   * server-side. Rounded to four decimals to keep a non-integer division
+   * (e.g. 250 pcs ÷ 24/box) readable.
+   */
+  const bookQuantityOf = useCallback(
+    (item: InventoryCountOrderItemFragment): number => {
+      const factor = factorOf(item);
+
+      if (factor === 1) return item.bookQuantity;
+
+      return Number((item.bookQuantity / factor).toFixed(4));
+    },
+    [factorOf],
+  );
+
   const draftEntries = useCallback(
     () =>
       Object.entries(draft).map(([itemId, value]) => ({
@@ -481,7 +514,7 @@ function ViewInventoryCount() {
       key: 'bookQuantity',
       title: '帳面數量',
       width: 120,
-      render: (item) => item.bookQuantity,
+      render: (item) => bookQuantityOf(item),
     },
     {
       key: 'unit',
