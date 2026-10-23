@@ -42,12 +42,49 @@ describe('count sheet CSV', () => {
     expect(buildCountSheetCsv('IC-1', items).startsWith('﻿')).toBe(true);
   });
 
-  it('leaves the counted-quantity column blank for the floor to fill in', () => {
+  it('leaves the counted-quantity column blank while the line is uncounted', () => {
     const [, firstRow] = buildCountSheetCsv('IC-1', items).split('\r\n');
 
     expect(firstRow.endsWith(',')).toBe(true);
     expect(firstRow).toContain('item-1');
     expect(firstRow).toContain('WATER2B003');
+  });
+
+  it('exports the saved count, a readable unit name and the converted book quantity', () => {
+    const counted = item({
+      id: 'item-3',
+      unitId: 'mu-1',
+      bookQuantity: 240,
+      countedQuantity: 9,
+      material: {
+        key: 'WATER2B003',
+        description: '200ml 礦泉水',
+        baseUnit: { key: 'PCS' },
+        materialUnits: [{ id: 'mu-1', unit: 'BOX', conversionFactor: 24 }],
+      },
+    } as unknown as Partial<Item> & { id: string });
+
+    const [, row] = buildCountSheetCsv('IC-1', [counted]).split('\r\n');
+
+    // 帳面 240 ÷ 24/BOX = 10,單位顯示名稱而非 id,盤點數量帶出已存的 9。
+    expect(row.endsWith(',10,BOX,9')).toBe(true);
+  });
+
+  it('falls back to the base unit name when no conversion unit is set', () => {
+    const base = item({
+      id: 'item-4',
+      countedQuantity: 3,
+      material: {
+        key: 'WATER2B003',
+        description: '200ml 礦泉水',
+        baseUnit: { key: 'PCS' },
+        materialUnits: [],
+      },
+    } as unknown as Partial<Item> & { id: string });
+
+    const [, row] = buildCountSheetCsv('IC-1', [base]).split('\r\n');
+
+    expect(row.endsWith(',100,PCS,3')).toBe(true);
   });
 
   it('round-trips through the item id', () => {
@@ -108,6 +145,81 @@ describe('count sheet CSV', () => {
 
     expect(rows).toEqual([]);
     expect(errors).toEqual(['找不到「盤點數量」欄位']);
+  });
+
+  it('applies the unit named in the 單位 column', () => {
+    const withUnits = [
+      item({
+        id: 'item-5',
+        material: {
+          key: 'WATER2B003',
+          description: '200ml 礦泉水',
+          baseUnit: { key: 'PCS' },
+          materialUnits: [{ id: 'mu-1', unit: 'BOX', conversionFactor: 24 }],
+        },
+      } as unknown as Partial<Item> & { id: string }),
+    ];
+
+    const csv = ['項目識別碼,單位,盤點數量', 'item-5,BOX,5'].join('\r\n');
+
+    const { rows, errors } = parseCountSheetCsv(csv, withUnits);
+
+    expect(errors).toEqual([]);
+    expect(rows).toEqual([
+      { itemId: 'item-5', countedQuantity: 5, unitId: 'mu-1' },
+    ]);
+  });
+
+  it('maps the base unit name to null and rejects unknown unit names', () => {
+    const withUnits = [
+      item({
+        id: 'item-5',
+        material: {
+          key: 'WATER2B003',
+          description: '200ml 礦泉水',
+          baseUnit: { key: 'PCS' },
+          materialUnits: [{ id: 'mu-1', unit: 'BOX', conversionFactor: 24 }],
+        },
+      } as unknown as Partial<Item> & { id: string }),
+      item({
+        id: 'item-6',
+        batch: { key: '2510310099' },
+        material: {
+          key: 'WATER2B003',
+          description: '200ml 礦泉水',
+          baseUnit: { key: 'PCS' },
+          materialUnits: [],
+        },
+      } as unknown as Partial<Item> & { id: string }),
+    ];
+
+    const csv = [
+      '項目識別碼,單位,盤點數量',
+      'item-5,PCS,5',
+      'item-6,KG,7',
+    ].join('\r\n');
+
+    const { rows, errors } = parseCountSheetCsv(csv, withUnits);
+
+    // 指名基本單位 → unitId null;不在料號字彙裡的單位 → 整列報錯,
+    // 不能默默用別的單位把數字差一個換算倍數。
+    expect(rows).toEqual([
+      { itemId: 'item-5', countedQuantity: 5, unitId: null },
+    ]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('KG');
+    expect(errors[0]).toContain('可用單位');
+  });
+
+  it('keeps the line unit untouched when the 單位 cell is blank', () => {
+    const csv = ['項目識別碼,單位,盤點數量', 'item-1,,12'].join('\r\n');
+
+    const { rows, errors } = parseCountSheetCsv(csv, items);
+
+    expect(errors).toEqual([]);
+    // 沒有 unitId 鍵:畫面沿用該列現有單位。
+    expect(rows).toEqual([{ itemId: 'item-1', countedQuantity: 12 }]);
+    expect('unitId' in rows[0]).toBe(false);
   });
 
   it('handles quoted cells containing commas', () => {

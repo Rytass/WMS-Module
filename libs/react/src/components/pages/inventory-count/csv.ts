@@ -30,12 +30,36 @@ function escapeCell(value: string): string {
   return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
+/** The readable name of the row's counting unit — the base unit when none is set. */
+function unitNameOf(item: InventoryCountOrderItemFragment): string {
+  const baseUnitKey = item.material?.baseUnit?.key ?? '';
+
+  if (!item.unitId) return baseUnitKey;
+
+  return (
+    item.material?.materialUnits?.find((unit) => unit.id === item.unitId)
+      ?.unit ?? baseUnitKey
+  );
+}
+
+/** The conversion factor of the row's counting unit (base unit = 1). */
+function factorOf(item: InventoryCountOrderItemFragment): number {
+  if (!item.unitId) return 1;
+
+  return (
+    item.material?.materialUnits?.find((unit) => unit.id === item.unitId)
+      ?.conversionFactor ?? 1
+  );
+}
+
 export function buildCountSheetCsv(
   orderKey: string,
   items: readonly InventoryCountOrderItemFragment[],
 ): string {
-  const rows = items.map((item) =>
-    [
+  const rows = items.map((item) => {
+    const factor = factorOf(item);
+
+    return [
       orderKey,
       item.id,
       item.material?.key ?? '',
@@ -43,14 +67,22 @@ export function buildCountSheetCsv(
       item.batch?.key ?? '',
       item.location?.key ?? '',
       item.loader?.serialId ?? '',
-      String(item.bookQuantity),
-      item.unitId ?? '',
-      // Left blank on purpose: this column is what the floor fills in.
-      '',
+      // Shown in the row's counting unit so it compares against 盤點數量,
+      // mirroring the detail page. The ledger itself stays in base units.
+      String(
+        factor === 1
+          ? item.bookQuantity
+          : Number((item.bookQuantity / factor).toFixed(4)),
+      ),
+      unitNameOf(item),
+      // The saved count; blank means "not counted yet", which the upload
+      // parser also treats as not-counted — so a full export re-uploads as a
+      // no-op instead of zeroing anything.
+      item.countedQuantity === null ? '' : String(item.countedQuantity),
     ]
       .map((cell) => escapeCell(String(cell)))
-      .join(','),
-  );
+      .join(',');
+  });
 
   return [BOM + COUNT_SHEET_HEADERS.join(','), ...rows].join('\r\n');
 }
@@ -59,6 +91,12 @@ export function buildCountSheetCsv(
 export interface ParsedCountRow {
   readonly itemId: string;
   readonly countedQuantity: number;
+  /**
+   * The unit the file names for this row: a material-unit id, `null` for the
+   * base unit, or absent when the 單位 cell was blank (keep the line's current
+   * unit).
+   */
+  readonly unitId?: string | null;
 }
 
 export interface ParsedCountSheet {
@@ -132,6 +170,7 @@ export function parseCountSheetCsv(
 
   const idColumn = columnOf('項目識別碼');
   const quantityColumn = columnOf('盤點數量');
+  const unitColumn = columnOf('單位');
 
   if (quantityColumn === -1) {
     return { rows: [], errors: ['找不到「盤點數量」欄位'] };
@@ -212,8 +251,55 @@ export function parseCountSheetCsv(
       return;
     }
 
+    /*
+     * The 單位 column is honoured, not ignored: the export prints it next to
+     * the quantity, so a number in the file is in that unit. A name outside
+     * the material's own vocabulary is an error for that line — silently
+     * falling back to another unit would record a quantity off by the
+     * conversion factor, which is the worst possible outcome.
+     */
+    const rawUnit =
+      unitColumn === -1 ? '' : (cells[unitColumn] ?? '').trim();
+    let unitId: string | null | undefined;
+
+    if (rawUnit) {
+      const baseUnitKey = item.material?.baseUnit?.key ?? '';
+      const materialUnits = item.material?.materialUnits ?? [];
+      const exact = materialUnits.find((unit) => unit.unit === rawUnit);
+
+      if (rawUnit === baseUnitKey) {
+        unitId = null;
+      } else if (exact) {
+        unitId = exact.id;
+      } else {
+        // Courtesy pass for Excel-style case changes — but only when the
+        // lowered name still points at exactly one unit.
+        const lowered = rawUnit.toLowerCase();
+        const caseInsensitive = [
+          ...(baseUnitKey.toLowerCase() === lowered ? [null] : []),
+          ...materialUnits
+            .filter((unit) => unit.unit.toLowerCase() === lowered)
+            .map((unit) => unit.id),
+        ];
+
+        if (caseInsensitive.length === 1) {
+          unitId = caseInsensitive[0];
+        } else {
+          errors.push(
+            `第 ${lineNumber} 列：單位「${rawUnit}」不是料號「${item.material?.key ?? ''}」的可用單位`,
+          );
+
+          return;
+        }
+      }
+    }
+
     seen.add(item.id);
-    rows.push({ itemId: item.id, countedQuantity: quantity });
+    rows.push({
+      itemId: item.id,
+      countedQuantity: quantity,
+      ...(unitId !== undefined ? { unitId } : {}),
+    });
   });
 
   return { rows, errors };
