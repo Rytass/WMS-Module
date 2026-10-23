@@ -30,12 +30,36 @@ function escapeCell(value: string): string {
   return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
+/** The readable name of the row's counting unit — the base unit when none is set. */
+function unitNameOf(item: InventoryCountOrderItemFragment): string {
+  const baseUnitKey = item.material?.baseUnit?.key ?? '';
+
+  if (!item.unitId) return baseUnitKey;
+
+  return (
+    item.material?.materialUnits?.find((unit) => unit.id === item.unitId)
+      ?.unit ?? baseUnitKey
+  );
+}
+
+/** The conversion factor of the row's counting unit (base unit = 1). */
+function factorOf(item: InventoryCountOrderItemFragment): number {
+  if (!item.unitId) return 1;
+
+  return (
+    item.material?.materialUnits?.find((unit) => unit.id === item.unitId)
+      ?.conversionFactor ?? 1
+  );
+}
+
 export function buildCountSheetCsv(
   orderKey: string,
   items: readonly InventoryCountOrderItemFragment[],
 ): string {
-  const rows = items.map((item) =>
-    [
+  const rows = items.map((item) => {
+    const factor = factorOf(item);
+
+    return [
       orderKey,
       item.id,
       item.material?.key ?? '',
@@ -43,14 +67,22 @@ export function buildCountSheetCsv(
       item.batch?.key ?? '',
       item.location?.key ?? '',
       item.loader?.serialId ?? '',
-      String(item.bookQuantity),
-      item.unitId ?? '',
-      // Left blank on purpose: this column is what the floor fills in.
-      '',
+      // Shown in the row's counting unit so it compares against 盤點數量,
+      // mirroring the detail page. The ledger itself stays in base units.
+      String(
+        factor === 1
+          ? item.bookQuantity
+          : Number((item.bookQuantity / factor).toFixed(4)),
+      ),
+      unitNameOf(item),
+      // The saved count; blank means "not counted yet", which the upload
+      // parser also treats as not-counted — so a full export re-uploads as a
+      // no-op instead of zeroing anything.
+      item.countedQuantity === null ? '' : String(item.countedQuantity),
     ]
       .map((cell) => escapeCell(String(cell)))
-      .join(','),
-  );
+      .join(',');
+  });
 
   return [BOM + COUNT_SHEET_HEADERS.join(','), ...rows].join('\r\n');
 }
