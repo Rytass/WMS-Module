@@ -295,7 +295,7 @@ function ViewInventoryCount() {
   const onSettle = useCallback(async () => {
     const isConfirm = await openDialog({
       title: '資訊提示',
-      children:
+      supportingText:
         '系統將根據盤點數量以及帳面數量進行帳面數量的盤差。請確認是否要繼續，以便順利完成操作。',
       modalStatusType: 'info',
       confirmText: '繼續',
@@ -337,7 +337,7 @@ function ViewInventoryCount() {
   const onReset = useCallback(async () => {
     const isConfirm = await openDialog({
       title: '清空重填',
-      children: '將清除所有已填寫的盤點數量與新增的庫存項目，確定嗎？',
+      supportingText: '將清除所有已填寫的盤點數量與新增的庫存項目，確定嗎？',
       confirmButtonProps: {
         variant: 'destructive-primary',
       },
