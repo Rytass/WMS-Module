@@ -57,9 +57,6 @@ import classes from './index.module.scss';
 /** Counted quantities being edited, keyed by item id. */
 type CountDraft = Record<string, { quantity: string; unitId: string | null }>;
 
-/** How long a freshly added row stays highlighted. */
-const HIGHLIGHT_MS = 3000;
-
 /** The header fields an operator may still change before the count starts. */
 interface InfoFormValues {
   name: string;
@@ -97,7 +94,6 @@ function ViewInventoryCount() {
 
   const [draft, setDraft] = useState<CountDraft>({});
   const [addModalOpened, setAddModalOpened] = useState<boolean>(false);
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
   /**
    * Settlement locks the whole page. The design is explicit about this: no
    * pausing, cancelling or navigating away until the adjustment finishes, so a
@@ -475,6 +471,7 @@ function ViewInventoryCount() {
             size="sub"
             variant="destructive-ghost"
             icon={TrashIcon}
+            iconType="icon-only"
             onClick={async () => {
               await removeInventoryCountItem({
                 variables: { id, itemId: item.id },
@@ -714,7 +711,7 @@ function ViewInventoryCount() {
       columns={columns}
       dataSource={items}
       loading={itemsLoading}
-      rowState={(item) => (item.id === highlightedId ? 'added' : undefined)}
+      rowState={(item) => (item.isAddition ? 'added' : undefined)}
       pagination={{
         current: page,
         onChange: (next) => setPage(next),
@@ -836,14 +833,12 @@ function ViewInventoryCount() {
           orderId={id}
           open={addModalOpened}
           closeModal={() => setAddModalOpened(false)}
-          onCreated={(itemId) => {
+          onCreated={() => {
             // Additions already sort first server-side, so clearing the filters
             // and going back to page 1 is what actually puts the new line on top;
             // the highlight then says which one it is.
             setItemFilter({});
             setPage(1);
-            setHighlightedId(itemId);
-            setTimeout(() => setHighlightedId(null), HIGHLIGHT_MS);
           }}
         />
       </PageWrapper>
