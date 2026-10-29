@@ -82,7 +82,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@mezzanine-ui/core": "1.2.4",
     "@mezzanine-ui/icons": "1.0.2",
-    "@mezzanine-ui/react": "1.7.3",
+    "@mezzanine-ui/react": "1.7.4",
     "@mezzanine-ui/system": "1.0.2",
     "@nestjs/apollo": "^13.4.5",
     "@nestjs/common": "^11.0.0",
