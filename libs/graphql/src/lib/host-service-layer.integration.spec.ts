@@ -1094,6 +1094,108 @@ describe('host service layer (integration, no GraphQL)', () => {
 
       expect((await byStatus(material.id))[StockStatus.FREE]).toBe(8);
     });
+
+    /*
+     * A multi-line operation locks every batch it draws from up front, sorted.
+     * Locked line by line, two orders listing the same two batches in opposite
+     * order each took one and waited on the other, and PostgreSQL killed one
+     * with 40P01. Consumption is the path a host's requisitions take.
+     */
+    it('two consumption orders naming the same batches in opposite order both issue', async () => {
+      const material = await newMaterial();
+      const x = await seedStock(material.id, 10);
+      const y = await seedStock(material.id, 10);
+      const line = (
+        batchId: string,
+      ): {
+        materialId: string;
+        batchId: string;
+        locationId: string;
+        targetLocationId: string;
+        quantity: number;
+      } => ({
+        materialId: material.id,
+        batchId,
+        locationId: shelfId,
+        targetLocationId: benchId,
+        quantity: 1,
+      });
+
+      for (let round = 0; round < 5; round += 1) {
+        const forward = await consumptionService.createConsumptionOrder({
+          description: 'forward',
+          items: [line(x.batchId), line(y.batchId)],
+        });
+        const backward = await consumptionService.createConsumptionOrder({
+          description: 'backward',
+          items: [line(y.batchId), line(x.batchId)],
+        });
+
+        const results = await Promise.allSettled(
+          [forward.id, backward.id].map((orderId) =>
+            dataSource.transaction((manager) =>
+              consumptionService.issue({ orderId }, manager),
+            ),
+          ),
+        );
+
+        expect(
+          results.map((result) =>
+            result.status === 'fulfilled'
+              ? 'issued'
+              : (result.reason as Error).message,
+          ),
+        ).toEqual(['issued', 'issued']);
+      }
+    });
+
+    it('refuses to lock outside a transaction, or a slot it cannot key', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 1);
+
+      // In autocommit the lock would be released before the sum it guards.
+      await expect(
+        stockService.lockStockSlots(
+          [{ materialId: material.id, batchId }],
+          dataSource.manager,
+        ),
+      ).rejects.toThrow(/must run inside a transaction/);
+
+      // No batch, no key: silently skipping it left the check unlocked.
+      await expect(
+        dataSource.transaction((manager) =>
+          stockService.lockStockSlots(
+            [{ materialId: material.id, batchId: null }],
+            manager,
+          ),
+        ),
+      ).rejects.toThrow(/needs a materialId and a batchId/);
+    });
+
+    /*
+     * splitBatch serialises on the batch group, so of two transactions asking
+     * for the same state the second waits for the first to commit and finds
+     * the sibling it created, instead of both missing it and creating two.
+     */
+    it('two concurrent splits asking for the same state share one sibling', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+
+      const [first, second] = await Promise.all(
+        [0, 1].map(() =>
+          dataSource.transaction((manager) =>
+            batchService.splitBatch({ id: batchId, held: true, manager }),
+          ),
+        ),
+      );
+
+      expect(second.id).toBe(first.id);
+      expect(
+        await dataSource
+          .getRepository<BatchEntityClass>(entities.batch)
+          .countBy({ parentBatchId: batchId, held: true }),
+      ).toBe(1);
+    });
   });
 
   describe('#183: an unexecuted transfer reservation can be released', () => {
@@ -1256,6 +1358,35 @@ describe('host service layer (integration, no GraphQL)', () => {
   });
 
   describe('order-key counters', () => {
+    /*
+     * Probing and creating a sequence need a connection outside the caller's
+     * transaction. Borrowing one on every reservation meant a pool full of
+     * transactions that each wanted a number starved on the second connection;
+     * once a sequence is known to exist, a reservation uses the caller's alone.
+     */
+    it("borrows a second connection only on a counter's first use", async () => {
+      const sequences = app.get(WmsSequenceService);
+      const name = `HSL_KNOWN_${Date.now()}`;
+
+      await sequences.reserve(name);
+
+      const outside = jest.spyOn(dataSource, 'query');
+
+      try {
+        await dataSource.transaction((manager) =>
+          sequences.reserve(name, 1, manager),
+        );
+
+        // `manager.query` delegates here too, but hands over its own query
+        // runner; only a call without one borrows a connection from the pool.
+        expect(
+          outside.mock.calls.filter(([, , queryRunner]) => !queryRunner),
+        ).toEqual([]);
+      } finally {
+        outside.mockRestore();
+      }
+    });
+
     /*
      * The first use of a counter creates its sequence. Created inside the
      * caller's transaction, it stayed invisible to every other session until

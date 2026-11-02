@@ -97,7 +97,28 @@ class HostShelfEntity {
   location!: LocationEntity;
 }
 
-const HOST_TABLES: readonly string[] = ['locations', 'host_shelves'];
+/*
+ * A host table that happens to carry the name one of our change tables was
+ * declared with. Under the prefix ours is `wms_transfer_order_changes`; this
+ * one is not ours, and an insert into it must not read as a stock movement.
+ */
+@Entity('transfer_order_changes')
+class HostTransferOrderChangeEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id!: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  itemId!: string | null;
+
+  @Column({ type: 'numeric' })
+  quantityChanged!: string;
+}
+
+const HOST_TABLES: readonly string[] = [
+  'locations',
+  'host_shelves',
+  'transfer_order_changes',
+];
 
 const connectionOptions = (): PostgresConnectionOptions => ({
   type: 'postgres',
@@ -159,7 +180,11 @@ const buildApp = async (
             PREFIX,
           ),
       }),
-      TypeOrmModule.forFeature([LocationEntity, HostShelfEntity]),
+      TypeOrmModule.forFeature([
+        LocationEntity,
+        HostShelfEntity,
+        HostTransferOrderChangeEntity,
+      ]),
       WmsModuleCoreModule.forRootAsync({
         useFactory: async () => ({}),
         defaultLoaderSerialId: 'DEFAULT',
@@ -579,6 +604,23 @@ describe('table prefix (integration)', () => {
 
       expect(await onHand(benchId)).toBe(1);
       expect(stockEvents).toContain('stock.count-lost');
+    });
+  });
+
+  describe('5b. our tables are recognised by class, never by name', () => {
+    it('an insert into a host table named like one of ours emits no stock event', async () => {
+      stockEvents.length = 0;
+
+      await runner.run({}, () =>
+        dataSource.transaction((manager) =>
+          manager.getRepository(HostTransferOrderChangeEntity).save({
+            itemId: null,
+            quantityChanged: '5',
+          }),
+        ),
+      );
+
+      expect(stockEvents).toEqual([]);
     });
   });
 
