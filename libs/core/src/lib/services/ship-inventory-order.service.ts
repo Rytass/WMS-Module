@@ -29,6 +29,7 @@ import {
 import { OrderEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
   ShipInventoryOrderChangeEntityClass,
+  LoadersEntityClass,
   ShipInventoryOrderReferenceEntity,
   ShipInventoryOrderReferenceEntityClass,
   MaterialEntityClass,
@@ -42,7 +43,9 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
 import { StockService } from './stock.service';
+import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -90,7 +93,10 @@ export class ShipInventoryOrderService<
                 'status',
               )
               .addSelect('o.id', 'orderid')
-              .from('ship_inventory_orders', 'o')
+              .from(
+                tablePathOf(this.dataSource, this.shipInventoryOrderEntity),
+                'o',
+              )
               .leftJoin(
                 (sumQuery) =>
                   sumQuery
@@ -99,7 +105,13 @@ export class ShipInventoryOrderService<
                       `SUM(CAST(i."targetShippedQuantity" AS NUMERIC))`,
                       'targetsum',
                     )
-                    .from('ship_inventory_order_items', 'i')
+                    .from(
+                      tablePathOf(
+                        this.dataSource,
+                        this.shipInventoryOrderItemEntity,
+                      ),
+                      'i',
+                    )
                     .groupBy('i."orderId"'),
                 'target_sum',
                 'target_sum.orderid = o.id',
@@ -112,9 +124,18 @@ export class ShipInventoryOrderService<
                       `SUM(CASE WHEN CAST(c."quantityChanged" AS NUMERIC) < 0 THEN ABS(CAST(c."quantityChanged" AS NUMERIC)) ELSE 0 END)`,
                       'shippedsum',
                     )
-                    .from('ship_inventory_order_changes', 'c')
+                    .from(
+                      tablePathOf(
+                        this.dataSource,
+                        ShipInventoryOrderChangeEntityClass,
+                      ),
+                      'c',
+                    )
                     .innerJoin(
-                      'ship_inventory_order_items',
+                      tablePathOf(
+                        this.dataSource,
+                        this.shipInventoryOrderItemEntity,
+                      ),
                       'i',
                       'c."itemId" = i.id',
                     )
@@ -191,12 +212,18 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderChangeEntityClass>(
         ShipInventoryOrderChangeEntityClass,
       );
-    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
-    const stockRepository =
-      manager.getRepository<StockEntityClass>(this.entities.stock);
+    const orderRepository = manager.getRepository<OrderEntity>(
+      this.entities.order,
+    );
+    const stockRepository = manager.getRepository<StockEntityClass>(
+      this.entities.stock,
+    );
 
-    await Promise.all(
-      items.map(async (data) => {
+    // Every (material, batch) this call deducts from, locked up front in a
+    // fixed order so overlapping operations cannot deadlock each other.
+    await this.stockService.lockStockSlots(items, manager);
+    for (const data of items) {
+      await (async () => {
         // Ensure required fields are present
         if (!data.batchId || !data.materialId) return;
 
@@ -215,6 +242,7 @@ export class ShipInventoryOrderService<
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
         await shipInventoryOrderChangeRepository.save(
@@ -259,51 +287,55 @@ export class ShipInventoryOrderService<
             } as DeepPartial<StockEntityClass>,
           ]),
         );
-      }),
-    );
+      })();
+    }
   }
 
   async createShipInventoryOrder({
-    manager = this.dataSource.manager,
+    manager: outerManager,
     ...options
   }: CreateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
-    const shipInventoryOrderRepository =
-      manager.getRepository<ShipInventoryOrderEntityClass>(
-        this.shipInventoryOrderEntity,
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const orderRepository = manager.getRepository<OrderEntity>(
+        this.entities.order,
       );
-    const shipInventoryOrderReferenceRepository =
-      manager.getRepository<ShipInventoryOrderReferenceEntityClass>(
-        this.shipInventoryOrderReferenceEntity,
+      const shipInventoryOrderRepository =
+        manager.getRepository<ShipInventoryOrderEntityClass>(
+          this.shipInventoryOrderEntity,
+        );
+      const shipInventoryOrderReferenceRepository =
+        manager.getRepository<ShipInventoryOrderReferenceEntityClass>(
+          this.shipInventoryOrderReferenceEntity,
+        );
+
+      // create base order
+      const { id } = await orderRepository.save(orderRepository.create());
+
+      // create ship inventory order
+      const order = await shipInventoryOrderRepository.save(
+        shipInventoryOrderRepository.create({ id, ...options }),
       );
 
-    // create base order
-    const { id } = await orderRepository.save(orderRepository.create());
-
-    // create ship inventory order
-    const order = await shipInventoryOrderRepository.save(
-      shipInventoryOrderRepository.create({ id, ...options }),
-    );
-
-    // create ship inventory order references
-    if (options.references && options.references.length > 0) {
-      const processedReferences =
-        await this.processShipInventoryOrderReferences(
-          options.references,
-          manager,
-        );
-      if (processedReferences.length > 0) {
-        const references = shipInventoryOrderReferenceRepository.create(
-          processedReferences.map((reference) => ({
-            ...reference,
-            orderId: order.id,
-          })),
-        );
-        await shipInventoryOrderReferenceRepository.save(references);
+      // create ship inventory order references
+      if (options.references && options.references.length > 0) {
+        const processedReferences =
+          await this.processShipInventoryOrderReferences(
+            options.references,
+            manager,
+          );
+        if (processedReferences.length > 0) {
+          const references = shipInventoryOrderReferenceRepository.create(
+            processedReferences.map((reference) => ({
+              ...reference,
+              orderId: order.id,
+            })),
+          );
+          await shipInventoryOrderReferenceRepository.save(references);
+        }
       }
-    }
 
-    return order as T;
+      return order as T;
+    });
   }
 
   /**
@@ -312,50 +344,56 @@ export class ShipInventoryOrderService<
    */
   async updateShipInventoryOrder({
     id,
-    manager = this.dataSource.manager,
+    manager: outerManager,
     ...options
   }: UpdateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
-    const shipInventoryOrderRepository =
-      manager.getRepository<ShipInventoryOrderEntityClass>(
-        this.shipInventoryOrderEntity,
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const shipInventoryOrderRepository =
+        manager.getRepository<ShipInventoryOrderEntityClass>(
+          this.shipInventoryOrderEntity,
+        );
+      const shipInventoryOrderReferenceRepository =
+        manager.getRepository<ShipInventoryOrderReferenceEntityClass>(
+          this.shipInventoryOrderReferenceEntity,
+        );
+
+      const shipInventoryOrderItemRepository =
+        manager.getRepository<ShipInventoryOrderItemEntityClass>(
+          this.shipInventoryOrderItemEntity,
+        );
+      const materialRepository = manager.getRepository<MaterialEntityClass>(
+        this.materialService.materialEntity,
       );
-    const shipInventoryOrderReferenceRepository =
-      manager.getRepository<ShipInventoryOrderReferenceEntityClass>(
-        this.shipInventoryOrderReferenceEntity,
-      );
 
-    const shipInventoryOrderItemRepository =
-      manager.getRepository<ShipInventoryOrderItemEntityClass>(
-        this.shipInventoryOrderItemEntity,
-      );
-    const materialRepository = manager.getRepository<MaterialEntityClass>(
-      this.materialService.materialEntity,
-    );
-
-    const order = await shipInventoryOrderRepository.findOneByOrFail({
-      id,
-      removedAt: IsNull(),
-    });
-    const { references, items, ...orderOptions } = options;
-    const updated = await shipInventoryOrderRepository.save(
-      shipInventoryOrderRepository.create({
-        ...order,
-        ...orderOptions,
-      }),
-    );
-
-    if (references?.length) {
-      const newItems: Partial<ShipInventoryOrderReferenceEntityClass>[] = [];
-      const existingItems: Partial<ShipInventoryOrderReferenceEntityClass>[] =
-        [];
-
-      const items = await shipInventoryOrderReferenceRepository.find({
-        where: { orderId: id, removedAt: IsNull() },
+      const order = await shipInventoryOrderRepository.findOneByOrFail({
+        id,
+        removedAt: IsNull(),
       });
-      const itemSet = new Set(items.map((i) => i.id));
+      const { references, items, ...orderOptions } = options;
+      const updated = await shipInventoryOrderRepository.save(
+        shipInventoryOrderRepository.create({
+          ...order,
+          ...orderOptions,
+        }),
+      );
 
-      const results = await Promise.all(
-        (references || []).map(async (item) => {
+      if (references?.length) {
+        const newItems: Partial<ShipInventoryOrderReferenceEntityClass>[] = [];
+        const existingItems: Partial<ShipInventoryOrderReferenceEntityClass>[] =
+          [];
+
+        const items = await shipInventoryOrderReferenceRepository.find({
+          where: { orderId: id, removedAt: IsNull() },
+        });
+        const itemSet = new Set(items.map((i) => i.id));
+
+        // Sequential: `getBatch` is find-or-create, and two references naming
+        // one new batch key would both miss and both insert.
+        const results: {
+          item: (typeof references)[number];
+          batch: BatchEntity | null;
+        }[] = [];
+        for (const item of references || []) {
           let batch: BatchEntity | null = null;
           if (item.batchKey) {
             const material = await materialRepository.findOneByOrFail({
@@ -367,77 +405,80 @@ export class ShipInventoryOrderService<
               key: item.batchKey,
             });
           }
-          return { item, batch };
-        }),
-      );
-
-      // Now process results after all async operations are complete
-      results.forEach((result) => {
-        if (!result) return;
-        const { item, batch } = result;
-        if (!item.id) newItems.push({ ...item, batchId: batch?.id || null });
-        else if (itemSet.has(item.id))
-          existingItems.push({ ...item, batchId: batch?.id || null });
-      });
-
-      if (newItems.length) {
-        const processedNewItems =
-          await this.processShipInventoryOrderReferences(newItems, manager);
-        if (processedNewItems.length > 0) {
-          await shipInventoryOrderReferenceRepository.save(
-            shipInventoryOrderReferenceRepository.create(
-              processedNewItems.map((item) => ({ ...item, orderId: id })),
-            ),
-          );
+          results.push({ item, batch });
         }
-      }
-      if (existingItems.length)
-        await shipInventoryOrderReferenceRepository.save(
-          existingItems.map((item) =>
-            shipInventoryOrderReferenceRepository.create({
-              ...item,
-              id: item.id,
-            }),
-          ),
-        );
-    }
 
-    if (items?.length) {
-      const newItems: Partial<CreateShipInventoryOrderItemInput>[] = [];
-      const existingItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
-
-      await shipInventoryOrderItemRepository
-        .find({ where: { orderId: id, removedAt: IsNull() } })
-        .then((dbItems) => {
-          const itemSet = new Set(dbItems.map((i) => i.id));
-          items?.forEach((item) => {
-            if (!item.id) newItems.push({ ...item, orderId: id });
-            else if (itemSet.has(item.id)) existingItems.push(item);
-          });
+        // Now process results after all async operations are complete
+        results.forEach((result) => {
+          if (!result) return;
+          const { item, batch } = result;
+          if (!item.id) newItems.push({ ...item, batchId: batch?.id || null });
+          else if (itemSet.has(item.id))
+            existingItems.push({ ...item, batchId: batch?.id || null });
         });
 
-      if (newItems.length)
-        await this.processShipInventoryOrderItems(newItems, manager);
-      if (existingItems.length)
-        await shipInventoryOrderItemRepository.save(
-          existingItems.map((item) =>
-            shipInventoryOrderItemRepository.create({
-              ...item,
-              id: item.id,
-            }),
-          ),
-        );
-    }
+        if (newItems.length) {
+          const processedNewItems =
+            await this.processShipInventoryOrderReferences(newItems, manager);
+          if (processedNewItems.length > 0) {
+            await shipInventoryOrderReferenceRepository.save(
+              shipInventoryOrderReferenceRepository.create(
+                processedNewItems.map((item) => ({ ...item, orderId: id })),
+              ),
+            );
+          }
+        }
+        if (existingItems.length)
+          await shipInventoryOrderReferenceRepository.save(
+            existingItems.map((item) =>
+              shipInventoryOrderReferenceRepository.create({
+                ...item,
+                id: item.id,
+              }),
+            ),
+          );
+      }
 
-    return updated as T;
+      if (items?.length) {
+        const newItems: Partial<CreateShipInventoryOrderItemInput>[] = [];
+        const existingItems: Partial<ShipInventoryOrderItemEntityClass>[] = [];
+
+        await shipInventoryOrderItemRepository
+          .find({ where: { orderId: id, removedAt: IsNull() } })
+          .then((dbItems) => {
+            const itemSet = new Set(dbItems.map((i) => i.id));
+            items?.forEach((item) => {
+              if (!item.id) newItems.push({ ...item, orderId: id });
+              else if (itemSet.has(item.id)) existingItems.push(item);
+            });
+          });
+
+        if (newItems.length)
+          await this.processShipInventoryOrderItems(newItems, manager);
+        if (existingItems.length)
+          await shipInventoryOrderItemRepository.save(
+            existingItems.map((item) =>
+              shipInventoryOrderItemRepository.create({
+                ...item,
+                id: item.id,
+              }),
+            ),
+          );
+      }
+
+      return updated as T;
+    });
   }
 
   /**
    * Remove a ship inventory order
    * Automatically cancels all remaining prepared (but not shipped) items to release stock
    */
-  async removeShipInventoryOrder(id: string): Promise<boolean> {
-    return this.dataSource.transaction(async (manager) => {
+  async removeShipInventoryOrder(
+    id: string,
+    outerManager?: EntityManager,
+  ): Promise<boolean> {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const shipInventoryOrderRepository =
         manager.getRepository<ShipInventoryOrderEntityClass>(
           this.shipInventoryOrderEntity,
@@ -465,6 +506,7 @@ export class ShipInventoryOrderService<
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
         const preparedQuantity = item.changes.reduce((sum, change) => {
@@ -517,24 +559,31 @@ export class ShipInventoryOrderService<
       manager.getRepository<ShipInventoryOrderItemEntityClass>(
         this.shipInventoryOrderItemEntity,
       );
-    const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
-    const stockRepository =
-      manager.getRepository<StockEntityClass>(this.entities.stock);
+    const orderRepository = manager.getRepository<OrderEntity>(
+      this.entities.order,
+    );
+    const stockRepository = manager.getRepository<StockEntityClass>(
+      this.entities.stock,
+    );
 
     const items = await itemRepository.find({
       where: { id: In(options.map((o) => o.itemId)) },
       relations: { changes: true },
     });
     const itemMap = new Map(items.map((item) => [item.id, item]));
+    // Source (material, batch) locks first, in a fixed order, before any
+    // batch-group lock a split takes -- the same order every path uses.
+    await this.stockService.lockStockSlots(items, manager);
 
-    await Promise.all(
-      options.map(async (option) => {
+    for (const option of options) {
+      await (async () => {
         const item = itemMap.get(option.itemId);
         if (!item) return;
 
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
         const preparedQuantity = item.changes.reduce((sum, change) => {
@@ -616,8 +665,8 @@ export class ShipInventoryOrderService<
             ]),
           ),
         ]);
-      }),
-    );
+      })();
+    }
   }
 
   async findMany(
@@ -657,8 +706,8 @@ export class ShipInventoryOrderService<
     if (options.materialKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM ship_inventory_order_items si_items
-          INNER JOIN materials si_mat ON si_mat.id = si_items."materialId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.shipInventoryOrderItemEntity)} si_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.material)} si_mat ON si_mat.id = si_items."materialId"
           WHERE si_items."orderId" = orders.id
           AND si_mat.key ILIKE :materialKey
         )`,
@@ -668,8 +717,8 @@ export class ShipInventoryOrderService<
     if (options.batchKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM ship_inventory_order_items si_items
-          INNER JOIN batches si_batch ON si_batch.id = si_items."batchId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.shipInventoryOrderItemEntity)} si_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.batch)} si_batch ON si_batch.id = si_items."batchId"
           WHERE si_items."orderId" = orders.id
           AND si_batch.key ILIKE :batchKey
         )`,
@@ -679,8 +728,8 @@ export class ShipInventoryOrderService<
     if (options.locationKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM ship_inventory_order_items si_items
-          INNER JOIN locations si_loc ON si_loc.id = si_items."locationId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.shipInventoryOrderItemEntity)} si_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.location)} si_loc ON si_loc.id = si_items."locationId"
           WHERE si_items."orderId" = orders.id
           AND si_loc.key ILIKE :locationKey
         )`,
@@ -690,8 +739,8 @@ export class ShipInventoryOrderService<
     if (options.loaderKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM ship_inventory_order_items si_items
-          INNER JOIN loaders si_ldr ON si_ldr.id = si_items."loaderId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.shipInventoryOrderItemEntity)} si_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, LoadersEntityClass)} si_ldr ON si_ldr.id = si_items."loaderId"
           WHERE si_items."orderId" = orders.id
           AND si_ldr."serialId" ILIKE :loaderKey
         )`,
@@ -723,39 +772,41 @@ export class ShipInventoryOrderService<
     const items = await queryBuilder.getRawMany();
 
     return [items, total];
-
   }
 
   async addShipInventoryOrderItems(
     options: CreateShipInventoryOrderItemsInput,
-    manager = this.dataSource.manager,
+    outerManager?: EntityManager,
   ): Promise<T> {
-    const shipInventoryOrderRepository =
-      manager.getRepository<ShipInventoryOrderEntityClass>(
-        this.shipInventoryOrderEntity,
-      );
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const shipInventoryOrderRepository =
+        manager.getRepository<ShipInventoryOrderEntityClass>(
+          this.shipInventoryOrderEntity,
+        );
 
-    const order = await shipInventoryOrderRepository.findOneByOrFail({
-      id: options.orderId,
-      removedAt: IsNull(),
+      const order = await shipInventoryOrderRepository.findOneByOrFail({
+        id: options.orderId,
+        removedAt: IsNull(),
+      });
+
+      if (options.items.length) {
+        const items = options.items.map((item) => ({
+          ...item,
+          orderId: options.orderId,
+        }));
+        await this.processShipInventoryOrderItems(items, manager);
+      }
+
+      return order as T;
     });
-
-    if (options.items.length) {
-      const items = options.items.map((item) => ({
-        ...item,
-        orderId: options.orderId,
-      }));
-      await this.processShipInventoryOrderItems(items, manager);
-    }
-
-    return order as T;
   }
 
   ship(
     options: ShipInventoryOrderInput[] | ShipInventoryOrderInput,
+    outerManager?: EntityManager,
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
-    return this.dataSource.transaction(async (manager) => {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const changeRepository =
         manager.getRepository<ShipInventoryOrderChangeEntityClass>(
           ShipInventoryOrderChangeEntityClass,
@@ -765,17 +816,23 @@ export class ShipInventoryOrderService<
           this.shipInventoryOrderItemEntity,
         );
 
-      const orderRepository = manager.getRepository<OrderEntity>(this.entities.order);
-      const stockRepository =
-        manager.getRepository<StockEntityClass>(this.entities.stock);
+      const orderRepository = manager.getRepository<OrderEntity>(
+        this.entities.order,
+      );
+      const stockRepository = manager.getRepository<StockEntityClass>(
+        this.entities.stock,
+      );
 
       const items = await itemRepository.find({
         where: { id: In(options.map((option) => option.itemId)) },
         relations: { changes: true },
       });
       const itemMap = new Map(items.map((item) => [item.id, item]));
-      await Promise.all(
-        options.map(async (option) => {
+      // Source (material, batch) locks first, in a fixed order, before any
+      // batch-group lock a split takes -- the same order every path uses.
+      await this.stockService.lockStockSlots(items, manager);
+      for (const option of options) {
+        await (async () => {
           const item = itemMap.get(option.itemId);
           if (!item) return;
 
@@ -783,6 +840,7 @@ export class ShipInventoryOrderService<
             await this.materialService.getConversionFactor(
               item.materialId,
               item.unitId || undefined,
+              manager,
             );
 
           const totalShipped = item.changes.reduce((sum, change) => {
@@ -842,8 +900,8 @@ export class ShipInventoryOrderService<
               ]),
             ),
           ]);
-        }),
-      );
+        })();
+      }
 
       return true;
     });
@@ -857,10 +915,11 @@ export class ShipInventoryOrderService<
    */
   cancelShip(
     options: CancelShipInventoryOrderInput[] | CancelShipInventoryOrderInput,
+    outerManager?: EntityManager,
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
 
-    return this.dataSource.transaction(async (manager) => {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       await this.cancelShipInternal(options, manager);
       return true;
     });

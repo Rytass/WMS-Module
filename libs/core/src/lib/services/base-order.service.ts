@@ -62,6 +62,7 @@ export abstract class BaseOrderService {
     const conversionFactor = await this.materialService.getConversionFactor(
       materialId,
       unitId,
+      repos.stock.manager,
     );
 
     // Create positive stock entry linked to this order
@@ -99,6 +100,7 @@ export abstract class BaseOrderService {
     const conversionFactor = await this.materialService.getConversionFactor(
       materialId,
       unitId,
+      repos.stock.manager,
     );
 
     // Create negative stock entry linked to source order

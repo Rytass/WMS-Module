@@ -28,6 +28,8 @@ import {
 import { WMS_CORE_MODULE_OPTIONS } from '../typings/core-module-options';
 import type { WmsModuleCoreModuleOptions } from '../typings/core-module-options';
 import { WmsEntities } from '../models/wms-entities';
+import { tablePathOf } from '../utils/table-path';
+import { getWmsTablePrefix } from '../table-prefix/logical-table-name';
 
 @Injectable()
 export class StockService<
@@ -106,8 +108,12 @@ export class StockService<
               .addSelect('b."saleId"', 'saleId')
               .addSelect('b."vendorId"', 'vendorId')
               .addSelect('b."customerId"', 'customerId')
-              .from('stocks', 's')
-              .innerJoin('batches', 'b', 's."batchId" = b.id'),
+              .from(tablePathOf(this.dataSource, this.stockEntity), 's')
+              .innerJoin(
+                tablePathOf(this.dataSource, this.entities.batch),
+                'b',
+                's."batchId" = b.id',
+              ),
           'stock_status',
           `stock_status."stockId" = ${alias}.id`,
         )
@@ -123,53 +129,113 @@ export class StockService<
         .addSelect(`${alias}.*`);
   }
 
-  async onModuleInit() {
-    const loaderTypeRepo = this.dataSource.getRepository(LoaderTypeEntityClass);
-    const locationRepo = this.dataSource.getRepository(this.entities.location);
-    const loaderRepo = this.dataSource.getRepository(LoadersEntityClass);
+  /**
+   * Resolve -- and unless `seedDefaults: false`, create -- the default loader
+   * type, location and loader every movement without an explicit one lands on.
+   *
+   * Idempotent across instances: the find-or-create runs in one transaction
+   * holding a transaction-scoped advisory lock, so pods starting together queue
+   * on it and the second finds what the first created instead of inserting a
+   * duplicate default (the keys carry no unique constraint to stop it).
+   */
+  async onModuleInit(): Promise<void> {
+    this.assertTablePrefix();
 
-    // Ensure default loader type exists
-    let loaderType = await loaderTypeRepo.findOneBy({
-      key: this.coreOptions.defaultLoaderTypeKey,
-    });
-    if (!loaderType) {
-      loaderType = await loaderTypeRepo.save(
-        loaderTypeRepo.create({
-          key: this.coreOptions.defaultLoaderTypeKey,
-          description: this.coreOptions.defaultLoaderTypeKey,
-        }),
+    const { defaultLoaderTypeKey, defaultLocationKey, defaultLoaderSerialId } =
+      this.coreOptions;
+    const seed = this.coreOptions.seedDefaults ?? true;
+
+    const { locationId, loaderId } = await this.dataSource.transaction(
+      async (manager) => {
+        const loaderTypeRepo = manager.getRepository(LoaderTypeEntityClass);
+        const locationRepo = manager.getRepository(this.entities.location);
+        const loaderRepo = manager.getRepository(LoadersEntityClass);
+
+        if (seed) {
+          await manager.query(
+            `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`,
+            ['wms:seed-defaults'],
+          );
+        }
+
+        const findOrSeed = async <E extends object>(
+          what: string,
+          find: () => Promise<E | null>,
+          create: () => Promise<E>,
+        ): Promise<E> => {
+          const existing = await find();
+          if (existing) return existing;
+          if (!seed) {
+            throw new Error(
+              `WmsModuleCoreModule: seedDefaults is false but the default ${what} does not exist; seed it before the module starts.`,
+            );
+          }
+
+          return create();
+        };
+
+        const loaderType = await findOrSeed(
+          `loader type "${defaultLoaderTypeKey}"`,
+          () => loaderTypeRepo.findOneBy({ key: defaultLoaderTypeKey }),
+          () =>
+            loaderTypeRepo.save(
+              loaderTypeRepo.create({
+                key: defaultLoaderTypeKey,
+                description: defaultLoaderTypeKey,
+              }),
+            ),
+        );
+
+        const location = await findOrSeed(
+          `location "${defaultLocationKey}"`,
+          () => locationRepo.findOneBy({ key: defaultLocationKey }),
+          () =>
+            locationRepo.save(
+              locationRepo.create({
+                key: defaultLocationKey,
+                description: defaultLocationKey,
+              }),
+            ),
+        );
+
+        const loader = await findOrSeed(
+          `loader "${defaultLoaderSerialId}"`,
+          () => loaderRepo.findOneBy({ serialId: defaultLoaderSerialId }),
+          () =>
+            loaderRepo.save(
+              loaderRepo.create({
+                serialId: defaultLoaderSerialId,
+                typeId: loaderType.id,
+                locationId: location.id,
+              }),
+            ),
+        );
+
+        return { locationId: location.id, loaderId: loader.id };
+      },
+    );
+
+    this.defaultLocationId = locationId;
+    this.defaultLoaderId = loaderId;
+  }
+
+  /**
+   * `tablePrefix` is a check, not a setting: the prefix has to be applied
+   * before the DataSource initialised, which is long before this module's
+   * options resolve. Read back the table the stock entity really landed in.
+   */
+  private assertTablePrefix(): void {
+    const expected = this.coreOptions.tablePrefix;
+
+    if (expected === undefined) return;
+
+    const actual = this.dataSource.getMetadata(this.stockEntity).tableName;
+
+    if (actual !== `${expected}stocks` || getWmsTablePrefix() !== expected) {
+      throw new Error(
+        `WmsModuleCoreModule: tablePrefix is "${expected}" but the stock table is "${actual}" (prefix in effect: "${getWmsTablePrefix()}"). Wrap the runtime DataSource options in withWmsTablePrefix(options, "${expected}") -- and the migration DataSource too.`,
       );
     }
-
-    // Ensure default location exists
-    let location = await locationRepo.findOneBy({
-      key: this.coreOptions.defaultLocationKey,
-    });
-    if (!location) {
-      location = await locationRepo.save(
-        locationRepo.create({
-          key: this.coreOptions.defaultLocationKey,
-          description: this.coreOptions.defaultLocationKey,
-        }),
-      );
-    }
-    this.defaultLocationId = location.id;
-
-    // Ensure default loader exists
-    let loader = await loaderRepo.findOneBy({
-      serialId: this.coreOptions.defaultLoaderSerialId,
-    });
-    if (!loader) {
-      loader = await loaderRepo.save(
-        loaderRepo.create({
-          serialId: this.coreOptions.defaultLoaderSerialId,
-          typeId: loaderType.id,
-          locationId: location.id,
-        }),
-      );
-    }
-
-    this.defaultLoaderId = loader.id;
   }
 
   resolveLoaderId(loaderId: string | null | undefined): string {
@@ -371,7 +437,11 @@ export class StockService<
       queryBuilder.take(options.limit);
 
     if (aggregated) {
-      queryBuilder.innerJoin('batches', 'b', 'stock."batchId" = b.id');
+      queryBuilder.innerJoin(
+        tablePathOf(this.dataSource, this.entities.batch),
+        'b',
+        'stock."batchId" = b.id',
+      );
       queryBuilder.select('stock."materialId"', 'materialId');
       queryBuilder.addSelect('stock."batchId"', 'batchId');
       queryBuilder.addSelect('stock."locationId"', 'locationId');
@@ -490,11 +560,61 @@ export class StockService<
     return queryBuilder.getRawOne<AggregatedStock>();
   }
 
+  /**
+   * Take the transaction-scoped stock locks for `slots`, deduplicated and in a
+   * fixed order (materialId, then batchId, compared as strings), so two
+   * operations locking overlapping sets acquire them in the same order.
+   *
+   * The lock is per **(material, batch)**, not per full slot. A deduction
+   * check filters on material and batch always, but on location and loader
+   * only when the caller names them, so a finer key would let a check that
+   * spans locations and one that names a location run side by side over the
+   * same rows. Coarser is the only key that is right for every caller.
+   *
+   * Only meaningful inside a transaction: in autocommit the lock is released
+   * by the statement that took it. Every service method that deducts runs in
+   * one; a host calling `validateStockAvailability` directly must too.
+   */
+  async lockStockSlots(
+    slots: readonly {
+      readonly materialId?: string | null;
+      readonly batchId?: string | null;
+    }[],
+    manager: EntityManager = this.dataSource.manager,
+  ): Promise<void> {
+    const keys = [
+      ...new Set(
+        slots
+          .filter((slot) => slot.materialId && slot.batchId)
+          .map((slot) => `wms:stock:${slot.materialId}:${slot.batchId}`),
+      ),
+    ].sort();
+
+    for (const key of keys) {
+      await manager.query(
+        `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`,
+        [key],
+      );
+    }
+  }
+
+  /**
+   * Refuse a deduction the shelf cannot cover.
+   *
+   * Locks the (material, batch) first and only then sums, so of two
+   * transactions deducting the same stock the second waits for the first to
+   * commit and then sees its deduction (the unlocked sum let both pass
+   * and oversold). That relies on READ COMMITTED, PostgreSQL's default: under
+   * REPEATABLE READ or SERIALIZABLE the second transaction's snapshot predates
+   * the first commit and the sum is stale even after the wait.
+   */
   async validateStockAvailability(
     params: ValidateStockDeductionParams,
     manager: EntityManager = this.dataSource.manager,
   ): Promise<void> {
     const { materialId, batchId, locationId, loaderId, quantity } = params;
+
+    await this.lockStockSlots([{ materialId, batchId }], manager);
 
     const aggregateQuery = this.pipeSelectOptionsToQueryBuilder(
       { materialId, batchId, locationId, loaderId } as FindStockInput<T>,
@@ -523,11 +643,15 @@ export class StockService<
 
   async findAggregatedStocks(
     options: FindStockInput<T>,
+    manager: EntityManager = this.dataSource.manager,
   ): Promise<[AggregatedStock[], number]> {
     // Create the aggregated subquery without pagination
     const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
-      this.selectQueryBuilder('stock'),
+      this.selectQueryBuilder(
+        'stock',
+        manager.getRepository<T>(this.stockEntity).createQueryBuilder('stock'),
+      ),
       // Always aggregated. The outer projection below is hard-wired to the
       // aggregated shape (it selects agg."saleSerialId" and friends), so letting
       // the caller switch the inner subquery off asked the outer query for a
@@ -538,7 +662,7 @@ export class StockService<
     );
 
     // Wrap the aggregated subquery and apply pagination on top
-    const paginatedQueryBuilder = this.dataSource
+    const paginatedQueryBuilder = manager
       .createQueryBuilder()
       .addSelect('agg.quantity', 'quantity')
       .from(`(${aggregateSubquery.getQuery()})`, 'agg')
@@ -576,7 +700,10 @@ export class StockService<
     // Get total count from the aggregated subquery
     const countBuilder = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
-      this.selectQueryBuilder('stock'),
+      this.selectQueryBuilder(
+        'stock',
+        manager.getRepository<T>(this.stockEntity).createQueryBuilder('stock'),
+      ),
       // Always aggregated. The outer projection below is hard-wired to the
       // aggregated shape (it selects agg."saleSerialId" and friends), so letting
       // the caller switch the inner subquery off asked the outer query for a
@@ -586,7 +713,7 @@ export class StockService<
       true,
     );
 
-    const countResult = await this.dataSource
+    const countResult = await manager
       .createQueryBuilder()
       .select('COUNT(*)', 'count')
       .from(`(${countBuilder.getQuery()})`, 'grouped')
@@ -602,6 +729,9 @@ export class StockService<
   async findChangeLogs(
     options: FindStockInput<T>,
   ): Promise<[ChangeLog[], number]> {
+    // Our own change tables, named as they ended up under `withWmsTablePrefix`.
+    const prefix = getWmsTablePrefix();
+
     // Build base query with all change entity joins
     const changesQueryBuilder = this.pipeSelectOptionsToQueryBuilder(
       { ...options, offset: undefined, limit: undefined },
@@ -609,57 +739,57 @@ export class StockService<
       false,
     )
       .leftJoin(
-        'receive_inventory_order_changes',
+        `${prefix}receive_inventory_order_changes`,
         'receive_change',
         'stock."orderId" = receive_change.id',
       )
       .leftJoin(
-        'ship_inventory_order_changes',
+        `${prefix}ship_inventory_order_changes`,
         'ship_change',
         'stock."orderId" = ship_change.id',
       )
       .leftJoin(
-        'transfer_order_changes',
+        `${prefix}transfer_order_changes`,
         'transfer_change',
         'stock."orderId" = transfer_change.id',
       )
       .leftJoin(
-        'transfer_vendor_order_changes',
+        `${prefix}transfer_vendor_order_changes`,
         'vendor_change',
         'stock."orderId" = vendor_change.id',
       )
       .leftJoin(
-        'transfer_customer_order_changes',
+        `${prefix}transfer_customer_order_changes`,
         'customer_change',
         'stock."orderId" = customer_change.id',
       )
       .leftJoin(
-        'hold_inventory_order_changes',
+        `${prefix}hold_inventory_order_changes`,
         'hold_change',
         'stock."orderId" = hold_change.id',
       )
       .leftJoin(
-        'split_batch_order_changes',
+        `${prefix}split_batch_order_changes`,
         'split_change',
         'stock."orderId" = split_change.id',
       )
       .leftJoin(
-        'merge_batch_order_changes',
+        `${prefix}merge_batch_order_changes`,
         'merge_change',
         'stock."orderId" = merge_change.id',
       )
       .leftJoin(
-        'allocate_inventory_order_changes',
+        `${prefix}allocate_inventory_order_changes`,
         'allocate_change',
         'stock."orderId" = allocate_change.id',
       )
       .leftJoin(
-        'reclassify_inventory_order_changes',
+        `${prefix}reclassify_inventory_order_changes`,
         'reclassify_change',
         'stock."orderId" = reclassify_change.id',
       )
       .leftJoin(
-        'scrape_order_changes',
+        `${prefix}scrape_order_changes`,
         'scrape_change',
         'stock."orderId" = scrape_change.id',
       )

@@ -29,6 +29,7 @@ import {
 import { WmsEntities } from '../models/wms-entities';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
+import { runInTransaction } from '../utils/run-in-transaction';
 import { StockService } from './stock.service';
 
 /** The quantities a single change row moves, in base units. */
@@ -123,12 +124,13 @@ export class ConsumptionOrderService<
 
   async createConsumptionOrder(
     options: CreateConsumptionOrderInput,
+    outerManager?: EntityManager,
   ): Promise<T> {
     if (!options.items.length) {
       throw new Error('A consumption order needs at least one item');
     }
 
-    return this.dataSource.transaction(async (manager) => {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
 
@@ -157,8 +159,9 @@ export class ConsumptionOrderService<
    */
   async updateConsumptionOrder(
     options: UpdateConsumptionOrderInput,
+    outerManager?: EntityManager,
   ): Promise<T> {
-    return this.dataSource.transaction(async (manager) => {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
 
       const order = await repos.consumptionOrder.findOneOrFail({
@@ -211,8 +214,11 @@ export class ConsumptionOrderService<
     });
   }
 
-  async removeConsumptionOrder(id: string): Promise<boolean> {
-    return this.dataSource.transaction(async (manager) => {
+  async removeConsumptionOrder(
+    id: string,
+    outerManager?: EntityManager,
+  ): Promise<boolean> {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
       const items = await repos.consumptionOrderItem.find({
         where: { orderId: id, removedAt: IsNull() },
@@ -275,6 +281,7 @@ export class ConsumptionOrderService<
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
         const own = changes.filter((change) => change.itemId === item.id);
@@ -308,25 +315,35 @@ export class ConsumptionOrderService<
    * Hand material to the process: it leaves the source location and appears at
    * the consuming one. Nothing about the batch changes.
    */
-  issue(options: ConsumptionOrderActionInput): Promise<boolean> {
-    return this.act(options, ConsumptionChangeKind.ISSUE);
+  issue(
+    options: ConsumptionOrderActionInput,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    return this.act(options, ConsumptionChangeKind.ISSUE, manager);
   }
 
   /** Take back material the process did not use. */
-  return(options: ConsumptionOrderActionInput): Promise<boolean> {
-    return this.act(options, ConsumptionChangeKind.RETURN);
+  return(
+    options: ConsumptionOrderActionInput,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    return this.act(options, ConsumptionChangeKind.RETURN, manager);
   }
 
   /** Close out material the process used up: it leaves inventory. */
-  settle(options: ConsumptionOrderActionInput): Promise<boolean> {
-    return this.act(options, ConsumptionChangeKind.SETTLE);
+  settle(
+    options: ConsumptionOrderActionInput,
+    manager?: EntityManager,
+  ): Promise<boolean> {
+    return this.act(options, ConsumptionChangeKind.SETTLE, manager);
   }
 
   private async act(
     options: ConsumptionOrderActionInput,
     kind: ConsumptionChangeKind,
+    outerManager: EntityManager | undefined,
   ): Promise<boolean> {
-    return this.dataSource.transaction(async (manager) => {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
 
       /*
@@ -401,6 +418,7 @@ export class ConsumptionOrderService<
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
         const state = progressById.get(item.id);
