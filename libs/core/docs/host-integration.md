@@ -127,8 +127,14 @@ same order.
   or SERIALIZABLE the waiting transaction's snapshot predates the first commit
   and still sees the old total.
 - `StockService.lockStockSlots(slots, manager)` is public, for a host's own order
-  family. Inside a transaction only — in autocommit the lock is released by the
-  statement that took it.
+  family. Call it once, before the item loop, with every (material, batch) the
+  operation draws from. It and `validateStockAvailability` take a **required**
+  manager and **throw** unless it is inside an active transaction — in autocommit
+  the lock would be released by the statement that took it, before the check it
+  guards. A slot without a `materialId` or `batchId` throws as well.
+- Splitting a batch (`BatchService.splitBatch`) locks the batch's group, so two
+  transactions asking for the same child state share one child. Take stock locks
+  before splitting, never after.
 - Two host transactions that take WMS locks and locks of their own in opposite
   orders can still deadlock. PostgreSQL detects it and aborts one with
   `40P01`; retry it.
@@ -145,7 +151,7 @@ deduction here is checked by `validateStockAvailability`.
 
 | value | storage | runtime DDL | rollback | use when |
 | --- | --- | --- | --- | --- |
-| `'sequence'` (default) | one PostgreSQL sequence per counter | `CREATE SEQUENCE IF NOT EXISTS` on first use | number consumed | existing deployments |
+| `'sequence'` (default) | one PostgreSQL sequence per counter | `CREATE SEQUENCE IF NOT EXISTS` on first use, on a second connection (once per counter per process) | number consumed | existing deployments |
 | `'table'` | rows of the `sequences` table | none | number returned | schema changes only through migrations |
 
 `'table'` mode advances a counter with one

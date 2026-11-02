@@ -191,6 +191,13 @@ and both passed the availability check before either deducted. `splitBatch` also
 the batch group; take stock locks **before** a split, never after, or two paths acquire
 the pair in opposite orders.
 
+A new multi-line write method must call `lockStockSlots` before its item loop — a line-by-line
+lock lets two orders naming the same batches in opposite order deadlock (40P01); the guard is
+the "opposite order" case in `host-service-layer.integration.spec.ts`. Both `lockStockSlots`
+and `validateStockAvailability` **throw** outside an active transaction (in autocommit the
+lock is gone before the sum it guards) and `lockStockSlots` throws on a slot without a
+material or batch; never make either of them quietly skip.
+
 #### Table names are reached through metadata; the prefix follows class identity
 
 `withWmsTablePrefix(options, 'wms_')` (`libs/core/src/lib/table-prefix`) rewrites the
@@ -198,7 +205,9 @@ TypeORM metadata args of **our** entity classes before a `DataSource` initialise
 names, string relation targets, explicit constraint names. Consequences: raw SQL and
 QueryBuilder `.from()` / `.join()` must take the table from entity metadata, never a
 string literal (a literal silently reads the unprefixed — possibly the host's — table);
-subscribers compare `wmsLogicalTableName(metadata.tableName)`; and a **new entity must be
+subscribers recognise our tables with `wmsOwnedLogicalTableName(metadata)` (class identity
+first, then the declared name — a host table merely *named* `transfer_order_changes` is not
+ours); and a **new entity must be
 added to the `entities` list in `models.module.ts`** (which feeds
 `WMS_MODULE_ENTITY_CLASSES`), or it stays unprefixed. Never match WMS tables by name: a
 host can declare `class LocationEntity` on `locations`, exactly as base does.
