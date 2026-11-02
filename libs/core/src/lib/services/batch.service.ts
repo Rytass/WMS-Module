@@ -18,6 +18,7 @@ import {
   BatchGroupEntityClass,
 } from '../models/metadata/batch-group.entity';
 
+import { runInTransaction } from '../utils/run-in-transaction';
 @Injectable()
 export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
   readonly batchRepository: Repository<T>;
@@ -179,13 +180,45 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     return batch as T;
   }
 
-  async splitBatch({
-    manager = this.dataSource.manager,
+  /**
+   * Find or create the sibling of batch `id` in its group that carries the
+   * requested state.
+   *
+   * Serialised per batch group with a transaction-scoped advisory lock, so two
+   * concurrent splits asking for the same state find one sibling rather than
+   * both creating one. Runs in the caller's transaction when given one (the lock
+   * is then held to its commit) and in a transaction of its own otherwise.
+   * Take stock locks before calling this, never after: the two are always
+   * acquired in that order.
+   */
+  splitBatch({
+    manager: outerManager,
     ...options
   }: {
     id: string;
     manager?: EntityManager;
   } & SplitBatchInput): Promise<BatchEntityClass> {
+    return runInTransaction(this.dataSource, outerManager, (manager) =>
+      this.splitBatchLocked(manager, options),
+    );
+  }
+
+  private async splitBatchLocked(
+    manager: EntityManager,
+    options: { id: string } & SplitBatchInput,
+  ): Promise<BatchEntityClass> {
+    const { groupId } = await manager
+      .getRepository<BatchEntityClass>(this.batchEntity)
+      .findOneOrFail({
+        select: { id: true, groupId: true },
+        where: { id: options.id },
+      });
+
+    await manager.query(
+      `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`,
+      [`wms:batch-group:${groupId}`],
+    );
+
     const batchRepository = manager.getRepository<BatchEntityClass>(
       this.batchEntity,
     );
@@ -255,7 +288,8 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
 
     // If no matching batch exists, create a new one. Two children of one group
     // created in the same millisecond used to get the same key and the second
-    // hit `UNIQUE (key, materialId)`; the group lock above makes this check safe.
+    // hit `UNIQUE (key, materialId)`; the group lock taken in `splitBatchLocked`
+    // makes the lookup below and the existing-sibling check above safe.
     const baseKey = `${batch.batchGroup.key}_${Date.now().toString()}`;
     const takenKeys = new Set(
       (
