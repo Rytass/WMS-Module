@@ -120,6 +120,9 @@ same order.
 - The lock key is (material, batch), not the full slot: a check names location
   and loader only when the caller does, and a finer key would let a check across
   locations run beside one at a single location over the same rows.
+  The flip side: a host that keeps one default batch per material serialises
+  every deduction of that material, across all locations. Give batches real
+  keys if that queue matters.
 - It relies on **READ COMMITTED** (PostgreSQL's default). Under REPEATABLE READ
   or SERIALIZABLE the waiting transaction's snapshot predates the first commit
   and still sees the old total.
