@@ -167,6 +167,58 @@ The regression guards are `libs/graphql/src/lib/custom-material-entity.integrati
 
 Consequence: the module **cannot** register a consumer's entity with TypeORM — `forFeature()` runs before the options resolve. `WmsEntities`' constructor checks `dataSource.hasMetadata` for all six and throws instead, because forgetting to register almost works (TypeORM copies a single-table child's columns into the parent, so `synchronize` still builds the right schema) and would otherwise surface as a bare `EntityMetadataNotFoundError` from inside a resolver.
 
+#### Every write method takes the caller's `EntityManager`, and uses nothing else
+
+A host puts WMS movements in its own transaction (stock + its outbox + its document
+status, one commit). So every public method that writes `stocks` or a `*_order_changes`
+row takes an optional manager — trailing argument, or `manager` in the options object
+where one already existed — and wraps its body in `runInTransaction(dataSource, manager,
+work)` (`libs/core/src/lib/utils`). Inside `work`, **every** read and write goes through
+the manager it is handed: an injected repository, `this.dataSource`, or a call into
+another service without passing `manager` runs on a second connection, outside the
+caller's transaction — and once that transaction holds a stock lock, the second
+connection waits on it forever. The guard is the parameterised rollback suite in
+`host-service-layer.integration.spec.ts`: a leaked write survives the outer rollback.
+
+#### Deductions lock (material, batch); items are processed one at a time
+
+`validateStockAvailability` takes `pg_advisory_xact_lock` on the (material, batch) before
+it sums, and multi-line operations call `StockService.lockStockSlots(items, manager)` up
+front (deduplicated, sorted). Coarser than a slot on purpose: the check names location
+and loader only when the caller does. It assumes READ COMMITTED. Never process an order's
+items with `Promise.all`: two items of one batch both split before either saved (#186)
+and both passed the availability check before either deducted. `splitBatch` also locks
+the batch group; take stock locks **before** a split, never after, or two paths acquire
+the pair in opposite orders.
+
+A new multi-line write method must call `lockStockSlots` before its item loop — a line-by-line
+lock lets two orders naming the same batches in opposite order deadlock (40P01); the guard is
+the "opposite order" case in `host-service-layer.integration.spec.ts`. Both `lockStockSlots`
+and `validateStockAvailability` **throw** outside an active transaction (in autocommit the
+lock is gone before the sum it guards) and `lockStockSlots` throws on a slot without a
+material or batch; never make either of them quietly skip.
+
+#### Table names are reached through metadata; the prefix follows class identity
+
+`withWmsTablePrefix(options, 'wms_')` (`libs/core/src/lib/table-prefix`) rewrites the
+TypeORM metadata args of **our** entity classes before a `DataSource` initialises: table
+names, string relation targets, explicit constraint names. Consequences: raw SQL and
+QueryBuilder `.from()` / `.join()` must take the table from entity metadata, never a
+string literal (a literal silently reads the unprefixed — possibly the host's — table);
+subscribers recognise our tables with `wmsOwnedLogicalTableName(metadata)` (class identity
+first, then the declared name — a host table merely *named* `transfer_order_changes` is not
+ours); and a **new entity must be
+added to the `entities` list in `models.module.ts`** (which feeds
+`WMS_MODULE_ENTITY_CLASSES`), or it stays unprefixed. Never match WMS tables by name: a
+host can declare `class LocationEntity` on `locations`, exactly as base does.
+
+#### Counters go through `WmsSequenceService`
+
+Order keys and loader serials are reserved by `WmsSequenceService.reserve`, never by
+`CURRVAL` (per session — pooled connections reissued serials, and probing for a missing
+sequence aborted the caller's transaction, #185). `sequenceStorage: 'table'` counts in
+the `sequences` table with one `INSERT … ON CONFLICT … RETURNING` and runs no DDL.
+
 #### A raw list query paginates with `offset`/`limit`, never `skip`/`take`
 
 `skip`/`take` are entity-mode pagination. On a `getRawMany()` query TypeORM only turns them
@@ -242,6 +294,9 @@ keep showing what the world looked like at the time.
 
 Consequences:
 
+- **`requireInspection: false` means "no inspection state", not "passed".** The receipt
+  lands on the batch the caller named, unsplit (#184). Receiving already-inspected goods
+  is an explicit `inspectionResult: true`, which still splits.
 - **`requireInspection` defaults to `true`**, so this is the ordinary receive path, not an
   edge case. Splitting unconditionally moved *every* default receipt off the batch key the
   caller asked for and onto a synthetic child, which an exact-id lookup then could not find.
@@ -437,32 +492,40 @@ clean `npm install` from their first publish. Every real consumer is a NestJS ap
 already has `tslib`, so only a clean install could have caught it, and neither publint nor
 attw reads the JavaScript. `tools/pkg-gate.mjs` now does; see `RELEASING.md`.
 
-#### `core` and `graphql` are dual-format packages
+#### `core` and `graphql` ship CommonJS only, and must keep shipping exactly one file
 
 ```
-index.cjs.js   CJS bundle          ← "require"          "type": "commonjs" makes .js CJS
-index.mjs      ESM, one file per   ← "import"           .mjs is ESM regardless
-lib/**/*.mjs   source module
-index.d.ts     declarations        ← "require".types    CJS-flavoured, one copy
-index.d.mts    one-line re-export  ← "import".types     ESM-flavoured
+index.cjs.js   the bundle           ← every condition in `exports` points here
+index.d.ts     declarations
 ```
 
-The ESM tree must be `.mjs`. Emitting it as `.js` under `"type": "commonjs"` makes Node parse
-it as CommonJS and reject the `export` keyword — a break that Node 22.7+ hides by retrying as
-ESM, which is why it survived as nothing but an attw warning that had been waived.
+There is deliberately **no `import` / `require` fork**. These packages export DI Symbols and
+TypeORM entity classes, and both are identities: a process that reaches two module records
+gets two of everything, so a provider registered under one `WMS_CORE_MODULE_OPTIONS` is
+invisible to a lookup holding the other, and `instanceof BatchEntityClass` is false for a row
+the other copy built. Measured on the published `0.9.1`, which shipped both formats,
+`require()` and `import()` of the same package in one process disagreed on **64 of 64 Symbols
+and 57 of 57 entity classes** — no shared identity at all.
 
-There is **one** declaration tree, CJS-flavoured, serving the `require` condition. The
-`import` condition gets a one-line `.d.mts` per entry point re-exporting it, written by
-`tools/emit-esm-type-shims.mjs` at the end of the build — a second full tree would double the
-package for no new information. ESM importing CJS types is legal; the reverse is not, so the
-asymmetry only works in this direction. The shim is `export *`, which does not carry a
-default, and the script refuses to write one for a barrel that has a default export rather
-than dropping it silently.
+ESM consumers lose nothing. Node reads named exports out of CommonJS via `cjs-module-lexer`,
+which detects all 162 of core's, including the one declared with `Object.defineProperty`
+instead of `exports.X =`. The ESM build existed to tree-shake a NestJS library whose classes
+are all decorated and side-effectful, for consumers that do not exist: `apps/api` resolves
+through a path alias to source, and `libs/react` — the only package that ships to a browser —
+is ESM-only and depends on neither.
 
-A new entry point therefore means: an `exports` entry with `import`/`require` conditions, a
-rollup ESM input **and** a CJS bundle for it, and its name appended to the
-`emit-esm-type-shims.mjs` call in `project.json`. Miss the last one and the `import`
-condition points at a `.d.mts` that does not exist.
+`tools/pkg-gate.mjs` enforces it structurally: every condition of a subpath must resolve to
+the same file (`types` excepted), so a fork fails the gate rather than reaching npm.
+
+A new entry point therefore needs an `exports` entry whose conditions all name one
+`.cjs.js`, and a rollup input producing it. **Do not add a second format to "improve
+interop"** — interop is what `cjs-module-lexer` already provides, and a second format is the
+bug.
+
+Declarations come from an explicit `tsc -p tsconfig.lib.json --emitDeclarationOnly` step
+after rollup, not from a rollup plugin. One consequence: `tsc` exits non-zero on a type error
+even where `noEmitOnError: false` is set, so `nx build graphql` now fails rather than emitting
+a `.d.ts` that lies about the contract.
 
 #### `typecheck` must be declared explicitly, and must not emit
 

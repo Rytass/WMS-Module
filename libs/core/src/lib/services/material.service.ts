@@ -46,11 +46,13 @@ export class MaterialService<
     );
   }
 
-  async getConversionFactor(materialId: string, unitId?: string) {
+  async getConversionFactor(
+    materialId: string,
+    unitId?: string,
+    manager: EntityManager = this.dataSource.manager,
+  ): Promise<number> {
     const materialUnitRepository =
-      this.dataSource.getRepository<MaterialUnitEntityClass>(
-        this.materialUnitEntity,
-      );
+      manager.getRepository<MaterialUnitEntityClass>(this.materialUnitEntity);
 
     if (!unitId) return 1;
 

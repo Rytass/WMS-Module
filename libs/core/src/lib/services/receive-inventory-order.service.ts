@@ -38,7 +38,9 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
 
 /**
  * Service for managing receive inventory orders and their items
@@ -66,6 +68,15 @@ export class ReceiveInventoryOrderService<
     readonly receiveInventoryOrderItemEntity: EntityTarget<K>,
   ) {
     this.selectQueryBuilder = (alias: string) => {
+      const changes = quotedTablePathOf(
+        this.dataSource,
+        ReceiveInventoryOrderChangeEntityClass,
+      );
+      const items = quotedTablePathOf(
+        this.dataSource,
+        this.receiveInventoryOrderItemEntity,
+      );
+
       return this.dataSource
         .getRepository<T>(this.receiveInventoryOrderEntity)
         .createQueryBuilder(alias)
@@ -77,19 +88,19 @@ export class ReceiveInventoryOrderService<
                   WHEN o."removedAt" IS NOT NULL THEN '${ReceiveInventoryOrderStatus.REMOVED}'
                   WHEN COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
-                    FROM receive_inventory_order_changes c
-                    JOIN receive_inventory_order_items i ON c."itemId" = i.id
+                    FROM ${changes} c
+                    JOIN ${items} i ON c."itemId" = i.id
                     WHERE i."orderId" = o.id
                   ), 0) = COALESCE(target_sum.targetsum, 0) AND COALESCE(target_sum.targetsum, 0) > 0 THEN '${ReceiveInventoryOrderStatus.RECEIVED}'
                   WHEN COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
-                    FROM receive_inventory_order_changes c
-                    JOIN receive_inventory_order_items i ON c."itemId" = i.id
+                    FROM ${changes} c
+                    JOIN ${items} i ON c."itemId" = i.id
                     WHERE i."orderId" = o.id
                   ), 0) > 0 AND COALESCE((
                     SELECT SUM(CAST(c."quantityChanged" AS NUMERIC))
-                    FROM receive_inventory_order_changes c
-                    JOIN receive_inventory_order_items i ON c."itemId" = i.id
+                    FROM ${changes} c
+                    JOIN ${items} i ON c."itemId" = i.id
                     WHERE i."orderId" = o.id
                   ), 0) < COALESCE(target_sum.targetsum, 0) THEN '${ReceiveInventoryOrderStatus.PARTIAL_RECEIVED}'
                   ELSE '${ReceiveInventoryOrderStatus.PENDING}'
@@ -97,7 +108,10 @@ export class ReceiveInventoryOrderService<
                 'status',
               )
               .addSelect('o.id', 'orderid')
-              .from('receive_inventory_orders', 'o')
+              .from(
+                tablePathOf(this.dataSource, this.receiveInventoryOrderEntity),
+                'o',
+              )
               .leftJoin(
                 (sumQuery) =>
                   sumQuery
@@ -106,7 +120,13 @@ export class ReceiveInventoryOrderService<
                       'SUM(CAST(i."targetReceivedQuantity" AS NUMERIC))',
                       'targetsum',
                     )
-                    .from('receive_inventory_order_items', 'i')
+                    .from(
+                      tablePathOf(
+                        this.dataSource,
+                        this.receiveInventoryOrderItemEntity,
+                      ),
+                      'i',
+                    )
                     .groupBy('i."orderId"'),
                 'target_sum',
                 'target_sum.orderid = o.id',
@@ -189,42 +209,44 @@ export class ReceiveInventoryOrderService<
   }
 
   async createReceiveInventoryOrder({
-    manager = this.dataSource.manager,
+    manager: outerManager,
     ...options
   }: CreateReceiveInventoryOrderInput & {
     manager?: EntityManager;
   }): Promise<T> {
-    const orderRepository = manager.getRepository<OrderEntity>(
-      this.entities.order,
-    );
-    const receiveInventoryOrderRepository =
-      manager.getRepository<ReceiveInventoryOrderEntityClass>(
-        this.receiveInventoryOrderEntity,
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const orderRepository = manager.getRepository<OrderEntity>(
+        this.entities.order,
       );
-    const receiveInventoryOrderItemRepository =
-      manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
-        this.receiveInventoryOrderItemEntity,
-      );
-
-    // create base order
-    const { id } = await orderRepository.save(orderRepository.create());
-
-    // create receive inventory order
-    const { items, ...orderOptions } = options;
-    const order = await receiveInventoryOrderRepository.save(
-      receiveInventoryOrderRepository.create({ id, ...orderOptions }),
-    );
-
-    // create receive inventory order items
-    if (items && items.length > 0) {
-      const processedItems: ReceiveInventoryOrderItemEntityClass[] =
-        receiveInventoryOrderItemRepository.create(
-          await this.processReceiveInventoryOrderItems(items, id, manager),
+      const receiveInventoryOrderRepository =
+        manager.getRepository<ReceiveInventoryOrderEntityClass>(
+          this.receiveInventoryOrderEntity,
         );
-      await receiveInventoryOrderItemRepository.save(processedItems);
-    }
+      const receiveInventoryOrderItemRepository =
+        manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
+          this.receiveInventoryOrderItemEntity,
+        );
 
-    return order as T;
+      // create base order
+      const { id } = await orderRepository.save(orderRepository.create());
+
+      // create receive inventory order
+      const { items, ...orderOptions } = options;
+      const order = await receiveInventoryOrderRepository.save(
+        receiveInventoryOrderRepository.create({ id, ...orderOptions }),
+      );
+
+      // create receive inventory order items
+      if (items && items.length > 0) {
+        const processedItems: ReceiveInventoryOrderItemEntityClass[] =
+          receiveInventoryOrderItemRepository.create(
+            await this.processReceiveInventoryOrderItems(items, id, manager),
+          );
+        await receiveInventoryOrderItemRepository.save(processedItems);
+      }
+
+      return order as T;
+    });
   }
 
   /**
@@ -233,74 +255,80 @@ export class ReceiveInventoryOrderService<
    */
   async updateReceiveInventoryOrder({
     id,
-    manager = this.dataSource.manager,
+    manager: outerManager,
     ...options
   }: UpdateReceiveInventoryOrderInput & {
     manager?: EntityManager;
   }): Promise<T> {
-    const receiveInventoryOrderRepository =
-      manager.getRepository<ReceiveInventoryOrderEntityClass>(
-        this.receiveInventoryOrderEntity,
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const receiveInventoryOrderRepository =
+        manager.getRepository<ReceiveInventoryOrderEntityClass>(
+          this.receiveInventoryOrderEntity,
+        );
+      const receiveInventoryOrderItemRepository =
+        manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
+          this.receiveInventoryOrderItemEntity,
+        );
+
+      const order = await receiveInventoryOrderRepository.findOneByOrFail({
+        id,
+        removedAt: IsNull(),
+      });
+
+      const { items, ...orderOptions } = options;
+      const updated = await receiveInventoryOrderRepository.save(
+        receiveInventoryOrderRepository.create({
+          ...order,
+          ...orderOptions,
+        }),
       );
-    const receiveInventoryOrderItemRepository =
-      manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
-        this.receiveInventoryOrderItemEntity,
-      );
 
-    const order = await receiveInventoryOrderRepository.findOneByOrFail({
-      id,
-      removedAt: IsNull(),
-    });
+      if (items?.length) {
+        const newItems: Partial<CreateReceiveInventoryOrderItemInput>[] = [];
+        const existingItems: Partial<ReceiveInventoryOrderItemEntityClass>[] =
+          [];
 
-    const { items, ...orderOptions } = options;
-    const updated = await receiveInventoryOrderRepository.save(
-      receiveInventoryOrderRepository.create({
-        ...order,
-        ...orderOptions,
-      }),
-    );
-
-    if (items?.length) {
-      const newItems: Partial<CreateReceiveInventoryOrderItemInput>[] = [];
-      const existingItems: Partial<ReceiveInventoryOrderItemEntityClass>[] = [];
-
-      await receiveInventoryOrderItemRepository
-        .find({ where: { orderId: id } })
-        .then((items) => {
-          const itemSet = new Set(items.map((i) => i.id));
-          options.items?.forEach((item) => {
-            if (!item.id) newItems.push(item);
-            else if (itemSet.has(item.id)) existingItems.push(item);
+        await receiveInventoryOrderItemRepository
+          .find({ where: { orderId: id } })
+          .then((items) => {
+            const itemSet = new Set(items.map((i) => i.id));
+            options.items?.forEach((item) => {
+              if (!item.id) newItems.push(item);
+              else if (itemSet.has(item.id)) existingItems.push(item);
+            });
           });
-        });
 
-      if (newItems.length)
-        await receiveInventoryOrderItemRepository.save(
-          receiveInventoryOrderItemRepository.create(
-            await this.processReceiveInventoryOrderItems(
-              newItems as CreateReceiveInventoryOrderItemInput[],
-              id,
-              manager,
+        if (newItems.length)
+          await receiveInventoryOrderItemRepository.save(
+            receiveInventoryOrderItemRepository.create(
+              await this.processReceiveInventoryOrderItems(
+                newItems as CreateReceiveInventoryOrderItemInput[],
+                id,
+                manager,
+              ),
             ),
-          ),
-        );
+          );
 
-      if (existingItems.length)
-        await receiveInventoryOrderItemRepository.save(
-          existingItems.map((item) =>
-            receiveInventoryOrderItemRepository.create({
-              ...item,
-              id: item.id,
-            }),
-          ),
-        );
-    }
+        if (existingItems.length)
+          await receiveInventoryOrderItemRepository.save(
+            existingItems.map((item) =>
+              receiveInventoryOrderItemRepository.create({
+                ...item,
+                id: item.id,
+              }),
+            ),
+          );
+      }
 
-    return updated as T;
+      return updated as T;
+    });
   }
 
-  async removeReceiveInventoryOrder(id: string): Promise<boolean> {
-    return this.dataSource
+  async removeReceiveInventoryOrder(
+    id: string,
+    manager: EntityManager = this.dataSource.manager,
+  ): Promise<boolean> {
+    return manager
       .getRepository<ReceiveInventoryOrderEntityClass>(
         this.receiveInventoryOrderEntity,
       )
@@ -345,8 +373,8 @@ export class ReceiveInventoryOrderService<
     if (options.materialKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM receive_inventory_order_items ri_items
-          INNER JOIN materials ri_mat ON ri_mat.id = ri_items."materialId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.receiveInventoryOrderItemEntity)} ri_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.material)} ri_mat ON ri_mat.id = ri_items."materialId"
           WHERE ri_items."orderId" = orders.id
           AND ri_mat.key ILIKE :materialKey
         )`,
@@ -356,8 +384,8 @@ export class ReceiveInventoryOrderService<
     if (options.batchKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM receive_inventory_order_items ri_items
-          INNER JOIN batches ri_batch ON ri_batch.id = ri_items."batchId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.receiveInventoryOrderItemEntity)} ri_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.batch)} ri_batch ON ri_batch.id = ri_items."batchId"
           WHERE ri_items."orderId" = orders.id
           AND ri_batch.key ILIKE :batchKey
         )`,
@@ -367,8 +395,8 @@ export class ReceiveInventoryOrderService<
     if (options.locationKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM receive_inventory_order_items ri_items
-          INNER JOIN locations ri_loc ON ri_loc.id = ri_items."locationId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.receiveInventoryOrderItemEntity)} ri_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.location)} ri_loc ON ri_loc.id = ri_items."locationId"
           WHERE ri_items."orderId" = orders.id
           AND ri_loc.key ILIKE :locationKey
         )`,
@@ -378,8 +406,8 @@ export class ReceiveInventoryOrderService<
     if (options.loaderKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM receive_inventory_order_items ri_items
-          INNER JOIN loaders ri_ldr ON ri_ldr.id = ri_items."loaderId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.receiveInventoryOrderItemEntity)} ri_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, LoadersEntityClass)} ri_ldr ON ri_ldr.id = ri_items."loaderId"
           WHERE ri_items."orderId" = orders.id
           AND ri_ldr."serialId" ILIKE :loaderKey
         )`,
@@ -419,10 +447,11 @@ export class ReceiveInventoryOrderService<
 
   receive(
     options: ReceiveInventoryOrderInput[] | ReceiveInventoryOrderInput,
+    outerManager?: EntityManager,
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
 
-    return this.dataSource.transaction(async (manager) => {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const changeRepository =
         manager.getRepository<ReceiveInventoryOrderChangeEntityClass>(
           ReceiveInventoryOrderChangeEntityClass,
@@ -479,6 +508,7 @@ export class ReceiveInventoryOrderService<
             await this.materialService.getConversionFactor(
               item.materialId,
               item.unitId || undefined,
+              manager,
             );
 
           const totalChanged = item.changes.reduce(
@@ -509,15 +539,22 @@ export class ReceiveInventoryOrderService<
             batchId = await this.batchService
               .getBatch({
                 manager,
-                key: await this.helperService.getSeq('BATCH'),
+                key: await this.helperService.getSeq('BATCH', manager),
                 materialId: item.materialId,
               })
               .then(({ id }) => id);
 
-          const inspectionResult =
-            item.requireInspection === false
-              ? true
-              : (option.inspectionResult ?? null);
+          /*
+           * Only an explicit result splits the receipt off as inspected.
+           * `requireInspection: false` used to be read as "already inspected and
+           * passed", which always split a child `<batchKey>_<timestamp>` off
+           * the batch the caller named -- so a plain goods receipt into lot `B`
+           * could never land on `B` (#184). It now means what it says: no
+           * inspection state, receive onto the named batch as it is. A caller
+           * that really is receiving already-inspected goods says so with
+           * `inspectionResult: true`.
+           */
+          const inspectionResult = option.inspectionResult ?? null;
 
           if (inspectionResult != null) {
             batchId = await this.batchService

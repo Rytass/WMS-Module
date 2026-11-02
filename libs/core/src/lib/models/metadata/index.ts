@@ -10,3 +10,4 @@ export * from './order.entity';
 export * from './sale-order.entity';
 export * from './stock.entity';
 export * from './unit.entity';
+export * from './sequence.entity';

@@ -13,6 +13,7 @@ import { ScrapeInput } from '../typings/scrape.input';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
+import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
@@ -46,77 +47,81 @@ export class ScrapeService<
     };
   }
 
-  async scrape(
-    items: ScrapeInput[],
-    manager = this.dataSource.manager,
-  ): Promise<T> {
-    const repos = this.getRepositories(manager);
-    const key = await this.helperService.getSeq(this.seqPrefix);
+  async scrape(items: ScrapeInput[], outerManager?: EntityManager): Promise<T> {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const repos = this.getRepositories(manager);
+      const key = await this.helperService.getSeq(this.seqPrefix, manager);
 
-    // Create order
-    const order = await repos.scrapeOrder.save(
-      repos.scrapeOrder.create({
-        key,
-      }),
-    );
+      // Create order
+      const order = await repos.scrapeOrder.save(
+        repos.scrapeOrder.create({
+          key,
+        }),
+      );
 
-    // Process each item
-    await Promise.all(
-      items.map(async (data) => {
-        if (!data.materialId || !data.batchId) return;
+      // Process each item
+      // Every (material, batch) this call deducts from, locked up front in a
+      // fixed order so overlapping operations cannot deadlock each other.
+      await this.stockService.lockStockSlots(items, manager);
+      for (const data of items) {
+        await (async () => {
+          if (!data.materialId || !data.batchId) return;
 
-        // Create order item
-        const item = await repos.scrapeOrderItem.save(
-          repos.scrapeOrderItem.create({
-            ...data,
-            orderId: order.id,
-            targetScrapedQuantity: data.quantity,
-          }),
-        );
+          // Create order item
+          const item = await repos.scrapeOrderItem.save(
+            repos.scrapeOrderItem.create({
+              ...data,
+              orderId: order.id,
+              targetScrapedQuantity: data.quantity,
+            }),
+          );
 
-        // Create base order for the change
-        const baseOrder = await repos.order.save({});
+          // Create base order for the change
+          const baseOrder = await repos.order.save({});
 
-        // Get conversion factor to convert to base unit
-        const conversionFactor = await this.materialService.getConversionFactor(
-          item.materialId,
-          item.unitId || undefined,
-        );
+          // Get conversion factor to convert to base unit
+          const conversionFactor =
+            await this.materialService.getConversionFactor(
+              item.materialId,
+              item.unitId || undefined,
+              manager,
+            );
 
-        // Create change record
-        await repos.scrapeOrderChange.save(
-          repos.scrapeOrderChange.create({
-            item,
-            order: baseOrder,
-            quantityChanged: item.targetScrapedQuantity * conversionFactor,
-          }),
-        );
+          // Create change record
+          await repos.scrapeOrderChange.save(
+            repos.scrapeOrderChange.create({
+              item,
+              order: baseOrder,
+              quantityChanged: item.targetScrapedQuantity * conversionFactor,
+            }),
+          );
 
-        // Deduct stock from original batch (only deduction, no transfer)
-        await this.stockService.validateStockAvailability(
-          {
-            materialId: item.materialId,
-            batchId: item.batchId,
-            locationId: this.stockService.resolveLocationId(item.locationId),
-            loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetScrapedQuantity * conversionFactor,
-          },
-          manager,
-        );
+          // Deduct stock from original batch (only deduction, no transfer)
+          await this.stockService.validateStockAvailability(
+            {
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: this.stockService.resolveLocationId(item.locationId),
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
+              quantity: item.targetScrapedQuantity * conversionFactor,
+            },
+            manager,
+          );
 
-        await repos.stock.save(
-          repos.stock.create({
-            orderId: baseOrder.id,
-            materialId: item.materialId,
-            batchId: item.batchId,
-            locationId: this.stockService.resolveLocationId(item.locationId),
-            loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: -1 * item.targetScrapedQuantity * conversionFactor,
-          } as DeepPartial<StockEntityClass>),
-        );
-      }),
-    );
+          await repos.stock.save(
+            repos.stock.create({
+              orderId: baseOrder.id,
+              materialId: item.materialId,
+              batchId: item.batchId,
+              locationId: this.stockService.resolveLocationId(item.locationId),
+              loaderId: this.stockService.resolveLoaderId(item.loaderId),
+              quantity: -1 * item.targetScrapedQuantity * conversionFactor,
+            } as DeepPartial<StockEntityClass>),
+          );
+        })();
+      }
 
-    return order as T;
+      return order as T;
+    });
   }
 }

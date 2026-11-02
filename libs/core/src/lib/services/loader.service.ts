@@ -26,6 +26,10 @@ import {
   FindLoaderInput,
   FindLoaderTypeInput,
 } from '../typings/find-loader.input';
+import { runInTransaction } from '../utils/run-in-transaction';
+import { WmsSequenceService } from './sequence.service';
+import { WmsEntities } from '../models/wms-entities';
+import { quotedTablePathOf } from '../utils/table-path';
 import { LoaderUnitEntity, LoaderUnitEntityClass } from '../models';
 
 /**
@@ -45,6 +49,8 @@ export class LoaderService<
   readonly loaderSerialMaxDigits = 4;
   constructor(
     private readonly dataSource: DataSource,
+    private readonly sequenceService: WmsSequenceService,
+    private readonly entities: WmsEntities,
     @Inject(LoadersEntity) readonly loaderEntity: EntityTarget<T>,
     @Inject(LoaderTypeEntity) readonly loaderTypeEntity: EntityTarget<K>,
     @Inject(LoaderUnitEntity)
@@ -61,82 +67,85 @@ export class LoaderService<
   }
 
   async createLoader({
-    manager = this.dataSource.manager,
+    manager: outerManager,
     ...options
   }: CreateLoaderInput & { manager?: EntityManager }): Promise<T[]> {
-    const loaderRepository = manager.getRepository<LoadersEntityClass>(
-      this.loaderEntity,
-    );
-    const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
-      this.loaderTypeEntity,
-    );
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const loaderRepository = manager.getRepository<LoadersEntityClass>(
+        this.loaderEntity,
+      );
+      const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
+        this.loaderTypeEntity,
+      );
 
-    const { key } = await loaderTypeRepository.findOneByOrFail({
-      id: options.typeId,
-    });
-
-    const startSeq = await this.getSeq(key, options.quantity, manager);
-
-    const loaders: LoadersEntityClass[] = [];
-    for (let i = 0; i < options.quantity; i++) {
-      const seqNum = startSeq + i;
-      const paddedSeq = seqNum
-        .toString()
-        .padStart(this.loaderSerialMaxDigits, '0');
-      const loader = loaderRepository.create({
-        ...options,
-        serialId: `${key}${paddedSeq}`,
+      const { key } = await loaderTypeRepository.findOneByOrFail({
+        id: options.typeId,
       });
-      loaders.push(loader);
-    }
 
-    return loaderRepository.save(loaders, { chunk: 1000 }) as Promise<T[]>;
+      const startSeq = await this.getSeq(key, options.quantity, manager);
+
+      const loaders: LoadersEntityClass[] = [];
+      for (let i = 0; i < options.quantity; i++) {
+        const seqNum = startSeq + i;
+        const paddedSeq = seqNum
+          .toString()
+          .padStart(this.loaderSerialMaxDigits, '0');
+        const loader = loaderRepository.create({
+          ...options,
+          serialId: `${key}${paddedSeq}`,
+        });
+        loaders.push(loader);
+      }
+
+      return loaderRepository.save(loaders, { chunk: 1000 }) as Promise<T[]>;
+    });
   }
 
   async createBatchLoaders({
     options,
-    manager = this.dataSource.manager,
+    manager: outerManager,
   }: {
     options: CreateLoaderInput[];
     manager?: EntityManager;
   }): Promise<T[]> {
-    if (options.length === 0) return [];
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      if (options.length === 0) return [];
 
-    const loaderRepository = manager.getRepository<LoadersEntityClass>(
-      this.loaderEntity,
-    );
-    const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
-      this.loaderTypeEntity,
-    );
+      const loaderRepository = manager.getRepository<LoadersEntityClass>(
+        this.loaderEntity,
+      );
+      const loaderTypeRepository = manager.getRepository<LoaderTypeEntityClass>(
+        this.loaderTypeEntity,
+      );
 
-    const typeMap = await loaderTypeRepository
-      .findBy({ id: In(options.map(({ typeId }) => typeId)) })
-      .then((types) => new Map(types.map((t) => [t.id, t])));
+      const typeMap = await loaderTypeRepository
+        .findBy({ id: In(options.map(({ typeId }) => typeId)) })
+        .then((types) => new Map(types.map((t) => [t.id, t])));
 
-    const loaders: LoadersEntityClass[] = [];
-    await Promise.all(
-      options.map(async (option) => {
+      // One loader type after another, so each type's serials come out in the
+      // order the caller listed them.
+      const loaders: LoadersEntityClass[] = [];
+      for (const option of options) {
         const loaderType = typeMap.get(option.typeId);
-        if (loaderType) {
-          const { key } = loaderType;
-          const startSeq = await this.getSeq(key, option.quantity, manager);
-          for (let i = 0; i < option.quantity; i++) {
-            console.log({ startSeq });
-            const seqNum = startSeq + i;
-            const paddedSeq = seqNum
-              .toString()
-              .padStart(this.loaderSerialMaxDigits, '0');
-            const loader = loaderRepository.create({
-              ...option,
-              serialId: `${key}${paddedSeq}`,
-            });
-            loaders.push(loader);
-          }
-        } else return;
-      }),
-    );
+        if (!loaderType) continue;
 
-    return loaderRepository.save(loaders, { chunk: 1000 }) as Promise<T[]>;
+        const { key } = loaderType;
+        const startSeq = await this.getSeq(key, option.quantity, manager);
+
+        loaders.push(
+          ...Array.from({ length: option.quantity }, (_, index) =>
+            loaderRepository.create({
+              ...option,
+              serialId: `${key}${(startSeq + index)
+                .toString()
+                .padStart(this.loaderSerialMaxDigits, '0')}`,
+            }),
+          ),
+        );
+      }
+
+      return loaderRepository.save(loaders, { chunk: 1000 }) as Promise<T[]>;
+    });
   }
 
   async updateLoader({
@@ -184,47 +193,32 @@ export class LoaderService<
     ) as Promise<K>;
   }
 
+  /**
+   * Reserve `count` consecutive loader serial numbers for loader type `prefix`
+   * and return the first. Counted by `WmsSequenceService` under `<prefix>_SEQ`.
+   */
   async getSeq(
     prefix: string,
     count: number,
-    manager = this.dataSource.manager,
+    manager?: EntityManager,
     maxDigits = this.loaderSerialMaxDigits,
   ): Promise<number> {
-    const seqName = `${prefix}_SEQ`;
     const maxValue = 10 ** maxDigits - 1;
 
-    let startVal: number;
-
-    try {
-      const [{ val }] = await manager.query<[{ val: string }]>(
-        `SELECT CURRVAL('"${seqName}"') + 1 AS val`,
-      );
-      startVal = parseInt(val, 10);
-    } catch (ex) {
-      const msg = (ex as Error).message;
-
-      if (/does\snot\sexist/.test(msg)) {
-        await manager.query(`CREATE SEQUENCE "${seqName}"`);
-      } else if (!/not\syet\sdefined/.test(msg)) {
-        throw ex;
-      }
-
-      // Initialize with NEXTVAL
-      const [{ nextval }] = await manager.query<[{ nextval: string }]>(
-        `SELECT NEXTVAL('"${seqName}"') AS nextval`,
-      );
-      startVal = parseInt(nextval, 10);
-    }
-
-    const endVal = startVal + count - 1;
-    if (endVal > maxValue) {
-      throw new Error(
-        `SEQUENCE_OUT_OF_RANGE: ${prefix} exceeds ${maxDigits} digits (max: ${maxValue}, end: ${endVal})`,
-      );
-    }
-
-    await manager.query(`SELECT SETVAL('"${seqName}"', $1)`, [endVal]);
-    return startVal;
+    return runInTransaction(
+      this.dataSource,
+      manager,
+      async (transactionManager) => {
+        // The bound is checked before the counter moves, so an oversized
+        // request leaves the serials where they were in both storage modes.
+        return this.sequenceService.reserve(
+          `${prefix}_SEQ`,
+          count,
+          transactionManager,
+          { consecutive: true, maxValue },
+        );
+      },
+    );
   }
 
   findManyLoaders(options: FindLoaderInput<T>): Promise<[T[], number]> {
@@ -281,7 +275,7 @@ export class LoaderService<
     if (options.locationKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM locations ldr_loc
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.entities.location)} ldr_loc
           WHERE ldr_loc.id = loader."locationId"
           AND ldr_loc.key ILIKE :locationKey
         )`,
@@ -291,7 +285,7 @@ export class LoaderService<
     if (options.loaderTypeKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM loader_types ldr_type
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.loaderTypeEntity)} ldr_type
           WHERE ldr_type.id = loader."typeId"
           AND ldr_type.key ILIKE :loaderTypeKey
         )`,

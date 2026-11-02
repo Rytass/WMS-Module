@@ -24,7 +24,7 @@ const swcOptions = {
 export default {
   displayName: 'graphql',
   testEnvironment: 'node',
-  setupFiles: ['reflect-metadata'],
+  setupFiles: ['reflect-metadata', '<rootDir>/jest.table-prefix.setup.cjs'],
   testMatch: ['<rootDir>/src/**/*.spec.ts'],
   transform: {
     '^.+\\.[cm]?[tj]s$': ['@swc/jest', swcOptions],
@@ -42,6 +42,14 @@ export default {
     // metadata.
     '^@rytass/wms-base-nestjs-module$':
       '<rootDir>/../../node_modules/@rytass/wms-base-nestjs-module/index.js',
+    // Deep imports too (`…/models/warehouse-map.entity`, which the index does
+    // not re-export): resolved through `exports` they land on the `.cjs` copy,
+    // a second `WarehouseMapEntity` class next to the ESM one the base module
+    // registers -- invisible until something keys off class identity, as
+    // `withWmsTablePrefix` does. Only a test-runner artefact: under plain
+    // CommonJS both specifiers reach the same `.cjs` file.
+    '^@rytass/wms-base-nestjs-module/(.+?)(\\.js)?$':
+      '<rootDir>/../../node_modules/@rytass/wms-base-nestjs-module/$1.js',
   },
   // The integration suite boots a full Nest + TypeORM + Apollo app.
   testTimeout: 120_000,

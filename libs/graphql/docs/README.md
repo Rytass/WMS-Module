@@ -9,7 +9,7 @@ Reference material for consumers of `@rytass/wms-module-{core,graphql,react}`.
 | [Integration Guide](./integration-guide.md)    | Step-by-step instructions for wiring the three packages into a new consumer project (NestJS + Next.js + PostgreSQL). Includes ready-to-paste `_app.tsx`, `app.module.ts`, `next.config.ts`, the 19 Pages Router shell pattern, AuthGuard stub, seed script template, deployment notes, and known issues. |
 | [Authorization](./authorization.md)            | Complete design of the resolver-level authorization protocol (`@WmsOperation` + `WmsAuthGuard` + `authChecker`). Explains the global deny-by-default guard pitfall, execution order, and integration recipes for member-base / Casbin, custom JWT / RBAC, and no-guard setups. Read this if any WMS query/mutation returns *forbidden*. |
 | [Events & Hooks](./events.md)                  | The mutation event/hook system — `beforeHooks` (veto before any DB work) and `afterListeners` (post-commit notify), the `AsyncLocalStorage` post-commit mechanism, the optional `@nestjs/event-emitter` bridge, and the complete list of 38 operation + 18 stock domain events with payloads. |
-| [API Reference](./api-reference.md)            | Complete export catalog for all three packages — every NestJS module, TypeORM entity, GraphQL resolver, DTO, React component, hook, and utility, organized by role with source paths and usage examples. Mirrors the actual `src/index.ts` barrel exports of `@rytass/wms-module-graphql@0.3.0` and `@rytass/wms-module-{core,react}@0.1.6`. |
+| [API Reference](./api-reference.md)            | Complete export catalog for all three packages — every NestJS module, TypeORM entity, GraphQL resolver, DTO, React component, hook, and utility, organized by role with source paths and usage examples. Mirrors the actual `src/index.ts` barrel exports of the three packages. |
 | [盤點 API 使用說明](./inventory-count.md)       | Inventory counting, operation by operation (繁體中文): the 3 queries and 9 mutations with arguments, status preconditions, errors, examples, the location lock and the events each one emits. |
 
 ## Quick links
@@ -37,6 +37,6 @@ Reference material for consumers of `@rytass/wms-module-{core,graphql,react}`.
 
 ## Versioning
 
-These documents track the **latest published versions** — `@rytass/wms-module-graphql@0.3.0` and `@rytass/wms-module-{core,react}@0.1.6` as of this writing. Anything in `main` that has not yet been released is marked clearly inline; otherwise assume the documented signature matches the current npm-published library.
+These documents track the **latest published versions** of the three packages. Anything in `main` that has not yet been released is marked clearly inline; otherwise assume the documented signature matches the current npm-published library.
 
 `@rytass/wms-module-graphql@0.3.0` introduced **breaking changes** to `WmsModuleGraphqlModule.forRootAsync` (single argument; consumer now registers their own `GraphQLModule.forRootAsync`). The integration guide and API reference reflect the post-0.3.0 surface — see each package's `CHANGELOG.md` for the full breaking change list when upgrading.

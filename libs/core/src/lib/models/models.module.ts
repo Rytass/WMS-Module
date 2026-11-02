@@ -25,6 +25,8 @@ import {
   StockEntityClass,
   UnitEntity,
   UnitEntityClass,
+  SequenceEntity,
+  SequenceEntityClass,
   WarehouseMapEntity,
 } from './metadata';
 import {
@@ -181,7 +183,17 @@ const entities = [
   [ConsumptionOrderEntity, ConsumptionOrderEntityClass],
   [ConsumptionOrderItemEntity, ConsumptionOrderItemEntityClass],
   [ConsumptionOrderChangeEntity, ConsumptionOrderChangeEntityClass],
+  [SequenceEntity, SequenceEntityClass],
 ] as [symbol, new () => object][];
+
+/**
+ * Every entity class this package declares, for `withWmsTablePrefix`: the
+ * prefix is applied by class identity, never by table-name string, so a host
+ * entity that happens to share a class or table name with one of ours is left
+ * alone.
+ */
+export const WMS_MODULE_ENTITY_CLASSES: readonly (new () => object)[] =
+  entities.map(([, entity]) => entity);
 
 /**
  * The overridable entities are deliberately absent: `WmsModuleCoreModule` binds

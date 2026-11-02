@@ -19,6 +19,7 @@ import {
   TransferOrderService,
   WmsEntities,
 } from '@rytass/wms-module-core';
+import { getWmsTablePrefix } from '@rytass/wms-module-core';
 import { WmsModuleGraphqlModule } from './graphql.module';
 import { LoaderService, createWmsLoaders } from './helpers';
 
@@ -38,6 +39,10 @@ import { LoaderService, createWmsLoaders } from './helpers';
  *
  * Requires a reachable PostgreSQL; override with WMS_TEST_DB_* env vars.
  */
+
+/** One of our tables, as it is named under `WMS_TEST_TABLE_PREFIX`. */
+const t = (name: string): string => `"${getWmsTablePrefix()}${name}"`;
+
 const DB_HOST = process.env['WMS_TEST_DB_HOST'] ?? 'localhost';
 const DB_PORT = Number(process.env['WMS_TEST_DB_PORT'] ?? 5432);
 const DB_USER =
@@ -292,7 +297,7 @@ describe('inventory counting (integration)', () => {
   // keeps the suite order-independent.
   afterEach(async () => {
     const stragglers: { id: string }[] = await dataSource.query(
-      `SELECT id FROM inventory_count_orders WHERE status IN ('PENDING', 'COUNTING')`,
+      `SELECT id FROM ${t('inventory_count_orders')} WHERE status IN ('PENDING', 'COUNTING')`,
     );
 
     for (const { id } of stragglers) {
@@ -314,7 +319,7 @@ describe('inventory counting (integration)', () => {
 
       const scope: { locationId: string; isRoot: boolean }[] =
         await dataSource.query(
-          'SELECT "locationId", "isRoot" FROM inventory_count_order_locations WHERE "orderId" = $1',
+          `SELECT "locationId", "isRoot" FROM ${t('inventory_count_order_locations')} WHERE "orderId" = $1`,
           [order.id],
         );
 
@@ -337,7 +342,7 @@ describe('inventory counting (integration)', () => {
       });
 
       const items = await dataSource.query(
-        'SELECT "materialId", "bookQuantity", "isAddition" FROM inventory_count_order_items WHERE "orderId" = $1',
+        `SELECT "materialId", "bookQuantity", "isAddition" FROM ${t('inventory_count_order_items')} WHERE "orderId" = $1`,
         [order.id],
       );
 
@@ -642,7 +647,7 @@ describe('inventory counting (integration)', () => {
 
       const [line] = await dataSource.query(
         `SELECT held, "inspectionResult", "vendorId", "saleId", "saleSerialId"
-           FROM inventory_count_order_items
+           FROM ${t('inventory_count_order_items')}
           WHERE "orderId" = $1 AND "batchId" = $2`,
         [order.id, batchId],
       );
@@ -662,7 +667,7 @@ describe('inventory counting (integration)', () => {
       } as never);
 
       const [afterwards] = await dataSource.query(
-        `SELECT held, "vendorId" FROM inventory_count_order_items
+        `SELECT held, "vendorId" FROM ${t('inventory_count_order_items')}
           WHERE "orderId" = $1 AND "batchId" = $2`,
         [order.id, batchId],
       );
@@ -812,7 +817,7 @@ describe('inventory counting (integration)', () => {
       // Lock gone: the same transfer reserves and completes.
       const transfer = await transferIn();
       const [item] = await dataSource.query(
-        'SELECT id FROM transfer_order_items WHERE "orderId" = $1',
+        `SELECT id FROM ${t('transfer_order_items')} WHERE "orderId" = $1`,
         [transfer.id],
       );
 
@@ -836,7 +841,7 @@ describe('inventory counting (integration)', () => {
         ],
       } as never);
       const [outItem] = await dataSource.query(
-        'SELECT id FROM transfer_order_items WHERE "orderId" = $1',
+        `SELECT id FROM ${t('transfer_order_items')} WHERE "orderId" = $1`,
         [transferOut.id],
       );
 
@@ -857,7 +862,7 @@ describe('inventory counting (integration)', () => {
       await countService.start(order.id);
 
       const [item] = await dataSource.query(
-        'SELECT id, "bookQuantity" FROM inventory_count_order_items WHERE "orderId" = $1 AND "batchId" = $2',
+        `SELECT id, "bookQuantity" FROM ${t('inventory_count_order_items')} WHERE "orderId" = $1 AND "batchId" = $2`,
         [order.id, batchId],
       );
 
@@ -915,7 +920,7 @@ describe('inventory counting (integration)', () => {
       await countService.start(order.id);
 
       const [item] = await dataSource.query(
-        'SELECT id FROM inventory_count_order_items WHERE "orderId" = $1',
+        `SELECT id FROM ${t('inventory_count_order_items')} WHERE "orderId" = $1`,
         [order.id],
       );
 
@@ -935,8 +940,8 @@ describe('inventory counting (integration)', () => {
 
       const [change] = await dataSource.query(
         `SELECT c."quantityChanged"
-           FROM inventory_count_order_changes c
-           JOIN inventory_count_order_items i ON i.id = c."itemId"
+           FROM ${t('inventory_count_order_changes')} c
+           JOIN ${t('inventory_count_order_items')} i ON i.id = c."itemId"
           WHERE i."orderId" = $1`,
         [order.id],
       );
@@ -1018,7 +1023,7 @@ describe('inventory counting (integration)', () => {
       });
 
       const [item] = await dataSource.query(
-        'SELECT id FROM inventory_count_order_items WHERE "orderId" = $1',
+        `SELECT id FROM ${t('inventory_count_order_items')} WHERE "orderId" = $1`,
         [order.id],
       );
 
@@ -1039,7 +1044,7 @@ describe('inventory counting (integration)', () => {
       await countService.start(order.id);
 
       const [item] = await dataSource.query(
-        'SELECT id FROM inventory_count_order_items WHERE "orderId" = $1',
+        `SELECT id FROM ${t('inventory_count_order_items')} WHERE "orderId" = $1`,
         [order.id],
       );
 
@@ -1059,7 +1064,7 @@ describe('inventory counting (integration)', () => {
       expect(reset.status).toBe(InventoryCountStatus.COUNTING);
 
       const rows = await dataSource.query(
-        'SELECT "countedQuantity", "isAddition" FROM inventory_count_order_items WHERE "orderId" = $1',
+        `SELECT "countedQuantity", "isAddition" FROM ${t('inventory_count_order_items')} WHERE "orderId" = $1`,
         [order.id],
       );
 

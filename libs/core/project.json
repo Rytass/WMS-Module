@@ -18,9 +18,7 @@
       "executor": "nx:run-commands",
       "outputs": [
         "{projectRoot}/index.cjs.js",
-        "{projectRoot}/index.mjs",
         "{projectRoot}/index.d.ts",
-        "{projectRoot}/index.d.mts",
         "{projectRoot}/lib",
         "{projectRoot}/constants",
         "{projectRoot}/models",
@@ -32,7 +30,7 @@
         "parallel": false,
         "commands": [
           "rollup -c rollup.config.mjs",
-          "node ../../tools/emit-esm-type-shims.mjs . index"
+          "tsc -p tsconfig.lib.json --emitDeclarationOnly"
         ]
       }
     },

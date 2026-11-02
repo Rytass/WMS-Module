@@ -292,4 +292,63 @@ describe('raw list pagination (integration)', () => {
     expect(all).toHaveLength(total);
     expect(total).toBe(ORDERS);
   });
+
+  /*
+   * The aggregated stock list went raw for its computed columns and paged with
+   * skip/take, which TypeORM drops without a word once the builder gains a
+   * join; it also had no ORDER BY, so LIMIT/OFFSET pages could repeat or skip
+   * rows. An aggregated row has no id: the group key is its identity.
+   */
+  it('pages the aggregated stock list', async () => {
+    const material = await dataSource
+      .getRepository<MaterialEntityClass>(entities.material)
+      .save({ key: 'PAGE-AGG-MATERIAL' } as DeepPartial<MaterialEntityClass>);
+
+    for (let index = 0; index < ORDERS; index += 1) {
+      const order = await receiveService.createReceiveInventoryOrder({
+        key: `PAGE-AGG-RCV-${index}`,
+        description: 'aggregated pagination fixture',
+        items: [
+          {
+            serialId: `PAGE-AGG-RCV-${index}-1`,
+            materialKey: 'PAGE-AGG-MATERIAL',
+            batchKey: `PAGE-AGG-BATCH-${index}`,
+            locationKey: 'PAGE-SHELF',
+            targetReceivedQuantity: 1,
+            requireInspection: false,
+          },
+        ],
+      });
+      const [item] = await dataSource
+        .getRepository(receiveService.receiveInventoryOrderItemEntity)
+        .find({ where: { orderId: order.id } });
+
+      await receiveService.receive({
+        itemId: item.id,
+        quantity: 1,
+        batchKey: `PAGE-AGG-BATCH-${index}`,
+        locationKey: 'PAGE-SHELF',
+      });
+    }
+
+    const groupKey = (row: {
+      batchId: string;
+      locationId: string | null;
+      loaderId: string | null;
+      status: string | null;
+    }): string =>
+      [row.batchId, row.locationId, row.loaderId, row.status].join('|');
+
+    expectCleanPages(
+      await collectPages(async (offset) => {
+        const [rows, total] = await stockService.findAggregatedStocks({
+          materialId: material.id,
+          limit: LIMIT,
+          offset,
+        });
+
+        return [rows.map((row) => ({ id: groupKey(row) })), total];
+      }, LIMIT),
+    );
+  });
 });

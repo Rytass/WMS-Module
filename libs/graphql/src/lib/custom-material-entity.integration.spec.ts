@@ -16,6 +16,7 @@ import {
   MaterialService,
   WmsModuleCoreModule,
 } from '@rytass/wms-module-core';
+import { getWmsTablePrefix } from '@rytass/wms-module-core';
 import { WmsModuleGraphqlModule } from './graphql.module';
 import { LoaderService, createWmsLoaders } from './helpers';
 
@@ -35,6 +36,10 @@ import { LoaderService, createWmsLoaders } from './helpers';
  *
  * Requires a reachable PostgreSQL; override with WMS_TEST_DB_* env vars.
  */
+
+/** One of our tables, as it is named under `WMS_TEST_TABLE_PREFIX`. */
+const t = (name: string): string => `"${getWmsTablePrefix()}${name}"`;
+
 const DB_HOST = process.env['WMS_TEST_DB_HOST'] ?? 'localhost';
 const DB_PORT = Number(process.env['WMS_TEST_DB_PORT'] ?? 5432);
 const DB_USER =
@@ -219,9 +224,10 @@ describe('custom material entity (integration)', () => {
     // TypeORM widens a single-table query to the whole subtree, so the built-in
     // class still *finds* these rows. The write side is where it breaks.)
     await expect(
-      dataSource.query('SELECT "entityName" FROM materials WHERE key = $1', [
-        'CME-MAT-A',
-      ]),
+      dataSource.query(
+        `SELECT "entityName" FROM ${t('materials')} WHERE key = $1`,
+        ['CME-MAT-A'],
+      ),
     ).resolves.toEqual([{ entityName: 'TenantMaterialEntity' }]);
   });
 
@@ -296,7 +302,7 @@ describe('custom material entity (integration)', () => {
     expect(data['receive']).toBe(true);
 
     const [{ count }] = await dataSource.query(
-      'SELECT COUNT(*)::int AS count FROM stocks WHERE "materialId" = $1',
+      `SELECT COUNT(*)::int AS count FROM ${t('stocks')} WHERE "materialId" = $1`,
       [material.id],
     );
 
@@ -488,7 +494,7 @@ describe('custom material entity (integration)', () => {
     beforeAll(async () => {
       const builtIn = dataSource.getRepository(MaterialEntityClass);
       const [{ id: unitId }] = await dataSource.query(
-        'SELECT id FROM units LIMIT 1',
+        `SELECT id FROM ${t('units')} LIMIT 1`,
       );
 
       const legacy = await builtIn.save(
@@ -575,9 +581,9 @@ describe('custom material entity (integration)', () => {
       // Clone one of the custom material's stock rows onto the legacy material so
       // the stock exists but its material sits outside the configured entity.
       await dataSource.query(
-        `INSERT INTO stocks ("materialId", "batchId", "locationId", "orderId", quantity, "loaderId", "entityName")
+        `INSERT INTO ${t('stocks')} ("materialId", "batchId", "locationId", "orderId", quantity, "loaderId", "entityName")
          SELECT $1, "batchId", "locationId", "orderId", quantity, "loaderId", "entityName"
-         FROM stocks WHERE "materialId" = $2 LIMIT 1`,
+         FROM ${t('stocks')} WHERE "materialId" = $2 LIMIT 1`,
         [legacyId, material.id],
       );
 
@@ -684,7 +690,10 @@ describe('materialEntity configuration errors', () => {
     class SiblingMaterialEntity extends BaseMaterialEntity {}
 
     await expect(
-      bootWith(SiblingMaterialEntity as unknown as new () => MaterialEntityClass, true),
+      bootWith(
+        SiblingMaterialEntity as unknown as new () => MaterialEntityClass,
+        true,
+      ),
     ).rejects.toThrow(/must extend MaterialEntityClass/);
   });
 

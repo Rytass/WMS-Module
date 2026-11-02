@@ -31,6 +31,35 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
 import { WmsEntities } from '../models/wms-entities';
+import { quotedTablePathOf } from '../utils/table-path';
+import { runInTransaction } from '../utils/run-in-transaction';
+
+/**
+ * What an item still has reserved and not yet executed, in base units.
+ *
+ * An item's change rows are one positive row written at reservation
+ * (`+target`) and one negative row per execution or cancellation (`-qty`).
+ * The pending quantity is therefore the target plus the negative rows only.
+ * Summing every row instead -- what cancel and remove used to do -- counts
+ * the reservation row against itself and yields the quantity already
+ * *executed*: zero straight after reservation, so a reservation that never
+ * executed could be neither cancelled nor released (#183).
+ */
+const pendingBaseQuantity = (
+  item: Pick<
+    TransferOrderItemEntityClass,
+    'targetTransferredQuantity' | 'changes'
+  >,
+  conversionFactor: number,
+): number =>
+  item.targetTransferredQuantity * conversionFactor +
+  item.changes.reduce(
+    (sum, change) =>
+      Number(change.quantityChanged) < 0
+        ? sum + Number(change.quantityChanged)
+        : sum,
+    0,
+  );
 
 @Injectable()
 export class TransferOrderService<
@@ -82,82 +111,93 @@ export class TransferOrderService<
     repos: ReturnType<typeof this.getRepositories>,
     manager: EntityManager,
   ): Promise<void> {
-    await Promise.all(
-      items.map(async (data) => {
-        // Ensure required fields are present
-        if (!data.batchId || !data.materialId) return;
+    // One item at a time. Run concurrently, two items of one batch both split
+    // before either saved (two in-transfer children, #186), and two items
+    // drawing on one stock row both passed the availability check before either
+    // deducted.
+    // Every (material, batch) this call deducts from, locked up front in a
+    // fixed order so overlapping operations cannot deadlock each other.
+    await this.stockService.lockStockSlots(items, manager);
+    for (const data of items) {
+      // Ensure required fields are present
+      if (!data.batchId || !data.materialId) continue;
 
-        // Save item with ORIGINAL batch id to maintain source state
-        const item = await repos.transferOrderItem.save(
-          repos.transferOrderItem.create(data),
-        );
-        // Split batch first with inTransfer flag to track transfer state
-        const splittedBatch = await this.batchService.splitBatch({
-          id: data.batchId,
-          transferId: item.orderId,
-          manager,
-        });
+      // Save item with ORIGINAL batch id to maintain source state
+      const item = await repos.transferOrderItem.save(
+        repos.transferOrderItem.create(data),
+      );
+      // Split batch first with inTransfer flag to track transfer state
+      const splittedBatch = await this.batchService.splitBatch({
+        id: data.batchId,
+        transferId: item.orderId,
+        manager,
+      });
 
-        const base = await repos.order.save({});
-        const conversionFactor = await this.materialService.getConversionFactor(
-          item.materialId,
-          item.unitId || undefined,
-        );
+      const base = await repos.order.save({});
+      const conversionFactor = await this.materialService.getConversionFactor(
+        item.materialId,
+        item.unitId || undefined,
+        manager,
+      );
 
-        await repos.transferOrderChange.save(
-          repos.transferOrderChange.create({
-            itemId: item.id,
-            id: base.id,
-            quantityChanged: item.targetTransferredQuantity * conversionFactor,
-          }),
-        );
+      await repos.transferOrderChange.save(
+        repos.transferOrderChange.create({
+          itemId: item.id,
+          id: base.id,
+          quantityChanged: item.targetTransferredQuantity * conversionFactor,
+        }),
+      );
 
-        // Stock movements track the transfer through splitted batch
-        await this.stockService.validateStockAvailability(
+      // Stock movements track the transfer through splitted batch
+      await this.stockService.validateStockAvailability(
+        {
+          materialId: item.materialId,
+          batchId: item.batchId,
+          locationId: this.stockService.resolveLocationId(item.locationId),
+          loaderId: this.stockService.resolveLoaderId(item.loaderId),
+          quantity: item.targetTransferredQuantity * conversionFactor,
+        },
+        manager,
+      );
+
+      await repos.stock.save(
+        repos.stock.create([
+          // deduct from original batch source
           {
+            orderId: base.id,
             materialId: item.materialId,
-            batchId: item.batchId,
+            batchId: item.batchId, // original batch
+            locationId: this.stockService.resolveLocationId(item.locationId),
+            loaderId: this.stockService.resolveLoaderId(item.loaderId),
+            quantity: -1 * item.targetTransferredQuantity * conversionFactor,
+          } as DeepPartial<StockEntityClass>,
+          // add to splitted batch in transfer state
+          {
+            orderId: base.id,
+            materialId: item.materialId,
+            batchId: splittedBatch.id, // splitted batch marked inTransfer
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: item.targetTransferredQuantity * conversionFactor,
-          },
-          manager,
-        );
-
-        await repos.stock.save(
-          repos.stock.create([
-            // deduct from original batch source
-            {
-              orderId: base.id,
-              materialId: item.materialId,
-              batchId: item.batchId, // original batch
-              locationId: this.stockService.resolveLocationId(item.locationId),
-              loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetTransferredQuantity * conversionFactor,
-            } as DeepPartial<StockEntityClass>,
-            // add to splitted batch in transfer state
-            {
-              orderId: base.id,
-              materialId: item.materialId,
-              batchId: splittedBatch.id, // splitted batch marked inTransfer
-              locationId: this.stockService.resolveLocationId(item.locationId),
-              loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetTransferredQuantity * conversionFactor,
-            } as DeepPartial<StockEntityClass>,
-          ]),
-        );
-      }),
-    );
+          } as DeepPartial<StockEntityClass>,
+        ]),
+      );
+    }
   }
 
   async cancelTransfer(
     options: CancelTransferOrderInput[] | CancelTransferOrderInput,
+    manager?: EntityManager,
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
-    return this.dataSource.transaction(async (transactionManager) => {
-      await this.cancelTransferInternal(options, transactionManager);
-      return true;
-    });
+    return runInTransaction(
+      this.dataSource,
+      manager,
+      async (transactionManager) => {
+        await this.cancelTransferInternal(options, transactionManager);
+        return true;
+      },
+    );
   }
 
   /**
@@ -175,29 +215,29 @@ export class TransferOrderService<
 
     const itemMap = new Map(items.map((item) => [item.id, item]));
 
+    // Source (material, batch) locks first, in a fixed order, before any
+
+    // batch-group lock a split takes -- the same order every path uses.
+
+    await this.stockService.lockStockSlots(items, manager);
+
     // Whole-loader transfer cancel validation (Phase 2d-sync).
     // For each whole-loader item in the REQUEST, the cancel qty must equal the
-    // item's remaining cancellable (= sumPos - sumNeg). Partial cancel of a
+    // item's pending quantity (target minus what was executed or cancelled). Partial cancel of a
     // whole-loader item is forbidden — they cancel atomically or not at all.
     // Decant items in the same order can be partially cancelled independently.
     for (const option of options) {
       const item = itemMap.get(option.itemId);
       if (!item || !item.loaderId || !item.targetLoaderId) continue;
-      if (item.loaderId !== item.targetLoaderId) continue;   // not whole-loader
+      if (item.loaderId !== item.targetLoaderId) continue; // not whole-loader
       const factor = await this.materialService.getConversionFactor(
         item.materialId,
         item.unitId || undefined,
+        manager,
       );
-      const totalChanged = item.changes.reduce(
-        (sum, c) => sum + Number(c.quantityChanged),
-        0,
-      );
-      const remainingBase =
-        item.targetTransferredQuantity * factor - totalChanged;
+      const remainingBase = pendingBaseQuantity(item, factor);
       const cancelQtyBase =
-        option.quantity != null
-          ? option.quantity * factor
-          : remainingBase;
+        option.quantity != null ? option.quantity * factor : remainingBase;
       if (cancelQtyBase !== remainingBase) {
         throw new Error(
           `Whole-loader item must be cancelled atomically (item=${item.id}, thisCall=${cancelQtyBase}, remaining=${remainingBase})`,
@@ -205,23 +245,18 @@ export class TransferOrderService<
       }
     }
 
-    await Promise.all(
-      options.map(async (option) => {
+    for (const option of options) {
+      await (async () => {
         const item = itemMap.get(option.itemId);
         if (!item) return;
 
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
-        const totalChanged = item.changes.reduce(
-          (sum, change) => sum + Number(change.quantityChanged),
-          0,
-        );
-
-        const remainingQuantity =
-          conversionFactor * item.targetTransferredQuantity - totalChanged;
+        const remainingQuantity = pendingBaseQuantity(item, conversionFactor);
 
         // If quantity not provided, cancel all remaining cancellable quantity
         const cancelQuantity =
@@ -294,16 +329,19 @@ export class TransferOrderService<
             ]),
           ),
         ]);
-      }),
-    );
+      })();
+    }
   }
 
   /**
    * Remove a transfer order
    * Automatically cancels all remaining pending transfers to release stock
    */
-  async removeTransferOrder(id: string): Promise<boolean> {
-    return this.dataSource.transaction(async (manager) => {
+  async removeTransferOrder(
+    id: string,
+    outerManager?: EntityManager,
+  ): Promise<boolean> {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
 
       // Find order
@@ -322,15 +360,10 @@ export class TransferOrderService<
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
-        const totalChanged = item.changes.reduce(
-          (sum, change) => sum + Number(change.quantityChanged),
-          0,
-        );
-
-        const remainingQuantity =
-          conversionFactor * item.targetTransferredQuantity - totalChanged;
+        const remainingQuantity = pendingBaseQuantity(item, conversionFactor);
 
         if (remainingQuantity > 0) {
           // Use base quantity (without conversion) since cancelTransferInternal will apply conversion
@@ -354,7 +387,16 @@ export class TransferOrderService<
 
   async createTransferOrder(
     options: CreateTransferOrderInput,
-    manager = this.dataSource.manager,
+    outerManager?: EntityManager,
+  ): Promise<T> {
+    return runInTransaction(this.dataSource, outerManager, (manager) =>
+      this.createTransferOrderInternal(options, manager),
+    );
+  }
+
+  private async createTransferOrderInternal(
+    options: CreateTransferOrderInput,
+    manager: EntityManager,
   ): Promise<T> {
     const repos = this.getRepositories(manager);
     const { items, ...orderOptions } = options;
@@ -373,9 +415,10 @@ export class TransferOrderService<
       }
 
       for (const srcLoaderId of wholeLoaderSourceIds) {
-        const [aggRows] = await this.stockService.findAggregatedStocks({
-          loaderId: srcLoaderId,
-        });
+        const [aggRows] = await this.stockService.findAggregatedStocks(
+          { loaderId: srcLoaderId },
+          manager,
+        );
         // Gate 1
         const nonFree = aggRows.filter((r) => r.status !== StockStatus.FREE);
         if (nonFree.length > 0) {
@@ -397,16 +440,15 @@ export class TransferOrderService<
             // Runtime callers augment items with materialId/batchId/unitId beyond
             // the public CreateTransferOrderItemInput shape (see processTransferOrderItems
             // which expects Partial<TransferOrderItemEntityClass>); access via cast.
-            const itemFull =
-              item as Partial<TransferOrderItemEntityClass> &
-                typeof item;
+            const itemFull = item as Partial<TransferOrderItemEntityClass> &
+              typeof item;
             if (!itemFull.materialId) continue;
             const factor = await this.materialService.getConversionFactor(
               itemFull.materialId,
               itemFull.unitId || undefined,
+              manager,
             );
-            subTotalQty +=
-              Number(item.targetTransferredQuantity) * factor;
+            subTotalQty += Number(item.targetTransferredQuantity) * factor;
           }
         }
         if (subTotalQty !== loaderTotalQty) {
@@ -440,10 +482,18 @@ export class TransferOrderService<
   }
 
   async updateTransferOrder({
-    id,
-    manager = this.dataSource.manager,
-    ...options
+    manager: outerManager,
+    ...input
   }: UpdateTransferOrderInput & { manager?: EntityManager }): Promise<T> {
+    return runInTransaction(this.dataSource, outerManager, (manager) =>
+      this.updateTransferOrderInternal(input, manager),
+    );
+  }
+
+  private async updateTransferOrderInternal(
+    { id, ...options }: UpdateTransferOrderInput,
+    manager: EntityManager,
+  ): Promise<T> {
     const repos = this.getRepositories(manager);
     const { items, ...orderOptions } = options;
 
@@ -557,8 +607,8 @@ export class TransferOrderService<
     if (options.materialKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM transfer_order_items to_mat_items
-          INNER JOIN materials to_mat ON to_mat.id = to_mat_items."materialId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.transferOrderItemEntity)} to_mat_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.material)} to_mat ON to_mat.id = to_mat_items."materialId"
           WHERE to_mat_items."orderId" = to.id
           AND to_mat.key ILIKE :materialKey
         )`,
@@ -568,8 +618,8 @@ export class TransferOrderService<
     if (options.batchKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM transfer_order_items to_batch_items
-          INNER JOIN batches to_batch ON to_batch.id = to_batch_items."batchId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.transferOrderItemEntity)} to_batch_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.batch)} to_batch ON to_batch.id = to_batch_items."batchId"
           WHERE to_batch_items."orderId" = to.id
           AND to_batch.key ILIKE :batchKey
         )`,
@@ -579,8 +629,8 @@ export class TransferOrderService<
     if (options.locationKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM transfer_order_items to_loc_items
-          INNER JOIN locations to_loc ON to_loc.id = to_loc_items."locationId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.transferOrderItemEntity)} to_loc_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.location)} to_loc ON to_loc.id = to_loc_items."locationId"
           WHERE to_loc_items."orderId" = to.id
           AND to_loc.key ILIKE :locationKey
         )`,
@@ -590,8 +640,8 @@ export class TransferOrderService<
     if (options.loaderKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM transfer_order_items to_ldr_items
-          INNER JOIN loaders to_ldr ON to_ldr.id = to_ldr_items."loaderId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.transferOrderItemEntity)} to_ldr_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, LoadersEntityClass)} to_ldr ON to_ldr.id = to_ldr_items."loaderId"
           WHERE to_ldr_items."orderId" = to.id
           AND to_ldr."serialId" ILIKE :loaderKey
         )`,
@@ -601,8 +651,8 @@ export class TransferOrderService<
     if (options.targetLocationKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM transfer_order_items to_tgt_loc_items
-          INNER JOIN locations to_tgt_loc ON to_tgt_loc.id = to_tgt_loc_items."targetLocationId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.transferOrderItemEntity)} to_tgt_loc_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, this.entities.location)} to_tgt_loc ON to_tgt_loc.id = to_tgt_loc_items."targetLocationId"
           WHERE to_tgt_loc_items."orderId" = to.id
           AND to_tgt_loc.key ILIKE :targetLocationKey
         )`,
@@ -612,8 +662,8 @@ export class TransferOrderService<
     if (options.targetLoaderKey)
       queryBuilder.andWhere(
         `EXISTS (
-          SELECT 1 FROM transfer_order_items to_tgt_ldr_items
-          INNER JOIN loaders to_tgt_ldr ON to_tgt_ldr.id = to_tgt_ldr_items."targetLoaderId"
+          SELECT 1 FROM ${quotedTablePathOf(this.dataSource, this.transferOrderItemEntity)} to_tgt_ldr_items
+          INNER JOIN ${quotedTablePathOf(this.dataSource, LoadersEntityClass)} to_tgt_ldr ON to_tgt_ldr.id = to_tgt_ldr_items."targetLoaderId"
           WHERE to_tgt_ldr_items."orderId" = to.id
           AND to_tgt_ldr."serialId" ILIKE :targetLoaderKey
         )`,
@@ -631,9 +681,10 @@ export class TransferOrderService<
 
   transfer(
     options: TransferOrderInput[] | TransferOrderInput,
+    outerManager?: EntityManager,
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
-    return this.dataSource.transaction(async (manager) => {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const changeRepository = manager.getRepository(
         TransferOrderChangeEntityClass,
       );
@@ -651,6 +702,12 @@ export class TransferOrderService<
       });
 
       const itemMap = new Map(items.map((item) => [item.id, item]));
+
+      // Source (material, batch) locks first, in a fixed order, before any
+
+      // batch-group lock a split takes -- the same order every path uses.
+
+      await this.stockService.lockStockSlots(items, manager);
       const inputMap = new Map(options.map((o) => [o.itemId, o]));
 
       // Whole-loader transfer commit validation (Phase 2d-sync).
@@ -686,18 +743,21 @@ export class TransferOrderService<
           const factor = await this.materialService.getConversionFactor(
             orderItem.materialId,
             orderItem.unitId || undefined,
+            manager,
           );
           const targetBase = orderItem.targetTransferredQuantity * factor;
           const alreadyTransferred = orderItem.changes.reduce(
             (sum, c) =>
-              c.quantityChanged < 0 ? sum + Math.abs(Number(c.quantityChanged)) : sum,
+              c.quantityChanged < 0
+                ? sum + Math.abs(Number(c.quantityChanged))
+                : sum,
             0,
           );
-          if (alreadyTransferred >= targetBase) continue;   // already fully transferred (committed or cancelled)
+          if (alreadyTransferred >= targetBase) continue; // already fully transferred (committed or cancelled)
           const inputOpt = inputMap.get(orderItem.id);
           if (inputOpt) {
             const inputBase = inputOpt.quantity * factor;
-            if (alreadyTransferred + inputBase === targetBase) continue;   // this request completes it
+            if (alreadyTransferred + inputBase === targetBase) continue; // this request completes it
           }
           throw new Error(
             `Whole-loader item must be fully transferred first (item=${orderItem.id}, target=${targetBase}, alreadyTransferred=${alreadyTransferred})`,
@@ -714,6 +774,7 @@ export class TransferOrderService<
           const factor = await this.materialService.getConversionFactor(
             item.materialId,
             item.unitId || undefined,
+            manager,
           );
           wholeLoaderGroupSums.set(
             item.loaderId,
@@ -723,9 +784,10 @@ export class TransferOrderService<
         }
       }
       for (const [srcLoaderId, subTotalQty] of wholeLoaderGroupSums) {
-        const [aggRows] = await this.stockService.findAggregatedStocks({
-          loaderId: srcLoaderId,
-        });
+        const [aggRows] = await this.stockService.findAggregatedStocks(
+          { loaderId: srcLoaderId },
+          manager,
+        );
         const loaderTotalQty = aggRows.reduce(
           (s, r) => s + Number(r.quantity),
           0,
@@ -737,8 +799,8 @@ export class TransferOrderService<
         }
       }
 
-      await Promise.all(
-        options.map(async (option) => {
+      for (const option of options) {
+        await (async () => {
           const item = itemMap.get(option.itemId);
           if (!item) return;
 
@@ -746,6 +808,7 @@ export class TransferOrderService<
             await this.materialService.getConversionFactor(
               item.materialId,
               item.unitId || undefined,
+              manager,
             );
 
           const totalTransferred = item.changes.reduce((sum, change) => {
@@ -775,7 +838,9 @@ export class TransferOrderService<
           });
 
           // Record the transfer change
-          const base = await manager.getRepository(this.entities.order).save({});
+          const base = await manager
+            .getRepository(this.entities.order)
+            .save({});
 
           // Availability check at the IN_TRANSFER coord — must have ≥ qty to drain
           await this.stockService.validateStockAvailability(
@@ -840,8 +905,8 @@ export class TransferOrderService<
                 locationId: item.targetLocationId,
               } as DeepPartial<LoadersEntityClass>);
           }
-        }),
-      );
+        })();
+      }
 
       return true;
     });

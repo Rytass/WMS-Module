@@ -5,6 +5,12 @@ import {
   type EntitySubscriberInterface,
   type InsertEvent,
 } from 'typeorm';
+import {
+  InventoryCountOrderEntityClass,
+  InventoryCountOrderLocationEntityClass,
+} from '../models/extensions/inventory-count-order/inventory-count-order.entity';
+import { wmsOwnedLogicalTableName } from '../table-prefix/table-prefix';
+import { quotedTablePathOf } from '../utils/table-path';
 
 /** The count's own settlement writes here; it must never lock itself out. */
 const INVENTORY_COUNT_CHANGE_TABLE = 'inventory_count_order_changes';
@@ -72,10 +78,15 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
   }
 
   async beforeInsert(event: InsertEvent<unknown>): Promise<void> {
-    const tableName = event.metadata.tableName;
+    // Our tables by class identity and declared name, so the check survives a
+    // table prefix. A host's own order family is covered on purpose, by the
+    // `_order_changes` suffix of the name it actually has; only our count's
+    // own change table -- recognised as ours, not by name -- is exempt.
+    const ownedTableName = wmsOwnedLogicalTableName(event.metadata);
+    const tableName = ownedTableName ?? event.metadata.tableName;
 
     if (
-      tableName === INVENTORY_COUNT_CHANGE_TABLE ||
+      ownedTableName === INVENTORY_COUNT_CHANGE_TABLE ||
       !tableName.endsWith('_order_changes')
     ) {
       return;
@@ -92,8 +103,8 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
 
     const locks: LockRow[] = await event.manager.query(
       `SELECT o."key", l."locationId"
-         FROM inventory_count_order_locations l
-         JOIN inventory_count_orders o ON o.id = l."orderId"
+         FROM ${quotedTablePathOf(event.connection, InventoryCountOrderLocationEntityClass)} l
+         JOIN ${quotedTablePathOf(event.connection, InventoryCountOrderEntityClass)} o ON o.id = l."orderId"
         WHERE l."locationId" = ANY($1)
           AND o.status = 'COUNTING'
         LIMIT 1`,
