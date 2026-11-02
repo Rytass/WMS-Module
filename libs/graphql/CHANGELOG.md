@@ -1,3 +1,30 @@
+## 0.12.0 (2026-11-02)
+
+### 🩹 Fixes
+
+- ⚠️  **core:** refuse a stock lock that cannot protect the deduction ([c2b3fdc0](https://github.com/Rytass/WMS-Module/commit/c2b3fdc0))
+- **graphql:** ship CommonJS only, so the package cannot be loaded twice ([40c18bed](https://github.com/Rytass/WMS-Module/commit/40c18bed))
+- **core:** paginate the raw receive, ship and change-history lists with offset/limit ([729bde7a](https://github.com/Rytass/WMS-Module/commit/729bde7a))
+- **core,graphql:** harden inventory counting — lock both ends, one transaction per call, createdBy ([b322cac1](https://github.com/Rytass/WMS-Module/commit/b322cac1))
+
+### ⚠️  Breaking Changes
+
+- **core:** refuse a stock lock that cannot protect the deduction  ([c2b3fdc0](https://github.com/Rytass/WMS-Module/commit/c2b3fdc0))
+  StockService.validateStockAvailability and lockStockSlots
+  require an EntityManager inside an active transaction.
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.10.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Fable 5.1
+- Claude Opus 5 (1M context)
+- Claude Opus 5.5
+- MarshallChiang
+
 ## 0.11.1 (2026-09-05)
 
 ### 🩹 Fixes
