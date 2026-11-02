@@ -1,3 +1,41 @@
+## 0.10.0 (2026-11-02)
+
+### 🚀 Features
+
+- **core:** export the service input types ([fc43ce06](https://github.com/Rytass/WMS-Module/commit/fc43ce06))
+- **core:** add table prefix, counter service and host startup options ([#185](https://github.com/Rytass/WMS-Module/issues/185))
+- **core:** add runInTransaction and metadata-backed table paths ([be1ea53f](https://github.com/Rytass/WMS-Module/commit/be1ea53f))
+
+### 🩹 Fixes
+
+- **core:** page aggregated stocks with offset/limit and a total order ([52174dd5](https://github.com/Rytass/WMS-Module/commit/52174dd5))
+- **core:** recognise WMS change tables by class identity, not by name ([c2427498](https://github.com/Rytass/WMS-Module/commit/c2427498))
+- **core:** probe a sequence on a second connection only on first use ([e069def3](https://github.com/Rytass/WMS-Module/commit/e069def3))
+- **core:** serialise splitBatch on its batch group ([5dbf0a0a](https://github.com/Rytass/WMS-Module/commit/5dbf0a0a))
+- ⚠️  **core:** refuse a stock lock that cannot protect the deduction ([c2b3fdc0](https://github.com/Rytass/WMS-Module/commit/c2b3fdc0))
+- **core:** lock every source batch before a multi-line consumption or merge ([d3f82c9a](https://github.com/Rytass/WMS-Module/commit/d3f82c9a))
+- ⚠️  **core:** take the caller's EntityManager in every write and lock deductions ([#186](https://github.com/Rytass/WMS-Module/issues/186), [#183](https://github.com/Rytass/WMS-Module/issues/183), [#184](https://github.com/Rytass/WMS-Module/issues/184))
+- **core:** ship CommonJS only, so the package cannot be loaded twice ([14404b3f](https://github.com/Rytass/WMS-Module/commit/14404b3f))
+- **core:** paginate the raw receive, ship and change-history lists with offset/limit ([729bde7a](https://github.com/Rytass/WMS-Module/commit/729bde7a))
+- **core,graphql:** harden inventory counting — lock both ends, one transaction per call, createdBy ([b322cac1](https://github.com/Rytass/WMS-Module/commit/b322cac1))
+
+### ⚠️  Breaking Changes
+
+- **core:** refuse a stock lock that cannot protect the deduction  ([c2b3fdc0](https://github.com/Rytass/WMS-Module/commit/c2b3fdc0))
+  StockService.validateStockAvailability and lockStockSlots
+  require an EntityManager inside an active transaction.
+- **core:** take the caller's EntityManager in every write and lock deductions  ([#186](https://github.com/Rytass/WMS-Module/issues/186), [#183](https://github.com/Rytass/WMS-Module/issues/183), [#184](https://github.com/Rytass/WMS-Module/issues/184))
+  Receiving with requireInspection false leaves inspectionResult
+  null unless the caller passes one.
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Fable 5.1
+- Claude Opus 5 (1M context)
+- Claude Opus 5.5
+- MarshallChiang
+
 ## 0.9.1 (2026-09-05)
 
 ### 🩹 Fixes
