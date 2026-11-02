@@ -9,7 +9,7 @@ import {
   InventoryCountOrderEntityClass,
   InventoryCountOrderLocationEntityClass,
 } from '../models/extensions/inventory-count-order/inventory-count-order.entity';
-import { wmsLogicalTableName } from '../table-prefix/logical-table-name';
+import { wmsOwnedLogicalTableName } from '../table-prefix/table-prefix';
 import { quotedTablePathOf } from '../utils/table-path';
 
 /** The count's own settlement writes here; it must never lock itself out. */
@@ -78,12 +78,15 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
   }
 
   async beforeInsert(event: InsertEvent<unknown>): Promise<void> {
-    // Our tables by their declared name, so the check survives a table prefix;
-    // a host's own change table is never prefixed and comes back unchanged.
-    const tableName = wmsLogicalTableName(event.metadata.tableName);
+    // Our tables by class identity and declared name, so the check survives a
+    // table prefix. A host's own order family is covered on purpose, by the
+    // `_order_changes` suffix of the name it actually has; only our count's
+    // own change table -- recognised as ours, not by name -- is exempt.
+    const ownedTableName = wmsOwnedLogicalTableName(event.metadata);
+    const tableName = ownedTableName ?? event.metadata.tableName;
 
     if (
-      tableName === INVENTORY_COUNT_CHANGE_TABLE ||
+      ownedTableName === INVENTORY_COUNT_CHANGE_TABLE ||
       !tableName.endsWith('_order_changes')
     ) {
       return;

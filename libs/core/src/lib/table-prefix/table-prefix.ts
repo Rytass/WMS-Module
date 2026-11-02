@@ -187,4 +187,23 @@ export const withWmsTablePrefix = <T extends object>(
   return options;
 };
 
+/**
+ * The name one of **our** tables was declared with, or `null` when the
+ * metadata belongs to someone else's entity. Decided by class identity
+ * (the entity or any class it inherits from), never by the table name: a host
+ * table that happens to be called `transfer_order_changes` is not ours.
+ */
+export const wmsOwnedLogicalTableName = (metadata: {
+  readonly target: unknown;
+  readonly inheritanceTree?: readonly unknown[];
+  readonly tableName: string;
+}): string | null => {
+  const owned = ownedEntityClasses();
+  const isOwned =
+    owned.has(metadata.target) ||
+    (metadata.inheritanceTree ?? []).some((cls) => owned.has(cls));
+
+  return isOwned ? wmsLogicalTableName(metadata.tableName) : null;
+};
+
 export { getWmsTablePrefix, wmsLogicalTableName };
