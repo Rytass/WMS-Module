@@ -6,7 +6,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Client } from 'pg';
 import { DataSource, Logger as TypeOrmLogger } from 'typeorm';
 import { ExecutionResult, GraphQLSchema, graphql } from 'graphql';
-import { LocationEntityClass } from '@rytass/wms-module-core';
+import {
+  LocationEntityClass,
+  getWmsTablePrefix,
+} from '@rytass/wms-module-core';
 import { WmsModuleGraphqlModule } from '../graphql.module';
 import { LoaderService, createWmsLoaders } from '../helpers';
 
@@ -208,9 +211,10 @@ describe('LocationDto.children (integration)', () => {
     // Keys are unique, so a previous run's fixtures have to go. Parents and
     // children disappear in one statement — PostgreSQL evaluates the self
     // referencing FK after the statement completes.
-    await dataSource.query('DELETE FROM locations WHERE "key" LIKE $1', [
-      `${KEY_PREFIX}-%`,
-    ]);
+    await dataSource.query(
+      `DELETE FROM "${getWmsTablePrefix()}locations" WHERE "key" LIKE $1`,
+      [`${KEY_PREFIX}-%`],
+    );
   });
 
   afterAll(async () => {

@@ -15,6 +15,7 @@ import {
   StockEntityClass,
   WmsEntities,
 } from '@rytass/wms-module-core';
+import { getWmsTablePrefix } from '@rytass/wms-module-core';
 import { WmsModuleGraphqlModule } from './graphql.module';
 import { LoaderService, createWmsLoaders } from './helpers';
 
@@ -131,7 +132,7 @@ describe('every overridable entity (integration)', () => {
   /** The distinct `entityName` values a table holds, ignoring rows with none. */
   const discriminators = async (table: string): Promise<string[]> => {
     const rows: { entityName: string | null }[] = await dataSource.query(
-      `SELECT DISTINCT "entityName" FROM ${table}`,
+      `SELECT DISTINCT "entityName" FROM "${getWmsTablePrefix()}${table}"`,
     );
 
     return rows
@@ -226,13 +227,16 @@ describe('every overridable entity (integration)', () => {
   });
 
   it('runs the receive flow end to end on the overrides', async () => {
-    const location = (await executeOrFail(`
+    const location = (
+      await executeOrFail(`
       mutation {
         createLocation(key: "CE-LOC-1", description: "zone one") { id key }
       }
-    `))['createLocation'] as { readonly id: string; readonly key: string };
+    `)
+    )['createLocation'] as { readonly id: string; readonly key: string };
 
-    const material = (await executeOrFail(`
+    const material = (
+      await executeOrFail(`
       mutation {
         createMaterial(
           key: "CE-MAT-1"
@@ -241,9 +245,11 @@ describe('every overridable entity (integration)', () => {
           units: []
         ) { id key }
       }
-    `))['createMaterial'] as { readonly id: string };
+    `)
+    )['createMaterial'] as { readonly id: string };
 
-    const order = (await executeOrFail(`
+    const order = (
+      await executeOrFail(`
       mutation {
         createReceiveInventoryOrder(
           key: "CE-RO-1"
@@ -258,7 +264,8 @@ describe('every overridable entity (integration)', () => {
           }]
         ) { id items { id material { id key } location { id key } } }
       }
-    `))['createReceiveInventoryOrder'] as {
+    `)
+    )['createReceiveInventoryOrder'] as {
       readonly items: readonly {
         readonly id: string;
         readonly material: { readonly id: string };
@@ -278,14 +285,16 @@ describe('every overridable entity (integration)', () => {
 
     expect(received['receive']).toBe(true);
 
-    const stocks = (await executeOrFail(`
+    const stocks = (
+      await executeOrFail(`
       query {
         stocks(materialKey: "CE-MAT-1", offset: 0, limit: 100) {
           total
           items { id quantity material { id key } location { id key } batch { id key } }
         }
       }
-    `))['stocks'] as {
+    `)
+    )['stocks'] as {
       readonly total: number;
       readonly items: readonly {
         readonly material: { readonly key: string };
