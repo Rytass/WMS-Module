@@ -167,6 +167,49 @@ The regression guards are `libs/graphql/src/lib/custom-material-entity.integrati
 
 Consequence: the module **cannot** register a consumer's entity with TypeORM — `forFeature()` runs before the options resolve. `WmsEntities`' constructor checks `dataSource.hasMetadata` for all six and throws instead, because forgetting to register almost works (TypeORM copies a single-table child's columns into the parent, so `synchronize` still builds the right schema) and would otherwise surface as a bare `EntityMetadataNotFoundError` from inside a resolver.
 
+#### Every write method takes the caller's `EntityManager`, and uses nothing else
+
+A host puts WMS movements in its own transaction (stock + its outbox + its document
+status, one commit). So every public method that writes `stocks` or a `*_order_changes`
+row takes an optional manager — trailing argument, or `manager` in the options object
+where one already existed — and wraps its body in `runInTransaction(dataSource, manager,
+work)` (`libs/core/src/lib/utils`). Inside `work`, **every** read and write goes through
+the manager it is handed: an injected repository, `this.dataSource`, or a call into
+another service without passing `manager` runs on a second connection, outside the
+caller's transaction — and once that transaction holds a stock lock, the second
+connection waits on it forever. The guard is the parameterised rollback suite in
+`host-service-layer.integration.spec.ts`: a leaked write survives the outer rollback.
+
+#### Deductions lock (material, batch); items are processed one at a time
+
+`validateStockAvailability` takes `pg_advisory_xact_lock` on the (material, batch) before
+it sums, and multi-line operations call `StockService.lockStockSlots(items, manager)` up
+front (deduplicated, sorted). Coarser than a slot on purpose: the check names location
+and loader only when the caller does. It assumes READ COMMITTED. Never process an order's
+items with `Promise.all`: two items of one batch both split before either saved (#186)
+and both passed the availability check before either deducted. `splitBatch` also locks
+the batch group; take stock locks **before** a split, never after, or two paths acquire
+the pair in opposite orders.
+
+#### Table names are reached through metadata; the prefix follows class identity
+
+`withWmsTablePrefix(options, 'wms_')` (`libs/core/src/lib/table-prefix`) rewrites the
+TypeORM metadata args of **our** entity classes before a `DataSource` initialises: table
+names, string relation targets, explicit constraint names. Consequences: raw SQL and
+QueryBuilder `.from()` / `.join()` must take the table from entity metadata, never a
+string literal (a literal silently reads the unprefixed — possibly the host's — table);
+subscribers compare `wmsLogicalTableName(metadata.tableName)`; and a **new entity must be
+added to the `entities` list in `models.module.ts`** (which feeds
+`WMS_MODULE_ENTITY_CLASSES`), or it stays unprefixed. Never match WMS tables by name: a
+host can declare `class LocationEntity` on `locations`, exactly as base does.
+
+#### Counters go through `WmsSequenceService`
+
+Order keys and loader serials are reserved by `WmsSequenceService.reserve`, never by
+`CURRVAL` (per session — pooled connections reissued serials, and probing for a missing
+sequence aborted the caller's transaction, #185). `sequenceStorage: 'table'` counts in
+the `sequences` table with one `INSERT … ON CONFLICT … RETURNING` and runs no DDL.
+
 #### A raw list query paginates with `offset`/`limit`, never `skip`/`take`
 
 `skip`/`take` are entity-mode pagination. On a `getRawMany()` query TypeORM only turns them
@@ -242,6 +285,9 @@ keep showing what the world looked like at the time.
 
 Consequences:
 
+- **`requireInspection: false` means "no inspection state", not "passed".** The receipt
+  lands on the batch the caller named, unsplit (#184). Receiving already-inspected goods
+  is an explicit `inspectionResult: true`, which still splits.
 - **`requireInspection` defaults to `true`**, so this is the ordinary receive path, not an
   edge case. Splitting unconditionally moved *every* default receipt off the batch key the
   caller asked for and onto a synthetic child, which an exact-id lookup then could not find.
