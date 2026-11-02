@@ -5,6 +5,12 @@ import {
   type EntitySubscriberInterface,
   type InsertEvent,
 } from 'typeorm';
+import {
+  InventoryCountOrderEntityClass,
+  InventoryCountOrderLocationEntityClass,
+} from '../models/extensions/inventory-count-order/inventory-count-order.entity';
+import { wmsLogicalTableName } from '../table-prefix/logical-table-name';
+import { quotedTablePathOf } from '../utils/table-path';
 
 /** The count's own settlement writes here; it must never lock itself out. */
 const INVENTORY_COUNT_CHANGE_TABLE = 'inventory_count_order_changes';
@@ -72,7 +78,9 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
   }
 
   async beforeInsert(event: InsertEvent<unknown>): Promise<void> {
-    const tableName = event.metadata.tableName;
+    // Our tables by their declared name, so the check survives a table prefix;
+    // a host's own change table is never prefixed and comes back unchanged.
+    const tableName = wmsLogicalTableName(event.metadata.tableName);
 
     if (
       tableName === INVENTORY_COUNT_CHANGE_TABLE ||
@@ -92,8 +100,8 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
 
     const locks: LockRow[] = await event.manager.query(
       `SELECT o."key", l."locationId"
-         FROM inventory_count_order_locations l
-         JOIN inventory_count_orders o ON o.id = l."orderId"
+         FROM ${quotedTablePathOf(event.connection, InventoryCountOrderLocationEntityClass)} l
+         JOIN ${quotedTablePathOf(event.connection, InventoryCountOrderEntityClass)} o ON o.id = l."orderId"
         WHERE l."locationId" = ANY($1)
           AND o.status = 'COUNTING'
         LIMIT 1`,

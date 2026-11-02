@@ -12,6 +12,7 @@ import type {
   WmsStockChangeRow,
 } from '../typings/custom-change-table';
 import { WmsEventCollector } from './wms-event.collector';
+import { wmsLogicalTableName } from '../table-prefix/logical-table-name';
 import { WMS_CUSTOM_CHANGE_TABLES, WMS_STOCK_ENRICH } from './wms-event.tokens';
 import type { WmsStockEventPayload } from './wms-event.types';
 import type { WmsStockEventName } from './wms-event.types';
@@ -194,7 +195,12 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
   }
 
   async afterInsert(event: InsertEvent<unknown>): Promise<void> {
-    const tableName = event.metadata.tableName;
+    // Our own tables are matched by the name they were declared with, so a
+    // `withWmsTablePrefix` deployment classifies `wms_transfer_order_changes`
+    // exactly as `transfer_order_changes`. A host's custom table is matched by
+    // the name it actually has: we never prefix it.
+    const actualTableName = event.metadata.tableName;
+    const tableName = wmsLogicalTableName(actualTableName);
     const entity = event.entity as ChangeRowLike | undefined;
 
     if (!entity || typeof entity.id !== 'string') {
@@ -219,7 +225,9 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
       return;
     }
 
-    const custom = this.customTables.get(tableName);
+    const custom = OWNED_CHANGE_TABLES.has(tableName)
+      ? undefined
+      : this.customTables.get(actualTableName);
 
     if (custom) {
       await this.collectCustom(event, entity, quantityDelta, custom);

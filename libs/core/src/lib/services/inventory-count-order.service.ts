@@ -25,6 +25,7 @@ import {
   StockEntityClass,
 } from '../models';
 import { WmsEntities } from '../models/wms-entities';
+import { quotedTablePathOf } from '../utils/table-path';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
@@ -204,15 +205,14 @@ export class InventoryCountOrderService<
       return [];
     }
 
-    const table = manager.getRepository(this.entities.location).metadata
-      .tableName;
+    const table = quotedTablePathOf(manager.connection, this.entities.location);
 
     const rows: { id: string }[] = await manager.query(
       `WITH RECURSIVE subtree AS (
-         SELECT id FROM "${table}" WHERE id = ANY($1)
+         SELECT id FROM ${table} WHERE id = ANY($1)
          UNION
          SELECT child.id
-         FROM "${table}" child
+         FROM ${table} child
          JOIN subtree parent ON child."parentId" = parent.id
        )
        SELECT id FROM subtree`,
@@ -475,7 +475,7 @@ export class InventoryCountOrderService<
       // aisle should surface when filtering by any shelf inside it.
       query.andWhere(
         `EXISTS (
-           SELECT 1 FROM inventory_count_order_locations scope
+           SELECT 1 FROM ${quotedTablePathOf(this.dataSource, InventoryCountOrderLocationEntityClass)} scope
             WHERE scope."orderId" = count_order.id
               AND scope."locationId" IN (:...locationIds)
          )`,
@@ -982,6 +982,7 @@ export class InventoryCountOrderService<
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId ?? undefined,
+          manager,
         );
 
         const counted = Number(item.countedQuantity) * conversionFactor;

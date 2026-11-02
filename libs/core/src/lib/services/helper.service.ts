@@ -1,28 +1,25 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { EntityManager } from 'typeorm';
 import { DateTime } from 'luxon';
+import { WmsSequenceService } from './sequence.service';
 
 @Injectable()
 export class HelperService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(private readonly sequenceService: WmsSequenceService) {}
 
-  async getSeq(
-    prefix: string,
-    manager = this.dataSource.manager,
-  ): Promise<string> {
+  /**
+   * The next order key for `prefix` today: `yyyyMMdd` and a four-digit daily
+   * serial. Counted by `WmsSequenceService` under `<prefix>_<yyyyMMdd>`, the
+   * name the sequence has always had, so an existing deployment carries on.
+   */
+  async getSeq(prefix: string, manager?: EntityManager): Promise<string> {
     const dateStr = DateTime.now().toFormat('yyyyMMdd');
-    const seqName = `${prefix}_${dateStr}`;
-    const quotedSeqName = `"${seqName}"`;
-
-    await this.dataSource.query(
-      `CREATE SEQUENCE IF NOT EXISTS ${quotedSeqName} START 1`,
+    const serial = await this.sequenceService.reserve(
+      `${prefix}_${dateStr}`,
+      1,
+      manager,
     );
 
-    const [{ seq_num }] = await manager.query(`SELECT nextval($1) as seq_num`, [
-      `"${seqName}"`,
-    ]);
-    const serialNumber = String(seq_num).padStart(4, '0');
-
-    return `${dateStr}${serialNumber}`;
+    return `${dateStr}${String(serial).padStart(4, '0')}`;
   }
 }

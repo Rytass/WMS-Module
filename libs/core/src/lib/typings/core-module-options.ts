@@ -51,7 +51,39 @@ export interface WmsModuleCoreModuleOptions extends WmsEventWiringOptions {
    * has. See {@link WmsCustomChangeTable}.
    */
   customChangeTables?: readonly WmsCustomChangeTable[];
+  /**
+   * Where order keys and loader serials are counted.
+   *
+   * - `'sequence'` (default): one PostgreSQL sequence per counter, created on
+   *   first use with `CREATE SEQUENCE IF NOT EXISTS` -- what every existing
+   *   deployment already has, so its numbering carries on.
+   * - `'table'`: rows of the `sequences` table this package declares, advanced
+   *   with one `INSERT … ON CONFLICT DO UPDATE … RETURNING`. No DDL at runtime,
+   *   so it suits a host whose schema changes only through migrations; and the
+   *   increment is transactional, so a rolled-back call leaves no gap. Starts
+   *   from 1 -- switching an existing deployment over would reissue numbers.
+   */
+  sequenceStorage?: WmsSequenceStorage;
+  /**
+   * Create the default loader type, location and loader at startup (default
+   * `true`). The seed is idempotent and safe for several instances starting
+   * at once. Set `false` when the host seeds them itself; the defaults must
+   * then exist before the first stock movement, and startup fails if they do
+   * not.
+   */
+  seedDefaults?: boolean;
+  /**
+   * The prefix this deployment expects its tables to carry. Optional and
+   * purely a check: the prefix itself is applied by `withWmsTablePrefix`
+   * before the `DataSource` initialises, which this module cannot do because
+   * its options resolve too late. When set, startup fails if the tables did not
+   * end up with it -- the symptom of forgetting `withWmsTablePrefix` on the
+   * runtime `DataSource`.
+   */
+  tablePrefix?: string;
 }
+
+export type WmsSequenceStorage = 'sequence' | 'table';
 
 export type WmsModuleCoreModuleAsyncOptions = WMSBaseModuleAsyncOptions &
   WmsModuleCoreModuleOptions;
