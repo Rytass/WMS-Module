@@ -11,7 +11,11 @@ import { runInTransaction } from '../utils/run-in-transaction';
 const quoteIdentifier = (name: string): string =>
   `"${name.replace(/"/g, '""')}"`;
 
-const outOfRange = (name: string, maxValue: number, end: number): Error =>
+const outOfRange = (
+  name: string,
+  maxValue: number,
+  end: number | string,
+): Error =>
   new Error(
     `SEQUENCE_OUT_OF_RANGE: ${name} exceeds ${maxValue} (requested up to ${end})`,
   );
@@ -30,6 +34,15 @@ const outOfRange = (name: string, maxValue: number, end: number): Error =>
  */
 @Injectable()
 export class WmsSequenceService {
+  /**
+   * Sequences seen to exist. Probing and creating need a connection of their
+   * own (see `reserveSequence`), and borrowing one on every reservation meant a
+   * pool full of transactions that each wanted a number could not get the
+   * second connection any of them was waiting on. A sequence is never dropped
+   * by this package, so once seen it is remembered for the process.
+   */
+  private readonly knownSequences = new Set<string>();
+
   constructor(
     private readonly dataSource: DataSource,
     @Inject(WMS_CORE_MODULE_OPTIONS)
@@ -111,7 +124,11 @@ export class WmsSequenceService {
     );
 
     if (rows.length === 0) {
-      throw outOfRange(name, maxValue as number, Number.NaN);
+      throw outOfRange(
+        name,
+        maxValue as number,
+        `${count} past the counter's current value`,
+      );
     }
 
     return Number(rows[0].value) - count + 1;
@@ -141,37 +158,41 @@ export class WmsSequenceService {
       );
     }
 
-    // Probe instead of letting CREATE race: `IF NOT EXISTS` still raises a
-    // unique violation when two sessions create the same sequence at once.
-    // Probed on a connection of its own, like the CREATE below: a lookup that
-    // misses inside the caller's transaction leaves that backend caching the
-    // miss, and its `nextval` then fails with "does not exist" even after
-    // another session has created and committed the sequence.
-    const [{ exists }] = await this.dataSource.query<[{ exists: boolean }]>(
-      `SELECT to_regclass($1) IS NOT NULL AS "exists"`,
-      [sequence],
-    );
+    if (!this.knownSequences.has(sequence)) {
+      // Probe instead of letting CREATE race: `IF NOT EXISTS` still raises a
+      // unique violation when two sessions create the same sequence at once.
+      // Probed on a connection of its own, like the CREATE below: a lookup that
+      // misses inside the caller's transaction leaves that backend caching the
+      // miss, and its `nextval` then fails with "does not exist" even after
+      // another session has created and committed the sequence.
+      const [{ exists }] = await this.dataSource.query<[{ exists: boolean }]>(
+        `SELECT to_regclass($1) IS NOT NULL AS "exists"`,
+        [sequence],
+      );
 
-    /*
-     * Created on a connection of its own, in autocommit -- never inside the
-     * caller's transaction. Created inside it, the new sequence would be
-     * invisible to everyone else until that transaction commits: every other
-     * caller of the counter would block on the catalog row behind it (with
-     * one sequence per order type per day, the first order of the day would
-     * serialise all the others), and a rollback would drop the sequence again.
-     * A failed CREATE here also cannot abort the caller's transaction.
-     */
-    if (!exists) {
-      await this.dataSource
-        .query(`CREATE SEQUENCE IF NOT EXISTS ${sequence}`)
-        .catch(async (error: unknown) => {
-          // Lost a creation race with another session: fine if it now exists.
-          const [{ created }] = await this.dataSource.query<
-            [{ created: boolean }]
-          >(`SELECT to_regclass($1) IS NOT NULL AS "created"`, [sequence]);
+      /*
+       * Created on a connection of its own, in autocommit -- never inside the
+       * caller's transaction. Created inside it, the new sequence would be
+       * invisible to everyone else until that transaction commits: every other
+       * caller of the counter would block on the catalog row behind it (with
+       * one sequence per order type per day, the first order of the day would
+       * serialise all the others), and a rollback would drop the sequence again.
+       * A failed CREATE here also cannot abort the caller's transaction.
+       */
+      if (!exists) {
+        await this.dataSource
+          .query(`CREATE SEQUENCE IF NOT EXISTS ${sequence}`)
+          .catch(async (error: unknown) => {
+            // Lost a creation race with another session: fine if it now exists.
+            const [{ created }] = await this.dataSource.query<
+              [{ created: boolean }]
+            >(`SELECT to_regclass($1) IS NOT NULL AS "created"`, [sequence]);
 
-          if (!created) throw error;
-        });
+            if (!created) throw error;
+          });
+      }
+
+      this.knownSequences.add(sequence);
     }
 
     if (maxValue !== undefined) {
