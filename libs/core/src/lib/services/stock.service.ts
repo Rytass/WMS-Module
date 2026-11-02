@@ -711,12 +711,24 @@ export class StockService<
     paginatedQueryBuilder.addSelect('agg."parentBatchId"', 'parentBatchId');
     paginatedQueryBuilder.addSelect('agg."attributes"', 'attributes');
 
-    // Apply pagination to the outer query
+    // A raw query pages with offset/limit, never skip/take: TypeORM drops
+    // skip/take without a word as soon as the builder gains a join. An
+    // aggregated row has no id, so the tiebreaker is the group key itself --
+    // (material, batch, location, loader) plus the derived status -- which is
+    // what makes a row unique here; without a total order LIMIT/OFFSET pages
+    // can repeat or skip rows.
+    paginatedQueryBuilder
+      .orderBy('agg."materialId"', 'ASC')
+      .addOrderBy('agg."batchId"', 'ASC')
+      .addOrderBy('agg."locationId"', 'ASC', 'NULLS FIRST')
+      .addOrderBy('agg."loaderId"', 'ASC', 'NULLS FIRST')
+      .addOrderBy('agg.status', 'ASC', 'NULLS FIRST');
+
     if (options.offset !== undefined && options.offset >= 0) {
-      paginatedQueryBuilder.skip(options.offset);
+      paginatedQueryBuilder.offset(options.offset);
     }
     if (options.limit !== undefined && options.limit > 0) {
-      paginatedQueryBuilder.take(options.limit);
+      paginatedQueryBuilder.limit(options.limit);
     }
 
     // Get total count from the aggregated subquery
