@@ -31,6 +31,18 @@ import { WmsEntities } from '../models/wms-entities';
 import { tablePathOf } from '../utils/table-path';
 import { getWmsTablePrefix } from '../table-prefix/logical-table-name';
 
+/**
+ * A lock taken in autocommit is released by the statement that took it, so a
+ * check "protected" by one is not protected at all. Refuse instead.
+ */
+const assertInTransaction = (manager: EntityManager, method: string): void => {
+  if (!manager.queryRunner?.isTransactionActive) {
+    throw new Error(
+      `${method} must run inside a transaction: pass the EntityManager of an active transaction (dataSource.transaction(manager => ...)). Outside one the lock is released before the check it guards.`,
+    );
+  }
+};
+
 @Injectable()
 export class StockService<
   T extends StockEntityClass = StockEntityClass,
@@ -571,22 +583,32 @@ export class StockService<
    * spans locations and one that names a location run side by side over the
    * same rows. Coarser is the only key that is right for every caller.
    *
-   * Only meaningful inside a transaction: in autocommit the lock is released
-   * by the statement that took it. Every service method that deducts runs in
-   * one; a host calling `validateStockAvailability` directly must too.
+   * Refuses outright what it cannot protect, rather than returning as if it
+   * had: a manager outside a transaction (in autocommit the lock is released
+   * by the statement that took it, before the sum it was meant to guard), and
+   * a slot without a material or batch (no key to lock -- the check that
+   * followed would sum unlocked and could oversell).
    */
   async lockStockSlots(
     slots: readonly {
       readonly materialId?: string | null;
       readonly batchId?: string | null;
     }[],
-    manager: EntityManager = this.dataSource.manager,
+    manager: EntityManager,
   ): Promise<void> {
+    assertInTransaction(manager, 'lockStockSlots');
+
     const keys = [
       ...new Set(
-        slots
-          .filter((slot) => slot.materialId && slot.batchId)
-          .map((slot) => `wms:stock:${slot.materialId}:${slot.batchId}`),
+        slots.map((slot) => {
+          if (!slot.materialId || !slot.batchId) {
+            throw new Error(
+              `lockStockSlots: every slot needs a materialId and a batchId (got materialId=${slot.materialId}, batchId=${slot.batchId})`,
+            );
+          }
+
+          return `wms:stock:${slot.materialId}:${slot.batchId}`;
+        }),
       ),
     ].sort();
 
@@ -610,7 +632,7 @@ export class StockService<
    */
   async validateStockAvailability(
     params: ValidateStockDeductionParams,
-    manager: EntityManager = this.dataSource.manager,
+    manager: EntityManager,
   ): Promise<void> {
     const { materialId, batchId, locationId, loaderId, quantity } = params;
 
