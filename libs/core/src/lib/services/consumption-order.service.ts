@@ -406,6 +406,16 @@ export class ConsumptionOrderService<
        */
       const movedInThisCall = new Map<string, number>();
 
+      // Every batch this call will draw from, locked up front in one sorted
+      // pass. Locked line by line, two orders listing the same batches in
+      // opposite order each held one and waited on the other (40P01).
+      await this.stockService.lockStockSlots(
+        lines
+          .map((line) => items.find(({ id }) => id === line.itemId))
+          .filter((item): item is ConsumptionOrderItemEntityClass => !!item),
+        manager,
+      );
+
       for (const line of lines) {
         const item = items.find(({ id }) => id === line.itemId);
 

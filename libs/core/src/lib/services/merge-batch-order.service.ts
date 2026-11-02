@@ -97,6 +97,18 @@ export class MergeBatchOrderService<
         key: options.batchKey,
       });
 
+      // Every source batch, locked up front in one sorted pass and before the
+      // split below (stock locks always precede a batch-group lock). Locked
+      // item by item, two merges naming the same batches in opposite order
+      // deadlocked.
+      await this.stockService.lockStockSlots(
+        options.items.map(({ batchId }) => ({
+          materialId: targetBatch.materialId,
+          batchId,
+        })),
+        manager,
+      );
+
       // Split target batch to inherit the source batches' state
       const mergedBatch = await this.batchService.splitBatch({
         id: targetBatch.id,
