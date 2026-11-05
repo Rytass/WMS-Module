@@ -131,11 +131,14 @@ export class ShipInventoryOrderService<
                       ),
                       'c',
                     )
+                    // The entity, not its table path: a schema-qualified path
+                    // reads to TypeORM as `<alias>.<relation>` in a join.
+                    // `.target` only narrows `EntityTarget` to the class (or,
+                    // for an EntitySchema, its name) that `innerJoin` accepts.
                     .innerJoin(
-                      tablePathOf(
-                        this.dataSource,
+                      this.dataSource.getMetadata(
                         this.shipInventoryOrderItemEntity,
-                      ),
+                      ).target,
                       'i',
                       'c."itemId" = i.id',
                     )
