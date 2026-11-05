@@ -8,7 +8,9 @@ import {
   MaterialEntityClass,
   ReceiveInventoryOrderService,
   ShipInventoryOrderService,
+  ShipInventoryOrderStatus,
   StockService,
+  StockStatus,
   WmsEntities,
   WmsModuleCoreModule,
   WmsOperationRunner,
@@ -40,6 +42,14 @@ const SCHEMA = 'host_schema';
 const PREFIX = 'wms_';
 
 const resetDatabase = async (): Promise<void> => {
+  // The database is dropped with FORCE: refuse anything that is not plainly a
+  // throwaway test database, whatever the environment variables say.
+  if (!DB_NAME.endsWith('_test')) {
+    throw new Error(
+      `Refusing to drop "${DB_NAME}": the test database name must end in _test`,
+    );
+  }
+
   const admin = new Client({
     host: DB_HOST,
     port: DB_PORT,
@@ -93,6 +103,7 @@ describe('schema-qualified tables (integration)', () => {
   let stockService: StockService;
   let materialId: string;
   let shelfId: string;
+  let batchId: string;
 
   beforeAll(async () => {
     await resetDatabase();
@@ -172,6 +183,13 @@ describe('schema-qualified tables (integration)', () => {
 
       await receiving.receive({ itemId: item.id, quantity: 4 });
     });
+
+    const [[received]] = await stockService.findAggregatedStocks({
+      materialId,
+      locationId: shelfId,
+    });
+
+    batchId = received.batchId;
   });
 
   afterAll(async () => {
@@ -200,9 +218,58 @@ describe('schema-qualified tables (integration)', () => {
     expect(rows.reduce((sum, row) => sum + Number(row.quantity), 0)).toBe(4);
   });
 
-  it('lists ship orders through the shipped-quantity subquery', async () => {
-    await expect(
-      app.get(ShipInventoryOrderService).findMany({}),
-    ).resolves.toEqual([[], 0]);
+  it('derives ship order status through the shipped-quantity subquery', async () => {
+    const shipping = app.get(ShipInventoryOrderService);
+    const countIn = async (status: ShipInventoryOrderStatus): Promise<number> =>
+      (await shipping.findMany({ status }))[1];
+
+    const itemId = await app.get(WmsOperationRunner).run({}, async () => {
+      const order = await shipping.createShipInventoryOrder({
+        key: 'SCH-SHIP',
+        description: 'schema',
+        references: [],
+      });
+
+      await shipping.addShipInventoryOrderItems({
+        orderId: order.id,
+        items: [
+          {
+            materialId,
+            batchId,
+            locationId: shelfId,
+            targetShippedQuantity: 2,
+            status: StockStatus.FREE,
+            serialId: 'SCH-SHIP-1',
+            orderId: order.id,
+          },
+        ],
+      });
+
+      const [item] = await dataSource
+        .getRepository(shipping.shipInventoryOrderItemEntity)
+        .find({ where: { orderId: order.id } });
+
+      return item.id;
+    });
+
+    expect(await countIn(ShipInventoryOrderStatus.PENDING)).toBe(1);
+
+    await app
+      .get(WmsOperationRunner)
+      .run({}, () => shipping.ship({ itemId, quantity: 1 }));
+    expect(await countIn(ShipInventoryOrderStatus.PARTIAL_SHIPPED)).toBe(1);
+
+    await app
+      .get(WmsOperationRunner)
+      .run({}, () => shipping.ship({ itemId, quantity: 1 }));
+    expect(await countIn(ShipInventoryOrderStatus.SHIPPED)).toBe(1);
+    expect(await countIn(ShipInventoryOrderStatus.PARTIAL_SHIPPED)).toBe(0);
+  });
+
+  it('reads change logs across the change tables', async () => {
+    const [logs, count] = await stockService.findChangeLogs({ materialId });
+
+    expect(count).toBeGreaterThan(0);
+    expect(logs.length).toBe(count);
   });
 });
