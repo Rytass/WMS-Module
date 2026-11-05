@@ -121,11 +121,10 @@ export class StockService<
               .addSelect('b."vendorId"', 'vendorId')
               .addSelect('b."customerId"', 'customerId')
               .from(tablePathOf(this.dataSource, this.stockEntity), 's')
-              .innerJoin(
-                tablePathOf(this.dataSource, this.entities.batch),
-                'b',
-                's."batchId" = b.id',
-              ),
+              // The entity, not its table path: a schema-qualified path such as
+              // `shuttle.wms_batches` reads to TypeORM as `<alias>.<relation>`
+              // in a join and fails with `"shuttle" alias was not found`.
+              .innerJoin(this.entities.batch, 'b', 's."batchId" = b.id'),
           'stock_status',
           `stock_status."stockId" = ${alias}.id`,
         )
@@ -449,8 +448,9 @@ export class StockService<
       queryBuilder.take(options.limit);
 
     if (aggregated) {
+      // The entity, not its table path — see `selectQueryBuilder`.
       queryBuilder.innerJoin(
-        tablePathOf(this.dataSource, this.entities.batch),
+        this.entities.batch,
         'b',
         'stock."batchId" = b.id',
       );
