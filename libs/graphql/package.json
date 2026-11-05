@@ -1,6 +1,6 @@
 {
   "name": "@rytass/wms-module-graphql",
-  "version": "0.12.0",
+  "version": "0.12.1",
   "description": "Rytass WMS Module — GraphQL schema, resolvers and DTOs for warehouse management",
   "keywords": [
     "rytass",
@@ -63,7 +63,7 @@
     "@nestjs/core": "^10.0.0 || ^11.0.0",
     "@nestjs/graphql": "^13.0.0",
     "@rytass/wms-base-nestjs-module": "^0.4.0",
-    "@rytass/wms-module-core": "^0.10.0",
+    "@rytass/wms-module-core": "^0.10.1",
     "graphql": "^16.0.0",
     "reflect-metadata": "^0.1.13 || ^0.2.0",
     "rxjs": "^7.0.0",

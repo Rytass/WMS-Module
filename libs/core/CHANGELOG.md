@@ -1,3 +1,14 @@
+## 0.10.1 (2026-11-05)
+
+### 🩹 Fixes
+
+- **core:** join entities, not table paths, so schema-qualified hosts work ([9a746147](https://github.com/Rytass/WMS-Module/commit/9a746147))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.10.0 (2026-11-02)
 
 ### 🚀 Features
