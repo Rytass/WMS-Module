@@ -1,3 +1,9 @@
+## 0.12.1 (2026-11-05)
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.10.1
+
 ## 0.12.0 (2026-11-02)
 
 ### 🩹 Fixes
