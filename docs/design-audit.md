@@ -1,6 +1,6 @@
 # 設計稿 vs 程式碼稽核（design-vs-code audit）
 
-對照對象：Figma `3rBlE6ssq1ppdgCpgl0HkY`「RY2500065_WMS 倉儲管理核心開發」DESIGN 群組共 12 頁、277 個 frame。
+對照對象：Figma「WMS 倉儲管理核心設計稿」（未公開）DESIGN 群組共 12 頁、277 個 frame。
 frame 清冊見 [`design-inventory.md`](./design-inventory.md)（含每頁 `node-id`，可用 `?node-id=` 直接開啟）。
 
 ## 稽核方法與其邊界
