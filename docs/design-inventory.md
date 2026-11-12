@@ -1,6 +1,6 @@
 # Figma 設計稿畫面清冊（frame inventory）
 
-檔案：`3rBlE6ssq1ppdgCpgl0HkY`（RY2500065_WMS 倉儲管理核心開發）
+檔案：WMS 倉儲管理核心設計稿（Figma，未公開）
 擷取方式：瀏覽器開啟 Figma，逐頁展開 Layers 面板收集頂層 frame 名稱。
 頁面 node-id 對照（`?node-id=` 直接導頁用）：
 

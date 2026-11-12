@@ -7,13 +7,13 @@
 >
 > 原始規劃內容如下。
 >
-> 本文回應 MogistSystem 的
-> `docs/upstream-wms-requirements.md`（五項需求），把它翻譯成本 repo 的具體改動、
+> 本文回應宿主系統提出的
+> WMS 上游需求文件（五項需求），把它翻譯成本 repo 的具體改動、
 > 分期、版本與風險。撰寫基準：`core@0.5.0`、`graphql@0.8.0`、`react@0.2.3`
 > （與需求文件的版本基準一致，五項缺口在 `main` 上皆確認存在）。
 >
 > 需求四（盤點）的規格**以 Figma 設計稿為權威來源**，非需求文件的推論：
-> `RY2500065_WMS 倉儲管理核心開發` 頁面 **D. 盤點**（`node-id=464-29556`）——
+> WMS 倉儲管理核心設計稿 頁面 **D. 盤點**（`node-id=464-29556`）——
 > 已於 2026-08-30 逐頁核閱並轉譯為 §4.3～§4.5。
 >
 > 本檔位於 repo 根目錄 `docs/`，**不會**發佈到 npm。
@@ -378,8 +378,7 @@ export**，不是私有欄位——這比初版設計對 `TypeMetadataStorage` �
 
 盤點的規格**以設計稿為準**，不採用需求文件的推論：
 
-> `RY2500065_WMS 倉儲管理核心開發` → 頁面 **D. 盤點**（`node-id=464-29556`）
-> https://www.figma.com/design/3rBlE6ssq1ppdgCpgl0HkY/
+> WMS 倉儲管理核心設計稿 → 頁面 **D. 盤點**（`node-id=464-29556`）
 
 設計稿已完整畫出流程、狀態、欄位與規則 Note，本節即為其轉譯。與 §8 先前決策的差異
 整理在 §4.5。
@@ -597,8 +596,8 @@ SELECT id FROM subtree;
 ```
 
 這樣做的理由與 CLAUDE.md 對 `StockChangeSubscriber` 的評語一致：**服務層完全不動，
-任何新的 change 寫入路徑自動被涵蓋**——包含宿主直呼 service 的路徑（如 MogistSystem 的
-`WmsInboundService`），那正是需要被擋下的情境。
+任何新的 change 寫入路徑自動被涵蓋**——包含宿主直呼 service 的路徑（如宿主自己的
+入庫 service），那正是需要被擋下的情境。
 
 效能：鎖定集合以「盤點中的單」為單位快取（單量極少，變動只發生在 start／settle／cancel），
 subscriber 內做 Set 查表，不打 DB。
