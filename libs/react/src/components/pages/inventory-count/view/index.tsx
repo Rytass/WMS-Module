@@ -54,6 +54,12 @@ import { buildCountSheetCsv, downloadCsv, parseCountSheetCsv } from '../csv';
 import { ItemFilterValues, QuickFilterKey } from '../typing';
 import classes from './index.module.scss';
 
+/*
+ * Not everything up to the material key: the seven count and flag columns in
+ * front of it come to about 760px, more than half of a 1440px screen.
+ */
+const COUNT_ITEM_PINNED_COLUMN_KEYS = ['actions', 'materialKey'] as const;
+
 /** Counted quantities being edited, keyed by item id. */
 type CountDraft = Record<string, { quantity: string; unitId: string | null }>;
 
@@ -723,6 +729,7 @@ function ViewInventoryCount() {
   const itemsTable = (
     <Table<InventoryCountOrderItemFragment>
       tableKey="InventoryCountItems"
+      pinnedColumnKeys={COUNT_ITEM_PINNED_COLUMN_KEYS}
       columns={columns}
       dataSource={items}
       loading={itemsLoading}

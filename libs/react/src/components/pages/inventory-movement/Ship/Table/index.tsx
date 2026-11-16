@@ -108,6 +108,7 @@ function InventoryMovementShipTable({
     <TableWrapper title="出庫單清單">
       <Table<ShipInventoryOrderFragment>
         tableKey="InventoryMovementShipOrders"
+        pinnedUntilColumnKey="material"
         columns={columns}
         dataSource={dataSource}
         loading={loading}

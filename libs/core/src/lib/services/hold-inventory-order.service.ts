@@ -20,6 +20,7 @@ import { ReleaseInventoryOrderItemInput } from '../typings/release-inventory-ord
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
@@ -66,8 +67,11 @@ export class HoldInventoryOrderService<
     repos: ReturnType<typeof this.getRepositories>,
     manager: EntityManager,
   ): Promise<void> {
-    await Promise.all(
-      items.map(async (data) => {
+    // Every (material, batch) this call deducts from, locked up front in a
+    // fixed order so overlapping operations cannot deadlock each other.
+    await this.stockService.lockStockSlots(items, manager);
+    for (const data of items) {
+      await (async () => {
         // Ensure required fields are present
         if (!data.batchId || !data.materialId) return;
 
@@ -86,6 +90,7 @@ export class HoldInventoryOrderService<
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
         await repos.holdInventoryOrderChange.save(
@@ -130,76 +135,84 @@ export class HoldInventoryOrderService<
             } as DeepPartial<StockEntityClass>,
           ]),
         );
-      }),
-    );
+      })();
+    }
   }
 
   async createHoldInventoryOrder(
     options: CreateHoldInventoryOrderInput,
-    manager = this.dataSource.manager,
+    outerManager?: EntityManager,
   ): Promise<T> {
-    const repos = this.getRepositories(manager);
-    const { items, ...orderOptions } = options;
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const repos = this.getRepositories(manager);
+      const { items, ...orderOptions } = options;
 
-    const key = await this.helperService.getSeq(this.seqPrefix, manager);
-    const order = await repos.holdInventoryOrder.save(
-      repos.holdInventoryOrder.create({ key, ...orderOptions }),
-    );
+      const key = await this.helperService.getSeq(this.seqPrefix, manager);
+      const order = await repos.holdInventoryOrder.save(
+        repos.holdInventoryOrder.create({ key, ...orderOptions }),
+      );
 
-    if (items?.length > 0) {
-      const processedItems = items.map((item) => ({
-        ...item,
-        orderId: order.id,
-      }));
-      await this.processHoldInventoryOrderItems(processedItems, repos, manager);
-    }
-    return order as T;
+      if (items?.length > 0) {
+        const processedItems = items.map((item) => ({
+          ...item,
+          orderId: order.id,
+        }));
+        await this.processHoldInventoryOrderItems(
+          processedItems,
+          repos,
+          manager,
+        );
+      }
+      return order as T;
+    });
   }
 
   async updateHoldInventoryOrder({
     id,
-    manager = this.dataSource.manager,
+    manager: outerManager,
     ...options
   }: UpdateHoldInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
-    const repos = this.getRepositories(manager);
-    const { items, ...orderOptions } = options;
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const repos = this.getRepositories(manager);
+      const { items, ...orderOptions } = options;
 
-    const order = await repos.holdInventoryOrder.findOneBy({ id });
-    const updated = await repos.holdInventoryOrder.save({
-      ...order,
-      ...orderOptions,
-    });
-
-    if (items?.length) {
-      const existingItemIds = new Set(
-        (
-          await repos.holdInventoryOrderItem.find({ where: { orderId: id } })
-        ).map((i) => i.id),
-      );
-
-      const newItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
-      const existingItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
-
-      items.forEach((item) => {
-        if (item.removedAt) return;
-        if (!item.id) newItems.push({ ...item, orderId: id });
-        else if (existingItemIds.has(item.id))
-          existingItems.push({ ...item, orderId: id });
+      const order = await repos.holdInventoryOrder.findOneBy({ id });
+      const updated = await repos.holdInventoryOrder.save({
+        ...order,
+        ...orderOptions,
       });
 
-      if (newItems.length)
-        await this.processHoldInventoryOrderItems(newItems, repos, manager);
-      if (existingItems.length)
-        await repos.holdInventoryOrderItem.save(
-          await Promise.all(
-            existingItems.map((item) =>
-              repos.holdInventoryOrderItem.create(item),
-            ),
-          ),
+      if (items?.length) {
+        const existingItemIds = new Set(
+          (
+            await repos.holdInventoryOrderItem.find({ where: { orderId: id } })
+          ).map((i) => i.id),
         );
-    }
 
-    return updated as T;
+        const newItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
+        const existingItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
+
+        items.forEach((item) => {
+          if (item.removedAt) return;
+          if (!item.id) newItems.push({ ...item, orderId: id });
+          else if (existingItemIds.has(item.id))
+            existingItems.push({ ...item, orderId: id });
+        });
+
+        if (newItems.length)
+          await this.processHoldInventoryOrderItems(newItems, repos, manager);
+        if (existingItems.length)
+          await repos.holdInventoryOrderItem.save(
+            await Promise.all(
+              existingItems.map((item) =>
+                repos.holdInventoryOrderItem.create(item),
+              ),
+            ),
+          );
+      }
+
+      return updated as T;
+    });
   }
 
   findMany(options: FindHoldInventoryOrderInput): Promise<[T[], number]> {
@@ -267,92 +280,101 @@ export class HoldInventoryOrderService<
 
   async release(
     options: ReleaseInventoryOrderItemInput | ReleaseInventoryOrderItemInput[],
-    manager = this.dataSource.manager,
+    outerManager?: EntityManager,
   ): Promise<T> {
-    if (!Array.isArray(options)) options = [options];
-    const repos = this.getRepositories(manager);
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      if (!Array.isArray(options)) options = [options];
+      const repos = this.getRepositories(manager);
 
-    const key = await this.helperService.getSeq(this.seqPrefix, manager);
-    const order = await repos.holdInventoryOrder.save(
-      repos.holdInventoryOrder.create({ key }),
-    );
+      const key = await this.helperService.getSeq(this.seqPrefix, manager);
+      const order = await repos.holdInventoryOrder.save(
+        repos.holdInventoryOrder.create({ key }),
+      );
 
-    if (options.length > 0) {
-      await Promise.all(
-        options.map(async (data) => {
-          // Ensure required fields are present
-          if (!data.batchId || !data.materialId) return;
+      if (options.length > 0) {
+        // Every (material, batch) this call deducts from, locked up front in a
+        // fixed order so overlapping operations cannot deadlock each other.
+        await this.stockService.lockStockSlots(options, manager);
+        for (const data of options) {
+          await (async () => {
+            // Ensure required fields are present
+            if (!data.batchId || !data.materialId) return;
 
-          const splittedBatch = await this.batchService.splitBatch({
-            id: data.batchId,
-            held: false, // split to release the hold
-            manager,
-          });
+            const splittedBatch = await this.batchService.splitBatch({
+              id: data.batchId,
+              held: false, // split to release the hold
+              manager,
+            });
 
-          // Save item with ORIGINAL batch id to maintain source state
-          const item = await repos.holdInventoryOrderItem.save(
-            repos.holdInventoryOrderItem.create({
-              ...data,
-              targetHeldQuantity: -1 * data.quantity,
-              orderId: order.id,
-            }),
-          );
-          const base = await repos.order.save({});
-          const conversionFactor =
-            await this.materialService.getConversionFactor(
-              item.materialId,
-              item.unitId || undefined,
+            // Save item with ORIGINAL batch id to maintain source state
+            const item = await repos.holdInventoryOrderItem.save(
+              repos.holdInventoryOrderItem.create({
+                ...data,
+                targetHeldQuantity: -1 * data.quantity,
+                orderId: order.id,
+              }),
+            );
+            const base = await repos.order.save({});
+            const conversionFactor =
+              await this.materialService.getConversionFactor(
+                item.materialId,
+                item.unitId || undefined,
+                manager,
+              );
+
+            const change = await repos.holdInventoryOrderChange.save(
+              repos.holdInventoryOrderChange.create({
+                itemId: item.id,
+                id: base.id,
+                quantityChanged:
+                  -1 * item.targetHeldQuantity * conversionFactor,
+              }),
             );
 
-          const change = await repos.holdInventoryOrderChange.save(
-            repos.holdInventoryOrderChange.create({
-              itemId: item.id,
-              id: base.id,
-              quantityChanged: -1 * item.targetHeldQuantity * conversionFactor,
-            }),
-          );
-
-          // Stock movements track the hold through splitted batch
-          await this.stockService.validateStockAvailability(
-            {
-              materialId: item.materialId,
-              batchId: item.batchId,
-              locationId: this.stockService.resolveLocationId(item.locationId),
-              loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: change.quantityChanged,
-            },
-            manager,
-          );
-
-          await repos.stock.save(
-            repos.stock.create([
-              // deduct from original batch available stock
+            // Stock movements track the hold through splitted batch
+            await this.stockService.validateStockAvailability(
               {
-                orderId: base.id,
                 materialId: item.materialId,
-                batchId: item.batchId, // original batch
-                locationId: this.stockService.resolveLocationId(
-                  item.locationId,
-                ),
-                loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: -1 * change.quantityChanged,
-              } as DeepPartial<StockEntityClass>,
-              // add to splitted batch in released state
-              {
-                orderId: base.id,
-                materialId: item.materialId,
-                batchId: splittedBatch.id, // splitted batch marked released
+                batchId: item.batchId,
                 locationId: this.stockService.resolveLocationId(
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: change.quantityChanged,
-              } as DeepPartial<StockEntityClass>,
-            ]),
-          );
-        }),
-      );
-    }
-    return order as T;
+              },
+              manager,
+            );
+
+            await repos.stock.save(
+              repos.stock.create([
+                // deduct from original batch available stock
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId, // original batch
+                  locationId: this.stockService.resolveLocationId(
+                    item.locationId,
+                  ),
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                  quantity: -1 * change.quantityChanged,
+                } as DeepPartial<StockEntityClass>,
+                // add to splitted batch in released state
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: splittedBatch.id, // splitted batch marked released
+                  locationId: this.stockService.resolveLocationId(
+                    item.locationId,
+                  ),
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                  quantity: change.quantityChanged,
+                } as DeepPartial<StockEntityClass>,
+              ]),
+            );
+          })();
+        }
+      }
+      return order as T;
+    });
   }
 }

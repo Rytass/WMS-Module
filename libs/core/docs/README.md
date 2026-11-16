@@ -7,7 +7,7 @@ Reference material for consumers of `@rytass/wms-module-{core,graphql,react}`.
 | Document                                       | Description                                                                                       |
 |------------------------------------------------|---------------------------------------------------------------------------------------------------|
 | [Integration Guide](./integration-guide.md)    | Step-by-step instructions for wiring the three packages into a new consumer project (NestJS + Next.js + PostgreSQL). Includes ready-to-paste `_app.tsx`, `app.module.ts`, `next.config.ts`, the 19 Pages Router shell pattern, AuthGuard stub, seed script template, deployment notes, and known issues. |
-| [API Reference](./api-reference.md)            | Complete export catalog for all three packages — every NestJS module, TypeORM entity, GraphQL resolver, DTO, React component, hook, and utility, organized by role with source paths and usage examples. Mirrors the actual `src/index.ts` barrel exports of v0.1.2. |
+| [API Reference](./api-reference.md)            | Complete export catalog for all three packages — every NestJS module, TypeORM entity, GraphQL resolver, DTO, React component, hook, and utility, organized by role with source paths and usage examples. Mirrors the actual `src/index.ts` barrel exports. |
 | [Custom Entities](./custom-entities.md)        | How to make a downstream project's own table serve as the WMS's own — the `materialEntity` override, why entity classes are configured synchronously, what single-table inheritance means for existing rows, and an audit of the entity options that are not honoured above the base layer yet. |
 
 ## Quick links
@@ -30,6 +30,6 @@ Reference material for consumers of `@rytass/wms-module-{core,graphql,react}`.
 
 ## Versioning
 
-These documents track the **latest published `0.1.x` release**. Anything in `main` that has not yet been released is marked clearly inline; otherwise assume the documented signature matches the current npm-published library.
+These documents track the **latest published release**. Anything in `main` that has not yet been released is marked clearly inline; otherwise assume the documented signature matches the current npm-published library.
 
 When you upgrade the lib, check each package's `CHANGELOG.md` for breaking changes that may affect the snippets here.

@@ -386,15 +386,25 @@ describe('custom change tables (integration)', () => {
     });
 
     it('can use the published availability check', async () => {
+      const params = {
+        materialId,
+        batchId,
+        locationId,
+        loaderId: stockService.resolveLoaderId(null),
+        quantity: 999,
+      };
+
       await expect(
-        stockService.validateStockAvailability({
-          materialId,
-          batchId,
-          locationId,
-          loaderId: stockService.resolveLoaderId(null),
-          quantity: 999,
-        }),
+        dataSource.transaction((manager) =>
+          stockService.validateStockAvailability(params, manager),
+        ),
       ).rejects.toThrow('Insufficient stock');
+
+      // Outside a transaction the lock would be gone before the sum it guards,
+      // so the check refuses to run rather than pretend.
+      await expect(
+        stockService.validateStockAvailability(params, dataSource.manager),
+      ).rejects.toThrow(/must run inside a transaction/);
     });
   });
 });

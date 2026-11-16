@@ -8,13 +8,14 @@ import {
   StockEntityClass,
   BatchEntityClass,
 } from '../models';
-import { DataSource, DeepPartial, EntityTarget } from 'typeorm';
+import { DataSource, DeepPartial, EntityManager, EntityTarget } from 'typeorm';
 import { SplitBatchInput } from '../typings/split-batch.input';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
@@ -36,8 +37,8 @@ export class SplitBatchOrderService<
     readonly splitBatchOrderItemEntity: EntityTarget<K>,
   ) {}
 
-  split(options: SplitBatchInput): Promise<T> {
-    return this.dataSource.transaction(async (manager) => {
+  split(options: SplitBatchInput, outerManager?: EntityManager): Promise<T> {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const splitBatchOrderRepository =
         manager.getRepository<SplitBatchOrderEntityClass>(
           this.splitBatchOrderEntity,
@@ -83,6 +84,7 @@ export class SplitBatchOrderService<
       const conversionFactor = await this.materialService.getConversionFactor(
         originalBatch.materialId,
         options.unitId || undefined,
+        manager,
       );
 
       // Sequential: two items can reference the same *source* batch, and the

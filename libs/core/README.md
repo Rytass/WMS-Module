@@ -48,6 +48,10 @@ export class AppModule {}
 
 Use `WmsModuleCoreModule.forRootAsync({ ... })` when you need to load options from a config service or async source. The async signature merges `WMSBaseModuleAsyncOptions` (factory / inject pattern from the base module) with the three `default*` keys above.
 
+## Table prefix and host transactions
+
+To keep WMS tables out of your own namespace, wrap **every** `DataSource`'s options (runtime and migration CLI) with `withWmsTablePrefix(options, 'wms_')`. Every write method also accepts your transaction's `EntityManager`, so a WMS movement commits or rolls back with your own rows. See [`docs/host-integration.md`](./docs/host-integration.md).
+
 ## Injecting services
 
 Every domain service is exported and injectable once `WmsModuleCoreModule` is imported:
@@ -180,6 +184,7 @@ Full documentation is shipped inside this package under the `docs/` directory (a
 | [`docs/integration-guide.md`](./docs/integration-guide.md) | Step-by-step wiring guide for NestJS + Next.js consumers |
 | [`docs/api-reference.md`](./docs/api-reference.md) | Complete export catalog with signatures and usage examples |
 | [`docs/custom-entities.md`](./docs/custom-entities.md) | Using your own entity as the WMS material master, and the audit of the other entity options |
+| [`docs/host-integration.md`](./docs/host-integration.md) | Using the core as a service layer inside your own transactions: table prefix, external `EntityManager`, post-commit events, deduction locks, counters, default rows |
 
 GitHub hosted links (always up-to-date):
 

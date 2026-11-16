@@ -77,29 +77,4 @@ export default [
       }),
     ],
   },
-  {
-    input: [
-      'src/index.ts',
-      'src/adapters/member-base.ts',
-      'src/adapters/event-emitter.ts',
-    ],
-    output: {
-      dir: '.',
-      format: 'esm',
-      preserveModules: true,
-      preserveModulesRoot: 'src',
-      entryFileNames: '[name].mjs',
-      chunkFileNames: '[name]-[hash].mjs',
-    },
-    external: isExternal,
-    plugins: [
-      typescript({
-        tsconfig: './tsconfig.lib.json',
-        declaration: true,
-        declarationDir: '.',
-        rootDir: './src',
-        outDir: '.',
-      }),
-    ],
-  },
 ];

@@ -16,6 +16,8 @@
  *              directory instead lets a file that never ships satisfy a field.
  *   attw     — whether the types resolve, and resolve to the same module kind
  *              as the JavaScript beside them, under node10 / node16 / bundler.
+ *   one file — every condition of a subpath resolves to the same JavaScript,
+ *              so the package cannot be loaded twice in one process.
  *   imports  — every bare specifier in the shipped JavaScript is declared in
  *              dependencies, peerDependencies or optionalDependencies. Neither
  *              of the other two looks at this, which is how `tslib` shipped
@@ -85,7 +87,52 @@ try {
     ...(attwIgnore ? ['--ignore-rules', attwIgnore] : []),
   ]);
 
-  // 4. Undeclared imports.
+  // 4. One runtime file per entry point.
+  //
+  // A package that resolves `import` and `require` to different files has two
+  // module records in a process that reaches both, and therefore two of
+  // everything they export. That is fatal here rather than merely wasteful:
+  // these packages export DI Symbols and TypeORM entity classes, and both are
+  // identities. Measured on the published 0.9.1, all 64 exported Symbols and
+  // all 57 entity classes differed between the ESM and CJS copies, so a
+  // provider lookup or an `instanceof` crossing the boundary silently missed.
+  //
+  // The rule is therefore structural: every condition of a subpath must point
+  // at the same file, so no resolver can produce a second copy. `types` is
+  // exempt — declarations have no runtime identity.
+  process.stdout.write('\n── one runtime file per entry point ──\n');
+
+  const runtimeTargets = (node, underTypes = false) => {
+    if (typeof node === 'string') return underTypes ? [] : [node];
+    if (node === null || typeof node !== 'object') return [];
+
+    return Object.entries(node).flatMap(([condition, child]) =>
+      runtimeTargets(child, underTypes || condition === 'types'),
+    );
+  };
+
+  const forked = Object.entries(pkg.exports ?? {})
+    .map(([subpath, node]) => [subpath, new Set(runtimeTargets(node))])
+    .filter(([, targets]) => targets.size > 1);
+
+  if (forked.length > 0) {
+    for (const [subpath, targets] of forked) {
+      console.log(`${subpath} resolves to ${[...targets].join(' and ')}`);
+    }
+
+    console.log(
+      'Each of those can be loaded twice in one process, giving two of every ' +
+        'Symbol and class the subpath exports. Collapse the conditions onto ' +
+        'one file.',
+    );
+    failures.push('one runtime file per entry point');
+  } else {
+    const subpaths = Object.keys(pkg.exports ?? {}).length;
+
+    console.log(`no subpath forks into two runtime files (${subpaths} checked)`);
+  }
+
+  // 5. Undeclared imports.
   process.stdout.write('\n── declared dependencies ──\n');
 
   const declared = new Set([

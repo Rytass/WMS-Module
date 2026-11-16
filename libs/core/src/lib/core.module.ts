@@ -53,6 +53,7 @@ import {
   InventoryCountOrderService,
   QualityInspectionOrderService,
   WarehouseMapDataService,
+  WmsSequenceService,
 } from './services';
 import { BatchService } from './services/batch.service';
 import { StockChangeSubscriber } from './events/stock-change.subscriber';
@@ -168,6 +169,7 @@ const exportedEntityTokens = [
 ];
 
 const exportDependencies = [
+  WmsSequenceService,
   LoaderService,
   MaterialService,
   BatchService,
@@ -321,6 +323,9 @@ export class WmsModuleCoreModule {
       actorExtractor,
       eventEmitterBridge,
       customChangeTables,
+      sequenceStorage,
+      seedDefaults,
+      tablePrefix,
       ...baseOptions
     } = options;
     const coreModule = WMSBaseModule.forRootAsync(baseOptions);
@@ -348,6 +353,9 @@ export class WmsModuleCoreModule {
             defaultLoaderSerialId,
             defaultLoaderTypeKey,
             defaultLocationKey,
+            sequenceStorage,
+            seedDefaults,
+            tablePrefix,
           },
         },
         { provide: WMS_STOCK_ENRICH, useValue: !!enrichStockEvents },

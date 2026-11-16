@@ -28,6 +28,7 @@ import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
 export type TransferVendorOrderItemInput = {
@@ -87,8 +88,11 @@ export class TransferVendorOrderService<
     manager: EntityManager,
   ): Promise<void> {
     const repos = this.getRepositories(manager);
-    await Promise.all(
-      items.map(async (data) => {
+    // Every (material, batch) this call deducts from, locked up front in a
+    // fixed order so overlapping operations cannot deadlock each other.
+    await this.stockService.lockStockSlots(items, manager);
+    for (const data of items) {
+      await (async () => {
         // Ensure required fields are present
         if (!data.batchId || !data.materialId) return;
 
@@ -108,6 +112,7 @@ export class TransferVendorOrderService<
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
         await repos.transferVendorOrderChange.save(
@@ -152,194 +157,206 @@ export class TransferVendorOrderService<
             } as DeepPartial<StockEntityClass>,
           ]),
         );
-      }),
-    );
+      })();
+    }
   }
 
   async createTransferVendorOrder(
     options: CreateTransferVendorOrderInput,
-    manager = this.dataSource.manager,
+    outerManager?: EntityManager,
   ): Promise<T> {
-    const repos = this.getRepositories(manager);
-    const key = await this.helperService.getSeq(this.seqPrefix);
-    const { items, ...orderOptions } = options;
-    const order = await repos.transferVendorOrder.save(
-      repos.transferVendorOrder.create({
-        key,
-        ...orderOptions,
-      }),
-    );
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const repos = this.getRepositories(manager);
+      const key = await this.helperService.getSeq(this.seqPrefix, manager);
+      const { items, ...orderOptions } = options;
+      const order = await repos.transferVendorOrder.save(
+        repos.transferVendorOrder.create({
+          key,
+          ...orderOptions,
+        }),
+      );
 
-    if (items?.length) {
-      const processedItems = items.map((item) => ({
-        ...item,
-        orderId: order.id,
-        vendorId: options.vendorId,
-      }));
-      await this.processTransferVendorOrderItems(processedItems, manager);
-    }
+      if (items?.length) {
+        const processedItems = items.map((item) => ({
+          ...item,
+          orderId: order.id,
+          vendorId: options.vendorId,
+        }));
+        await this.processTransferVendorOrderItems(processedItems, manager);
+      }
 
-    return order as T;
+      return order as T;
+    });
   }
 
   async updateTransferVendorOrder({
     id,
-    manager = this.dataSource.manager,
+    manager: outerManager,
     ...options
   }: UpdateTransferVendorOrderInput & {
     manager?: EntityManager;
   }): Promise<T> {
-    const repos = this.getRepositories(manager);
-    const { items, ...orderOptions } = options;
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const repos = this.getRepositories(manager);
+      const { items, ...orderOptions } = options;
 
-    const order = await repos.transferVendorOrder.findOneBy({ id });
-    if (!order) throw new Error(`Order with id ${id} not found`);
+      const order = await repos.transferVendorOrder.findOneBy({ id });
+      if (!order) throw new Error(`Order with id ${id} not found`);
 
-    const updated = await repos.transferVendorOrder.save({
-      ...order,
-      ...orderOptions,
-    });
-
-    if (items?.length) {
-      const existingItemIds = new Set(
-        (
-          await repos.transferVendorOrderItem.find({
-            where: { orderId: id },
-            relations: { changes: true },
-          })
-        ).map((item) => item.id),
-      );
-
-      const newItems: Partial<TransferVendorOrderItemEntityClass>[] = [];
-      const existingItems: Partial<TransferVendorOrderItemEntityClass>[] = [];
-
-      items.forEach((item) => {
-        if (item.removedAt) return;
-        if (!item.id) newItems.push({ ...item, orderId: id });
-        else if (existingItemIds.has(item.id))
-          existingItems.push({ ...item, orderId: id });
+      const updated = await repos.transferVendorOrder.save({
+        ...order,
+        ...orderOptions,
       });
 
-      if (newItems.length)
-        await this.processTransferVendorOrderItems(newItems, manager);
-      if (existingItems.length)
-        await repos.transferVendorOrderItem.save(
-          await Promise.all(
-            existingItems.map((item) =>
-              repos.transferVendorOrderItem.create(item),
-            ),
-          ),
+      if (items?.length) {
+        const existingItemIds = new Set(
+          (
+            await repos.transferVendorOrderItem.find({
+              where: { orderId: id },
+              relations: { changes: true },
+            })
+          ).map((item) => item.id),
         );
-    }
 
-    return updated as T;
+        const newItems: Partial<TransferVendorOrderItemEntityClass>[] = [];
+        const existingItems: Partial<TransferVendorOrderItemEntityClass>[] = [];
+
+        items.forEach((item) => {
+          if (item.removedAt) return;
+          if (!item.id) newItems.push({ ...item, orderId: id });
+          else if (existingItemIds.has(item.id))
+            existingItems.push({ ...item, orderId: id });
+        });
+
+        if (newItems.length)
+          await this.processTransferVendorOrderItems(newItems, manager);
+        if (existingItems.length)
+          await repos.transferVendorOrderItem.save(
+            await Promise.all(
+              existingItems.map((item) =>
+                repos.transferVendorOrderItem.create(item),
+              ),
+            ),
+          );
+      }
+
+      return updated as T;
+    });
   }
 
   async returnTransferVendorOrder(
     options: TransferVendorOrderItemInput | TransferVendorOrderItemInput[],
-    manager = this.dataSource.manager,
+    outerManager?: EntityManager,
   ): Promise<T> {
-    if (!Array.isArray(options)) options = [options];
-    const repos = this.getRepositories(manager);
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      if (!Array.isArray(options)) options = [options];
+      const repos = this.getRepositories(manager);
 
-    const key = await this.helperService.getSeq(this.seqPrefix, manager);
-    const order = await repos.transferVendorOrder.save(
-      repos.transferVendorOrder.create({ key }),
-    );
+      const key = await this.helperService.getSeq(this.seqPrefix, manager);
+      const order = await repos.transferVendorOrder.save(
+        repos.transferVendorOrder.create({ key }),
+      );
 
-    if (options.length > 0) {
-      await Promise.all(
-        options.map(async (data) => {
-          // Ensure required fields are present
-          if (!data.batchId || !data.materialId) return;
+      if (options.length > 0) {
+        // Every (material, batch) this call deducts from, locked up front in a
+        // fixed order so overlapping operations cannot deadlock each other.
+        await this.stockService.lockStockSlots(options, manager);
+        for (const data of options) {
+          await (async () => {
+            // Ensure required fields are present
+            if (!data.batchId || !data.materialId) return;
 
-          const originalBatch =
-            await this.batchService.batchRepository.findOneByOrFail({
+            const originalBatch =
+              await this.batchService.batchRepository.findOneByOrFail({
+                id: data.batchId,
+                vendorId: Not(IsNull()),
+              });
+            const splittedBatch = await this.batchService.splitBatch({
               id: data.batchId,
-              vendorId: Not(IsNull()),
+              vendorId: null, // split out a batch with null vendorId to indicate it's returned and available
+              manager,
             });
-          const splittedBatch = await this.batchService.splitBatch({
-            id: data.batchId,
-            vendorId: null, // split out a batch with null vendorId to indicate it's returned and available
-            manager,
-          });
 
-          // Save item with ORIGINAL batch id to maintain source state
-          const item = await repos.transferVendorOrderItem.save(
-            repos.transferVendorOrderItem.create({
-              ...data,
-              vendorId: originalBatch.vendorId as string,
-              targetTransferredQuantity: -1 * data.quantity,
-              orderId: order.id,
-            }),
-          );
-
-          const base = await repos.order.save({});
-          const conversionFactor =
-            await this.materialService.getConversionFactor(
-              item.materialId,
-              item.unitId || undefined,
+            // Save item with ORIGINAL batch id to maintain source state
+            const item = await repos.transferVendorOrderItem.save(
+              repos.transferVendorOrderItem.create({
+                ...data,
+                vendorId: originalBatch.vendorId as string,
+                targetTransferredQuantity: -1 * data.quantity,
+                orderId: order.id,
+              }),
             );
 
-          const change = await repos.transferVendorOrderChange.save(
-            repos.transferVendorOrderChange.create({
-              itemId: item.id,
-              id: base.id,
-              quantityChanged:
-                -1 * item.targetTransferredQuantity * conversionFactor,
-            }),
-          );
-          let targetLocationId: string | undefined;
-          if (data.locationKey)
-            targetLocationId = await repos.location
-              .findOneByOrFail({ key: data.locationKey })
-              .then(({ id }) => id);
+            const base = await repos.order.save({});
+            const conversionFactor =
+              await this.materialService.getConversionFactor(
+                item.materialId,
+                item.unitId || undefined,
+                manager,
+              );
 
-          let targetLoaderId: string | undefined;
-          if (data.loaderKey)
-            targetLoaderId = await repos.loader
-              .findOneByOrFail({ serialId: data.loaderKey })
-              .then(({ id }) => id);
+            const change = await repos.transferVendorOrderChange.save(
+              repos.transferVendorOrderChange.create({
+                itemId: item.id,
+                id: base.id,
+                quantityChanged:
+                  -1 * item.targetTransferredQuantity * conversionFactor,
+              }),
+            );
+            let targetLocationId: string | undefined;
+            if (data.locationKey)
+              targetLocationId = await repos.location
+                .findOneByOrFail({ key: data.locationKey })
+                .then(({ id }) => id);
 
-          // Stock movements track the hold through splitted batch
-          await this.stockService.validateStockAvailability(
-            {
-              materialId: item.materialId,
-              batchId: item.batchId,
-              locationId: this.stockService.resolveLocationId(item.locationId),
-              loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: change.quantityChanged,
-            },
-            manager,
-          );
+            let targetLoaderId: string | undefined;
+            if (data.loaderKey)
+              targetLoaderId = await repos.loader
+                .findOneByOrFail({ serialId: data.loaderKey })
+                .then(({ id }) => id);
 
-          await repos.stock.save(
-            repos.stock.create([
-              // deduct from original batch available stock
+            // Stock movements track the hold through splitted batch
+            await this.stockService.validateStockAvailability(
               {
-                orderId: base.id,
                 materialId: item.materialId,
-                batchId: item.batchId, // original batch
+                batchId: item.batchId,
                 locationId: this.stockService.resolveLocationId(
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: -1 * change.quantityChanged,
-              } as DeepPartial<StockEntityClass>,
-              // add to splitted batch in released state
-              {
-                orderId: base.id,
-                materialId: item.materialId,
-                batchId: splittedBatch.id, // splitted batch marked with null vendorId
-                locationId: targetLocationId,
-                loaderId: this.stockService.resolveLoaderId(targetLoaderId),
                 quantity: change.quantityChanged,
-              } as DeepPartial<StockEntityClass>,
-            ]),
-          );
-        }),
-      );
-    }
-    return order as T;
+              },
+              manager,
+            );
+
+            await repos.stock.save(
+              repos.stock.create([
+                // deduct from original batch available stock
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId, // original batch
+                  locationId: this.stockService.resolveLocationId(
+                    item.locationId,
+                  ),
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                  quantity: -1 * change.quantityChanged,
+                } as DeepPartial<StockEntityClass>,
+                // add to splitted batch in released state
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: splittedBatch.id, // splitted batch marked with null vendorId
+                  locationId: targetLocationId,
+                  loaderId: this.stockService.resolveLoaderId(targetLoaderId),
+                  quantity: change.quantityChanged,
+                } as DeepPartial<StockEntityClass>,
+              ]),
+            );
+          })();
+        }
+      }
+      return order as T;
+    });
   }
 }

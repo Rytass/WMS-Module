@@ -8,13 +8,20 @@ import {
   StockEntityClass,
   BatchEntityClass,
 } from '../models';
-import { DataSource, DeepPartial, EntityTarget, In } from 'typeorm';
+import {
+  DataSource,
+  DeepPartial,
+  EntityManager,
+  EntityTarget,
+  In,
+} from 'typeorm';
 import { MergeBatchInput } from '../typings/merge-batch.input';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
@@ -36,8 +43,8 @@ export class MergeBatchOrderService<
     readonly mergeBatchOrderItemEntity: EntityTarget<K>,
   ) {}
 
-  merge(options: MergeBatchInput): Promise<T> {
-    return this.dataSource.transaction(async (manager) => {
+  merge(options: MergeBatchInput, outerManager?: EntityManager): Promise<T> {
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const mergeBatchOrderRepository =
         manager.getRepository<MergeBatchOrderEntityClass>(
           this.mergeBatchOrderEntity,
@@ -90,6 +97,18 @@ export class MergeBatchOrderService<
         key: options.batchKey,
       });
 
+      // Every source batch, locked up front in one sorted pass and before the
+      // split below (stock locks always precede a batch-group lock). Locked
+      // item by item, two merges naming the same batches in opposite order
+      // deadlocked.
+      await this.stockService.lockStockSlots(
+        options.items.map(({ batchId }) => ({
+          materialId: targetBatch.materialId,
+          batchId,
+        })),
+        manager,
+      );
+
       // Split target batch to inherit the source batches' state
       const mergedBatch = await this.batchService.splitBatch({
         id: targetBatch.id,
@@ -112,13 +131,14 @@ export class MergeBatchOrderService<
       );
 
       // Process each item to merge
-      await Promise.all(
-        options.items.map(async (item) => {
+      for (const item of options.items) {
+        await (async () => {
           // Get conversion factor for unit conversion
           const conversionFactor =
             await this.materialService.getConversionFactor(
               targetBatch.materialId,
               item.unitId || undefined,
+              manager,
             );
 
           // Create base order record
@@ -181,8 +201,8 @@ export class MergeBatchOrderService<
               } as DeepPartial<StockEntityClass>,
             ]),
           );
-        }),
-      );
+        })();
+      }
       return order as T;
     });
   }

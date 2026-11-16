@@ -1,6 +1,9 @@
 import { StockStatus } from '../constants';
 
 export type CreateTransferOrderItemInput = {
+  // what to transfer -- always required at runtime; the type used to omit them
+  materialId: string;
+  batchId: string;
   // stocks location where to transfer from
   locationId: string;
 

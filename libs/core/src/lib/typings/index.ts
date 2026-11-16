@@ -19,3 +19,27 @@ export * from './reclassify-inventory-order.input';
 export * from './paginations';
 export * from './cancel-ship-inventory-order.input';
 export * from './cancel-transfer-order.input';
+export * from './aggregated-stock';
+export * from './create-allocate-inventory-order.input';
+export * from './create-hold-inventory-order.input';
+export * from './create-inspection-order.input';
+export * from './create-location.input';
+export * from './create-transfer-order.input';
+export * from './deallocate-inventory-order';
+export * from './find-allocate-inventory-order.input';
+export * from './find-batch.input';
+export * from './find-hold-inventory-order.input';
+export * from './find-location.input';
+export * from './find-transfer-order.input';
+export type {
+  GetBatchInput,
+  // BatchService.splitBatch's options; SplitBatchInput is the split order's.
+  SplitBatchInput as BatchSplitAttributesInput,
+} from './get-batch.input';
+export * from './merge-batch.input';
+export * from './receive-inventory-order.input';
+export * from './release-inventory-order.input';
+export * from './scrape.input';
+export * from './ship-inventory-order.input';
+export * from './split-batch.input';
+export * from './transfer-order.input';

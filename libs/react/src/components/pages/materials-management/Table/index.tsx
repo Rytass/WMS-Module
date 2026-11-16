@@ -117,6 +117,7 @@ function MaterialsManagementTable({
       >
         <Table<SimpleMaterialFragment>
           tableKey="Materials"
+          pinnedUntilColumnKey="key"
           columns={columns}
           dataSource={dataSource}
           loading={loading}

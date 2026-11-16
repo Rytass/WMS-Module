@@ -9,9 +9,7 @@ out-tsc
 # library build artefacts (emitted alongside source)
 libs/*/index.cjs.js
 libs/*/index.js
-libs/*/index.mjs
 libs/*/index.d.ts
-libs/*/index.d.mts
 libs/*/tsconfig.tsbuildinfo
 libs/*/lib
 libs/graphql/adapters
@@ -80,3 +78,6 @@ libs/**/*.tgz
 
 
 
+
+# Claude Code session state
+.claude/scheduled_tasks.lock

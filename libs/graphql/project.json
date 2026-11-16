@@ -21,9 +21,7 @@
       ],
       "outputs": [
         "{projectRoot}/index.cjs.js",
-        "{projectRoot}/index.mjs",
         "{projectRoot}/index.d.ts",
-        "{projectRoot}/index.d.mts",
         "{projectRoot}/lib",
         "{projectRoot}/adapters"
       ],
@@ -32,7 +30,7 @@
         "parallel": false,
         "commands": [
           "rollup -c rollup.config.mjs",
-          "node ../../tools/emit-esm-type-shims.mjs . index adapters/member-base adapters/event-emitter"
+          "tsc -p tsconfig.lib.json --emitDeclarationOnly"
         ]
       }
     },

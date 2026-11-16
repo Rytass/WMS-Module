@@ -28,6 +28,7 @@ import { MaterialService } from './material.service';
 import { FindAllocateInventoryOrderInput } from '../typings/find-allocate-inventory-order.input';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
 @Injectable()
@@ -76,8 +77,11 @@ export class AllocateInventoryOrderService<
     manager: EntityManager,
   ): Promise<void> {
     const repos = this.getRepositories(manager);
-    await Promise.all(
-      items.map(async (data) => {
+    // Every (material, batch) this call deducts from, locked up front in a
+    // fixed order so overlapping operations cannot deadlock each other.
+    await this.stockService.lockStockSlots(items, manager);
+    for (const data of items) {
+      await (async () => {
         // Ensure required fields are present
         if (!data.batchId || !data.materialId) return;
 
@@ -98,6 +102,7 @@ export class AllocateInventoryOrderService<
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
           item.unitId || undefined,
+          manager,
         );
 
         await repos.allocateInventoryOrderChange.save(
@@ -142,187 +147,199 @@ export class AllocateInventoryOrderService<
             } as DeepPartial<StockEntityClass>,
           ]),
         );
-      }),
-    );
+      })();
+    }
   }
 
   async createAllocateInventoryOrder(
     options: CreateAllocateInventoryOrderInput,
-    manager = this.dataSource.manager,
+    outerManager?: EntityManager,
   ): Promise<T> {
-    const repos = this.getRepositories(manager);
-    const key = await this.helperService.getSeq(this.seqPrefix);
-    const { items, ...orderOptions } = options;
-    const order = await repos.allocateInventoryOrder.save(
-      repos.allocateInventoryOrder.create({
-        key,
-        ...orderOptions,
-      }),
-    );
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const repos = this.getRepositories(manager);
+      const key = await this.helperService.getSeq(this.seqPrefix, manager);
+      const { items, ...orderOptions } = options;
+      const order = await repos.allocateInventoryOrder.save(
+        repos.allocateInventoryOrder.create({
+          key,
+          ...orderOptions,
+        }),
+      );
 
-    if (items?.length) {
-      const processedItems = items.map((item) => ({
-        ...item,
-        orderId: order.id,
-      }));
-      await this.processAllocateInventoryOrderItems(processedItems, manager);
-    }
+      if (items?.length) {
+        const processedItems = items.map((item) => ({
+          ...item,
+          orderId: order.id,
+        }));
+        await this.processAllocateInventoryOrderItems(processedItems, manager);
+      }
 
-    return order as T;
+      return order as T;
+    });
   }
 
   async updateAllocateInventoryOrder({
     id,
-    manager = this.dataSource.manager,
+    manager: outerManager,
     ...options
   }: UpdateAllocateInventoryOrderInput & {
     manager?: EntityManager;
   }): Promise<T> {
-    const repos = this.getRepositories(manager);
-    const { items, ...orderOptions } = options;
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const repos = this.getRepositories(manager);
+      const { items, ...orderOptions } = options;
 
-    const order = await repos.allocateInventoryOrder.findOneBy({ id });
-    const updated = await repos.allocateInventoryOrder.save({
-      ...order,
-      ...orderOptions,
-    });
-
-    if (items?.length) {
-      const existingItemIds = new Set(
-        (
-          await repos.allocateInventoryOrderItem.find({
-            where: { orderId: id },
-            relations: { changes: true },
-          })
-        ).map((item) => item.id),
-      );
-
-      const newItems: Partial<AllocateInventoryOrderItemEntityClass>[] = [];
-      const existingItems: Partial<AllocateInventoryOrderItemEntityClass>[] =
-        [];
-
-      items.forEach((item) => {
-        if (!item.id) newItems.push({ ...item, orderId: id });
-        else if (existingItemIds.has(item.id))
-          existingItems.push({ ...item, orderId: id });
+      const order = await repos.allocateInventoryOrder.findOneBy({ id });
+      const updated = await repos.allocateInventoryOrder.save({
+        ...order,
+        ...orderOptions,
       });
 
-      if (newItems.length)
-        await this.processAllocateInventoryOrderItems(newItems, manager);
-      if (existingItems.length)
-        await repos.allocateInventoryOrderItem.save(
-          await Promise.all(
-            existingItems.map((item) =>
-              repos.allocateInventoryOrderItem.create(item),
-            ),
-          ),
+      if (items?.length) {
+        const existingItemIds = new Set(
+          (
+            await repos.allocateInventoryOrderItem.find({
+              where: { orderId: id },
+              relations: { changes: true },
+            })
+          ).map((item) => item.id),
         );
-    }
 
-    return updated as T;
+        const newItems: Partial<AllocateInventoryOrderItemEntityClass>[] = [];
+        const existingItems: Partial<AllocateInventoryOrderItemEntityClass>[] =
+          [];
+
+        items.forEach((item) => {
+          if (!item.id) newItems.push({ ...item, orderId: id });
+          else if (existingItemIds.has(item.id))
+            existingItems.push({ ...item, orderId: id });
+        });
+
+        if (newItems.length)
+          await this.processAllocateInventoryOrderItems(newItems, manager);
+        if (existingItems.length)
+          await repos.allocateInventoryOrderItem.save(
+            await Promise.all(
+              existingItems.map((item) =>
+                repos.allocateInventoryOrderItem.create(item),
+              ),
+            ),
+          );
+      }
+
+      return updated as T;
+    });
   }
 
   async deallocate(
     options:
       | DeallocateInventoryOrderItemInput
       | DeallocateInventoryOrderItemInput[],
-    manager = this.dataSource.manager,
+    outerManager?: EntityManager,
   ): Promise<T> {
-    if (!Array.isArray(options)) options = [options];
-    const repos = this.getRepositories(manager);
+    return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      if (!Array.isArray(options)) options = [options];
+      const repos = this.getRepositories(manager);
 
-    const key = await this.helperService.getSeq(this.seqPrefix, manager);
-    const order = await repos.allocateInventoryOrder.save(
-      repos.allocateInventoryOrder.create({ key }),
-    );
+      const key = await this.helperService.getSeq(this.seqPrefix, manager);
+      const order = await repos.allocateInventoryOrder.save(
+        repos.allocateInventoryOrder.create({ key }),
+      );
 
-    if (options.length > 0) {
-      await Promise.all(
-        options.map(async (data) => {
-          // Ensure required fields are present
-          if (!data.batchId || !data.materialId) return;
+      if (options.length > 0) {
+        // Every (material, batch) this call deducts from, locked up front in a
+        // fixed order so overlapping operations cannot deadlock each other.
+        await this.stockService.lockStockSlots(options, manager);
+        for (const data of options) {
+          await (async () => {
+            // Ensure required fields are present
+            if (!data.batchId || !data.materialId) return;
 
-          const originalBatch =
-            await this.batchService.batchRepository.findOneByOrFail({
+            const originalBatch =
+              await this.batchService.batchRepository.findOneByOrFail({
+                id: data.batchId,
+                saleId: Not(IsNull()),
+                saleSerialId: Not(IsNull()),
+              });
+            const splittedBatch = await this.batchService.splitBatch({
               id: data.batchId,
-              saleId: Not(IsNull()),
-              saleSerialId: Not(IsNull()),
+              saleId: null, // mark splitted batch with null saleId to indicate deallocation
+              saleSerialId: null,
+              manager,
             });
-          const splittedBatch = await this.batchService.splitBatch({
-            id: data.batchId,
-            saleId: null, // mark splitted batch with null saleId to indicate deallocation
-            saleSerialId: null,
-            manager,
-          });
 
-          // Save item with ORIGINAL batch id to maintain source state
-          const item = await repos.allocateInventoryOrderItem.save(
-            repos.allocateInventoryOrderItem.create({
-              ...data,
-              saleId: originalBatch.saleId as string,
-              saleSerialId: originalBatch.saleSerialId as string,
-              targetAllocatedQuantity: -1 * data.quantity,
-              orderId: order.id,
-            }),
-          );
-
-          const base = await repos.order.save({});
-          const conversionFactor =
-            await this.materialService.getConversionFactor(
-              item.materialId,
-              item.unitId || undefined,
+            // Save item with ORIGINAL batch id to maintain source state
+            const item = await repos.allocateInventoryOrderItem.save(
+              repos.allocateInventoryOrderItem.create({
+                ...data,
+                saleId: originalBatch.saleId as string,
+                saleSerialId: originalBatch.saleSerialId as string,
+                targetAllocatedQuantity: -1 * data.quantity,
+                orderId: order.id,
+              }),
             );
 
-          const change = await repos.allocateInventoryOrderChange.save(
-            repos.allocateInventoryOrderChange.create({
-              itemId: item.id,
-              id: base.id,
-              quantityChanged:
-                -1 * item.targetAllocatedQuantity * conversionFactor,
-            }),
-          );
-          // Stock movements track the hold through splitted batch
-          await this.stockService.validateStockAvailability(
-            {
-              materialId: item.materialId,
-              batchId: item.batchId,
-              locationId: this.stockService.resolveLocationId(item.locationId),
-              loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: change.quantityChanged,
-            },
-            manager,
-          );
+            const base = await repos.order.save({});
+            const conversionFactor =
+              await this.materialService.getConversionFactor(
+                item.materialId,
+                item.unitId || undefined,
+                manager,
+              );
 
-          await repos.stock.save(
-            repos.stock.create([
-              // deduct from original batch available stock
+            const change = await repos.allocateInventoryOrderChange.save(
+              repos.allocateInventoryOrderChange.create({
+                itemId: item.id,
+                id: base.id,
+                quantityChanged:
+                  -1 * item.targetAllocatedQuantity * conversionFactor,
+              }),
+            );
+            // Stock movements track the hold through splitted batch
+            await this.stockService.validateStockAvailability(
               {
-                orderId: base.id,
                 materialId: item.materialId,
-                batchId: item.batchId, // original batch
-                locationId: this.stockService.resolveLocationId(
-                  item.locationId,
-                ),
-                loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: -1 * change.quantityChanged,
-              } as DeepPartial<StockEntityClass>,
-              // add to splitted batch in released state
-              {
-                orderId: base.id,
-                materialId: item.materialId,
-                batchId: splittedBatch.id, // splitted batch marked deallocated with null saleId
+                batchId: item.batchId,
                 locationId: this.stockService.resolveLocationId(
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
                 quantity: change.quantityChanged,
-              } as DeepPartial<StockEntityClass>,
-            ]),
-          );
-        }),
-      );
-    }
-    return order as T;
+              },
+              manager,
+            );
+
+            await repos.stock.save(
+              repos.stock.create([
+                // deduct from original batch available stock
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: item.batchId, // original batch
+                  locationId: this.stockService.resolveLocationId(
+                    item.locationId,
+                  ),
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                  quantity: -1 * change.quantityChanged,
+                } as DeepPartial<StockEntityClass>,
+                // add to splitted batch in released state
+                {
+                  orderId: base.id,
+                  materialId: item.materialId,
+                  batchId: splittedBatch.id, // splitted batch marked deallocated with null saleId
+                  locationId: this.stockService.resolveLocationId(
+                    item.locationId,
+                  ),
+                  loaderId: this.stockService.resolveLoaderId(item.loaderId),
+                  quantity: change.quantityChanged,
+                } as DeepPartial<StockEntityClass>,
+              ]),
+            );
+          })();
+        }
+      }
+      return order as T;
+    });
   }
 
   findMany(options: FindAllocateInventoryOrderInput): Promise<[T[], number]> {

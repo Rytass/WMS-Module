@@ -6,6 +6,7 @@ import {
   FindOperator,
   FindOptionsWhere,
   IsNull,
+  Like,
   Raw,
   Repository,
 } from 'typeorm';
@@ -17,6 +18,7 @@ import {
   BatchGroupEntityClass,
 } from '../models/metadata/batch-group.entity';
 
+import { runInTransaction } from '../utils/run-in-transaction';
 @Injectable()
 export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
   readonly batchRepository: Repository<T>;
@@ -74,9 +76,15 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
 
     const isMiddleTier = batch.saleId != null || batch.saleSerialId != null;
 
-    // What is being changed (explicitly set, not undefined)
+    // What is being changed (explicitly set, not undefined). Clearing both
+    // back to null is a release of the allocation -- what `deallocate` asks
+    // for -- not a change to another allocation, so it is not counted: Rule 2
+    // used to refuse it, and every deallocation threw.
+    const isReleasingAllocation =
+      options.saleId === null && options.saleSerialId === null;
     const changingMiddleTier =
-      options.saleId !== undefined || options.saleSerialId !== undefined;
+      !isReleasingAllocation &&
+      (options.saleId !== undefined || options.saleSerialId !== undefined);
 
     const changingInspection = options.inspectionResult !== undefined;
 
@@ -172,13 +180,45 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     return batch as T;
   }
 
-  async splitBatch({
-    manager = this.dataSource.manager,
+  /**
+   * Find or create the sibling of batch `id` in its group that carries the
+   * requested state.
+   *
+   * Serialised per batch group with a transaction-scoped advisory lock, so two
+   * concurrent splits asking for the same state find one sibling rather than
+   * both creating one. Runs in the caller's transaction when given one (the lock
+   * is then held to its commit) and in a transaction of its own otherwise.
+   * Take stock locks before calling this, never after: the two are always
+   * acquired in that order.
+   */
+  splitBatch({
+    manager: outerManager,
     ...options
   }: {
     id: string;
     manager?: EntityManager;
   } & SplitBatchInput): Promise<BatchEntityClass> {
+    return runInTransaction(this.dataSource, outerManager, (manager) =>
+      this.splitBatchLocked(manager, options),
+    );
+  }
+
+  private async splitBatchLocked(
+    manager: EntityManager,
+    options: { id: string } & SplitBatchInput,
+  ): Promise<BatchEntityClass> {
+    const { groupId } = await manager
+      .getRepository<BatchEntityClass>(this.batchEntity)
+      .findOneOrFail({
+        select: { id: true, groupId: true },
+        where: { id: options.id },
+      });
+
+    await manager.query(
+      `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`,
+      [`wms:batch-group:${groupId}`],
+    );
+
     const batchRepository = manager.getRepository<BatchEntityClass>(
       this.batchEntity,
     );
@@ -246,11 +286,33 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       return existingBatch as T;
     }
 
-    // If no matching batch exists, create a new one
+    // If no matching batch exists, create a new one. Two children of one group
+    // created in the same millisecond used to get the same key and the second
+    // hit `UNIQUE (key, materialId)`; the group lock taken in `splitBatchLocked`
+    // makes the lookup below and the existing-sibling check above safe.
+    const baseKey = `${batch.batchGroup.key}_${Date.now().toString()}`;
+    const takenKeys = new Set(
+      (
+        await batchRepository.find({
+          select: { key: true },
+          where: { materialId: batch.materialId, key: Like(`${baseKey}%`) },
+        })
+      ).map(({ key }) => key),
+    );
+    const key = takenKeys.has(baseKey)
+      ? `${baseKey}_${
+          Array.from(
+            { length: takenKeys.size + 1 },
+            (_, index) => index + 1,
+          ).find((suffix) => !takenKeys.has(`${baseKey}_${suffix}`)) ??
+          takenKeys.size + 1
+        }`
+      : baseKey;
+
     return batchRepository.save(
       batchRepository.create({
         ...mergedBatch,
-        key: `${batch.batchGroup.key}_${Date.now().toString()}`,
+        key,
         // Not inherited from `mergedBatch`: spreading the source batch would
         // copy *its* parent and flatten the chain by one link. The parent of
         // the batch being created is the batch it was split out of.

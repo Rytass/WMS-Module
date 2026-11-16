@@ -153,6 +153,7 @@ against that one tarball:
 |---|---|
 | [publint](https://publint.dev) | `package.json` shape — bad `exports` conditions, files that do not exist, fields pointing at nothing |
 | [attw](https://github.com/arethetypeswrong/arethetypeswrong.github.io) | whether the types resolve at all, and whether they resolve to the same module kind as the JavaScript beside them, under `node10` / `node16` / `bundler` |
+| one runtime file | every condition of a subpath resolves to the same JavaScript, so the package cannot be loaded twice in one process |
 | declared dependencies | every bare specifier in the shipped JavaScript is in `dependencies`, `peerDependencies` or `optionalDependencies` |
 
 Three details of that are load-bearing, each because of a specific failure:
@@ -208,30 +209,49 @@ and `core`/`graphql`'s `unexpected-module-syntax` — see below.
 
 ### How `core` and `graphql` are packaged
 
-Both are dual-format, and the shape is deliberate:
+CommonJS only, one file per entry point:
 
 ```
-index.cjs.js   CJS bundle          ← "require"          "type": "commonjs" makes .js CJS
-index.mjs      ESM, one file per   ← "import"           .mjs is ESM regardless
-lib/**/*.mjs   source module
-index.d.ts     declarations        ← "require".types    CJS-flavoured, one copy
-index.d.mts    one-line re-export  ← "import".types     ESM-flavoured
+index.cjs.js   the bundle           ← every condition points here
+index.d.ts     declarations
 ```
 
-The ESM tree used to be emitted as `.js` with no `"type"` field, which made Node parse it as
-CommonJS and choke on the `export` keyword. Modern Node hides this — since 22.7 it retries as
-ESM when CJS parsing fails — so the failure only ever showed up as attw's
-`unexpected-module-syntax`, and that rule was waived. It was a real defect the whole time.
+`exports` has no `import` / `require` fork. That is the point, and it is not a
+simplification for its own sake: **these packages export DI Symbols and TypeORM entity
+classes, and both are identities.** A package that resolves `import` and `require` to
+different files has two module records in any process that reaches both, so a provider
+registered under the CJS `WMS_CORE_MODULE_OPTIONS` is invisible to a lookup holding the ESM
+one, and `instanceof BatchEntityClass` is false for a row the other copy built.
 
-A second full declaration tree for the `import` condition would double the package for no new
-information, so each entry point gets a one-line `.d.mts` re-exporting the `.d.ts` beside it,
-written by `tools/emit-esm-type-shims.mjs` at the end of the build. ESM may import CJS, so
-this direction is legal; the reverse is not. The shim uses `export *`, which does **not**
-carry a default export — the script refuses to write one for a barrel that has a default, so
-that a future default cannot vanish silently.
+That was not theoretical. Measured on the published `0.9.1`, which shipped both formats, a
+process that did `require()` and `import()` of the same package got **64 of 64 Symbols and 57
+of 57 entity classes different**. Not a subset — no shared identity at all.
 
-`libs/react` is not part of this: it is ESM-only and declares `"type": "module"` (`nuqs` is
-ESM-only and cannot be `require()`-d).
+ESM consumers are unaffected by the removal. Node reads named exports out of a CommonJS
+module via `cjs-module-lexer`, and all 162 of core's exports are detected, including the one
+declared with `Object.defineProperty` rather than `exports.X =`. `import { StockService } from
+'@rytass/wms-module-core'` works exactly as before; there is simply only one copy of it now.
+
+Nothing was lost that anyone had. The ESM build existed for tree-shaking a NestJS server
+library whose classes are all decorated and side-effectful, and the only in-repo consumer
+(`apps/api`) resolves through a tsconfig path alias to source. `libs/react` — the one package
+that does ship to a browser — is ESM-only and does not depend on either of these.
+
+`tools/pkg-gate.mjs` enforces this structurally: every condition of a subpath must resolve to
+the same file, `types` excepted. A fork cannot be reintroduced without failing the gate.
+
+### Declarations come from `tsc`, not from rollup
+
+With the ESM pass gone, the `.d.ts` tree is emitted by an explicit
+`tsc -p tsconfig.lib.json --emitDeclarationOnly` step after rollup. It used to be a side
+effect of the ESM rollup pass, which is why deleting that pass would otherwise have silently
+shipped a package with no types.
+
+One consequence: `tsc` exits non-zero on a type error even though `graphql`'s
+`tsconfig.lib.json` sets `noEmitOnError: false`, so `nx build graphql` now *fails* on an error
+that previously emitted a declaration file that lied about the contract. `typecheck` already
+gated this in `prepublish-check`, so the release gate gains nothing new — a standalone build
+is simply no longer able to hide it.
 
 ## Conventional commit scopes used in this repo
 

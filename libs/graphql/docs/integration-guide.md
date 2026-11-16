@@ -13,6 +13,7 @@ Target audience: engineers integrating WMS into a new product who want a working
 3. [Quick start (60 seconds)](#3-quick-start-60-seconds)
 4. [Backend setup (NestJS + GraphQL + TypeORM)](#4-backend-setup-nestjs--graphql--typeorm)
    - [4.6 Version compatibility matrix](#46-version-compatibility-matrix)
+   - [4.7 Module format: CommonJS only](#47-module-format-commonjs-only)
 5. [Frontend setup (Next.js Pages Router)](#5-frontend-setup-nextjs-pages-router)
 6. [Pages Router shell pattern (the 19 thin shells)](#6-pages-router-shell-pattern-the-19-thin-shells)
 7. [Apollo client wiring](#7-apollo-client-wiring)
@@ -296,8 +297,8 @@ WMS_DB_SCHEMA=wms_demo
     "@nestjs/graphql": "^13.0.0",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/typeorm": "^11.0.0",
-    "@rytass/wms-module-core": "^0.1.2",
-    "@rytass/wms-module-graphql": "^0.1.2",
+    "@rytass/wms-module-core": "^0.9.1",
+    "@rytass/wms-module-graphql": "^0.11.1",
     "graphql": "^16.0.0",
     "pg": "^8.0.0",
     "reflect-metadata": "^0.2.0",
@@ -356,7 +357,7 @@ because it was exercised.
 
 | Package                     | Accepted (peer range)     | Tested            | Notes                                                                       |
 |-----------------------------|---------------------------|-------------------|-----------------------------------------------------------------------------|
-| `@nestjs/common` / `core`   | 10.x – 11.x               | 11.1.x            | **12.x is not accepted**: the whole NestJS 12 line is ESM-only, which this package (dual CJS+ESM) and a webpack-bundled host cannot consume yet |
+| `@nestjs/common` / `core`   | 10.x – 11.x               | 11.1.x            | **12.x is not accepted**: the NestJS 12 line is ESM-only, and this package ships CommonJS only and has not been tested against it (see §4.7) |
 | `@nestjs/graphql`           | 13.x                      | 13.4.5            | 14.x requires NestJS 12 (ESM-only)                                          |
 | `@nestjs/apollo`            | 13.x                      | 13.4.5            | The lib itself imports neither `@nestjs/apollo` nor `@apollo/server`; the peer records that a driver is required |
 | `@apollo/server`            | not a peer                | 5.5.1             | Chosen by your driver, not by this package                                   |
@@ -381,6 +382,19 @@ because it was exercised.
 > runs on, so it has been widened back to `^13.0.0`.
 
 ---
+
+### 4.7 Module format: CommonJS only
+
+`@rytass/wms-module-graphql` ships one CommonJS file (`index.cjs.js`), and every condition in its
+`exports` points at it. There is no ESM build, on purpose. The package exports DI tokens
+(`Symbol`s) and entity classes, and both are identities: if one process loads it through two
+module records, it gets two copies of each, and a provider registered under one copy's token is
+invisible to a lookup holding the other. The same reasoning applies to `@rytass/wms-module-core`
+(see its integration guide §4.7), which owns the tokens and entities this package consumes.
+
+ESM consumers lose nothing. Node reads named exports out of CommonJS through `cjs-module-lexer`,
+so named `import` statements work as written. The NestJS 12 line is ESM-only; it is outside the
+accepted peer range (see §4.6).
 
 ## 5. Frontend setup (Next.js Pages Router)
 
@@ -522,7 +536,7 @@ be listed in `transpilePackages`. Install it as a regular production dependency:
 pnpm add @rytass/wms-map-react-components
 ```
 
-Current published version: `^0.1.0`. Registry: `https://registry.npmjs.org/`.
+Check the latest published version with `npm view @rytass/wms-map-react-components version`. Registry: `https://registry.npmjs.org/`.
 
 ### 5.4 `apps/client/package.json` essentials
 
@@ -542,8 +556,8 @@ Current published version: `^0.1.0`. Registry: `https://registry.npmjs.org/`.
     "@mezzanine-ui/icons": "^1.0.0",
     "@mezzanine-ui/react": "^1.0.0",
     "@mezzanine-ui/system": "^1.0.0",
-    "@rytass/wms-map-react-components": "^0.1.0",
-    "@rytass/wms-module-react": "^0.1.2",
+    "@rytass/wms-map-react-components": "^0.1.10",
+    "@rytass/wms-module-react": "^0.5.1",
     "@xyflow/react": "^12.0.0",
     "graphql": "^16.0.0",
     "lodash": "^4.17.0",
@@ -670,10 +684,10 @@ import { createApolloClient } from '@rytass/wms-module-react';
 const client = createApolloClient();
 ```
 
-As of **0.1.2**, `createApolloClient()` takes **no parameters** and returns a fresh
+`createApolloClient()` takes **no parameters** and returns a fresh
 `ApolloClient<NormalizedCacheObject>` instance configured with the same `/graphql` URI as
-the default singleton. A URL/header override parameter is planned for **0.2.0** (will be a
-non-breaking addition). See [API Reference - createApolloClient](./api-reference.md).
+the default singleton. A URL/header override parameter is planned as a
+non-breaking addition, and is not available yet. See [API Reference - createApolloClient](./api-reference.md).
 
 ### 7.3 GraphQL operations & DocumentNode constants
 
@@ -1005,7 +1019,10 @@ The entities are designed for PostgreSQL:
 
 - `timestamptz` columns map to native `timestamp with time zone`
 - `bool` maps to PG `boolean`
-- Sequence-based serial IDs (e.g. loader.serialId) use PG `CURRVAL`
+- Serial IDs (order keys, loader serials) come from `WmsSequenceService`; `CURRVAL` is not used. `sequenceStorage` selects one of two modes:
+  - `'sequence'` (default): one PostgreSQL sequence per counter. The first use of a counter in a process runs `CREATE SEQUENCE IF NOT EXISTS` on a separate connection in autocommit, so a rollback cannot drop it and other callers are not blocked. Consecutive runs (loader serials) hold a transaction-scoped advisory lock on the counter.
+  - `'table'`: one row per counter in the `sequences` table, advanced by a single `INSERT … ON CONFLICT … RETURNING` statement. No DDL is run.
+  - In both modes a `maxValue` bound refuses a reservation before the counter moves.
 - `synchronize: true` works for dev/demo; use proper migrations in production
 
 This is the only database where the lib runs without any consumer-side workaround.
@@ -1023,7 +1040,7 @@ If you must run against SQLite (e.g. for local prototyping without a PG server):
 
    At the disk layer SQLite is liberal — it accepts any column type string and gives it NUMERIC affinity — so once the validator is past, schema creation works.
 
-2. **`CURRVAL(seq_name)` PostgreSQL function** — used internally to compute loader serial IDs. SQLite has no equivalent. All `createLoader` mutations will fail with `no such function: CURRVAL`. There is no clean consumer-side workaround; running real loader creation flows on SQLite is not supported as of 0.1.2.
+2. **Sequence reservation** — order keys and loader serials come from `WmsSequenceService`, which emits PostgreSQL-specific SQL in both storage modes. `sequenceStorage: 'sequence'` (default) uses `CREATE SEQUENCE`, `nextval` / `setval`, `to_regclass` and `pg_advisory_xact_lock`; `sequenceStorage: 'table'` avoids DDL but still uses the PostgreSQL `::bigint` cast. Neither mode runs on SQLite, so running `createLoader` or any order-creation flow on SQLite is not supported.
 
 3. **DateTime serialize round-trip** — SQLite returns datetime strings in `YYYY-MM-DD HH:MM:SS` format. The GraphQL DateTime scalar may emit `null` for some columns; the consumer-visible effect is blank `createdAt` fields in some payloads.
 
@@ -1545,7 +1562,7 @@ the navigation chrome with your own.
 
 ### 13.9 i18n: Current Limitations and Workarounds
 
-**Status**: No i18n support in 0.1.x. All user-visible strings in the lib are hardcoded
+**Status**: No i18n support. All user-visible strings in the lib are hardcoded
 Traditional Chinese (zh-TW).
 
 Affected areas:
@@ -1596,13 +1613,13 @@ WMS page components (`MaterialsManagement`, `InventoryList`, etc.) are designed 
 **full-viewport rendering**. They use `PageWrapper` and `SectionWrapper` internally which
 set `width: 100%` and `height: 100%` of the viewport.
 
-**Embedding in a tab, panel, or drawer is not officially supported in 0.1.x.** Known issues
+**Embedding in a tab, panel, or drawer is not officially supported.** Known issues
 when embedded in a constrained container:
 - Mezzanine Table column-width calculations use the viewport width
 - Modal/dialog portals render at document body, not relative to the container
 - React Flow (used by Maps and LocationsManagement map tab) requires a fixed-height container
 
-There is no clean workaround in 0.1.x. If you need sectional embedding, fork the lib and
+There is no clean workaround. If you need sectional embedding, fork the lib and
 modify the `PageWrapper`/`SectionWrapper` styles to be container-relative.
 
 ---
@@ -1734,7 +1751,7 @@ export default defineConfig({
 4. `@mezzanine-ui/react` imports `lodash/compact` without a `.js` extension, which may
    require `resolve.alias` configuration in Vite.
 
-No official Vite setup guide exists for 0.1.x.
+No official Vite setup guide exists.
 
 ---
 
@@ -1788,7 +1805,7 @@ same `@nestjs/*` major version. Options:
    ```yaml
    # pnpm-workspace.yaml
    overrides:
-     '@rytass/wms-module-core': '0.1.4'
+     '@rytass/wms-module-core': '0.9.1'
    ```
 
 3. Apply `public-hoist-pattern[]` for `@rytass/wms-module-*` in `.npmrc`
@@ -1817,7 +1834,7 @@ There is no name-prefixing or namespace configuration in the lib's DTOs. This co
 affects **all** GraphQL types in the WMS schema: ObjectTypes, InputTypes, Enums, and any
 union types.
 
-The viable options are the same as those described in §13.1:
+The viable options are:
 
 1. **Run WMS as a separate NestJS process** (recommended) — isolates schemas entirely;
    no type name collisions possible.
