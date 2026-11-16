@@ -57,6 +57,7 @@ function useElementWidth(): [RefObject<HTMLDivElement | null>, number] {
 const Table = <T extends TableDataSource>({
   tableKey,
   pinnedUntilColumnKey,
+  pinnedColumnKeys,
   ...props
 }: TableProps<T> & {
   tableKey: string;
@@ -65,6 +66,12 @@ const Table = <T extends TableDataSource>({
    * while the table scrolls horizontally.
    */
   pinnedUntilColumnKey?: string;
+  /**
+   * Pin exactly these data columns. For a table whose columns before the
+   * material key are too wide to pin as one block; the pinned set may skip
+   * columns.
+   */
+  pinnedColumnKeys?: readonly string[];
 }) => {
   const [containerRef, containerWidth] = useElementWidth();
 
@@ -92,9 +99,12 @@ const Table = <T extends TableDataSource>({
         ...c,
         width: c.width ?? DEFAULT_COLUMN_WIDTH,
         minWidth: COLUMN_MIN_WIDTH,
-        fixed: index <= pinnedUntilIndex ? 'start' : c.fixed,
+        fixed:
+          index <= pinnedUntilIndex || pinnedColumnKeys?.includes(c.key)
+            ? 'start'
+            : c.fixed,
       })),
-    [pinnedUntilIndex, props.columns],
+    [pinnedColumnKeys, pinnedUntilIndex, props.columns],
   );
 
   const leadingControlsWidth =

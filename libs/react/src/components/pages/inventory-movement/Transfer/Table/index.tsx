@@ -10,6 +10,13 @@ import { useQueryTransferOrders } from '../../useApi';
 import { formatKeyName } from '../../../../../utils/share';
 import { FilterValues } from '../typing';
 
+/*
+ * Not everything up to the material key: the operations column and the
+ * four order columns in front of it come to 920px, which on a 1440px screen
+ * leaves about 220px of the table to scroll through.
+ */
+const TRANSFER_PINNED_COLUMN_KEYS = ['actions', 'key', 'material'] as const;
+
 interface InventoryMovementTransferTableProps {
   currentFilter?: FilterValues;
 }
@@ -126,7 +133,7 @@ function InventoryMovementTransferTable({
     <TableWrapper title="調撥單清單">
       <Table<TransferOrderFragment>
         tableKey="InventoryMovementTransferOrders"
-        pinnedUntilColumnKey="material"
+        pinnedColumnKeys={TRANSFER_PINNED_COLUMN_KEYS}
         columns={columns}
         dataSource={dataSource}
         loading={loading}
