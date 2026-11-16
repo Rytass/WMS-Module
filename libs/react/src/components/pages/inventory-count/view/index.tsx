@@ -723,6 +723,7 @@ function ViewInventoryCount() {
   const itemsTable = (
     <Table<InventoryCountOrderItemFragment>
       tableKey="InventoryCountItems"
+      pinnedUntilColumnKey="materialKey"
       columns={columns}
       dataSource={items}
       loading={itemsLoading}

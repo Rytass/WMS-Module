@@ -71,6 +71,7 @@ function ChangeHistoryTable({ currentFilter }: ChangeHistoryTableProps) {
     <TableWrapper title="異動項目">
       <Table<ChangeLogFragment>
         tableKey="ChangeLog"
+        pinnedUntilColumnKey="key"
         columns={columns}
         dataSource={dataSource}
         loading={loading}

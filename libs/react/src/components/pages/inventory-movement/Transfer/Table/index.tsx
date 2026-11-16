@@ -126,6 +126,7 @@ function InventoryMovementTransferTable({
     <TableWrapper title="調撥單清單">
       <Table<TransferOrderFragment>
         tableKey="InventoryMovementTransferOrders"
+        pinnedUntilColumnKey="material"
         columns={columns}
         dataSource={dataSource}
         loading={loading}

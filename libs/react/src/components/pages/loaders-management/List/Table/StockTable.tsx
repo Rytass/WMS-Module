@@ -24,6 +24,7 @@ const StockTable: FC<StockTableProps> = ({ loaderId }) => {
   return (
     <Table<AggregatedStockFragment>
       tableKey="LoaderStocks"
+      pinnedUntilColumnKey="materialKey"
       columns={columns}
       dataSource={dataSource}
       loading={loading}

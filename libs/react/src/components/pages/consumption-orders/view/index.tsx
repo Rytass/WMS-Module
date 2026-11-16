@@ -160,6 +160,7 @@ function ViewConsumptionOrder() {
       <TableWrapper title="領用項目">
         <Table<ConsumptionOrderItemFragment>
           tableKey="ConsumptionOrderItem"
+          pinnedUntilColumnKey="material"
           columns={columns}
           dataSource={order.items ?? []}
           loading={loading}

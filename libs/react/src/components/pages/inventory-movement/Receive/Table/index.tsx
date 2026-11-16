@@ -110,6 +110,7 @@ function InventoryMovementReceiveTable({
     <TableWrapper title="入庫單清單">
       <Table<ReceiveInventoryOrderFragment>
         tableKey="InventoryMovementReceiveOrders"
+        pinnedUntilColumnKey="material"
         columns={columns}
         dataSource={dataSource}
         loading={loading}

@@ -65,6 +65,7 @@ function InventoryListTable({
   return (
     <Table<AggregatedStockFragment>
       tableKey="InventoryListTable"
+      pinnedUntilColumnKey="materialKey"
       columns={columns}
       dataSource={dataSource}
       emptyProps={stockEmptyProps(currentFilter)}
