@@ -1,66 +1,141 @@
-import { useMemo } from 'react';
-// import { isEqual } from 'lodash';
+import { RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Table as MznTable,
   TableColumnWithMinWidth,
   TableActionsWithMinWidth,
   TableDataSource,
   TableProps,
-  // useTableDataSource,
 } from '@mezzanine-ui/react';
-import { useColumnWidthPersistence } from '../../../hooks/useColumnWidthPersistence';
+import {
+  EXPANSION_COLUMN_WIDTH,
+  SELECTION_COLUMN_WIDTH,
+  TABLE_ACTIONS_KEY,
+} from '@mezzanine-ui/core/table';
+import { usePersistedColumnWidths } from '../../../hooks/usePersistedColumnWidths';
+
+const COLUMN_MIN_WIDTH = 40;
+
+/** Width a column gets when its definition does not name one. */
+const DEFAULT_COLUMN_WIDTH = 160;
+
+/**
+ * Room kept free to the right of the last data column.
+ *
+ * Mezzanine's resize handle takes the width a column grows by from the
+ * table's *last* column first and only then from the neighbour. Our last
+ * column is the actions column, which used to be a flex column: once the
+ * data columns filled the container it sat at its 40px minimum, had nothing
+ * to give, and every drag ate the neighbour instead. Keeping it at least
+ * this wide gives a drag somewhere to go; since its width is never
+ * persisted, it is back to full size after every drag, and the table
+ * scrolls horizontally instead.
+ */
+const RESIZE_RESERVE_WIDTH = 200;
+
+const TRANSIENT_WIDTH_KEYS = [TABLE_ACTIONS_KEY] as const;
+
+function useElementWidth(): [RefObject<HTMLDivElement | null>, number] {
+  const ref = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return undefined;
+
+    const observer = new ResizeObserver(([entry]) => {
+      setWidth(entry.contentRect.width);
+    });
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, width];
+}
 
 const Table = <T extends TableDataSource>({
   tableKey,
+  pinnedUntilColumnKey,
   ...props
 }: TableProps<T> & {
   tableKey: string;
+  /**
+   * Pin every data column up to and including this one to the start edge
+   * while the table scrolls horizontally.
+   */
+  pinnedUntilColumnKey?: string;
 }) => {
-  // const { dataSource, transitionState, updateDataSource } =
-  //   useTableDataSource<T>({
-  //     initialData: props.dataSource,
-  //     highlightDuration: 1000,
-  //     fadeOutDuration: 200,
-  //   });
+  const [containerRef, containerWidth] = useElementWidth();
 
-  // useEffect(() => {
-  //   if (!isEqual(dataSource, props.dataSource)) {
-  //     updateDataSource(props.dataSource);
-  //   }
-  // }, [dataSource, props.dataSource, updateDataSource]);
-
-  const { containerRef, columnsWithWidths } = useColumnWidthPersistence(
+  const { columnWidths, onColumnWidthsChange } = usePersistedColumnWidths(
     tableKey,
-    props.columns,
+    TRANSIENT_WIDTH_KEYS,
   );
 
+  const pinnedUntilIndex = useMemo(
+    (): number =>
+      pinnedUntilColumnKey
+        ? props.columns.findIndex((c) => c.key === pinnedUntilColumnKey)
+        : -1,
+    [pinnedUntilColumnKey, props.columns],
+  );
+
+  /*
+   * Every data column gets an explicit width. Pinned offsets are computed
+   * from `column.width`, and an implicit flex column would also compete with
+   * the actions column for the free space this wrapper keeps on the right.
+   */
   const columns = useMemo(
     (): TableColumnWithMinWidth<T>[] =>
-      columnsWithWidths.map((c) => ({
+      props.columns.map((c, index) => ({
         ...c,
-        minWidth: 40,
+        width: c.width ?? DEFAULT_COLUMN_WIDTH,
+        minWidth: COLUMN_MIN_WIDTH,
+        fixed: index <= pinnedUntilIndex ? 'start' : c.fixed,
       })),
-    [columnsWithWidths],
+    [pinnedUntilIndex, props.columns],
   );
+
+  const leadingControlsWidth =
+    (props.rowSelection ? SELECTION_COLUMN_WIDTH : 0) +
+    (props.expandable ? EXPANSION_COLUMN_WIDTH : 0);
+
+  const dataColumnsWidth = columns.reduce(
+    (sum, c) => sum + (columnWidths[c.key] ?? c.width ?? 0),
+    0,
+  );
+
+  /*
+   * While the free space is at least the reserve, the actions column stays a
+   * flex column and fills it exactly. Below that it gets the reserve as an
+   * explicit width, which pushes the table past the container.
+   */
+  const needsReserve =
+    containerWidth > 0 &&
+    containerWidth - leadingControlsWidth - dataColumnsWidth <
+      RESIZE_RESERVE_WIDTH;
 
   const actions = useMemo(
     (): TableActionsWithMinWidth<T> => ({
       ...props.actions,
       render: props.actions?.render ?? (() => []),
-      minWidth: 40,
+      minWidth: COLUMN_MIN_WIDTH,
+      width: needsReserve ? RESIZE_RESERVE_WIDTH : undefined,
     }),
-    [props.actions],
+    [needsReserve, props.actions],
   );
 
   return (
     <div ref={containerRef}>
       <MznTable<T>
         {...props}
-        // dataSource={dataSource}
         columns={columns}
         actions={actions}
         fullWidth
         resizable
+        columnWidths={columnWidths}
+        onColumnWidthsChange={onColumnWidthsChange}
         /*
          * Caller-first. This used to be a hard-coded `{ title: '查無資料' }`
          * placed after the spread, which silently swallowed every caller's
@@ -78,7 +153,6 @@ const Table = <T extends TableDataSource>({
           pageSizeOptions: [5, 10, 15, 20],
           ...props.pagination,
         }}
-        // transitionState={transitionState}
       />
     </div>
   );

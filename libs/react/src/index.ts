@@ -79,6 +79,10 @@ export {
 
 // Generic hooks.
 export { useColumnWidthPersistence } from './hooks/useColumnWidthPersistence';
+export {
+  usePersistedColumnWidths,
+  type PersistedColumnWidths,
+} from './hooks/usePersistedColumnWidths';
 export { useFormCancel } from './hooks/useFormCancel';
 export { usePreviousValue } from './hooks/usePreviousValue';
 export { useRoutes } from './hooks/useRoutes';
