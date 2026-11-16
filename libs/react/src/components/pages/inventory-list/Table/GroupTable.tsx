@@ -439,11 +439,21 @@ function InventoryGroupTable({
     },
   ];
 
-  const subColumns: TableColumn<DataType>[] = aggregatedStockColumns;
+  /*
+   * Pinned exactly like the parent's columns (the wrapper pins up to
+   * `materialKey`), or the expanded rows scroll away under a pinned header.
+   */
+  const subPinnedUntil = aggregatedStockColumns.findIndex(
+    (c) => c.key === 'materialKey',
+  );
+  const subColumns: TableColumn<DataType>[] = aggregatedStockColumns.map(
+    (c, index) => (index <= subPinnedUntil ? { ...c, fixed: 'start' } : c),
+  );
 
   return (
     <Table<DataType>
       tableKey="InventoryGroupTable"
+      pinnedUntilColumnKey="materialKey"
       columns={baseColumns}
       dataSource={dataSource}
       emptyProps={stockEmptyProps(currentFilter)}
@@ -476,6 +486,13 @@ function InventoryGroupTable({
           setExpandedRowKeys(keys);
         },
         expandedRowKeys,
+        /*
+         * Deliberately not `fixed`. Mezzanine computes a nested table's pinned
+         * offsets from 0 without the expansion column's indent, so pinning the
+         * expansion column here would leave every pinned cell of an expanded
+         * row 40px left of the header above it. Unpinned, both tables count
+         * their offsets from the same edge.
+         */
       }}
       rowSelection={{
         mode: 'checkbox',

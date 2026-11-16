@@ -24,6 +24,11 @@ function saveWidths(tableKey: string, widths: Record<string, number>) {
   }
 }
 
+/**
+ * @deprecated Reads widths back out of the DOM after an uncontrolled resize.
+ * Use `usePersistedColumnWidths` with the table's `columnWidths` /
+ * `onColumnWidthsChange` props instead; it stores under the same key.
+ */
 export function useColumnWidthPersistence<T extends TableDataSource>(
   tableKey: string,
   columns: TableColumn<T>[],
