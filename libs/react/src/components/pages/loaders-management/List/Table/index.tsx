@@ -19,8 +19,16 @@ function LoadersManagementListTable({
   currentFilter,
 }: LoadersManagementListTableProps) {
   const { push } = useWmsRouter();
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryLoaders(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryLoaders(currentFilter);
 
   const dataSource = useMemo(
     (): LoaderFragment[] => data?.loaders.items ?? [],
@@ -36,6 +44,7 @@ function LoadersManagementListTable({
     },
     {
       key: 'isActive',
+      ...getColumnSortProps('isActive'),
       title: '狀態',
       width: 100,
       render: (source) =>
@@ -47,24 +56,28 @@ function LoadersManagementListTable({
     },
     {
       key: 'typeDescription',
+      ...getColumnSortProps('typeDescription'),
       title: '載具類型',
       width: 120,
       render: (source) => source.type?.description,
     },
     {
       key: 'serialId',
+      ...getColumnSortProps('serialId'),
       title: '載具編碼',
       width: 100,
       render: (source) => formatKeyName(source.serialId),
     },
     {
       key: 'locationKey',
+      ...getColumnSortProps('locationKey'),
       title: '儲存位置',
       width: 100,
       render: (source) => formatKeyName(source.location?.key),
     },
     {
       key: 'length',
+      ...getColumnSortProps('length'),
       title: '長度',
       width: 80,
       align: 'end',
@@ -72,6 +85,7 @@ function LoadersManagementListTable({
     },
     {
       key: 'width',
+      ...getColumnSortProps('width'),
       title: '寬度',
       width: 80,
       align: 'end',
@@ -79,6 +93,7 @@ function LoadersManagementListTable({
     },
     {
       key: 'height',
+      ...getColumnSortProps('height'),
       title: '高度',
       width: 80,
       align: 'end',
@@ -86,6 +101,7 @@ function LoadersManagementListTable({
     },
     {
       key: 'sizeUnit',
+      ...getColumnSortProps('sizeUnit'),
       title: '尺寸單位',
       width: 80,
       align: 'center',
@@ -93,6 +109,7 @@ function LoadersManagementListTable({
     },
     {
       key: 'volume',
+      ...getColumnSortProps('volume'),
       title: '容積',
       width: 80,
       align: 'end',
@@ -100,6 +117,7 @@ function LoadersManagementListTable({
     },
     {
       key: 'volumeUnit',
+      ...getColumnSortProps('volumeUnit'),
       title: '容積單位',
       width: 80,
       align: 'center',
@@ -107,6 +125,7 @@ function LoadersManagementListTable({
     },
     {
       key: 'createdAt',
+      ...getColumnSortProps('createdAt'),
       title: '建立日期',
       width: 120,
       render: (source) => dayjs(source.createdAt).format('YYYY-MM-DD'),
@@ -114,6 +133,7 @@ function LoadersManagementListTable({
 
     {
       key: 'note',
+      ...getColumnSortProps('note'),
       title: '備註',
       width: 120,
       render: (source) => source.note || '-',
