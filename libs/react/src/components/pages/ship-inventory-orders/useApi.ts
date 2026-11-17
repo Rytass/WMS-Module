@@ -3,18 +3,34 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
+import { useTableSort } from '../../../hooks/useTableSort';
 import {
   ShipInventoryOrdersDocument,
   ShipInventoryOrderDocument,
   CreateShipInventoryOrderDocument,
   UpdateShipInventoryOrderDocument,
+  ShipInventoryOrderSortField,
 } from '../../../graphql/generated/.graphql';
+
+/** Table column key → `ShipInventoryOrderSortField`; columns not listed do not sort. */
+const SHIP_ORDER_SORT_FIELDS = {
+  status: ShipInventoryOrderSortField.STATUS,
+  key: ShipInventoryOrderSortField.KEY,
+  createdBy: ShipInventoryOrderSortField.CREATED_BY,
+  createdAt: ShipInventoryOrderSortField.CREATED_AT,
+  description: ShipInventoryOrderSortField.DESCRIPTION,
+} as const;
 
 export function useQueryShipInventoryOrders() {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: SHIP_ORDER_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(ShipInventoryOrdersDocument, {
     variables: {
+      sort,
       limit,
       offset,
     },
@@ -36,6 +52,7 @@ export function useQueryShipInventoryOrders() {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }
 
