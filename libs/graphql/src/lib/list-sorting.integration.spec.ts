@@ -7,6 +7,11 @@ import { graphql, type GraphQLSchema } from 'graphql';
 import { Client } from 'pg';
 import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
 import {
+  LoaderService as CoreLoaderService,
+  LoaderSortField,
+  LoaderTypeEntityClass,
+  LoaderTypeSortField,
+  LoadersEntityClass,
   LocationEntityClass,
   LocationService,
   LocationSortField,
@@ -433,6 +438,265 @@ const locationsCase: ListSortCase<LocationSortField> = {
   },
 };
 
+const loaderTypesCase: ListSortCase<LoaderTypeSortField> = {
+  name: 'loaderTypes',
+  sortFields: LoaderTypeSortField,
+  defaultOrder: newestFirst(LoaderTypeSortField.CREATED_AT),
+  fetchPage: graphqlPage<LoaderTypeSortField>(
+    'loaderTypes',
+    'description: "ltd"',
+  ),
+  seed: async ({ dataSource }) => {
+    const fixtures = (
+      [
+        ['ltk01', 'ltdb', true, '2026-02-03'],
+        ['ltk02', 'ltda', false, '2026-02-01'],
+        ['ltk03', 'ltdc', true, '2026-02-02'],
+        ['ltk04', 'ltda', true, '2026-02-02'],
+        ['ltk05', 'ltdb', false, '2026-02-05'],
+        ['ltk06', 'ltdc', true, '2026-02-04'],
+        ['ltk07', 'ltda', false, '2026-02-04'],
+      ] as const
+    ).map(([key, description, isActive, created]) => ({
+      key,
+      description,
+      isActive,
+      createdAt: day(created),
+    }));
+    const saved = await saveStamped(
+      dataSource,
+      LoaderTypeEntityClass,
+      fixtures.map(({ createdAt, ...row }) => ({ row, createdAt })),
+    );
+
+    return new Map(
+      saved.map(({ id }, index) => {
+        const fixture = fixtures[index];
+
+        return [
+          id,
+          {
+            [LoaderTypeSortField.KEY]: fixture.key,
+            [LoaderTypeSortField.DESCRIPTION]: fixture.description,
+            [LoaderTypeSortField.IS_ACTIVE]: fixture.isActive,
+            [LoaderTypeSortField.CREATED_AT]: fixture.createdAt,
+          },
+        ];
+      }),
+    );
+  },
+};
+
+interface LoaderFixture {
+  serialId: string;
+  typeId: string;
+  locationId: string;
+  length: number | null;
+  width: number | null;
+  height: number | null;
+  sizeUnit: string | null;
+  volume: number | null;
+  volumeUnit: string | null;
+  note: string | null;
+  isActive: boolean;
+}
+
+const loadersCase: ListSortCase<LoaderSortField> = {
+  name: 'loaders',
+  sortFields: LoaderSortField,
+  defaultOrder: newestFirst(LoaderSortField.CREATED_AT),
+  fetchPage: graphqlPage<LoaderSortField>('loaders', 'loaderTypeKey: "ltyp"'),
+  seed: async ({ dataSource, entities }) => {
+    const created = day('2025-01-01');
+    // Type keys and location keys deliberately sort opposite to the order the
+    // rows are created in, so an id-ordered result cannot pass by accident.
+    const [typeA, typeB] = await saveStamped(
+      dataSource,
+      LoaderTypeEntityClass,
+      [
+        { row: { key: 'ltypa', description: 'tdescb' }, createdAt: created },
+        { row: { key: 'ltypb', description: 'tdesca' }, createdAt: created },
+      ],
+    );
+    const [locationA, locationB] = await saveStamped<LocationEntityClass>(
+      dataSource,
+      entities.location,
+      [
+        {
+          row: {
+            key: 'ldlocb',
+            description: 'ldrloc',
+          } as DeepPartial<LocationEntityClass>,
+          createdAt: created,
+        },
+        {
+          row: {
+            key: 'ldloca',
+            description: 'ldrloc',
+          } as DeepPartial<LocationEntityClass>,
+          createdAt: created,
+        },
+      ],
+    );
+    const typeDescriptions = new Map([
+      [typeA.id, typeA.description],
+      [typeB.id, typeB.description],
+    ]);
+    const locationKeys = new Map([
+      [locationA.id, locationA.key],
+      [locationB.id, locationB.key],
+    ]);
+    const rows: readonly { fixture: LoaderFixture; createdAt: Date }[] = [
+      {
+        fixture: {
+          serialId: 'ldr01',
+          typeId: typeA.id,
+          locationId: locationB.id,
+          length: 10,
+          width: 5,
+          height: null,
+          sizeUnit: 'cm',
+          volume: 2,
+          volumeUnit: 'lt',
+          note: 'notea',
+          isActive: true,
+        },
+        createdAt: day('2026-03-03'),
+      },
+      {
+        fixture: {
+          serialId: 'ldr02',
+          typeId: typeB.id,
+          locationId: locationA.id,
+          length: 20,
+          width: null,
+          height: 3,
+          sizeUnit: 'mm',
+          volume: null,
+          volumeUnit: null,
+          note: null,
+          isActive: false,
+        },
+        createdAt: day('2026-03-01'),
+      },
+      {
+        fixture: {
+          serialId: 'ldr03',
+          typeId: typeA.id,
+          locationId: locationA.id,
+          length: null,
+          width: 5,
+          height: 3,
+          sizeUnit: null,
+          volume: 2,
+          volumeUnit: 'ml',
+          note: 'noteb',
+          isActive: true,
+        },
+        createdAt: day('2026-03-02'),
+      },
+      {
+        fixture: {
+          serialId: 'ldr04',
+          typeId: typeB.id,
+          locationId: locationB.id,
+          length: 10,
+          width: 7,
+          height: 1,
+          sizeUnit: 'cm',
+          volume: 4,
+          volumeUnit: 'lt',
+          note: 'notea',
+          isActive: true,
+        },
+        createdAt: day('2026-03-02'),
+      },
+      {
+        fixture: {
+          serialId: 'ldr05',
+          typeId: typeA.id,
+          locationId: locationA.id,
+          length: 20,
+          width: 7,
+          height: null,
+          sizeUnit: 'mm',
+          volume: 4,
+          volumeUnit: 'ml',
+          note: null,
+          isActive: false,
+        },
+        createdAt: day('2026-03-05'),
+      },
+      {
+        fixture: {
+          serialId: 'ldr06',
+          typeId: typeB.id,
+          locationId: locationB.id,
+          length: 30,
+          width: 5,
+          height: 1,
+          sizeUnit: null,
+          volume: null,
+          volumeUnit: 'lt',
+          note: 'noteb',
+          isActive: true,
+        },
+        createdAt: day('2026-03-04'),
+      },
+      {
+        fixture: {
+          serialId: 'ldr07',
+          typeId: typeA.id,
+          locationId: locationB.id,
+          length: 10,
+          width: null,
+          height: 3,
+          sizeUnit: 'cm',
+          volume: 2,
+          volumeUnit: null,
+          note: 'notea',
+          isActive: false,
+        },
+        createdAt: day('2026-03-04'),
+      },
+    ];
+    const saved = await saveStamped<LoadersEntityClass>(
+      dataSource,
+      LoadersEntityClass,
+      rows.map(({ fixture, createdAt }) => ({
+        row: fixture as DeepPartial<LoadersEntityClass>,
+        createdAt,
+      })),
+    );
+
+    return new Map(
+      saved.map(({ id }, index) => {
+        const { fixture, createdAt } = rows[index];
+
+        return [
+          id,
+          {
+            [LoaderSortField.SERIAL_ID]: fixture.serialId,
+            [LoaderSortField.TYPE_DESCRIPTION]:
+              typeDescriptions.get(fixture.typeId) ?? null,
+            [LoaderSortField.LOCATION_KEY]:
+              locationKeys.get(fixture.locationId) ?? null,
+            [LoaderSortField.LENGTH]: fixture.length,
+            [LoaderSortField.WIDTH]: fixture.width,
+            [LoaderSortField.HEIGHT]: fixture.height,
+            [LoaderSortField.SIZE_UNIT]: fixture.sizeUnit,
+            [LoaderSortField.VOLUME]: fixture.volume,
+            [LoaderSortField.VOLUME_UNIT]: fixture.volumeUnit,
+            [LoaderSortField.NOTE]: fixture.note,
+            [LoaderSortField.IS_ACTIVE]: fixture.isActive,
+            [LoaderSortField.CREATED_AT]: createdAt,
+          },
+        ];
+      }),
+    );
+  },
+};
+
 describe('list sorting (integration)', () => {
   let app: INestApplication;
   let context: ListSortContext;
@@ -502,12 +766,34 @@ describe('list sorting (integration)', () => {
   describeListSort(materialsCase, () => context);
 
   describeListSort(locationsCase, () => context);
+  describeListSort(loaderTypesCase, () => context);
+  describeListSort(loadersCase, () => context);
 
-  describe('LocationService.findMany called directly', () => {
+  describe('location and loader lists called directly', () => {
     it('LocationService.findMany defaults to newest first, then id', () =>
       expectDirectDefaultOrder(
         (page) =>
           app.get(LocationService).findMany({ description: 'locd', ...page }),
+        (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+
+    it('LoaderService.findManyLoaderTypes defaults to newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app
+            .get(CoreLoaderService)
+            .findManyLoaderTypes({ description: 'ltd', ...page }),
+        (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+
+    it('LoaderService.findManyLoaders defaults to newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app
+            .get(CoreLoaderService)
+            .findManyLoaders({ loaderTypeKey: 'ltyp', ...page }),
         (row) => ({ createdAt: row.createdAt }),
         [{ field: 'createdAt', order: SortOrder.DESC }],
       ));
