@@ -66,7 +66,7 @@ jobs:
           tags: asia-east1-docker.pkg.dev/develop-server/wms-module/client:${{ needs.tagging.outputs.tag }}
           build-args: |
             NEXT_PUBLIC_IS_DEV=1
-            API_HOST=https://wms-module-staging.rytass.info
+            API_URL=http://localhost:3000
           cache-from: type=local,src=/tmp/runner-cache-client
           cache-to: type=local,dest=/tmp/runner-cache-client,mode=min,compression=zstd
 
