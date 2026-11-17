@@ -17,6 +17,7 @@ query ReceiveInventoryOrders(
   $batchKey: String
   $locationKey: String
   $loaderKey: String
+  $sort: ReceiveInventoryOrderSortInput
 ) {
   receiveInventoryOrders(
     offset: $offset
@@ -31,6 +32,7 @@ query ReceiveInventoryOrders(
     batchKey: $batchKey
     locationKey: $locationKey
     loaderKey: $loaderKey
+    sort: $sort
   ) {
     id
     items {

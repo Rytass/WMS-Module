@@ -19,6 +19,7 @@ query Loaders(
   $note: String
   $locationKey: String
   $loaderTypeKey: String
+  $sort: LoaderSortInput
 ) {
   loaders(
     offset: $offset
@@ -35,6 +36,7 @@ query Loaders(
     note: $note
     locationKey: $locationKey
     loaderTypeKey: $loaderTypeKey
+    sort: $sort
   ) {
     id
     items {
@@ -86,6 +88,7 @@ query LoaderTypes(
   $isActive: Boolean
   $dateRange: DateRangeArgs
   $key: String
+  $sort: LoaderTypeSortInput
 ) {
   loaderTypes(
     offset: $offset
@@ -94,6 +97,7 @@ query LoaderTypes(
     isActive: $isActive
     dateRange: $dateRange
     key: $key
+    sort: $sort
   ) {
     id
     items {
