@@ -21,12 +21,14 @@ export class LocationResolver {
 
   @ResolveField(() => MapDataDto, { nullable: true })
   async mapData(
-    @Parent() { id }: LocationDto,
+    @Parent() { key }: LocationDto,
     @Context() { loaders }: LoaderType<WarehouseMapEntity>,
   ): Promise<MapDataDto | null> {
+    // The warehouse map's primary key (`id`) is the location's `key`, not the
+    // location's uuid `id`, so the lookup value must be the `key`.
     const map = await loaders.batchSingle.load({
       __entity: this.entities.warehouseMap,
-      __from: { id },
+      __from: { id: key },
     });
     return map?.mapData || null;
   }
