@@ -9,6 +9,9 @@ import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
 import {
   ReceiveInventoryOrderService,
   ReceiveInventoryOrderSortField,
+  ShipInventoryOrderService,
+  ShipInventoryOrderSortField,
+  StockStatus,
   WmsOperationRunner,
   AllocateInventoryOrderEntityClass,
   BatchEntityClass,
@@ -1230,6 +1233,59 @@ const receiveOrder = async (
   return order.id;
 };
 
+/** Create a one-line ship order on existing stock and ship `shipped` of `target`. */
+const shipOrder = async (
+  { app, dataSource }: ListSortContext,
+  options: {
+    key: string;
+    description: string;
+    materialId: string;
+    batchId: string;
+    locationId: string;
+    target: number;
+    shipped: number;
+  },
+): Promise<string> => {
+  const service = app.get(ShipInventoryOrderService);
+  const runner = app.get(WmsOperationRunner);
+  const orderId = await runner.run({}, async () => {
+    const order = await service.createShipInventoryOrder({
+      key: options.key,
+      description: options.description,
+      references: [],
+    });
+
+    await service.addShipInventoryOrderItems({
+      orderId: order.id,
+      items: [
+        {
+          materialId: options.materialId,
+          batchId: options.batchId,
+          locationId: options.locationId,
+          targetShippedQuantity: options.target,
+          status: StockStatus.FREE,
+          serialId: `${options.key}-1`,
+          orderId: order.id,
+        },
+      ],
+    });
+
+    return order.id;
+  });
+
+  if (options.shipped > 0) {
+    const [item] = await dataSource
+      .getRepository(service.shipInventoryOrderItemEntity)
+      .find({ where: { orderId } });
+
+    await runner.run({}, () =>
+      service.ship({ itemId: item.id, quantity: options.shipped }),
+    );
+  }
+
+  return orderId;
+};
+
 interface OrderListFixture {
   key: string;
   description: string;
@@ -1338,6 +1394,92 @@ const receiveOrdersCase: ListSortCase<ReceiveInventoryOrderSortField> = {
             [ReceiveInventoryOrderSortField.CREATED_BY]: fixture.createdBy,
             [ReceiveInventoryOrderSortField.CREATED_AT]: fixture.createdAt,
             [ReceiveInventoryOrderSortField.DESCRIPTION]: fixture.description,
+          },
+        ];
+      }),
+    );
+  },
+};
+
+const shipOrdersCase: ListSortCase<ShipInventoryOrderSortField> = {
+  name: 'shipInventoryOrders',
+  sortFields: ShipInventoryOrderSortField,
+  defaultOrder: newestFirst(ShipInventoryOrderSortField.CREATED_AT),
+  fetchPage: graphqlPage<ShipInventoryOrderSortField>(
+    'shipInventoryOrders',
+    'key: "shpo"',
+  ),
+  seed: async (ctx) => {
+    const { app, dataSource, entities } = ctx;
+    const [material] = await saveNamed<MaterialEntityClass>(
+      dataSource,
+      entities.material,
+      [{ key: 'shpmat' } as DeepPartial<MaterialEntityClass>],
+    );
+    const [location] = await saveNamed<LocationEntityClass>(
+      dataSource,
+      entities.location,
+      [
+        {
+          key: 'shploc',
+          description: 'shploc',
+        } as DeepPartial<LocationEntityClass>,
+      ],
+    );
+
+    // Stock to ship from; its receive order's key stays out of `rcvo`.
+    await receiveOrder(ctx, {
+      key: 'stko01',
+      description: 'stock',
+      materialKey: 'shpmat',
+      batchKey: 'shpbat',
+      locationKey: 'shploc',
+      target: 100,
+      received: 100,
+    });
+
+    const batch = await dataSource
+      .getRepository<BatchEntityClass>(entities.batch)
+      .findOneByOrFail({ key: 'shpbat', materialId: material.id });
+    const fixtures = ORDER_LIST_FIXTURES('shpo');
+    const service = app.get(ShipInventoryOrderService);
+    const ids = await fixtures.reduce<Promise<string[]>>(
+      async (acc, fixture) => {
+        const done = await acc;
+        const id = await shipOrder(ctx, {
+          key: fixture.key,
+          description: fixture.description,
+          materialId: material.id,
+          batchId: batch.id,
+          locationId: location.id,
+          target: 2,
+          shipped: fixture.moved,
+        });
+
+        await stampOrder(
+          dataSource,
+          service.shipInventoryOrderEntity,
+          id,
+          fixture,
+        );
+
+        return [...done, id];
+      },
+      Promise.resolve([]),
+    );
+
+    return new Map(
+      ids.map((id, index) => {
+        const fixture = fixtures[index];
+
+        return [
+          id,
+          {
+            [ShipInventoryOrderSortField.STATUS]: orderStatusRank(fixture),
+            [ShipInventoryOrderSortField.KEY]: fixture.key,
+            [ShipInventoryOrderSortField.CREATED_BY]: fixture.createdBy,
+            [ShipInventoryOrderSortField.CREATED_AT]: fixture.createdAt,
+            [ShipInventoryOrderSortField.DESCRIPTION]: fixture.description,
           },
         ];
       }),
@@ -1454,6 +1596,7 @@ describe('list sorting (integration)', () => {
   describeListSort(inventoryCountOrderItemsCase, () => context);
 
   describeListSort(receiveOrdersCase, () => context);
+  describeListSort(shipOrdersCase, () => context);
 
   describe('raw lists called directly', () => {
     it('ReceiveInventoryOrderService.findMany defaults to newest first, then id', () =>
@@ -1461,6 +1604,17 @@ describe('list sorting (integration)', () => {
         (page) =>
           app.get(ReceiveInventoryOrderService).findMany({
             wildcard: { key: 'key', value: 'rcvo' },
+            ...page,
+          }),
+        (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+
+    it('ShipInventoryOrderService.findMany defaults to newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app.get(ShipInventoryOrderService).findMany({
+            wildcard: { key: 'key', value: 'shpo' },
             ...page,
           }),
         (row) => ({ createdAt: row.createdAt }),

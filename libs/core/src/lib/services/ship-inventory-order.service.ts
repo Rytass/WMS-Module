@@ -25,7 +25,10 @@ import {
 import {
   FindShipInventoryOrderInput,
   ShipInventoryOrderStatus,
+  ShipInventoryOrderSortField,
 } from '../typings/find-ship-inventory-order.input';
+import { SortOrder } from '../typings/list-sort';
+import { applyListSort } from '../utils/list-sort';
 import { OrderEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
   ShipInventoryOrderChangeEntityClass,
@@ -53,6 +56,26 @@ import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
  * T - Ship Inventory Order entity type
  * K - Ship Inventory Order Item entity type
  */
+/**
+ * ORDER BY per sort field. Raw mode: the list reads with `getRawMany`, and
+ * `status` is the `order_status` join's computed column — ranked by lifecycle
+ * rather than spelled, since its values sort alphabetically into nonsense.
+ */
+const SHIP_ORDER_SORT_FIELDS: Readonly<
+  Record<ShipInventoryOrderSortField, string>
+> = {
+  [ShipInventoryOrderSortField.STATUS]: `(CASE order_status.status
+    WHEN '${ShipInventoryOrderStatus.PENDING}' THEN 0
+    WHEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}' THEN 1
+    WHEN '${ShipInventoryOrderStatus.SHIPPED}' THEN 2
+    WHEN '${ShipInventoryOrderStatus.REMOVED}' THEN 3
+  END)`,
+  [ShipInventoryOrderSortField.KEY]: 'orders.key',
+  [ShipInventoryOrderSortField.CREATED_BY]: 'orders."createdBy"',
+  [ShipInventoryOrderSortField.CREATED_AT]: 'orders."createdAt"',
+  [ShipInventoryOrderSortField.DESCRIPTION]: 'orders.description',
+};
+
 @Injectable()
 export class ShipInventoryOrderService<
   T extends ShipInventoryOrderEntityClass = ShipInventoryOrderEntityClass,
@@ -762,9 +785,18 @@ export class ShipInventoryOrderService<
     // Raw query with a join (see ReceiveInventoryOrderService.findMany):
     // `skip`/`take` would be dropped silently, `offset`/`limit` are honoured.
     // `order_status` is one row per order, so the page size is exact.
-    queryBuilder
-      .orderBy('orders."createdAt"', 'DESC')
-      .addOrderBy('orders.id', 'ASC');
+    // After `getCount()`, which cannot carry an ORDER BY on the computed
+    // column. The join is one row per order, so a page is exactly `limit`.
+    applyListSort(queryBuilder, {
+      sort: options.sort,
+      fields: SHIP_ORDER_SORT_FIELDS,
+      defaultOrder: {
+        field: ShipInventoryOrderSortField.CREATED_AT,
+        order: SortOrder.DESC,
+      },
+      tiebreaker: 'orders.id',
+      mode: 'raw',
+    });
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.offset(options.offset);
