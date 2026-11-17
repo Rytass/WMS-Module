@@ -79,6 +79,8 @@ spec:
                   key: VAULT_PATH
             - name: PORT
               value: '3000'
+            - name: STORAGE_PATH # uploaded files; must be the PVC mount or they vanish on redeploy
+              value: '/app/storage'
           ports:
             - containerPort: 3000
               name: api-http
@@ -107,8 +109,6 @@ spec:
           env:
             - name: PORT
               value: '3001' # Use a different port for the client container
-            - name: API_HOST # Next.js rewrite target
-              value: 'http://localhost:3000' # API is in the same Pod
             - name: HOSTNAME
               value: '0.0.0.0'
           ports:
