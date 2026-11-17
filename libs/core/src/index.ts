@@ -13,3 +13,5 @@ export * from './lib/events';
 export * from './lib/table-prefix/table-prefix';
 
 export * from './lib/utils/run-in-transaction';
+
+export * from './lib/utils/list-sort';
