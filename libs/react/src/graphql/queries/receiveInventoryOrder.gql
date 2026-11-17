@@ -86,6 +86,7 @@ query FullReceiveInventoryOrders(
   $batchKey: String
   $locationKey: String
   $loaderKey: String
+  $sort: ReceiveInventoryOrderSortInput
 ) {
   receiveInventoryOrders(
     offset: $offset
@@ -100,6 +101,7 @@ query FullReceiveInventoryOrders(
     batchKey: $batchKey
     locationKey: $locationKey
     loaderKey: $loaderKey
+    sort: $sort
   ) {
     id
     items {
