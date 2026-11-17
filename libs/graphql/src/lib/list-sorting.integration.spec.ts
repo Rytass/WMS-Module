@@ -8,6 +8,9 @@ import { Client } from 'pg';
 import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
 import {
   AllocateInventoryOrderEntityClass,
+  ConsumptionOrderEntityClass,
+  ConsumptionOrderService,
+  ConsumptionOrderSortField,
   TransferOrderEntityClass,
   TransferOrderService,
   TransferOrderSortField,
@@ -752,6 +755,52 @@ const transferOrdersCase: ListSortCase<TransferOrderSortField> = {
   },
 };
 
+const consumptionOrdersCase: ListSortCase<ConsumptionOrderSortField> = {
+  name: 'consumptionOrders',
+  sortFields: ConsumptionOrderSortField,
+  defaultOrder: newestFirst(ConsumptionOrderSortField.CREATED_AT),
+  fetchPage: graphqlPage<ConsumptionOrderSortField>(
+    'consumptionOrders',
+    'key: "cnso"',
+  ),
+  seed: async ({ dataSource }) => {
+    const fixtures = (
+      [
+        ['cnso01', 'cndb', '2026-06-03'],
+        ['cnso02', 'cnda', '2026-06-01'],
+        ['cnso03', null, '2026-06-02'],
+        ['cnso04', 'cnda', '2026-06-02'],
+        ['cnso05', 'cndc', '2026-06-05'],
+        ['cnso06', 'cndb', '2026-06-04'],
+        ['cnso07', null, '2026-06-04'],
+      ] as const
+    ).map(([key, description, created]) => ({
+      row: { key, description },
+      createdAt: day(created),
+    }));
+    const saved = await saveStamped<ConsumptionOrderEntityClass>(
+      dataSource,
+      ConsumptionOrderEntityClass,
+      fixtures,
+    );
+
+    return new Map(
+      saved.map(({ id }, index) => {
+        const { row, createdAt } = fixtures[index];
+
+        return [
+          id,
+          {
+            [ConsumptionOrderSortField.KEY]: row.key,
+            [ConsumptionOrderSortField.DESCRIPTION]: row.description,
+            [ConsumptionOrderSortField.CREATED_AT]: createdAt,
+          },
+        ];
+      }),
+    );
+  },
+};
+
 describe('list sorting (integration)', () => {
   let app: INestApplication;
   let context: ListSortContext;
@@ -855,12 +904,21 @@ describe('list sorting (integration)', () => {
   });
 
   describeListSort(transferOrdersCase, () => context);
+  describeListSort(consumptionOrdersCase, () => context);
 
   describe('order lists called directly', () => {
     it('TransferOrderService.findMany defaults to newest first, then id', () =>
       expectDirectDefaultOrder(
         (page) =>
           app.get(TransferOrderService).findMany({ key: 'trfo', ...page }),
+        (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+
+    it('ConsumptionOrderService.findMany defaults to newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app.get(ConsumptionOrderService).findMany({ key: 'cnso', ...page }),
         (row) => ({ createdAt: row.createdAt }),
         [{ field: 'createdAt', order: SortOrder.DESC }],
       ));
