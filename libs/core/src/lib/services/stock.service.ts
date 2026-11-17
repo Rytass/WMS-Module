@@ -10,6 +10,14 @@ import {
 } from 'typeorm';
 import { FindStockInput } from '../typings/find-stock.input';
 import {
+  AggregatedStockSortField,
+  FindAggregatedStockInput,
+  FindStockGroupedByMaterialInput,
+  StockGroupedByMaterialSortField,
+} from '../typings/find-stock-sort.input';
+import { SortOrder } from '../typings/list-sort';
+import { applyListSort } from '../utils/list-sort';
+import {
   MaterialEntity,
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
@@ -21,15 +29,69 @@ import {
 } from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
+  BatchGroupEntityClass,
   LoadersEntityClass,
   LoaderTypeEntityClass,
   LocationEntityClass,
+  UnitEntityClass,
 } from '../models';
 import { WMS_CORE_MODULE_OPTIONS } from '../typings/core-module-options';
 import type { WmsModuleCoreModuleOptions } from '../typings/core-module-options';
 import { WmsEntities } from '../models/wms-entities';
 import { tablePathOf } from '../utils/table-path';
 import { getWmsTablePrefix } from '../table-prefix/logical-table-name';
+
+/**
+ * ORDER BY expressions for `findAggregatedStocks`, over the outer query: the
+ * aggregated subquery is `agg`, and the joins a field needs are added by
+ * `joinAggregatedStockSortTarget` under the `sort_*` aliases.
+ */
+const AGGREGATED_STOCK_SORT_FIELDS: Readonly<
+  Record<AggregatedStockSortField, string>
+> = {
+  [AggregatedStockSortField.STATUS]: 'agg.status',
+  [AggregatedStockSortField.MATERIAL_KEY]: 'sort_material."key"',
+  [AggregatedStockSortField.MATERIAL_DESCRIPTION]:
+    'sort_material."description"',
+  [AggregatedStockSortField.BATCH_KEY]: 'sort_batch_group."key"',
+  [AggregatedStockSortField.LOCATION_KEY]: 'sort_location."key"',
+  [AggregatedStockSortField.LOADER_SERIAL_ID]: 'sort_loader."serialId"',
+  [AggregatedStockSortField.QUANTITY]: 'agg.quantity',
+  [AggregatedStockSortField.BASE_UNIT]: 'sort_unit."key"',
+  [AggregatedStockSortField.VENDOR_ID]: 'agg."vendorId"',
+  [AggregatedStockSortField.CUSTOMER_ID]: 'agg."customerId"',
+  [AggregatedStockSortField.SALE_ID]: 'agg."saleId"',
+  [AggregatedStockSortField.SALE_SERIAL_ID]: 'agg."saleSerialId"',
+};
+
+/**
+ * What identifies an aggregated row, in the order the list has always used.
+ * The batch columns grouped alongside are functionally dependent on `batchId`,
+ * so these five are unique per row.
+ */
+const AGGREGATED_STOCK_GROUP_KEY = [
+  'agg."materialId"',
+  'agg."batchId"',
+  'agg."locationId"',
+  'agg."loaderId"',
+  'agg.status',
+] as const;
+
+/** The parameter TypeORM gives a single-table child's discriminator values. */
+const TYPEORM_DISCRIMINATOR_PARAMETER = 'discriminatorColumnValues';
+/** Its renamed copy inside `findManyGroupedByMaterialId`'s stock subquery. */
+const STOCK_DISCRIMINATOR_PARAMETER = 'stockDiscriminatorColumnValues';
+
+/** ORDER BY expressions for `findManyGroupedByMaterialId`. */
+const STOCK_GROUPED_BY_MATERIAL_SORT_FIELDS: Readonly<
+  Record<StockGroupedByMaterialSortField, string>
+> = {
+  [StockGroupedByMaterialSortField.MATERIAL_KEY]: 'material."key"',
+  [StockGroupedByMaterialSortField.MATERIAL_DESCRIPTION]:
+    'material."description"',
+  [StockGroupedByMaterialSortField.QUANTITY]: 'totals.quantity',
+  [StockGroupedByMaterialSortField.BASE_UNIT]: 'sort_unit."key"',
+};
 
 /**
  * A lock taken in autocommit is released by the statement that took it, so a
@@ -523,37 +585,102 @@ export class StockService<
     return queryBuilder.getManyAndCount();
   }
 
+  /**
+   * Materials with stock, one page of them, in one statement.
+   *
+   * A material is listed when any of its (material, batch, location, loader,
+   * status) positions nets to non-zero after the filters — the aggregated
+   * subquery's `HAVING` — not when the material's own total does: +5 in one
+   * place and -5 in another is listed. Soft-deleted materials are left out
+   * (the material repository is the main alias).
+   *
+   * The positions are summed per material in the database, joined to the
+   * material, sorted and paged there; `total` comes from a window count on the
+   * same statement. Only a page past the end, which has no row to carry it,
+   * costs a second query.
+   */
   async findManyGroupedByMaterialId(
-    options: FindStockInput<T>,
+    options: FindStockGroupedByMaterialInput<T>,
   ): Promise<[K[], number]> {
-    // Build aggregated subquery to get distinct materialIds where SUM(quantity) != 0
+    const { sort, offset, limit, ...filters } = options;
     const aggregateSubquery = this.pipeSelectOptionsToQueryBuilder(
-      { ...options, offset: undefined, limit: undefined },
+      filters as FindStockInput<T>,
       this.selectQueryBuilder('stock'),
       true,
     );
 
-    const rawMaterialIds = await this.dataSource
-      .createQueryBuilder()
-      .select('DISTINCT agg."materialId"', 'materialId')
-      .from(`(${aggregateSubquery.getQuery()})`, 'agg')
-      .setParameters(aggregateSubquery.getParameters())
-      .getRawMany<{ materialId: string }>();
+    /*
+     * Both the stock subquery and the material main alias are single-table
+     * children, and TypeORM names *every* discriminator parameter
+     * `discriminatorColumnValues`. Embedded as is, the outer query's value
+     * (the material's) would overwrite the inner one and the stock filter would
+     * match nothing — so the inner placeholder gets a name of its own.
+     */
+    const {
+      [TYPEORM_DISCRIMINATOR_PARAMETER]: stockDiscriminatorValues,
+      ...aggregateParameters
+    } = aggregateSubquery.getParameters();
+    const aggregateSql = aggregateSubquery
+      .getQuery()
+      .split(`:...${TYPEORM_DISCRIMINATOR_PARAMETER}`)
+      .join(`:...${STOCK_DISCRIMINATOR_PARAMETER}`);
 
-    const ids = rawMaterialIds.map((r) => r.materialId);
-    if (ids.length === 0) return [[] as K[], 0];
+    const queryBuilder = (): SelectQueryBuilder<K> =>
+      this.dataSource
+        .getRepository<K>(this.materialEntity)
+        .createQueryBuilder('material')
+        .innerJoin(
+          (subQuery) =>
+            subQuery
+              .select('agg."materialId"', 'materialId')
+              .addSelect('SUM(agg.quantity)', 'quantity')
+              .from(`(${aggregateSql})`, 'agg')
+              .groupBy('agg."materialId"'),
+          'totals',
+          'totals."materialId" = material.id',
+        )
+        .setParameters({
+          ...aggregateParameters,
+          ...(stockDiscriminatorValues === undefined
+            ? {}
+            : { [STOCK_DISCRIMINATOR_PARAMETER]: stockDiscriminatorValues }),
+        });
 
-    const queryBuilder = this.dataSource
-      .getRepository<K>(this.materialEntity)
-      .createQueryBuilder('material')
-      .where('material.id IN (:...materialIds)', { materialIds: ids });
+    const pageBuilder = queryBuilder().addSelect('COUNT(*) OVER ()', 'total');
 
-    if (options.offset !== undefined && options.offset >= 0)
-      queryBuilder.skip(options.offset);
-    if (options.limit !== undefined && options.limit > 0)
-      queryBuilder.take(options.limit);
+    // `materials.baseUnit` holds the unit's id, so its key needs a join; one
+    // unit per material, so the join keeps one row per material.
+    if (sort?.field === StockGroupedByMaterialSortField.BASE_UNIT) {
+      pageBuilder.leftJoin(
+        UnitEntityClass,
+        'sort_unit',
+        'CAST(sort_unit.id AS text) = material."baseUnit"',
+      );
+    }
 
-    return queryBuilder.getManyAndCount();
+    applyListSort(pageBuilder, {
+      sort,
+      fields: STOCK_GROUPED_BY_MATERIAL_SORT_FIELDS,
+      defaultOrder: {
+        field: StockGroupedByMaterialSortField.MATERIAL_KEY,
+        order: SortOrder.ASC,
+      },
+      tiebreaker: 'material.id',
+      mode: 'raw',
+    });
+
+    // `totals` is one row per material, so LIMIT/OFFSET cut whole materials.
+    if (offset !== undefined && offset >= 0) pageBuilder.offset(offset);
+    if (limit !== undefined && limit > 0) pageBuilder.limit(limit);
+
+    const { entities, raw } = await pageBuilder.getRawAndEntities<{
+      total: string;
+    }>();
+
+    if (raw.length) return [entities, parseInt(raw[0].total, 10)];
+    if (!offset) return [[], 0];
+
+    return [[], await queryBuilder().getCount()];
   }
 
   async findAggregatedStock(
@@ -663,8 +790,76 @@ export class StockService<
     }
   }
 
+  /**
+   * Join what a sort field of `findAggregatedStocks` orders by, and nothing
+   * else: an unsorted call (every internal caller) keeps its plain query.
+   * Each join is on a primary key, so the outer query stays one row per
+   * aggregated position and LIMIT/OFFSET still cut whole rows. Entities, not
+   * table names, so a table prefix and an overridden entity both follow.
+   */
+  private joinAggregatedStockSortTarget<U extends ObjectLiteral>(
+    queryBuilder: SelectQueryBuilder<U>,
+    field: AggregatedStockSortField,
+  ): void {
+    switch (field) {
+      case AggregatedStockSortField.MATERIAL_KEY:
+      case AggregatedStockSortField.MATERIAL_DESCRIPTION:
+        queryBuilder.leftJoin(
+          this.materialEntity,
+          'sort_material',
+          'sort_material.id = agg."materialId"',
+        );
+        break;
+      case AggregatedStockSortField.BASE_UNIT:
+        queryBuilder
+          .leftJoin(
+            this.materialEntity,
+            'sort_material',
+            'sort_material.id = agg."materialId"',
+          )
+          .leftJoin(
+            UnitEntityClass,
+            'sort_unit',
+            'CAST(sort_unit.id AS text) = sort_material."baseUnit"',
+          );
+        break;
+      case AggregatedStockSortField.BATCH_KEY:
+        // What `batch { key }` shows is the batch *group*'s key.
+        queryBuilder
+          .leftJoin(
+            this.entities.batch,
+            'sort_batch',
+            'sort_batch.id = agg."batchId"',
+          )
+          .leftJoin(
+            BatchGroupEntityClass,
+            'sort_batch_group',
+            'CAST(sort_batch_group.id AS text) = CAST(sort_batch."groupId" AS text)',
+          );
+        break;
+      case AggregatedStockSortField.LOCATION_KEY:
+        queryBuilder.leftJoin(
+          this.entities.location,
+          'sort_location',
+          'sort_location.id = agg."locationId"',
+        );
+        break;
+      case AggregatedStockSortField.LOADER_SERIAL_ID:
+        // `stocks.loaderId` is varchar, `loaders.id` uuid.
+        queryBuilder.leftJoin(
+          LoadersEntityClass,
+          'sort_loader',
+          'CAST(sort_loader.id AS text) = agg."loaderId"',
+        );
+        break;
+      default:
+        // Columns of the aggregated row itself.
+        break;
+    }
+  }
+
   async findAggregatedStocks(
-    options: FindStockInput<T>,
+    options: FindAggregatedStockInput<T>,
     manager: EntityManager = this.dataSource.manager,
   ): Promise<[AggregatedStock[], number]> {
     // Create the aggregated subquery without pagination
@@ -717,12 +912,28 @@ export class StockService<
     // (material, batch, location, loader) plus the derived status -- which is
     // what makes a row unique here; without a total order LIMIT/OFFSET pages
     // can repeat or skip rows.
-    paginatedQueryBuilder
-      .orderBy('agg."materialId"', 'ASC')
-      .addOrderBy('agg."batchId"', 'ASC')
-      .addOrderBy('agg."locationId"', 'ASC', 'NULLS FIRST')
-      .addOrderBy('agg."loaderId"', 'ASC', 'NULLS FIRST')
-      .addOrderBy('agg.status', 'ASC', 'NULLS FIRST');
+    if (options.sort) {
+      this.joinAggregatedStockSortTarget(
+        paginatedQueryBuilder,
+        options.sort.field,
+      );
+      applyListSort(paginatedQueryBuilder, {
+        sort: options.sort,
+        fields: AGGREGATED_STOCK_SORT_FIELDS,
+        defaultOrder: options.sort,
+        tiebreaker: AGGREGATED_STOCK_GROUP_KEY,
+        mode: 'raw',
+      });
+    } else {
+      // The order this list has always had, kept verbatim (NULLS FIRST
+      // included) so callers paging without a sort see no change.
+      paginatedQueryBuilder
+        .orderBy('agg."materialId"', 'ASC')
+        .addOrderBy('agg."batchId"', 'ASC')
+        .addOrderBy('agg."locationId"', 'ASC', 'NULLS FIRST')
+        .addOrderBy('agg."loaderId"', 'ASC', 'NULLS FIRST')
+        .addOrderBy('agg.status', 'ASC', 'NULLS FIRST');
+    }
 
     if (options.offset !== undefined && options.offset >= 0) {
       paginatedQueryBuilder.offset(options.offset);
