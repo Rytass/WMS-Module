@@ -17,8 +17,16 @@ interface InventoryMovementShipTableProps {
 function InventoryMovementShipTable({
   currentFilter,
 }: InventoryMovementShipTableProps) {
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryShipInventoryOrders(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryShipInventoryOrders(currentFilter);
 
   const dataSource = useMemo(
     (): ShipInventoryOrderFragment[] => data?.shipInventoryOrders.items ?? [],
@@ -34,6 +42,7 @@ function InventoryMovementShipTable({
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '出庫單號',
       width: 140,
       render: (source) => source.key,
@@ -85,12 +94,14 @@ function InventoryMovementShipTable({
     },
     {
       key: 'createdBy',
+      ...getColumnSortProps('createdBy'),
       title: '建立者',
       width: 140,
       render: (source) => source.createdBy,
     },
     {
       key: 'createdAt',
+      ...getColumnSortProps('createdAt'),
       title: '建立時間',
       width: 140,
       render: (source) =>
@@ -98,6 +109,7 @@ function InventoryMovementShipTable({
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '備註',
       width: 140,
       render: (source) => source.description || '-',
