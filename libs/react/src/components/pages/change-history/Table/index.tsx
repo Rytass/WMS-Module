@@ -3,9 +3,10 @@ import { TableColumn } from '@mezzanine-ui/react';
 import TableWrapper from '../../../TableWrapper';
 import Table from '../../../TableWrapper/Table';
 import { ChangeLogFragment } from '../../../../graphql/generated/.graphql';
-import { changeTypeName, formatKeyName } from '../../../../utils/share';
+import { changeTypeName } from '../../../../utils/share';
 import { useQueryChangeLogs } from '../useApi';
 import { FilterValues } from '../typing';
+import LocationMapPreview from '../../../map/LocationMapPreview';
 
 interface ChangeHistoryTableProps {
   currentFilter?: FilterValues;
@@ -62,7 +63,9 @@ function ChangeHistoryTable({ currentFilter }: ChangeHistoryTableProps) {
       ...getColumnSortProps('locationKey'),
       title: '儲存位置',
       width: 140,
-      render: (source) => formatKeyName(source.location?.key),
+      render: (source) => (
+        <LocationMapPreview locationKey={source.location?.key} />
+      ),
     },
     {
       key: 'quantity',

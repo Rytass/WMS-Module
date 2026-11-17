@@ -18,9 +18,9 @@ import {
   ConsumptionOrderItemFragment,
   WmsOrderType,
 } from '../../../../graphql/generated/.graphql';
-import { formatKeyName } from '../../../../utils/share';
 import { useQueryConsumptionOrder } from '../useApi';
 import classes from './index.module.scss';
+import LocationMapPreview from '../../../map/LocationMapPreview';
 
 function ViewConsumptionOrder() {
   const { params } = useWmsRouter();
@@ -52,13 +52,17 @@ function ViewConsumptionOrder() {
       key: 'location',
       title: '領用來源',
       width: 140,
-      render: (source) => formatKeyName(source.location?.key),
+      render: (source) => (
+        <LocationMapPreview locationKey={source.location?.key} />
+      ),
     },
     {
       key: 'targetLocation',
       title: '耗用地點',
       width: 140,
-      render: (source) => formatKeyName(source.targetLocation?.key),
+      render: (source) => (
+        <LocationMapPreview locationKey={source.targetLocation?.key} />
+      ),
     },
     {
       key: 'target',

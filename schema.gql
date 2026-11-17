@@ -628,6 +628,19 @@ type MapDataDto {
   ranges: [MapRangeDto!]!
 }
 
+type LocationMapPreviewDto {
+  locationKey: String!
+
+  """Id of the map the location is drawn on."""
+  mapKey: String!
+
+  """
+  Map ids from the root map down to mapKey (inclusive). The root is the seeded DEFAULT_MAP_DATA_KEY map in a normal deployment.
+  """
+  path: [String!]!
+  mapData: MapDataDto!
+}
+
 type ShipInventoryOrderReferenceDto {
   id: ID!
   serialId: String!
@@ -880,6 +893,11 @@ type Query {
   saleOrderDistinctIds(offset: Int, limit: Int, key: String): [String!]!
   saleOrders(id: ID!): [String!]!
   mapData(key: String!): MapDataDto!
+
+  """
+  The map a location is drawn on and the breadcrumb of maps leading to it; null when no map draws it.
+  """
+  locationMapPreview(key: String!): LocationMapPreviewDto
   inventoryCountOrders(
     offset: Int
     limit: Int

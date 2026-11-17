@@ -1,7 +1,5 @@
-import {
-  LocationEntityClass,
-  type WmsEntities,
-} from '@rytass/wms-module-core';
+import { LocationEntityClass, type WmsEntities } from '@rytass/wms-module-core';
+import { WarehouseMapEntity } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
 import { LocationResolver } from './location.resolver';
 import type { LoaderOptions, LoaderType } from '../helpers';
 
@@ -48,6 +46,33 @@ const createLocation = (
 const entities = { location: LocationEntityClass } as WmsEntities;
 
 describe('LocationResolver', () => {
+  describe('mapData', () => {
+    it('looks the warehouse map up by the location key, not its uuid', async () => {
+      const resolver = new LocationResolver({
+        location: LocationEntityClass,
+        warehouseMap: WarehouseMapEntity,
+      } as WmsEntities);
+      const { context, batchSingle } = createLoaderMocks();
+
+      batchSingle.mockResolvedValue(null);
+
+      const location = createLocation({ id: 'uuid-1', key: 'A-01' });
+
+      await expect(
+        resolver.mapData(
+          location,
+          context as unknown as LoaderType<WarehouseMapEntity>,
+        ),
+      ).resolves.toBeNull();
+
+      const [options] = batchSingle.mock.calls[0] as [
+        LoaderOptions<WarehouseMapEntity>,
+      ];
+
+      expect(options.__from).toEqual({ id: 'A-01' });
+    });
+  });
+
   describe('children', () => {
     it('resolves children through the request-scoped batchMany loader', async () => {
       const resolver = new LocationResolver(entities);

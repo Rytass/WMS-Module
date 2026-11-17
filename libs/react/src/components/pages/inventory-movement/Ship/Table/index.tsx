@@ -9,6 +9,7 @@ import { ShipInventoryOrderFragment } from '../../../../../graphql/generated/.gr
 import { useQueryShipInventoryOrders } from '../../useApi';
 import { formatKeyName } from '../../../../../utils/share';
 import { FilterValues } from '../typing';
+import { LocationMapPreviewList } from '../../../../map/LocationMapPreview';
 
 interface InventoryMovementShipTableProps {
   currentFilter?: FilterValues;
@@ -76,10 +77,12 @@ function InventoryMovementShipTable({
       key: 'location',
       title: '來源位置',
       width: 140,
-      render: (source) =>
-        uniq(
-          (source.items ?? []).map((item) => formatKeyName(item.location?.key)),
-        ).join(','),
+      render: (source) => (
+        <LocationMapPreviewList
+          locationKeys={(source.items ?? []).map((item) => item.location?.key)}
+          separator=","
+        />
+      ),
     },
     {
       key: 'loader',

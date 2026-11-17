@@ -53,6 +53,7 @@ import { NextPath } from '../../../../utils/nextpath';
 import { buildCountSheetCsv, downloadCsv, parseCountSheetCsv } from '../csv';
 import { ItemFilterValues, QuickFilterKey } from '../typing';
 import classes from './index.module.scss';
+import LocationMapPreview from '../../../map/LocationMapPreview';
 
 /*
  * Not everything up to the material key: the seven count and flag columns in
@@ -635,7 +636,24 @@ function ViewInventoryCount() {
       ...getColumnSortProps('location'),
       title: '儲存位置',
       width: 165,
-      render: (item) => renderQuickFilter('locationKey', item.location?.key),
+      render: (item) => (
+        <LocationMapPreview locationKey={item.location?.key}>
+          {(triggerProps) => (
+            <button
+              {...triggerProps}
+              type="button"
+              className={classes.quickFilter}
+              onClick={() => {
+                if (item.location?.key) {
+                  quickFilter('locationKey', item.location.key);
+                }
+              }}
+            >
+              {item.location?.key}
+            </button>
+          )}
+        </LocationMapPreview>
+      ),
     },
     {
       key: 'loader',

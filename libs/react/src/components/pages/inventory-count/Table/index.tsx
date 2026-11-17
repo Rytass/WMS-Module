@@ -15,6 +15,7 @@ import {
 import { InventoryCountOrderListItemFragment } from '../../../../graphql/generated/.graphql';
 import { NextPath } from '../../../../utils/nextpath';
 import { nextDynamicPath } from '../../../../utils/path';
+import { LocationMapPreviewList } from '../../../map/LocationMapPreview';
 
 interface InventoryCountTableProps {
   currentFilter?: FilterValues;
@@ -104,8 +105,13 @@ const InventoryCountTable: FC<InventoryCountTableProps> = ({
       // Only the roots are shown; the expansion below them would be noise.
       // Mezzanine's Table calls `render` for its empty-state row too, so every
       // accessor here has to tolerate a source without the field.
-      render: (source) =>
-        (source.locations ?? []).map(({ key }) => key).join('、') || '-',
+      render: (source) => (
+        <LocationMapPreviewList
+          locationKeys={(source.locations ?? []).map(({ key }) => key)}
+          separator="、"
+          empty="-"
+        />
+      ),
     },
     {
       key: 'countDate',

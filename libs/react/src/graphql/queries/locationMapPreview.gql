@@ -1,0 +1,10 @@
+query LocationMapPreview($key: String!) {
+  locationMapPreview(key: $key) {
+    locationKey
+    mapKey
+    path
+    mapData {
+      ...MapData
+    }
+  }
+}

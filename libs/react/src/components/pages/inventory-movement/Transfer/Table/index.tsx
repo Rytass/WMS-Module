@@ -9,6 +9,9 @@ import { TransferOrderFragment } from '../../../../../graphql/generated/.graphql
 import { useQueryTransferOrders } from '../../useApi';
 import { formatKeyName } from '../../../../../utils/share';
 import { FilterValues } from '../typing';
+import LocationMapPreview, {
+  LocationMapPreviewList,
+} from '../../../../map/LocationMapPreview';
 
 /*
  * Not everything up to the material key: the operations column and the
@@ -65,7 +68,11 @@ function InventoryMovementTransferTable({
       key: 'targetLocation',
       title: '目標位置',
       width: 140,
-      render: (source) => source.targetLocation?.key,
+      render: (source) => (
+        <LocationMapPreview locationKey={source.targetLocation?.key}>
+          {source.targetLocation?.key ?? ''}
+        </LocationMapPreview>
+      ),
     },
     {
       key: 'targetLoader',
@@ -102,10 +109,12 @@ function InventoryMovementTransferTable({
       key: 'location',
       title: '來源位置',
       width: 140,
-      render: (source) =>
-        uniq(
-          (source.items ?? []).map((item) => formatKeyName(item.location?.key)),
-        ).join(','),
+      render: (source) => (
+        <LocationMapPreviewList
+          locationKeys={(source.items ?? []).map((item) => item.location?.key)}
+          separator=","
+        />
+      ),
     },
     {
       key: 'loader',
