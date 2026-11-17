@@ -1,6 +1,19 @@
-import { ArgsType, Field, ID } from '@nestjs/graphql';
+import {
+  ArgsType,
+  Field,
+  ID,
+  InputType,
+  registerEnumType,
+} from '@nestjs/graphql';
+import { TransferOrderSortField } from '@rytass/wms-module-core';
 import { DateRangeArgs } from './date-range.args';
 import { PaginationArgs } from './pagination.args';
+import { SortInput } from './sort.input';
+
+registerEnumType(TransferOrderSortField, { name: 'TransferOrderSortField' });
+
+@InputType()
+export class TransferOrderSortInput extends SortInput(TransferOrderSortField) {}
 
 @ArgsType()
 export class FindTransferOrderArgs extends PaginationArgs {
@@ -45,4 +58,10 @@ export class FindTransferOrderArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   targetLoaderKey?: string;
+
+  @Field(() => TransferOrderSortInput, {
+    nullable: true,
+    description: 'Omitted: newest first (createdAt DESC), then id.',
+  })
+  sort?: TransferOrderSortInput | null;
 }

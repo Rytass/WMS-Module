@@ -81,9 +81,10 @@ qb.leftJoin(UnitEntityClass, 'baseUnit', 'CAST(baseUnit.id AS text) = material.b
   .addSelect('baseUnit.key'); // required — the DISTINCT subquery must see it
 ```
 
-- Join **by entity class** (or the Symbol from `WmsEntities` for overridable
-  entities), never by table-name string — the table prefix and the subquery
-  both resolve it from metadata.
+- Join **by entity class**, never by table-name string — the table prefix and
+  the subquery both resolve it from metadata. For an overridable entity that
+  class is the one `WmsEntities` resolved (`this.entities.location`,
+  `this.entities.material`, …), never the imported built-in class.
 - The join must stay **one row per list row** (join on a unique key).
 - Write casts as `CAST(x AS t)`, not `x::t`: TypeORM only rewrites
   `alias.property` when a space, `=`, `)` or `,` follows it.

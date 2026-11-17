@@ -5,7 +5,19 @@ import {
   CreateLocationInput,
   UpdateLocationInput,
 } from '../typings/create-location.input';
-import { FindLocationInput } from '../typings/find-location.input';
+import {
+  FindLocationInput,
+  LocationSortField,
+} from '../typings/find-location.input';
+import { SortOrder } from '../typings/list-sort';
+import { applyListSort } from '../utils/list-sort';
+
+const LOCATION_SORT_FIELDS: Readonly<Record<LocationSortField, string>> = {
+  [LocationSortField.KEY]: 'location.key',
+  [LocationSortField.DESCRIPTION]: 'location.description',
+  [LocationSortField.IS_ACTIVE]: 'location.isActive',
+  [LocationSortField.CREATED_AT]: 'location.createdAt',
+};
 
 @Injectable()
 export class LocationService<
@@ -97,6 +109,17 @@ export class LocationService<
         value: `%${value}%`,
       });
     }
+
+    applyListSort(queryBuilder, {
+      sort: options.sort,
+      fields: LOCATION_SORT_FIELDS,
+      defaultOrder: {
+        field: LocationSortField.CREATED_AT,
+        order: SortOrder.DESC,
+      },
+      tiebreaker: 'location.id',
+    });
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 

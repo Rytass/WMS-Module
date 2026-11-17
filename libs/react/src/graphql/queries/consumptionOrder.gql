@@ -8,6 +8,7 @@ query ConsumptionOrders(
   $locationId: ID
   $createdAtFrom: DateTime
   $createdAtTo: DateTime
+  $sort: ConsumptionOrderSortInput
 ) {
   consumptionOrders(
     offset: $offset
@@ -19,6 +20,7 @@ query ConsumptionOrders(
     locationId: $locationId
     createdAtFrom: $createdAtFrom
     createdAtTo: $createdAtTo
+    sort: $sort
   ) {
     id
     items {

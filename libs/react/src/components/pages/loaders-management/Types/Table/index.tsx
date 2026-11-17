@@ -19,8 +19,16 @@ function LoadersManagementTypesTable({
 }: LoadersManagementTypesTableProps) {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
 
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryLoaderTypes(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryLoaderTypes(currentFilter);
 
   const { createLoaderType } = useCreateLoaderType();
 
@@ -60,6 +68,7 @@ function LoadersManagementTypesTable({
     },
     {
       key: 'isActive',
+      ...getColumnSortProps('isActive'),
       title: '狀態',
       width: 100,
       render: (source) =>
@@ -71,12 +80,14 @@ function LoadersManagementTypesTable({
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '類型代碼',
       width: 236,
       render: (source) => source.key,
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '類型說明',
       width: 140,
       render: (source) => source.description,
@@ -90,6 +101,7 @@ function LoadersManagementTypesTable({
     },
     {
       key: 'createdAt',
+      ...getColumnSortProps('createdAt'),
       title: '建立日期',
       render: (source) => dayjs(source.createdAt).format('YYYY-MM-DD'),
     },

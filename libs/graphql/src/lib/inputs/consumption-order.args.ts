@@ -1,5 +1,23 @@
-import { ArgsType, Field, Float, ID, InputType } from '@nestjs/graphql';
+import {
+  ArgsType,
+  Field,
+  Float,
+  ID,
+  InputType,
+  registerEnumType,
+} from '@nestjs/graphql';
+import { ConsumptionOrderSortField } from '@rytass/wms-module-core';
 import { PaginationArgs } from './pagination.args';
+import { SortInput } from './sort.input';
+
+registerEnumType(ConsumptionOrderSortField, {
+  name: 'ConsumptionOrderSortField',
+});
+
+@InputType()
+export class ConsumptionOrderSortInput extends SortInput(
+  ConsumptionOrderSortField,
+) {}
 
 @InputType()
 export class CreateConsumptionOrderItemInputType {
@@ -107,4 +125,10 @@ export class FindConsumptionOrderArgs extends PaginationArgs {
 
   @Field(() => Boolean, { nullable: true })
   includeRemoved?: boolean;
+
+  @Field(() => ConsumptionOrderSortInput, {
+    nullable: true,
+    description: 'Omitted: newest first (createdAt DESC), then id.',
+  })
+  sort?: ConsumptionOrderSortInput | null;
 }

@@ -15,6 +15,7 @@ query TransferOrders(
   $loaderKey: String
   $targetLocationKey: String
   $targetLoaderKey: String
+  $sort: TransferOrderSortInput
 ) {
   transferOrders(
     offset: $offset
@@ -33,6 +34,7 @@ query TransferOrders(
     loaderKey: $loaderKey
     targetLocationKey: $targetLocationKey
     targetLoaderKey: $targetLoaderKey
+    sort: $sort
   ) {
     id
     items {

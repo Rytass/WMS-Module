@@ -35,8 +35,16 @@ function ConsumptionOrdersTable({
   currentFilter,
 }: ConsumptionOrdersTableProps) {
   const { push } = useWmsRouter();
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryConsumptionOrders(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryConsumptionOrders(currentFilter);
 
   const dataSource = useMemo(
     (): ConsumptionOrderDetailFragment[] => data?.consumptionOrders.items ?? [],
@@ -46,12 +54,14 @@ function ConsumptionOrdersTable({
   const columns: TableColumn<ConsumptionOrderDetailFragment>[] = [
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '單號',
       width: 160,
       render: (source) => source.key,
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '說明',
       width: 200,
       render: (source) => source.description ?? '',

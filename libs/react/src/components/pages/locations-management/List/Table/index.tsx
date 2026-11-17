@@ -17,8 +17,16 @@ const LocationsManagementListTable: FC<LocationsManagementListTableProps> = ({
   currentFilter,
 }) => {
   const [modalOpened, setModalOpened] = useState<boolean>(false);
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryLocations(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryLocations(currentFilter);
   const { createLocation, loading: createLoading } = useCreateLocation();
 
   const dataSource = useMemo(
@@ -35,6 +43,7 @@ const LocationsManagementListTable: FC<LocationsManagementListTableProps> = ({
     },
     {
       key: 'isActive',
+      ...getColumnSortProps('isActive'),
       title: '狀態',
       width: 100,
       render: (source) =>
@@ -46,12 +55,14 @@ const LocationsManagementListTable: FC<LocationsManagementListTableProps> = ({
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '儲存位置 ID',
       width: 194,
       render: (source) => source.key,
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '位置說明',
       render: (source) => source.description,
     },

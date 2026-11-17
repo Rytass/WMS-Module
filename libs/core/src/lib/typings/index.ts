@@ -12,6 +12,7 @@ export * from './find-material.input';
 export * from './find-receive-inventory-order.input';
 export * from './find-ship-inventory-order.input';
 export * from './find-stock.input';
+export * from './find-change-log.input';
 export * from './consumption-order.input';
 export * from './custom-change-table';
 export * from './order-reference.input';
@@ -29,6 +30,7 @@ export * from './deallocate-inventory-order';
 export * from './find-allocate-inventory-order.input';
 export * from './find-batch.input';
 export * from './find-hold-inventory-order.input';
+export * from './find-inventory-count-order.input';
 export * from './find-location.input';
 export * from './find-transfer-order.input';
 export type {

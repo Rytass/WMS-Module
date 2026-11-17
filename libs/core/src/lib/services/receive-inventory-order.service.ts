@@ -25,7 +25,10 @@ import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   FindReceiveInventoryOrderInput,
   ReceiveInventoryOrderStatus,
+  ReceiveInventoryOrderSortField,
 } from '../typings/find-receive-inventory-order.input';
+import { SortOrder } from '../typings/list-sort';
+import { applyListSort } from '../utils/list-sort';
 import {
   LoadersEntityClass,
   LocationEntityClass,
@@ -48,6 +51,26 @@ import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
  * T - Receive Inventory Order entity type
  * K - Receive Inventory Order Item entity type
  */
+/**
+ * ORDER BY per sort field. Raw mode: the list reads with `getRawMany`, and
+ * `status` is the `order_status` join's computed column — ranked by lifecycle
+ * rather than spelled, since its values sort alphabetically into nonsense.
+ */
+const RECEIVE_ORDER_SORT_FIELDS: Readonly<
+  Record<ReceiveInventoryOrderSortField, string>
+> = {
+  [ReceiveInventoryOrderSortField.STATUS]: `(CASE order_status.status
+    WHEN '${ReceiveInventoryOrderStatus.PENDING}' THEN 0
+    WHEN '${ReceiveInventoryOrderStatus.PARTIAL_RECEIVED}' THEN 1
+    WHEN '${ReceiveInventoryOrderStatus.RECEIVED}' THEN 2
+    WHEN '${ReceiveInventoryOrderStatus.REMOVED}' THEN 3
+  END)`,
+  [ReceiveInventoryOrderSortField.KEY]: 'orders.key',
+  [ReceiveInventoryOrderSortField.CREATED_BY]: 'orders."createdBy"',
+  [ReceiveInventoryOrderSortField.CREATED_AT]: 'orders."createdAt"',
+  [ReceiveInventoryOrderSortField.DESCRIPTION]: 'orders.description',
+};
+
 @Injectable()
 export class ReceiveInventoryOrderService<
   T extends ReceiveInventoryOrderEntityClass = ReceiveInventoryOrderEntityClass,
@@ -430,9 +453,18 @@ export class ReceiveInventoryOrderService<
     // `offset`/`limit` go straight into the SQL. The join is one row per
     // order, so a page is exactly `limit` orders — and a page is only a page
     // with a stable order underneath it.
-    queryBuilder
-      .orderBy('orders."createdAt"', 'DESC')
-      .addOrderBy('orders.id', 'ASC');
+    // After `getCount()`, which cannot carry an ORDER BY on the computed
+    // column. The join is one row per order, so a page is exactly `limit`.
+    applyListSort(queryBuilder, {
+      sort: options.sort,
+      fields: RECEIVE_ORDER_SORT_FIELDS,
+      defaultOrder: {
+        field: ReceiveInventoryOrderSortField.CREATED_AT,
+        order: SortOrder.DESC,
+      },
+      tiebreaker: 'orders.id',
+      mode: 'raw',
+    });
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.offset(options.offset);
