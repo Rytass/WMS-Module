@@ -1,4 +1,5 @@
 import { PaginationInput } from './paginations';
+import { ListSort } from './list-sort';
 
 export type CreateConsumptionOrderItemInput = {
   materialId: string;
@@ -45,6 +46,19 @@ export type ConsumptionOrderActionInput = {
   items?: ConsumptionOrderLineInput[];
 };
 
+/**
+ * Columns `ConsumptionOrderService.findMany` can sort by. Values are part of
+ * the public GraphQL schema (`ConsumptionOrderSortField`): add freely, never
+ * rename or remove. Item-derived columns (sources, targets, item count,
+ * issued/outstanding/settled totals) are left out: they aggregate many lines
+ * and have no column to order by.
+ */
+export enum ConsumptionOrderSortField {
+  KEY = 'KEY',
+  DESCRIPTION = 'DESCRIPTION',
+  CREATED_AT = 'CREATED_AT',
+}
+
 export type FindConsumptionOrderInput = PaginationInput & {
   ids?: string[];
   key?: string;
@@ -56,6 +70,8 @@ export type FindConsumptionOrderInput = PaginationInput & {
   createdAtFrom?: Date;
   createdAtTo?: Date;
   includeRemoved?: boolean;
+  /** Omitted: newest first (`createdAt DESC`), then `id`. */
+  sort?: ListSort<ConsumptionOrderSortField> | null;
 };
 
 /**

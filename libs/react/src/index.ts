@@ -41,6 +41,14 @@ export {
   type OrderReferenceProviderProps,
 } from './components/orderReference/OrderReferenceProvider';
 export { default as OrderReferenceList } from './components/orderReference/OrderReferenceList';
+// Hover (tap, on touch) a location key to see the map it is drawn on.
+export {
+  default as LocationMapPreview,
+  LocationMapPreviewList,
+  type LocationMapPreviewProps,
+  type LocationMapPreviewListProps,
+  type LocationMapPreviewTriggerProps,
+} from './components/map/LocationMapPreview';
 export {
   useOrderReference,
   type OrderReferenceValue,
@@ -91,6 +99,13 @@ export {
   useInsertOption,
 } from './hooks/useSelectorOptions';
 export { useSortTable } from './hooks/useSortTable';
+export {
+  useTableSort,
+  type TableColumnSortProps,
+  type TableSort,
+  type UseTableSortOptions,
+  type UseTableSortResult,
+} from './hooks/useTableSort';
 export {
   useTablePageState,
   useTablePageTotal,

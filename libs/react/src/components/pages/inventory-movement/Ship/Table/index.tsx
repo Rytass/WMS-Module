@@ -9,6 +9,7 @@ import { ShipInventoryOrderFragment } from '../../../../../graphql/generated/.gr
 import { useQueryShipInventoryOrders } from '../../useApi';
 import { formatKeyName } from '../../../../../utils/share';
 import { FilterValues } from '../typing';
+import { LocationMapPreviewList } from '../../../../map/LocationMapPreview';
 
 interface InventoryMovementShipTableProps {
   currentFilter?: FilterValues;
@@ -17,8 +18,16 @@ interface InventoryMovementShipTableProps {
 function InventoryMovementShipTable({
   currentFilter,
 }: InventoryMovementShipTableProps) {
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryShipInventoryOrders(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryShipInventoryOrders(currentFilter);
 
   const dataSource = useMemo(
     (): ShipInventoryOrderFragment[] => data?.shipInventoryOrders.items ?? [],
@@ -34,6 +43,7 @@ function InventoryMovementShipTable({
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '出庫單號',
       width: 140,
       render: (source) => source.key,
@@ -67,10 +77,12 @@ function InventoryMovementShipTable({
       key: 'location',
       title: '來源位置',
       width: 140,
-      render: (source) =>
-        uniq(
-          (source.items ?? []).map((item) => formatKeyName(item.location?.key)),
-        ).join(','),
+      render: (source) => (
+        <LocationMapPreviewList
+          locationKeys={(source.items ?? []).map((item) => item.location?.key)}
+          separator=","
+        />
+      ),
     },
     {
       key: 'loader',
@@ -85,12 +97,14 @@ function InventoryMovementShipTable({
     },
     {
       key: 'createdBy',
+      ...getColumnSortProps('createdBy'),
       title: '建立者',
       width: 140,
       render: (source) => source.createdBy,
     },
     {
       key: 'createdAt',
+      ...getColumnSortProps('createdAt'),
       title: '建立時間',
       width: 140,
       render: (source) =>
@@ -98,6 +112,7 @@ function InventoryMovementShipTable({
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '備註',
       width: 140,
       render: (source) => source.description || '-',

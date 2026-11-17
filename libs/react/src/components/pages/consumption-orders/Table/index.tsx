@@ -5,9 +5,9 @@ import Table from '../../../TableWrapper/Table';
 import { useWmsRouter } from '../../../../router/context';
 import { NextPath } from '../../../../utils/nextpath';
 import { ConsumptionOrderDetailFragment } from '../../../../graphql/generated/.graphql';
-import { formatKeyName } from '../../../../utils/share';
 import { useQueryConsumptionOrders } from '../useApi';
 import { FilterValues } from '../typing';
+import { LocationMapPreviewList } from '../../../map/LocationMapPreview';
 
 interface ConsumptionOrdersTableProps {
   currentFilter?: FilterValues;
@@ -35,8 +35,16 @@ function ConsumptionOrdersTable({
   currentFilter,
 }: ConsumptionOrdersTableProps) {
   const { push } = useWmsRouter();
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryConsumptionOrders(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryConsumptionOrders(currentFilter);
 
   const dataSource = useMemo(
     (): ConsumptionOrderDetailFragment[] => data?.consumptionOrders.items ?? [],
@@ -46,12 +54,14 @@ function ConsumptionOrdersTable({
   const columns: TableColumn<ConsumptionOrderDetailFragment>[] = [
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '單號',
       width: 160,
       render: (source) => source.key,
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '說明',
       width: 200,
       render: (source) => source.description ?? '',
@@ -67,27 +77,25 @@ function ConsumptionOrdersTable({
       key: 'locations',
       title: '領用來源',
       width: 160,
-      render: (source) =>
-        Array.from(
-          new Set(
-            (source.items ?? []).map((item) =>
-              formatKeyName(item.location?.key),
-            ),
-          ),
-        ).join('、'),
+      render: (source) => (
+        <LocationMapPreviewList
+          locationKeys={(source.items ?? []).map((item) => item.location?.key)}
+          separator="、"
+        />
+      ),
     },
     {
       key: 'targetLocations',
       title: '耗用地點',
       width: 160,
-      render: (source) =>
-        Array.from(
-          new Set(
-            (source.items ?? []).map((item) =>
-              formatKeyName(item.targetLocation?.key),
-            ),
-          ),
-        ).join('、'),
+      render: (source) => (
+        <LocationMapPreviewList
+          locationKeys={(source.items ?? []).map(
+            (item) => item.targetLocation?.key,
+          )}
+          separator="、"
+        />
+      ),
     },
     {
       key: 'issued',

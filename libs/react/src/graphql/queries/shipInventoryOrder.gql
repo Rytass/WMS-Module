@@ -17,6 +17,7 @@ query ShipInventoryOrders(
   $batchKey: String
   $locationKey: String
   $loaderKey: String
+  $sort: ShipInventoryOrderSortInput
 ) {
   shipInventoryOrders(
     offset: $offset
@@ -31,6 +32,7 @@ query ShipInventoryOrders(
     batchKey: $batchKey
     locationKey: $locationKey
     loaderKey: $loaderKey
+    sort: $sort
   ) {
     id
     items {
@@ -84,6 +86,7 @@ query FullShipInventoryOrders(
   $batchKey: String
   $locationKey: String
   $loaderKey: String
+  $sort: ShipInventoryOrderSortInput
 ) {
   shipInventoryOrders(
     offset: $offset
@@ -98,6 +101,7 @@ query FullShipInventoryOrders(
     batchKey: $batchKey
     locationKey: $locationKey
     loaderKey: $loaderKey
+    sort: $sort
   ) {
     id
     items {

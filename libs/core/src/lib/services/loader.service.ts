@@ -25,12 +25,39 @@ import {
 import {
   FindLoaderInput,
   FindLoaderTypeInput,
+  LoaderSortField,
+  LoaderTypeSortField,
 } from '../typings/find-loader.input';
+import { SortOrder } from '../typings/list-sort';
+import { applyListSort } from '../utils/list-sort';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsSequenceService } from './sequence.service';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf } from '../utils/table-path';
 import { LoaderUnitEntity, LoaderUnitEntityClass } from '../models';
+
+/** ORDER BY per sort field; `sort_type` / `sort_location` are joined on demand. */
+const LOADER_SORT_FIELDS: Readonly<Record<LoaderSortField, string>> = {
+  [LoaderSortField.SERIAL_ID]: 'loader.serialId',
+  [LoaderSortField.TYPE_DESCRIPTION]: 'sort_type.description',
+  [LoaderSortField.LOCATION_KEY]: 'sort_location.key',
+  [LoaderSortField.LENGTH]: 'loader.length',
+  [LoaderSortField.WIDTH]: 'loader.width',
+  [LoaderSortField.HEIGHT]: 'loader.height',
+  [LoaderSortField.SIZE_UNIT]: 'loader.sizeUnit',
+  [LoaderSortField.VOLUME]: 'loader.volume',
+  [LoaderSortField.VOLUME_UNIT]: 'loader.volumeUnit',
+  [LoaderSortField.NOTE]: 'loader.note',
+  [LoaderSortField.IS_ACTIVE]: 'loader.isActive',
+  [LoaderSortField.CREATED_AT]: 'loader.createdAt',
+};
+
+const LOADER_TYPE_SORT_FIELDS: Readonly<Record<LoaderTypeSortField, string>> = {
+  [LoaderTypeSortField.KEY]: 'loader_type.key',
+  [LoaderTypeSortField.DESCRIPTION]: 'loader_type.description',
+  [LoaderTypeSortField.IS_ACTIVE]: 'loader_type.isActive',
+  [LoaderTypeSortField.CREATED_AT]: 'loader_type.createdAt',
+};
 
 /**
  * Service for managing loaders and their types
@@ -221,7 +248,7 @@ export class LoaderService<
     );
   }
 
-  findManyLoaders(options: FindLoaderInput<T>): Promise<[T[], number]> {
+  async findManyLoaders(options: FindLoaderInput<T>): Promise<[T[], number]> {
     const queryBuilder = this.dataSource
       .getRepository<T>(this.loaderEntity)
       .createQueryBuilder('loader');
@@ -299,6 +326,41 @@ export class LoaderService<
       });
     }
 
+    // Joined by class (the location through `WmsEntities`: it may be a host override) and only when that
+    // column is asked for; both joins are on a primary key, one row per loader.
+    // Selected because the paginated DISTINCT subquery must see the column.
+    if (options.sort?.field === LoaderSortField.TYPE_DESCRIPTION) {
+      queryBuilder
+        .leftJoin(
+          // Loader types are owned by this package (no base override), so the
+          // class is the table; a host subclass would share it.
+          LoaderTypeEntityClass,
+          'sort_type',
+          'sort_type.id = loader.typeId',
+        )
+        .addSelect('sort_type.description');
+    }
+
+    if (options.sort?.field === LoaderSortField.LOCATION_KEY) {
+      queryBuilder
+        .leftJoin(
+          this.entities.location,
+          'sort_location',
+          'sort_location.id = loader.locationId',
+        )
+        .addSelect('sort_location.key');
+    }
+
+    applyListSort(queryBuilder, {
+      sort: options.sort,
+      fields: LOADER_SORT_FIELDS,
+      defaultOrder: {
+        field: LoaderSortField.CREATED_AT,
+        order: SortOrder.DESC,
+      },
+      tiebreaker: 'loader.id',
+    });
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 
@@ -308,7 +370,9 @@ export class LoaderService<
     return queryBuilder.getManyAndCount();
   }
 
-  findManyLoaderTypes(options: FindLoaderTypeInput<K>): Promise<[K[], number]> {
+  async findManyLoaderTypes(
+    options: FindLoaderTypeInput<K>,
+  ): Promise<[K[], number]> {
     const queryBuilder = this.dataSource
       .getRepository<K>(this.loaderTypeEntity)
       .createQueryBuilder('loader_type');
@@ -335,6 +399,16 @@ export class LoaderService<
         value: `%${value}%`,
       });
     }
+
+    applyListSort(queryBuilder, {
+      sort: options.sort,
+      fields: LOADER_TYPE_SORT_FIELDS,
+      defaultOrder: {
+        field: LoaderTypeSortField.CREATED_AT,
+        order: SortOrder.DESC,
+      },
+      tiebreaker: 'loader_type.id',
+    });
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);

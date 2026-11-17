@@ -1,0 +1,63 @@
+@use '@mezzanine-ui/system/spacing';
+@use '@mezzanine-ui/system/radius';
+@use '@mezzanine-ui/system/palette';
+@use '@mezzanine-ui/system/effect';
+
+.trigger {
+  cursor: help;
+  border-radius: radius.variable(tiny);
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: palette.semantic-variable(border, neutral);
+  text-underline-offset: 3px;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    color: palette.semantic-variable(text, brand);
+    text-decoration-color: currentColor;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: effect.variable(focus, primary);
+  }
+}
+
+/*
+ * The popper itself is transparent: its padding is the gap to the trigger, and
+ * because it belongs to the popper the pointer can cross it without leaving.
+ * The portal layer is `pointer-events: none`, so the popper opts back in.
+ */
+.popper {
+  pointer-events: auto;
+  padding: spacing.semantic-variable(padding, vertical, tiny) 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: spacing.semantic-variable(gap, base);
+  width: 320px;
+  padding: spacing.semantic-variable(padding, vertical, base)
+    spacing.semantic-variable(padding, horizontal, base);
+  border: 1px solid palette.semantic-variable(border, neutral-faint);
+  border-radius: radius.variable(roomy);
+  background-color: palette.semantic-variable(background, base);
+  box-shadow: effect.variable(shadow, floating);
+}
+
+.canvas {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  overflow: hidden;
+  border-radius: radius.variable(base);
+  background-color: palette.semantic-variable(background, neutral-faint);
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}

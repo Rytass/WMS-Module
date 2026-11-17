@@ -3,6 +3,7 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
+import { useTableSort } from '../../../hooks/useTableSort';
 import {
   AddInventoryCountItemDocument,
   CancelInventoryCountDocument,
@@ -18,6 +19,8 @@ import {
   SettleInventoryCountDocument,
   StartInventoryCountDocument,
   UpdateInventoryCountOrderDocument,
+  InventoryCountOrderSortField,
+  InventoryCountOrderItemSortField,
 } from '../../../graphql/generated/.graphql';
 import { FilterValues, ItemFilterValues } from './typing';
 
@@ -44,11 +47,24 @@ export function useLazyQueryMaterial() {
   return { fetchMaterial };
 }
 
+/** Table column key → `InventoryCountOrderSortField`; columns not listed do not sort. */
+const INVENTORY_COUNT_ORDER_SORT_FIELDS = {
+  name: InventoryCountOrderSortField.NAME,
+  countDate: InventoryCountOrderSortField.COUNT_DATE,
+  createdBy: InventoryCountOrderSortField.CREATED_BY,
+  status: InventoryCountOrderSortField.STATUS,
+} as const;
+
 export function useQueryInventoryCountOrders(filter?: FilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: INVENTORY_COUNT_ORDER_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(InventoryCountOrdersDocument, {
     variables: {
+      sort,
       limit,
       offset,
       name: filter?.name || undefined,
@@ -77,7 +93,16 @@ export function useQueryInventoryCountOrders(filter?: FilterValues) {
     ],
   });
 
-  return { data, loading, pageTotal, page, setPage, limit, setLimit };
+  return {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  };
 }
 
 export function useQueryInventoryCountOrder(id: string) {
@@ -89,6 +114,22 @@ export function useQueryInventoryCountOrder(id: string) {
 
   return { data, loading, refetch };
 }
+
+/** Table column key → `InventoryCountOrderItemSortField`; columns not listed do not sort. */
+const INVENTORY_COUNT_ORDER_ITEM_SORT_FIELDS = {
+  inspectionResult: InventoryCountOrderItemSortField.INSPECTION,
+  held: InventoryCountOrderItemSortField.HELD,
+  inTransfer: InventoryCountOrderItemSortField.IN_TRANSFER,
+  materialKey: InventoryCountOrderItemSortField.MATERIAL_KEY,
+  materialDescription: InventoryCountOrderItemSortField.MATERIAL_DESCRIPTION,
+  batch: InventoryCountOrderItemSortField.BATCH_KEY,
+  location: InventoryCountOrderItemSortField.LOCATION_KEY,
+  loader: InventoryCountOrderItemSortField.LOADER_SERIAL_ID,
+  vendorId: InventoryCountOrderItemSortField.VENDOR_ID,
+  customerId: InventoryCountOrderItemSortField.CUSTOMER_ID,
+  saleId: InventoryCountOrderItemSortField.SALE_ID,
+  saleSerialId: InventoryCountOrderItemSortField.SALE_SERIAL_ID,
+} as const;
 
 /**
  * The count sheet: filtered, paginated, and fetched apart from the header.
@@ -102,8 +143,13 @@ export function useQueryInventoryCountOrderItems(
   filter?: ItemFilterValues,
 ) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: INVENTORY_COUNT_ORDER_ITEM_SORT_FIELDS,
+    setPage,
+  });
 
   const variables = {
+    sort,
     id,
     limit,
     offset,
@@ -143,7 +189,16 @@ export function useQueryInventoryCountOrderItems(
     ],
   });
 
-  return { data, loading, pageTotal, page, setPage, limit, setLimit };
+  return {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  };
 }
 
 /**

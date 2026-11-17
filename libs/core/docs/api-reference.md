@@ -237,7 +237,7 @@ WmsModuleCoreModule.forRootAsync({
 | `WmsSequenceService` | `reserve` | 訂單號與載具序號的計數器（取號，不用 `CURRVAL`） | `lib/services/sequence.service.ts` |
 | `BaseOrderService` (abstract) | `add`, `deduct`（皆為 `protected`，供子類別呼叫） | 各訂單 service 的共用基底（以 class 匯出）；只寫 `orders` 與 `stocks`，**不寫** `*_order_changes`，直接繼承的宿主要自行負責異動列與 `stock.*` 事件 | `lib/services/base-order.service.ts` |
 | `HelperService` | `getSeq` | 序號產生工具 | `lib/services/helper.service.ts` |
-| `WarehouseMapDataService` | `onApplicationBootstrap` | 倉庫地圖資料初始化，implements `OnApplicationBootstrap` | `lib/services/warehouse-map.service.ts` |
+| `WarehouseMapDataService` | `onApplicationBootstrap`、`findLocationMapPreview` | 倉庫地圖資料初始化（implements `OnApplicationBootstrap`）；查儲位所在地圖與根到該圖的路徑 | `lib/services/warehouse-map.service.ts` |
 
 ---
 
@@ -558,7 +558,7 @@ static forRootAsync(
 | `HoldInventoryOrderQuery` | `holdInventoryOrders` | `HoldInventoryOrders` | `lib/queries/hold-inventory-order.query.ts` |
 | `AllocateInventoryOrderQuery` | `allocateInventoryOrders` | `AllocateInventoryOrders` | `lib/queries/allocate-inventory-order.query.ts` |
 | `SaleOrderQuery` | `saleOrderDistinctIds`, `saleOrders` | `[String]` | `lib/queries/sale-order.query.ts` |
-| `WarehouseMapDataQuery` | `mapData` | `MapDataDto` | `lib/queries/warehouse-map.query.ts` |
+| `WarehouseMapDataQuery` | `mapData`、`locationMapPreview` | `MapDataDto`、`LocationMapPreviewDto \| null` | `lib/queries/warehouse-map.query.ts` |
 
 ---
 

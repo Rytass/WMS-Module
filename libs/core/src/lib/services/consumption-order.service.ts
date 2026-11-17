@@ -25,12 +25,23 @@ import {
   CreateConsumptionOrderItemInput,
   FindConsumptionOrderInput,
   UpdateConsumptionOrderInput,
+  ConsumptionOrderSortField,
 } from '../typings/consumption-order.input';
+import { SortOrder } from '../typings/list-sort';
+import { applyListSort } from '../utils/list-sort';
 import { WmsEntities } from '../models/wms-entities';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { StockService } from './stock.service';
+
+const CONSUMPTION_ORDER_SORT_FIELDS: Readonly<
+  Record<ConsumptionOrderSortField, string>
+> = {
+  [ConsumptionOrderSortField.KEY]: 'consumption.key',
+  [ConsumptionOrderSortField.DESCRIPTION]: 'consumption.description',
+  [ConsumptionOrderSortField.CREATED_AT]: 'consumption.createdAt',
+};
 
 /** The quantities a single change row moves, in base units. */
 interface Movement {
@@ -617,16 +628,18 @@ export class ConsumptionOrderService<
       });
     }
 
-    /*
-     * The property path, not a quoted column. `getManyAndCount` with a joined
-     * relation and a limit wraps the query in a `SELECT DISTINCT` over the root
-     * ids, and it can only carry an ordering across that wrapper if it
-     * recognises the expression as a column of the aliased entity. Given raw
-     * SQL it copies the string through verbatim and Postgres rejects
-     * `distinctAlias.consumption_"createdAt"`. Unpaginated calls never hit it,
-     * which is why it took a page-sized query to surface.
-     */
-    queryBuilder.orderBy('consumption.createdAt', 'DESC');
+    // Property paths only (entity mode): `getManyAndCount` with the joined
+    // items and a limit wraps the query in a `SELECT DISTINCT` over the root
+    // ids, and raw SQL there renders `distinctAlias.consumption_"createdAt"`.
+    applyListSort(queryBuilder, {
+      sort: options.sort,
+      fields: CONSUMPTION_ORDER_SORT_FIELDS,
+      defaultOrder: {
+        field: ConsumptionOrderSortField.CREATED_AT,
+        order: SortOrder.DESC,
+      },
+      tiebreaker: 'consumption.id',
+    });
 
     if (options.offset !== undefined && options.offset >= 0) {
       queryBuilder.skip(options.offset);

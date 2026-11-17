@@ -3,6 +3,7 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
+import { useTableSort } from '../../../hooks/useTableSort';
 import {
   TransferOrdersDocument,
   TransferOrderDocument,
@@ -18,17 +19,34 @@ import {
   ShipDocument,
   CancelTransferDocument,
   CancelShipDocument,
+  TransferOrderSortField,
+  ReceiveInventoryOrderSortField,
+  ShipInventoryOrderSortField,
 } from '../../../graphql/generated/.graphql';
 import { FilterType } from '../../FilterWrapper/typing';
 import { FilterValues as TransferFilterValues } from './Transfer/typing';
 import { FilterValues as ShipFilterValues } from './Ship/typing';
 import { FilterValues as ReceiveFilterValues } from './Receive/typing';
 
+/** Table column key → `TransferOrderSortField`; columns not listed do not sort. */
+const TRANSFER_ORDER_SORT_FIELDS = {
+  key: TransferOrderSortField.KEY,
+  receiver: TransferOrderSortField.RECEIVER,
+  createdBy: TransferOrderSortField.CREATED_BY,
+  createdAt: TransferOrderSortField.CREATED_AT,
+  description: TransferOrderSortField.DESCRIPTION,
+} as const;
+
 export function useQueryTransferOrders(currentFilter?: TransferFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: TRANSFER_ORDER_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(TransferOrdersDocument, {
     variables: {
+      sort,
       limit,
       offset,
       key:
@@ -79,6 +97,7 @@ export function useQueryTransferOrders(currentFilter?: TransferFilterValues) {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }
 
@@ -111,11 +130,24 @@ export function useQueryTransferOrder(id: string) {
   };
 }
 
+/** Table column key → `ShipInventoryOrderSortField`; columns not listed do not sort. */
+const SHIP_ORDER_SORT_FIELDS = {
+  key: ShipInventoryOrderSortField.KEY,
+  createdBy: ShipInventoryOrderSortField.CREATED_BY,
+  createdAt: ShipInventoryOrderSortField.CREATED_AT,
+  description: ShipInventoryOrderSortField.DESCRIPTION,
+} as const;
+
 export function useQueryShipInventoryOrders(currentFilter?: ShipFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: SHIP_ORDER_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(FullShipInventoryOrdersDocument, {
     variables: {
+      sort,
       limit,
       offset,
       statuses: [
@@ -162,6 +194,7 @@ export function useQueryShipInventoryOrders(currentFilter?: ShipFilterValues) {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }
 
@@ -180,13 +213,26 @@ export function useLazyQueryShipInventoryOrder() {
   };
 }
 
+/** Table column key → `ReceiveInventoryOrderSortField`; columns not listed do not sort. */
+const RECEIVE_ORDER_SORT_FIELDS = {
+  key: ReceiveInventoryOrderSortField.KEY,
+  createdBy: ReceiveInventoryOrderSortField.CREATED_BY,
+  createdAt: ReceiveInventoryOrderSortField.CREATED_AT,
+  description: ReceiveInventoryOrderSortField.DESCRIPTION,
+} as const;
+
 export function useQueryReceiveInventoryOrders(
   currentFilter?: ReceiveFilterValues,
 ) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: RECEIVE_ORDER_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(FullReceiveInventoryOrdersDocument, {
     variables: {
+      sort,
       limit,
       offset,
       statuses: [
@@ -233,6 +279,7 @@ export function useQueryReceiveInventoryOrders(
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }
 

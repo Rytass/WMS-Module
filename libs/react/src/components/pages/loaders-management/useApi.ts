@@ -4,6 +4,7 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
+import { useTableSort } from '../../../hooks/useTableSort';
 import {
   LoadersDocument,
   LoaderTypesDocument,
@@ -12,17 +13,41 @@ import {
   UpdateLoaderDocument,
   CreateLoaderTypeDocument,
   UpdateLoaderTypeDocument,
+  LoaderSortField,
+  LoaderTypeSortField,
 } from '../../../graphql/generated/.graphql';
 import { FilterValues as ListFilterValues } from './List/typing';
 import { FilterValues as TypesFilterValues } from './Types/typing';
 import { FilterType } from '../../FilterWrapper/typing';
 import { YesOrNo } from '../../../utils/share';
+import { AGGREGATED_STOCK_SORT_FIELDS } from '../../../utils/columns';
+
+/** Table column key → `LoaderSortField`; columns not listed do not sort. */
+const LOADER_SORT_FIELDS = {
+  isActive: LoaderSortField.IS_ACTIVE,
+  typeDescription: LoaderSortField.TYPE_DESCRIPTION,
+  serialId: LoaderSortField.SERIAL_ID,
+  locationKey: LoaderSortField.LOCATION_KEY,
+  length: LoaderSortField.LENGTH,
+  width: LoaderSortField.WIDTH,
+  height: LoaderSortField.HEIGHT,
+  sizeUnit: LoaderSortField.SIZE_UNIT,
+  volume: LoaderSortField.VOLUME,
+  volumeUnit: LoaderSortField.VOLUME_UNIT,
+  createdAt: LoaderSortField.CREATED_AT,
+  note: LoaderSortField.NOTE,
+} as const;
 
 export function useQueryLoaders(currentFilter?: ListFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: LOADER_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(LoadersDocument, {
     variables: {
+      sort,
       limit,
       offset,
       loaderTypeKey:
@@ -70,14 +95,28 @@ export function useQueryLoaders(currentFilter?: ListFilterValues) {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }
 
+/** Table column key → `LoaderTypeSortField`; columns not listed do not sort. */
+const LOADER_TYPE_SORT_FIELDS = {
+  isActive: LoaderTypeSortField.IS_ACTIVE,
+  key: LoaderTypeSortField.KEY,
+  description: LoaderTypeSortField.DESCRIPTION,
+  createdAt: LoaderTypeSortField.CREATED_AT,
+} as const;
+
 export function useQueryLoaderTypes(currentFilter?: TypesFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: LOADER_TYPE_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(LoaderTypesDocument, {
     variables: {
+      sort,
       limit,
       offset,
       key:
@@ -117,17 +156,23 @@ export function useQueryLoaderTypes(currentFilter?: TypesFilterValues) {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }
 
 export function useQueryStocksByLoaderId(loaderId: string) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: AGGREGATED_STOCK_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(AggregatedStocksDocument, {
     variables: {
       limit,
       offset,
       loaderId,
+      sort,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -147,6 +192,7 @@ export function useQueryStocksByLoaderId(loaderId: string) {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }
 

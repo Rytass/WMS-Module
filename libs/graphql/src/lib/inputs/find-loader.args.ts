@@ -1,6 +1,19 @@
-import { Field, ID, ArgsType } from '@nestjs/graphql';
+import {
+  Field,
+  ID,
+  ArgsType,
+  InputType,
+  registerEnumType,
+} from '@nestjs/graphql';
+import { LoaderSortField } from '@rytass/wms-module-core';
 import { PaginationArgs } from './pagination.args';
 import { DateRangeArgs } from './date-range.args';
+import { SortInput } from './sort.input';
+
+registerEnumType(LoaderSortField, { name: 'LoaderSortField' });
+
+@InputType()
+export class LoaderSortInput extends SortInput(LoaderSortField) {}
 
 @ArgsType()
 export class FindLoaderArgs extends PaginationArgs {
@@ -39,4 +52,10 @@ export class FindLoaderArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   loaderTypeKey?: string;
+
+  @Field(() => LoaderSortInput, {
+    nullable: true,
+    description: 'Omitted: newest first (createdAt DESC), then id.',
+  })
+  sort?: LoaderSortInput | null;
 }

@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { transformApiDataToNodes } from '@rytass/wms-map-react-components';
 import type { FlowNode } from '@rytass/wms-map-react-components';
 import { compact } from 'lodash';
 import { useLazyQuery } from '@apollo/client/react';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
 import { MapDataDocument } from '../../graphql/generated/.graphql';
+import { mapDataToNodes } from './mapDataToNodes';
 
 export function useQueryMapData() {
   const [currentMapKey, setCurrentMapKey] =
@@ -29,47 +29,10 @@ export function useQueryMapData() {
     [data?.mapData.ranges],
   );
 
-  const initialNodes = useMemo((): FlowNode[] => {
-    const mapData = data?.mapData;
-
-    if (!mapData) return [];
-
-    const apiData = {
-      id: mapData.id,
-      backgrounds: mapData.backgrounds.map((bg) => ({
-        id: bg.id,
-        filename: bg.filename,
-        x: bg.x,
-        y: bg.y,
-        width: bg.width,
-        height: bg.height,
-      })),
-      ranges: mapData.ranges.map((range) => {
-        if ('x' in range) {
-          return {
-            id: range.id,
-            type: range.type as string,
-            color: range.color,
-            x: range.x,
-            y: range.y,
-            width: range.width,
-            height: range.height,
-          };
-        }
-
-        return {
-          id: range.id,
-          type: range.type as string,
-          color: range.color,
-          points: range.points.map((p) => ({ x: p.x, y: p.y })),
-        };
-      }),
-    };
-
-    return transformApiDataToNodes(
-      apiData as Parameters<typeof transformApiDataToNodes>[0],
-    ) as FlowNode[];
-  }, [data?.mapData]);
+  const initialNodes = useMemo(
+    (): FlowNode[] => mapDataToNodes(data?.mapData),
+    [data?.mapData],
+  );
 
   return {
     currentMapKey,

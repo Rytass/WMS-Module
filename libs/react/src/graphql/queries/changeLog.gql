@@ -12,6 +12,7 @@ query ChangeLogs(
   $batchKey: String
   $locationKey: String
   $loaderKey: String
+  $sort: ChangeLogSortInput
 ) {
   changeLogs(
     offset: $offset
@@ -27,6 +28,7 @@ query ChangeLogs(
     batchKey: $batchKey
     locationKey: $locationKey
     loaderKey: $loaderKey
+    sort: $sort
   ) {
     id
     items {

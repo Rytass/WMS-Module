@@ -18,8 +18,16 @@ function MaterialsManagementTable({
 }: MaterialsManagementTableProps) {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
 
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryMaterials(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryMaterials(currentFilter);
 
   const { createMaterial } = useCreateMaterial();
 
@@ -65,6 +73,7 @@ function MaterialsManagementTable({
     },
     {
       key: 'isActive',
+      ...getColumnSortProps('isActive'),
       title: '狀態',
       width: 100,
       render: (source) =>
@@ -76,20 +85,24 @@ function MaterialsManagementTable({
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '料號',
       width: 160,
       render: (source) => source.key,
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '物料說明',
       width: 120,
       render: (source) => source.description,
     },
     {
       key: 'baseUnit',
+      ...getColumnSortProps('baseUnit'),
       title: '基礎計量單位',
-      width: 108,
+      // Wide enough that the sort icon clears the column resize handle.
+      width: 140,
       align: 'center',
       render: (source) => source.baseUnit?.key,
     },

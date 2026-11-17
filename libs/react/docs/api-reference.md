@@ -173,7 +173,7 @@ static forRootAsync(
 | `QualityInspectionOrderService<T>` | `inspect` | 品質檢驗 | `lib/services/quality-inspection-order.service.ts` |
 | `SaleOrderService` | （DataSource 直接操作） | 銷售訂單查詢 | `lib/services/sale-order.service.ts` |
 | `HelperService` | `getSeq` | 序號產生工具 | `lib/services/helper.service.ts` |
-| `WarehouseMapDataService` | `onApplicationBootstrap` | 倉庫地圖資料初始化，implements `OnApplicationBootstrap` | `lib/services/warehouse-map.service.ts` |
+| `WarehouseMapDataService` | `onApplicationBootstrap`、`findLocationMapPreview` | 倉庫地圖資料初始化（implements `OnApplicationBootstrap`）；查儲位所在地圖與根到該圖的路徑 | `lib/services/warehouse-map.service.ts` |
 
 ---
 
@@ -366,7 +366,7 @@ static forRootAsync(
 | `HoldInventoryOrderQuery` | `holdInventoryOrders` | `HoldInventoryOrders` | `lib/queries/hold-inventory-order.query.ts` |
 | `AllocateInventoryOrderQuery` | `allocateInventoryOrders` | `AllocateInventoryOrders` | `lib/queries/allocate-inventory-order.query.ts` |
 | `SaleOrderQuery` | `saleOrderDistinctIds`, `saleOrders` | `[String]` | `lib/queries/sale-order.query.ts` |
-| `WarehouseMapDataQuery` | `mapData` | `MapDataDto` | `lib/queries/warehouse-map.query.ts` |
+| `WarehouseMapDataQuery` | `mapData`、`locationMapPreview` | `MapDataDto`、`LocationMapPreviewDto \| null` | `lib/queries/warehouse-map.query.ts` |
 
 ---
 

@@ -47,6 +47,7 @@ query StocksGroupedByMaterial(
   $customerId: String
   $saleId: String
   $saleSerialId: String
+  $sort: StockGroupedByMaterialSortInput
 ) {
   stocksGroupedByMaterial(
     offset: $offset
@@ -65,6 +66,7 @@ query StocksGroupedByMaterial(
     customerId: $customerId
     saleId: $saleId
     saleSerialId: $saleSerialId
+    sort: $sort
   ) {
     id
     items {
@@ -91,6 +93,7 @@ query AggregatedStocks(
   $customerId: String
   $saleId: String
   $saleSerialId: String
+  $sort: AggregatedStockSortInput
 ) {
   aggregatedStocks(
     offset: $offset
@@ -109,6 +112,7 @@ query AggregatedStocks(
     customerId: $customerId
     saleId: $saleId
     saleSerialId: $saleSerialId
+    sort: $sort
   ) {
     id
     items {

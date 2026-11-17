@@ -9,6 +9,11 @@ import {
   Stocks,
 } from '../dto';
 import { FindStockArgs } from '../inputs/find-stock.args';
+import { FindChangeLogArgs } from '../inputs/find-change-log.args';
+import {
+  FindAggregatedStockArgs,
+  FindStockGroupedByMaterialArgs,
+} from '../inputs/find-stock-sort.args';
 import { WmsOperation } from '../auth';
 
 @Injectable()
@@ -31,7 +36,7 @@ export class StockQuery {
   @Query(() => Materials)
   @WmsOperation({ resource: 'stock', action: 'read' })
   async stocksGroupedByMaterial(
-    @Args() args: FindStockArgs,
+    @Args() args: FindStockGroupedByMaterialArgs,
   ): Promise<Materials> {
     const [items, total] =
       await this.stockService.findManyGroupedByMaterialId(args);
@@ -41,7 +46,7 @@ export class StockQuery {
   @Query(() => AggregatedStocks)
   @WmsOperation({ resource: 'stock', action: 'read' })
   async aggregatedStocks(
-    @Args() args: FindStockArgs,
+    @Args() args: FindAggregatedStockArgs,
   ): Promise<AggregatedStocks> {
     const [items, total] = await this.stockService.findAggregatedStocks({
       ...args,
@@ -52,7 +57,7 @@ export class StockQuery {
 
   @Query(() => ChangeLogs)
   @WmsOperation({ resource: 'stock', action: 'read' })
-  async changeLogs(@Args() args: FindStockArgs): Promise<ChangeLogs> {
+  async changeLogs(@Args() args: FindChangeLogArgs): Promise<ChangeLogs> {
     const [items, total] = await this.stockService.findChangeLogs(args);
     return {
       items: items.map((item) => ({

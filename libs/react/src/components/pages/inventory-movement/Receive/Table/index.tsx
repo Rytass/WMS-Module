@@ -9,6 +9,7 @@ import { ReceiveInventoryOrderFragment } from '../../../../../graphql/generated/
 import { useQueryReceiveInventoryOrders } from '../../useApi';
 import { formatKeyName } from '../../../../../utils/share';
 import { FilterValues } from '../typing';
+import { LocationMapPreviewList } from '../../../../map/LocationMapPreview';
 
 interface InventoryMovementReceiveTableProps {
   currentFilter?: FilterValues;
@@ -17,8 +18,16 @@ interface InventoryMovementReceiveTableProps {
 function InventoryMovementReceiveTable({
   currentFilter,
 }: InventoryMovementReceiveTableProps) {
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryReceiveInventoryOrders(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryReceiveInventoryOrders(currentFilter);
 
   const dataSource = useMemo(
     (): ReceiveInventoryOrderFragment[] =>
@@ -36,6 +45,7 @@ function InventoryMovementReceiveTable({
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '入庫單號',
       width: 140,
       render: (source) => source.key,
@@ -69,10 +79,12 @@ function InventoryMovementReceiveTable({
       key: 'location',
       title: '目標位置',
       width: 140,
-      render: (source) =>
-        uniq(
-          (source.items ?? []).map((item) => formatKeyName(item.location?.key)),
-        ).join(','),
+      render: (source) => (
+        <LocationMapPreviewList
+          locationKeys={(source.items ?? []).map((item) => item.location?.key)}
+          separator=","
+        />
+      ),
     },
     {
       key: 'loader',
@@ -87,12 +99,14 @@ function InventoryMovementReceiveTable({
     },
     {
       key: 'createdBy',
+      ...getColumnSortProps('createdBy'),
       title: '建立者',
       width: 140,
       render: (source) => source.createdBy,
     },
     {
       key: 'createdAt',
+      ...getColumnSortProps('createdAt'),
       title: '建立時間',
       width: 140,
       render: (source) =>
@@ -100,6 +114,7 @@ function InventoryMovementReceiveTable({
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '備註',
       width: 140,
       render: (source) => source.description || '-',
