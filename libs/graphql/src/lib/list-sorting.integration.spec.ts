@@ -7,6 +7,10 @@ import { graphql, type GraphQLSchema } from 'graphql';
 import { Client } from 'pg';
 import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
 import {
+  AllocateInventoryOrderEntityClass,
+  AllocateInventoryOrderService,
+  HoldInventoryOrderEntityClass,
+  HoldInventoryOrderService,
   LoaderService as CoreLoaderService,
   LoaderSortField,
   LoaderTypeEntityClass,
@@ -794,6 +798,55 @@ describe('list sorting (integration)', () => {
           app
             .get(CoreLoaderService)
             .findManyLoaders({ loaderTypeKey: 'ltyp', ...page }),
+        (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+  });
+
+  // No UI sorts these two, so they take no `sort`; they only had no ORDER BY.
+  describe('hold and allocate lists called directly', () => {
+    const stampDays = [
+      '2026-04-03',
+      '2026-04-01',
+      '2026-04-02',
+      '2026-04-02',
+      '2026-04-05',
+      '2026-04-01',
+    ];
+
+    beforeAll(async () => {
+      await saveStamped<HoldInventoryOrderEntityClass>(
+        context.dataSource,
+        HoldInventoryOrderEntityClass,
+        stampDays.map((created, index) => ({
+          row: { key: `hldo0${index}` },
+          createdAt: day(created),
+        })),
+      );
+      await saveStamped<AllocateInventoryOrderEntityClass>(
+        context.dataSource,
+        AllocateInventoryOrderEntityClass,
+        stampDays.map((created, index) => ({
+          row: { key: `alco0${index}` },
+          createdAt: day(created),
+        })),
+      );
+    });
+
+    it('HoldInventoryOrderService.findMany is newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app.get(HoldInventoryOrderService).findMany({ key: 'hldo', ...page }),
+        (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+
+    it('AllocateInventoryOrderService.findMany is newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app
+            .get(AllocateInventoryOrderService)
+            .findMany({ key: 'alco', ...page }),
         (row) => ({ createdAt: row.createdAt }),
         [{ field: 'createdAt', order: SortOrder.DESC }],
       ));
