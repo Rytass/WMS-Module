@@ -10,6 +10,7 @@ import { useQueryLoaders } from '../../useApi';
 import { NextPath } from '../../../../../utils/nextpath';
 import { formatKeyName } from '../../../../../utils/share';
 import { FilterValues } from '../typing';
+import LocationMapPreview from '../../../../map/LocationMapPreview';
 
 interface LoadersManagementListTableProps {
   currentFilter?: FilterValues;
@@ -61,7 +62,9 @@ function LoadersManagementListTable({
       key: 'locationKey',
       title: '儲存位置',
       width: 100,
-      render: (source) => formatKeyName(source.location?.key),
+      render: (source) => (
+        <LocationMapPreview locationKey={source.location?.key} />
+      ),
     },
     {
       key: 'length',

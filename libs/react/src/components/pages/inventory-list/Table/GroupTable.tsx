@@ -36,6 +36,7 @@ import { stockEmptyProps } from '../emptyState';
 import { FilterValues } from '../typing';
 import classes from './group-table.module.scss';
 import { FilterType } from '../../../FilterWrapper/typing';
+import { LocationMapPreviewList } from '../../../map/LocationMapPreview';
 
 type DataType = AggregatedStockFragment & {
   aggregatedStock?: AggregatedStockFragment[];
@@ -227,7 +228,9 @@ function InventoryGroupTable({
           (s) => s.requiresInspection && isNull(s.inspectionResult),
         ) ? (
           <Icon icon={WaitIcon} color="neutral" size={16} />
-        ) : source.aggregatedStock?.some((s) => s.inspectionResult === false) ? (
+        ) : source.aggregatedStock?.some(
+            (s) => s.inspectionResult === false,
+          ) ? (
           <Icon icon={DangerousOutlineIcon} color="neutral" size={16} />
         ) : null,
     },
@@ -294,19 +297,22 @@ function InventoryGroupTable({
         const keys = uniq(
           source.aggregatedStock?.map((s) => formatKeyName(s.location.key)),
         );
+        const list = (
+          <LocationMapPreviewList locationKeys={keys} separator="," />
+        );
 
         if (keys.length > 1) {
           return (
             <div className={classes.columnWithExpandButton}>
               <Typography variant="body" ellipsis>
-                {keys.join(',')}
+                {list}
               </Typography>
               {renderExpandButton(source)}
             </div>
           );
         }
 
-        return keys.join(',');
+        return list;
       },
     },
     {
