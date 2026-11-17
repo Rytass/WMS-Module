@@ -1532,7 +1532,7 @@ const changeLogsCase: ListSortCase<ChangeLogSortField> = {
     // Six receipts (RECEIVED rows) ...
     const receipts = [
       [0, 'clbtb', 0, 3],
-      [1, 'clbta', 1, 5],
+      [1, 'clbta', 1, 10],
       [2, 'clbta', 1, 3],
       [0, 'clbta', 0, 5],
       [1, 'clbtb', 1, 3],
@@ -1559,13 +1559,16 @@ const changeLogsCase: ListSortCase<ChangeLogSortField> = {
     const batchRepository = dataSource.getRepository<BatchEntityClass>(
       entities.batch,
     );
+    // A shipment of 5 sorts between the receipts by magnitude but first by
+    // signed value, so the QUANTITY case tells the two apart. (Its slot holds
+    // 10: the ship order's own target is taken out of the FREE stock first.)
     const shipments = [
-      [0, 'clbtb', 0],
-      [1, 'clbta', 1],
+      [0, 'clbtb', 0, 1],
+      [1, 'clbta', 1, 5],
     ] as const;
 
     await shipments.reduce<Promise<void>>(
-      async (acc, [material, batchKey, location], index) => {
+      async (acc, [material, batchKey, location, quantity], index) => {
         await acc;
 
         const batch = await batchRepository.findOneByOrFail({
@@ -1579,8 +1582,8 @@ const changeLogsCase: ListSortCase<ChangeLogSortField> = {
           materialId: materials[material].id,
           batchId: batch.id,
           locationId: locations[location].id,
-          target: 1,
-          shipped: 1,
+          target: quantity,
+          shipped: quantity,
         });
       },
       Promise.resolve(),
@@ -1634,7 +1637,8 @@ const changeLogsCase: ListSortCase<ChangeLogSortField> = {
             [ChangeLogSortField.BATCH_KEY]: batchKeys.get(row.batchId) ?? null,
             [ChangeLogSortField.LOCATION_KEY]:
               locationKeys.get(row.locationId) ?? null,
-            [ChangeLogSortField.QUANTITY]: Number(row.quantity),
+            // `changeLogs` shows the magnitude; the sign is the change type's.
+            [ChangeLogSortField.QUANTITY]: Math.abs(Number(row.quantity)),
             [ChangeLogSortField.BASE_UNIT]:
               unitKeys.get(String(material?.baseUnit)) ?? null,
             [ChangeLogSortField.CREATED_AT]:

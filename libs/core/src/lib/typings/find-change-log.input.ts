@@ -13,6 +13,7 @@ export enum ChangeLogSortField {
   MATERIAL_DESCRIPTION = 'MATERIAL_DESCRIPTION',
   BATCH_KEY = 'BATCH_KEY',
   LOCATION_KEY = 'LOCATION_KEY',
+  /** The quantity's magnitude, as `changeLogs` returns it. */
   QUANTITY = 'QUANTITY',
   /** The material's base unit `key`. */
   BASE_UNIT = 'BASE_UNIT',

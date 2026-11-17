@@ -972,7 +972,9 @@ export class StockService<
         [ChangeLogSortField.MATERIAL_DESCRIPTION]: 'cl_material.description',
         [ChangeLogSortField.BATCH_KEY]: 'cl_batch.key',
         [ChangeLogSortField.LOCATION_KEY]: 'cl_location.key',
-        [ChangeLogSortField.QUANTITY]: 'stock.quantity',
+        // The magnitude, as `changeLogs` displays it: the sign is the change
+        // type's to carry, and sorting it would put every outflow first.
+        [ChangeLogSortField.QUANTITY]: 'ABS(stock.quantity)',
         [ChangeLogSortField.BASE_UNIT]: 'cl_unit.key',
         [ChangeLogSortField.CREATED_AT]: 'stock."createdAt"',
       },
