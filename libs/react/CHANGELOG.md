@@ -1,3 +1,30 @@
+## 0.6.0 (2026-11-17)
+
+### 🚀 Features
+
+- **react:** pin only the key columns on the two widest tables ([43db54f2](https://github.com/Rytass/WMS-Module/commit/43db54f2))
+- **react:** pin table columns up to the material key ([1f46eaa9](https://github.com/Rytass/WMS-Module/commit/1f46eaa9))
+- add unit field in inventory add stock modal ([950883f8](https://github.com/Rytass/WMS-Module/commit/950883f8))
+
+### 🩹 Fixes
+
+- **react:** restore the @mezzanine-ui/core peer range to ^1.0.0 ([1fd46f8b](https://github.com/Rytass/WMS-Module/commit/1fd46f8b))
+- **react:** keep room on the right of resizable tables ([8951445b](https://github.com/Rytass/WMS-Module/commit/8951445b))
+- upload issue ([5163341e](https://github.com/Rytass/WMS-Module/commit/5163341e))
+- download inventory count ([19d3e9da](https://github.com/Rytass/WMS-Module/commit/19d3e9da))
+- remove icon issue ([2d15faf3](https://github.com/Rytass/WMS-Module/commit/2d15faf3))
+- correct bookQuantity with unit ([059aa7de](https://github.com/Rytass/WMS-Module/commit/059aa7de))
+- layout of unit selector ([26632db8](https://github.com/Rytass/WMS-Module/commit/26632db8))
+- resolve useEffect loop ([861d942f](https://github.com/Rytass/WMS-Module/commit/861d942f))
+- onReachBottom issue in LocationScopeField ([4e0881b5](https://github.com/Rytass/WMS-Module/commit/4e0881b5))
+- map image issue ([93bbe9a0](https://github.com/Rytass/WMS-Module/commit/93bbe9a0))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+- TingTing
+
 ## 0.5.1 (2026-09-05)
 
 This was a version bump only for react to align it with other projects, there were no code changes.

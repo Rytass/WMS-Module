@@ -27,6 +27,12 @@ RUN apk add --no-cache rsync
 COPY --from=deps /app/node_modules ./node_modules
 # Copy the entire source code
 COPY . .
+# next.config.js bakes its rewrite targets (/graphql, /api/files/*) into the
+# standalone routes manifest at build time, so the API origin must be known
+# here — setting it on the running container has no effect. Both containers
+# share a Pod, so the API is on localhost:3000.
+ARG API_URL=http://localhost:3000
+ENV API_URL=$API_URL
 # Run GraphQL code generation first, as the client build depends on the generated files.
 RUN npx nx run react:graphql
 # Run the build command for all applications in the monorepo
