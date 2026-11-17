@@ -7,6 +7,9 @@ import { graphql, type GraphQLSchema } from 'graphql';
 import { Client } from 'pg';
 import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
 import {
+  ReceiveInventoryOrderService,
+  ReceiveInventoryOrderSortField,
+  WmsOperationRunner,
   AllocateInventoryOrderEntityClass,
   BatchEntityClass,
   InventoryCountOrderEntityClass,
@@ -1164,6 +1167,184 @@ const inventoryCountOrderItemsCase: ListSortCase<InventoryCountOrderItemSortFiel
     },
   };
 
+// ---------------------------------------------------------------------------
+// Raw lists: their status / change type is computed, so fixtures go through
+// the real services rather than straight into the tables.
+// ---------------------------------------------------------------------------
+
+const saveNamed = async <E extends { id: string }>(
+  dataSource: DataSource,
+  target: EntityTarget<E>,
+  rows: readonly DeepPartial<E>[],
+): Promise<E[]> =>
+  saveStamped<E>(
+    dataSource,
+    target,
+    rows.map((row) => ({ row, createdAt: day('2025-01-01') })),
+  );
+
+/** Create a one-line receive order and receive `received` of `target`. */
+const receiveOrder = async (
+  { app, dataSource }: ListSortContext,
+  options: {
+    key: string;
+    description: string;
+    materialKey: string;
+    batchKey: string;
+    locationKey: string;
+    target: number;
+    received: number;
+  },
+): Promise<string> => {
+  const service = app.get(ReceiveInventoryOrderService);
+  const order = await service.createReceiveInventoryOrder({
+    key: options.key,
+    description: options.description,
+    items: [
+      {
+        serialId: `${options.key}-1`,
+        materialKey: options.materialKey,
+        batchKey: options.batchKey,
+        locationKey: options.locationKey,
+        targetReceivedQuantity: options.target,
+        requireInspection: false,
+      },
+    ],
+  });
+
+  if (options.received > 0) {
+    const [item] = await dataSource
+      .getRepository(service.receiveInventoryOrderItemEntity)
+      .find({ where: { orderId: order.id } });
+
+    await app.get(WmsOperationRunner).run({}, () =>
+      service.receive({
+        itemId: item.id,
+        quantity: options.received,
+        batchKey: options.batchKey,
+        locationKey: options.locationKey,
+      }),
+    );
+  }
+
+  return order.id;
+};
+
+interface OrderListFixture {
+  key: string;
+  description: string;
+  createdBy: string | null;
+  createdAt: Date;
+  /** Of a target of 2: 0 pending, 1 partial, 2 done. */
+  moved: 0 | 1 | 2;
+  removed: boolean;
+}
+
+const ORDER_LIST_FIXTURES = (prefix: string): readonly OrderListFixture[] =>
+  (
+    [
+      ['01', 'odesb', 'usrb', '2026-08-03', 0, false],
+      ['02', 'odesa', null, '2026-08-01', 1, false],
+      ['03', 'odesb', 'usra', '2026-08-02', 2, false],
+      ['04', 'odesa', 'usrb', '2026-08-02', 0, true],
+      ['05', 'odesc', 'usra', '2026-08-05', 1, false],
+      ['06', 'odesb', null, '2026-08-04', 2, false],
+      ['07', 'odesa', 'usrb', '2026-08-04', 0, false],
+    ] as const
+  ).map(([suffix, description, createdBy, created, moved, removed]) => ({
+    key: `${prefix}${suffix}`,
+    description,
+    createdBy,
+    createdAt: day(created),
+    moved,
+    removed,
+  }));
+
+/** Lifecycle rank both order lists sort their status by. */
+const orderStatusRank = ({ moved, removed }: OrderListFixture): number =>
+  removed ? 3 : moved;
+
+/** Stamp what the services do not take: creator, creation time, removal. */
+const stampOrder = async (
+  dataSource: DataSource,
+  target: EntityTarget<{ id: string }>,
+  id: string,
+  fixture: OrderListFixture,
+): Promise<void> => {
+  await dataSource.getRepository(target).update(id, {
+    createdBy: fixture.createdBy,
+    createdAt: fixture.createdAt,
+    removedAt: fixture.removed ? day('2026-09-01') : null,
+  } as never);
+};
+
+const receiveOrdersCase: ListSortCase<ReceiveInventoryOrderSortField> = {
+  name: 'receiveInventoryOrders',
+  sortFields: ReceiveInventoryOrderSortField,
+  defaultOrder: newestFirst(ReceiveInventoryOrderSortField.CREATED_AT),
+  fetchPage: graphqlPage<ReceiveInventoryOrderSortField>(
+    'receiveInventoryOrders',
+    'key: "rcvo"',
+  ),
+  seed: async (ctx) => {
+    const { app, dataSource, entities } = ctx;
+
+    await saveNamed<MaterialEntityClass>(dataSource, entities.material, [
+      { key: 'rcvmat' } as DeepPartial<MaterialEntityClass>,
+    ]);
+    await saveNamed<LocationEntityClass>(dataSource, entities.location, [
+      {
+        key: 'rcvloc',
+        description: 'rcvloc',
+      } as DeepPartial<LocationEntityClass>,
+    ]);
+
+    const fixtures = ORDER_LIST_FIXTURES('rcvo');
+    const service = app.get(ReceiveInventoryOrderService);
+    const ids = await fixtures.reduce<Promise<string[]>>(
+      async (acc, fixture) => {
+        const done = await acc;
+        const id = await receiveOrder(ctx, {
+          key: fixture.key,
+          description: fixture.description,
+          materialKey: 'rcvmat',
+          batchKey: 'rcvbat',
+          locationKey: 'rcvloc',
+          target: 2,
+          received: fixture.moved,
+        });
+
+        await stampOrder(
+          dataSource,
+          service.receiveInventoryOrderEntity,
+          id,
+          fixture,
+        );
+
+        return [...done, id];
+      },
+      Promise.resolve([]),
+    );
+
+    return new Map(
+      ids.map((id, index) => {
+        const fixture = fixtures[index];
+
+        return [
+          id,
+          {
+            [ReceiveInventoryOrderSortField.STATUS]: orderStatusRank(fixture),
+            [ReceiveInventoryOrderSortField.KEY]: fixture.key,
+            [ReceiveInventoryOrderSortField.CREATED_BY]: fixture.createdBy,
+            [ReceiveInventoryOrderSortField.CREATED_AT]: fixture.createdAt,
+            [ReceiveInventoryOrderSortField.DESCRIPTION]: fixture.description,
+          },
+        ];
+      }),
+    );
+  },
+};
+
 describe('list sorting (integration)', () => {
   let app: INestApplication;
   let context: ListSortContext;
@@ -1271,6 +1452,21 @@ describe('list sorting (integration)', () => {
 
   describeListSort(inventoryCountOrdersCase, () => context);
   describeListSort(inventoryCountOrderItemsCase, () => context);
+
+  describeListSort(receiveOrdersCase, () => context);
+
+  describe('raw lists called directly', () => {
+    it('ReceiveInventoryOrderService.findMany defaults to newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app.get(ReceiveInventoryOrderService).findMany({
+            wildcard: { key: 'key', value: 'rcvo' },
+            ...page,
+          }),
+        (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+  });
 
   describe('inventory count lists called directly', () => {
     it('InventoryCountOrderService.findMany defaults to latest count date, then newest, then id', () =>
