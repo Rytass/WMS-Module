@@ -92,6 +92,13 @@ export {
 } from './hooks/useSelectorOptions';
 export { useSortTable } from './hooks/useSortTable';
 export {
+  useTableSort,
+  type TableColumnSortProps,
+  type TableSort,
+  type UseTableSortOptions,
+  type UseTableSortResult,
+} from './hooks/useTableSort';
+export {
   useTablePageState,
   useTablePageTotal,
 } from './hooks/useTablePagination';
