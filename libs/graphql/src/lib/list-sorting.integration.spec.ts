@@ -8,6 +8,9 @@ import { Client } from 'pg';
 import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
 import {
   AllocateInventoryOrderEntityClass,
+  TransferOrderEntityClass,
+  TransferOrderService,
+  TransferOrderSortField,
   AllocateInventoryOrderService,
   HoldInventoryOrderEntityClass,
   HoldInventoryOrderService,
@@ -701,6 +704,54 @@ const loadersCase: ListSortCase<LoaderSortField> = {
   },
 };
 
+const transferOrdersCase: ListSortCase<TransferOrderSortField> = {
+  name: 'transferOrders',
+  sortFields: TransferOrderSortField,
+  defaultOrder: newestFirst(TransferOrderSortField.CREATED_AT),
+  fetchPage: graphqlPage<TransferOrderSortField>(
+    'transferOrders',
+    'key: "trfo"',
+  ),
+  seed: async ({ dataSource }) => {
+    const fixtures = (
+      [
+        ['trfo01', 'rcvb', 'trdb', 'usrb', '2026-05-03'],
+        ['trfo02', null, 'trda', 'usra', '2026-05-01'],
+        ['trfo03', 'rcva', null, 'usrb', '2026-05-02'],
+        ['trfo04', 'rcvb', 'trda', null, '2026-05-02'],
+        ['trfo05', 'rcva', 'trdb', 'usra', '2026-05-05'],
+        ['trfo06', null, 'trdc', 'usrb', '2026-05-04'],
+        ['trfo07', 'rcvb', null, null, '2026-05-04'],
+      ] as const
+    ).map(([key, receiver, description, createdBy, created]) => ({
+      row: { key, receiver, description, createdBy },
+      createdAt: day(created),
+    }));
+    const saved = await saveStamped<TransferOrderEntityClass>(
+      dataSource,
+      TransferOrderEntityClass,
+      fixtures,
+    );
+
+    return new Map(
+      saved.map(({ id }, index) => {
+        const { row, createdAt } = fixtures[index];
+
+        return [
+          id,
+          {
+            [TransferOrderSortField.KEY]: row.key,
+            [TransferOrderSortField.RECEIVER]: row.receiver,
+            [TransferOrderSortField.DESCRIPTION]: row.description,
+            [TransferOrderSortField.CREATED_BY]: row.createdBy,
+            [TransferOrderSortField.CREATED_AT]: createdAt,
+          },
+        ];
+      }),
+    );
+  },
+};
+
 describe('list sorting (integration)', () => {
   let app: INestApplication;
   let context: ListSortContext;
@@ -798,6 +849,18 @@ describe('list sorting (integration)', () => {
           app
             .get(CoreLoaderService)
             .findManyLoaders({ loaderTypeKey: 'ltyp', ...page }),
+        (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+  });
+
+  describeListSort(transferOrdersCase, () => context);
+
+  describe('order lists called directly', () => {
+    it('TransferOrderService.findMany defaults to newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app.get(TransferOrderService).findMany({ key: 'trfo', ...page }),
         (row) => ({ createdAt: row.createdAt }),
         [{ field: 'createdAt', order: SortOrder.DESC }],
       ));
