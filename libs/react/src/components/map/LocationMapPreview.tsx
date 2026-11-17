@@ -35,12 +35,12 @@ export interface LocationMapPreviewTriggerProps {
   onPointerLeave: (event: PointerEvent<HTMLElement>) => void;
   onFocus: (event: FocusEvent<HTMLElement>) => void;
   onBlur: (event: FocusEvent<HTMLElement>) => void;
-  'aria-expanded': boolean;
+  'aria-expanded': boolean | undefined;
   'aria-controls': string | undefined;
 }
 
 export interface LocationMapPreviewProps {
-  /** The location to preview. Empty renders `children` (or `-`) untouched. */
+  /** The location to preview. Empty or `DEFAULT` renders `children` (or `-`) untouched. */
   locationKey?: string | null;
   /**
    * The trigger content; defaults to the key itself. Pass a function to keep
@@ -52,6 +52,18 @@ export interface LocationMapPreviewProps {
     | ReactNode
     | ((triggerProps: LocationMapPreviewTriggerProps) => ReactNode);
 }
+
+const noop = (): void => undefined;
+
+const INERT_TRIGGER_PROPS: LocationMapPreviewTriggerProps = {
+  ref: noop,
+  onPointerEnter: noop,
+  onPointerLeave: noop,
+  onFocus: noop,
+  onBlur: noop,
+  'aria-expanded': undefined,
+  'aria-controls': undefined,
+};
 
 const hoverUnavailable = (): boolean =>
   typeof window !== 'undefined' &&
@@ -293,10 +305,12 @@ function LocationMapPreview({
   locationKey,
   children,
 }: LocationMapPreviewProps): ReactElement {
-  if (!locationKey) {
-    if (typeof children === 'function') return <>-</>;
+  if (!locationKey || formatKeyName(locationKey) === '-') {
+    if (typeof children !== 'function') return <>{children ?? '-'}</>;
 
-    return <>{children ?? '-'}</>;
+    // A caller-owned trigger for a key with no map (e.g. `DEFAULT`) still
+    // renders, just without the preview wiring.
+    return <>{locationKey ? children(INERT_TRIGGER_PROPS) : '-'}</>;
   }
 
   return <PreviewTrigger locationKey={locationKey}>{children}</PreviewTrigger>;
