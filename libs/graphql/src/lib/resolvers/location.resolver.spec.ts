@@ -1,7 +1,4 @@
-import {
-  LocationEntityClass,
-  type WmsEntities,
-} from '@rytass/wms-module-core';
+import { LocationEntityClass, type WmsEntities } from '@rytass/wms-module-core';
 import { WarehouseMapEntity } from '@rytass/wms-base-nestjs-module/models/warehouse-map.entity';
 import { LocationResolver } from './location.resolver';
 import type { LoaderOptions, LoaderType } from '../helpers';
@@ -61,7 +58,12 @@ describe('LocationResolver', () => {
 
       const location = createLocation({ id: 'uuid-1', key: 'A-01' });
 
-      await expect(resolver.mapData(location, context)).resolves.toBeNull();
+      await expect(
+        resolver.mapData(
+          location,
+          context as unknown as LoaderType<WarehouseMapEntity>,
+        ),
+      ).resolves.toBeNull();
 
       const [options] = batchSingle.mock.calls[0] as [
         LoaderOptions<WarehouseMapEntity>,
