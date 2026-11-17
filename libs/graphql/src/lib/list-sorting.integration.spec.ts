@@ -8,6 +8,13 @@ import { Client } from 'pg';
 import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
 import {
   AllocateInventoryOrderEntityClass,
+  BatchEntityClass,
+  InventoryCountOrderEntityClass,
+  InventoryCountOrderItemEntityClass,
+  InventoryCountOrderItemSortField,
+  InventoryCountOrderService,
+  InventoryCountOrderSortField,
+  InventoryCountStatus,
   ConsumptionOrderEntityClass,
   ConsumptionOrderService,
   ConsumptionOrderSortField,
@@ -801,6 +808,362 @@ const consumptionOrdersCase: ListSortCase<ConsumptionOrderSortField> = {
   },
 };
 
+const COUNT_STATUS_ORDER: readonly InventoryCountStatus[] =
+  Object.values(InventoryCountStatus);
+
+const inventoryCountOrdersCase: ListSortCase<InventoryCountOrderSortField> = {
+  name: 'inventoryCountOrders',
+  sortFields: InventoryCountOrderSortField,
+  defaultOrder: [
+    { field: InventoryCountOrderSortField.COUNT_DATE, order: SortOrder.DESC },
+    { field: InventoryCountOrderSortField.CREATED_AT, order: SortOrder.DESC },
+  ],
+  fetchPage: graphqlPage<InventoryCountOrderSortField>(
+    'inventoryCountOrders',
+    'name: "cnt"',
+  ),
+  seed: async ({ dataSource }) => {
+    const { PENDING, COUNTING, COMPLETED, CANCELLED } = InventoryCountStatus;
+    const fixtures = (
+      [
+        ['icok01', 'cntb', '2026-07-02', COUNTING, 'usrb', '2026-07-03'],
+        ['icok02', 'cnta', '2026-07-01', PENDING, null, '2026-07-01'],
+        ['icok03', 'cntc', '2026-07-02', COMPLETED, 'usra', '2026-07-02'],
+        ['icok04', 'cnta', '2026-07-03', CANCELLED, 'usrb', '2026-07-02'],
+        ['icok05', 'cntb', '2026-07-01', PENDING, 'usra', '2026-07-05'],
+        ['icok06', 'cntc', '2026-07-03', COUNTING, null, '2026-07-04'],
+        ['icok07', 'cnta', '2026-07-02', COMPLETED, 'usrb', '2026-07-04'],
+      ] as const
+    ).map(([key, name, countDate, status, createdBy, created]) => ({
+      row: { key, name, countDate, status, createdBy },
+      createdAt: day(created),
+    }));
+    const saved = await saveStamped<InventoryCountOrderEntityClass>(
+      dataSource,
+      InventoryCountOrderEntityClass,
+      fixtures,
+    );
+
+    return new Map(
+      saved.map(({ id }, index) => {
+        const { row, createdAt } = fixtures[index];
+
+        return [
+          id,
+          {
+            [InventoryCountOrderSortField.NAME]: row.name,
+            // A PostgreSQL enum sorts by declaration order, not by spelling.
+            [InventoryCountOrderSortField.STATUS]: COUNT_STATUS_ORDER.indexOf(
+              row.status,
+            ),
+            [InventoryCountOrderSortField.COUNT_DATE]: row.countDate,
+            [InventoryCountOrderSortField.CREATED_BY]: row.createdBy,
+            [InventoryCountOrderSortField.CREATED_AT]: createdAt,
+          },
+        ];
+      }),
+    );
+  },
+};
+
+/** Set by the count sheet seed: the order the sheet belongs to, and its rows. */
+let countSheetOrderId = '';
+let countSheetRows: ReadonlyMap<
+  string,
+  Readonly<Record<InventoryCountOrderItemSortField, SortValue>>
+> = new Map();
+
+interface CountSheetFixture {
+  material: 0 | 1;
+  batch: 0 | 1 | 2;
+  location: 0 | 1 | null;
+  loader: 0 | 1 | null;
+  vendorId: string | null;
+  customerId: string | null;
+  saleId: string | null;
+  saleSerialId: string | null;
+  isAddition: boolean;
+  held: boolean | null;
+  transferId: string | null;
+  requiresInspection: boolean | null;
+  inspectionResult: boolean | null;
+}
+
+const TRANSFER_ID = '00000000-0000-4000-8000-0000000000aa';
+
+/** Compact fixture rows: [material, batch, location, loader, vendor, customer, sale, saleSerial, isAddition, held, transfer, requiresInspection, inspectionResult]. */
+const COUNT_SHEET_FIXTURES: readonly CountSheetFixture[] = (
+  [
+    [0, 0, 0, 1, 'venb', 'cusa', 'sala', 'srla', false, true, null, true, null],
+    [
+      1,
+      1,
+      1,
+      null,
+      'vena',
+      null,
+      'salb',
+      null,
+      true,
+      false,
+      TRANSFER_ID,
+      false,
+      false,
+    ],
+    [0, 2, null, 0, null, 'cusb', null, 'srlb', false, null, null, null, null],
+    [
+      1,
+      1,
+      0,
+      1,
+      'venb',
+      'cusa',
+      'sala',
+      'srla',
+      false,
+      true,
+      TRANSFER_ID,
+      true,
+      null,
+    ],
+    [
+      0,
+      0,
+      1,
+      null,
+      'vena',
+      'cusb',
+      'salb',
+      'srlb',
+      true,
+      false,
+      null,
+      false,
+      true,
+    ],
+    [1, 1, 1, 0, null, null, null, null, false, null, null, true, false],
+    [
+      0,
+      2,
+      0,
+      0,
+      'venb',
+      'cusa',
+      'sala',
+      'srla',
+      false,
+      true,
+      TRANSFER_ID,
+      false,
+      null,
+    ],
+    [0, 0, 0, 1, 'vena', 'cusb', 'salb', 'srlb', true, false, null, true, null],
+  ] as const
+).map(
+  ([
+    material,
+    batch,
+    location,
+    loader,
+    vendorId,
+    customerId,
+    saleId,
+    saleSerialId,
+    isAddition,
+    held,
+    transferId,
+    requiresInspection,
+    inspectionResult,
+  ]) => ({
+    material,
+    batch,
+    location,
+    loader,
+    vendorId,
+    customerId,
+    saleId,
+    saleSerialId,
+    isAddition,
+    held,
+    transferId,
+    requiresInspection,
+    inspectionResult,
+  }),
+);
+
+/** The 待檢驗 icon's rank: awaiting (2) > failed (1) > nothing to show (0). */
+const inspectionRank = ({
+  requiresInspection,
+  inspectionResult,
+}: CountSheetFixture): number =>
+  requiresInspection === true && inspectionResult === null
+    ? 2
+    : inspectionResult === false
+      ? 1
+      : 0;
+
+const inventoryCountOrderItemsCase: ListSortCase<InventoryCountOrderItemSortField> =
+  {
+    name: 'inventoryCountOrderItems',
+    sortFields: InventoryCountOrderItemSortField,
+    defaultOrder: [
+      {
+        field: InventoryCountOrderItemSortField.IS_ADDITION,
+        order: SortOrder.DESC,
+      },
+      {
+        field: InventoryCountOrderItemSortField.MATERIAL_KEY,
+        order: SortOrder.ASC,
+      },
+      {
+        field: InventoryCountOrderItemSortField.BATCH_KEY,
+        order: SortOrder.ASC,
+      },
+    ],
+    fetchPage: (ctx, request) =>
+      graphqlPage<InventoryCountOrderItemSortField>(
+        'inventoryCountOrderItems',
+        `id: "${countSheetOrderId}"`,
+      )(ctx, request),
+    seed: async ({ dataSource, entities }) => {
+      const created = day('2025-01-01');
+      const [order] = await saveStamped<InventoryCountOrderEntityClass>(
+        dataSource,
+        InventoryCountOrderEntityClass,
+        [
+          {
+            row: {
+              key: 'icsheet1',
+              name: 'sheetord',
+              countDate: '2026-07-10',
+              status: InventoryCountStatus.COUNTING,
+            },
+            createdAt: created,
+          },
+        ],
+      );
+      const materialRepository = dataSource.getRepository<MaterialEntityClass>(
+        entities.material,
+      );
+      // Keys sort opposite to creation order on purpose.
+      const materials = await materialRepository.save([
+        materialRepository.create({
+          key: 'icmatb',
+          description: 'icdesa',
+        } as DeepPartial<MaterialEntityClass>),
+        materialRepository.create({
+          key: 'icmata',
+          description: 'icdesb',
+        } as DeepPartial<MaterialEntityClass>),
+      ]);
+      const batchRepository = dataSource.getRepository<BatchEntityClass>(
+        entities.batch,
+      );
+      const batches = await batchRepository.save(
+        (
+          [
+            ['icbtb', 0],
+            ['icbta', 1],
+            ['icbta', 0],
+          ] as const
+        ).map(([key, material]) =>
+          batchRepository.create({
+            key,
+            materialId: materials[material].id,
+          } as DeepPartial<BatchEntityClass>),
+        ),
+      );
+      const locations = await saveStamped<LocationEntityClass>(
+        dataSource,
+        entities.location,
+        ['iclocb', 'icloca'].map((key) => ({
+          row: {
+            key,
+            description: 'icloc',
+          } as DeepPartial<LocationEntityClass>,
+          createdAt: created,
+        })),
+      );
+      const [loaderType] = await saveStamped(
+        dataSource,
+        LoaderTypeEntityClass,
+        [{ row: { key: 'icltyp', description: 'icltyp' }, createdAt: created }],
+      );
+      const loaders = await saveStamped<LoadersEntityClass>(
+        dataSource,
+        LoadersEntityClass,
+        ['icldrb', 'icldra'].map((serialId) => ({
+          row: {
+            serialId,
+            typeId: loaderType.id,
+            locationId: locations[0].id,
+          } as DeepPartial<LoadersEntityClass>,
+          createdAt: created,
+        })),
+      );
+      const itemRepository = dataSource.getRepository(
+        InventoryCountOrderItemEntityClass,
+      );
+      const saved = await COUNT_SHEET_FIXTURES.reduce<
+        Promise<InventoryCountOrderItemEntityClass[]>
+      >(async (acc, { material, batch, location, loader, ...columns }) => {
+        const done = await acc;
+        const item = await itemRepository.save(
+          itemRepository.create({
+            ...columns,
+            orderId: order.id,
+            materialId: materials[material].id,
+            batchId: batches[batch].id,
+            locationId: location === null ? null : locations[location].id,
+            loaderId: loader === null ? null : loaders[loader].id,
+          } as DeepPartial<InventoryCountOrderItemEntityClass>),
+        );
+
+        return [...done, item];
+      }, Promise.resolve([]));
+
+      countSheetOrderId = order.id;
+      countSheetRows = new Map(
+        saved.map(({ id }, index) => {
+          const fixture = COUNT_SHEET_FIXTURES[index];
+          const { location, loader } = fixture;
+
+          return [
+            id,
+            {
+              [InventoryCountOrderItemSortField.MATERIAL_KEY]:
+                materials[fixture.material].key,
+              [InventoryCountOrderItemSortField.MATERIAL_DESCRIPTION]:
+                materials[fixture.material].description,
+              [InventoryCountOrderItemSortField.BATCH_KEY]:
+                batches[fixture.batch].key,
+              [InventoryCountOrderItemSortField.LOCATION_KEY]:
+                location === null ? null : locations[location].key,
+              [InventoryCountOrderItemSortField.LOADER_SERIAL_ID]:
+                loader === null ? null : loaders[loader].serialId,
+              [InventoryCountOrderItemSortField.VENDOR_ID]: fixture.vendorId,
+              [InventoryCountOrderItemSortField.CUSTOMER_ID]:
+                fixture.customerId,
+              [InventoryCountOrderItemSortField.SALE_ID]: fixture.saleId,
+              [InventoryCountOrderItemSortField.SALE_SERIAL_ID]:
+                fixture.saleSerialId,
+              [InventoryCountOrderItemSortField.IS_ADDITION]:
+                fixture.isAddition,
+              // The sheet's icons read a NULL snapshot as "not held".
+              [InventoryCountOrderItemSortField.HELD]: fixture.held ?? false,
+              [InventoryCountOrderItemSortField.IN_TRANSFER]:
+                fixture.transferId !== null,
+              [InventoryCountOrderItemSortField.INSPECTION]:
+                inspectionRank(fixture),
+            },
+          ];
+        }),
+      );
+
+      return countSheetRows;
+    },
+  };
+
 describe('list sorting (integration)', () => {
   let app: INestApplication;
   let context: ListSortContext;
@@ -905,6 +1268,40 @@ describe('list sorting (integration)', () => {
 
   describeListSort(transferOrdersCase, () => context);
   describeListSort(consumptionOrdersCase, () => context);
+
+  describeListSort(inventoryCountOrdersCase, () => context);
+  describeListSort(inventoryCountOrderItemsCase, () => context);
+
+  describe('inventory count lists called directly', () => {
+    it('InventoryCountOrderService.findMany defaults to latest count date, then newest, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app
+            .get(InventoryCountOrderService)
+            .findMany({ name: 'cnt', ...page }),
+        (row) => ({ countDate: row.countDate, createdAt: row.createdAt }),
+        [
+          { field: 'countDate', order: SortOrder.DESC },
+          { field: 'createdAt', order: SortOrder.DESC },
+        ],
+      ));
+
+    it('InventoryCountOrderService.findItems defaults to additions, material key, batch key, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app
+            .get(InventoryCountOrderService)
+            .findItems(countSheetOrderId, { ...page }),
+        (row) => {
+          const values = countSheetRows.get(row.id);
+
+          if (!values) throw new Error(`unseeded count line ${row.id}`);
+
+          return values;
+        },
+        inventoryCountOrderItemsCase.defaultOrder,
+      ));
+  });
 
   describe('order lists called directly', () => {
     it('TransferOrderService.findMany defaults to newest first, then id', () =>

@@ -29,6 +29,7 @@ export * from './deallocate-inventory-order';
 export * from './find-allocate-inventory-order.input';
 export * from './find-batch.input';
 export * from './find-hold-inventory-order.input';
+export * from './find-inventory-count-order.input';
 export * from './find-location.input';
 export * from './find-transfer-order.input';
 export type {

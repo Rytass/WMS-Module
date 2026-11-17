@@ -1,6 +1,36 @@
-import { ArgsType, Field, Float, ID, InputType } from '@nestjs/graphql';
-import { InventoryCountStatus } from '@rytass/wms-module-core';
+import {
+  ArgsType,
+  Field,
+  Float,
+  ID,
+  InputType,
+  registerEnumType,
+} from '@nestjs/graphql';
+import {
+  InventoryCountOrderItemSortField,
+  InventoryCountOrderSortField,
+  InventoryCountStatus,
+} from '@rytass/wms-module-core';
 import { PaginationArgs } from './pagination.args';
+import { SortInput } from './sort.input';
+
+registerEnumType(InventoryCountOrderSortField, {
+  name: 'InventoryCountOrderSortField',
+});
+
+registerEnumType(InventoryCountOrderItemSortField, {
+  name: 'InventoryCountOrderItemSortField',
+});
+
+@InputType()
+export class InventoryCountOrderSortInput extends SortInput(
+  InventoryCountOrderSortField,
+) {}
+
+@InputType()
+export class InventoryCountOrderItemSortInput extends SortInput(
+  InventoryCountOrderItemSortField,
+) {}
 
 @ArgsType()
 export class FindInventoryCountOrderArgs extends PaginationArgs {
@@ -27,6 +57,13 @@ export class FindInventoryCountOrderArgs extends PaginationArgs {
    */
   @Field(() => [ID], { nullable: true })
   locationIds?: string[];
+
+  @Field(() => InventoryCountOrderSortInput, {
+    nullable: true,
+    description:
+      'Omitted: latest countDate first, then newest createdAt, then id.',
+  })
+  sort?: InventoryCountOrderSortInput | null;
 }
 
 @ArgsType()
@@ -64,6 +101,13 @@ export class FindInventoryCountOrderItemArgs extends PaginationArgs {
   /** Only lines whose counted quantity differs from the books (顯示盤差項目). */
   @Field(() => Boolean, { nullable: true })
   onlyVariance?: boolean;
+
+  @Field(() => InventoryCountOrderItemSortInput, {
+    nullable: true,
+    description:
+      'Omitted: additions first, then material key, batch key, then id.',
+  })
+  sort?: InventoryCountOrderItemSortInput | null;
 }
 
 @ArgsType()
