@@ -19,8 +19,16 @@ const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
   const addInventories = useAddInventories();
   const { targetInventoryIds, targetAction } = useInventoryActions();
 
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryStocksByMaterialKey(materialKey);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryStocksByMaterialKey(materialKey);
 
   const dataSource = useMemo(
     (): AggregatedStockFragment[] => data?.aggregatedStocks.items ?? [],
@@ -59,6 +67,7 @@ const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
       title: '狀態',
       width: 122,
       render: (source) => stockStatusName(source.status),
+      ...getColumnSortProps('status'),
     },
     {
       key: 'quantity',
@@ -66,6 +75,7 @@ const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
       width: 122,
       align: 'end',
       render: (source) => source.quantity,
+      ...getColumnSortProps('quantity'),
     },
     {
       key: 'baseUnit',
@@ -73,6 +83,7 @@ const ChooseStockTable: FC<ChooseStockTableProps> = ({ materialKey }) => {
       width: 100,
       align: 'center',
       render: (source) => source.material?.baseUnit?.key,
+      ...getColumnSortProps('baseUnit'),
     },
   ];
 

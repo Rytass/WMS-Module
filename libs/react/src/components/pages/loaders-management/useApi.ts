@@ -17,6 +17,8 @@ import { FilterValues as ListFilterValues } from './List/typing';
 import { FilterValues as TypesFilterValues } from './Types/typing';
 import { FilterType } from '../../FilterWrapper/typing';
 import { YesOrNo } from '../../../utils/share';
+import { useTableSort } from '../../../hooks/useTableSort';
+import { AGGREGATED_STOCK_SORT_FIELDS } from '../../../utils/columns';
 
 export function useQueryLoaders(currentFilter?: ListFilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
@@ -122,12 +124,17 @@ export function useQueryLoaderTypes(currentFilter?: TypesFilterValues) {
 
 export function useQueryStocksByLoaderId(loaderId: string) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: AGGREGATED_STOCK_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(AggregatedStocksDocument, {
     variables: {
       limit,
       offset,
       loaderId,
+      sort,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -147,6 +154,7 @@ export function useQueryStocksByLoaderId(loaderId: string) {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }
 

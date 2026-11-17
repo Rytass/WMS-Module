@@ -3,7 +3,7 @@ import { TableColumn } from '@mezzanine-ui/react';
 import Table from '../../../TableWrapper/Table';
 import { AggregatedStockFragment } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
-import { aggregatedStockColumns } from '../../../../utils/columns';
+import { getAggregatedStockColumns } from '../../../../utils/columns';
 import { useQueryStocks } from '../useApi';
 import { stockEmptyProps } from '../emptyState';
 import { FilterValues } from '../typing';
@@ -39,8 +39,16 @@ function InventoryListTable({
     setTargetStocks(selectedRowKeys.map((key) => dataSignature[key]));
   }, [dataSignature, selectedRowKeys, setTargetStocks]);
 
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryStocks(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryStocks(currentFilter);
 
   const dataSource = useMemo(
     (): AggregatedStockFragment[] => data?.aggregatedStocks.items ?? [],
@@ -60,7 +68,7 @@ function InventoryListTable({
   }, [dataSource]);
 
   const columns: TableColumn<AggregatedStockFragment>[] =
-    aggregatedStockColumns;
+    getAggregatedStockColumns(getColumnSortProps);
 
   return (
     <Table<AggregatedStockFragment>
