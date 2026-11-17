@@ -18,8 +18,16 @@ interface InventoryMovementReceiveTableProps {
 function InventoryMovementReceiveTable({
   currentFilter,
 }: InventoryMovementReceiveTableProps) {
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryReceiveInventoryOrders(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryReceiveInventoryOrders(currentFilter);
 
   const dataSource = useMemo(
     (): ReceiveInventoryOrderFragment[] =>
@@ -37,6 +45,7 @@ function InventoryMovementReceiveTable({
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '入庫單號',
       width: 140,
       render: (source) => source.key,
@@ -90,12 +99,14 @@ function InventoryMovementReceiveTable({
     },
     {
       key: 'createdBy',
+      ...getColumnSortProps('createdBy'),
       title: '建立者',
       width: 140,
       render: (source) => source.createdBy,
     },
     {
       key: 'createdAt',
+      ...getColumnSortProps('createdAt'),
       title: '建立時間',
       width: 140,
       render: (source) =>
@@ -103,6 +114,7 @@ function InventoryMovementReceiveTable({
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '備註',
       width: 140,
       render: (source) => source.description || '-',

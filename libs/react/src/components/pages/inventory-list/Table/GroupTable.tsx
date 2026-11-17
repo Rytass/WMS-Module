@@ -15,6 +15,7 @@ import {
   Button,
   Icon,
   cx,
+  type SortOrder as ColumnSortOrder,
 } from '@mezzanine-ui/react';
 import {
   CaretDownIcon,
@@ -29,7 +30,11 @@ import {
 } from '../../../../graphql/generated/.graphql';
 import { useInventoryActions } from '../../../inventoryActions/useInventoryActions';
 import { formatKeyName } from '../../../../utils/share';
-import { aggregatedStockColumns } from '../../../../utils/columns';
+import {
+  aggregatedStockColumns,
+  AggregatedStockSortColumnKey,
+  sortAggregatedStocks,
+} from '../../../../utils/columns';
 import { stockStatusName } from '../../../inventoryActions/utils';
 import { useQueryStocksGrouped } from '../useApi';
 import { stockEmptyProps } from '../emptyState';
@@ -115,8 +120,35 @@ function InventoryGroupTable({
     [expandedRowKeys],
   );
 
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryStocksGrouped(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryStocksGrouped(currentFilter);
+
+  /*
+   * The expanded rows sort in the browser, by the column the materials are
+   * sorted by. They have no header of their own to click — Mezzanine renders
+   * an expanded row's table with `showHeader: false` — and they are every
+   * position of one material, already loaded. Of the four material columns
+   * only `quantity` differs between them; the rest leave them in group-key
+   * order, as the server returns them.
+   */
+  const childSort = (
+    ['materialKey', 'description', 'quantity', 'baseUnit'] as const
+  ).reduce<{
+    key: AggregatedStockSortColumnKey;
+    order: Exclude<ColumnSortOrder, null>;
+  } | null>((found, key) => {
+    const { sortOrder } = getColumnSortProps(key);
+
+    return found ?? (sortOrder ? { key, order: sortOrder } : null);
+  }, null);
 
   const dataSource = useMemo(
     (): DataType[] =>
@@ -261,12 +293,14 @@ function InventoryGroupTable({
       title: '料號',
       width: 140,
       render: (source) => source.material?.key,
+      ...getColumnSortProps('materialKey'),
     },
     {
       key: 'description',
       title: '物料說明',
       width: 140,
       render: (source) => source.material?.description,
+      ...getColumnSortProps('description'),
     },
     {
       key: 'batchKey',
@@ -343,13 +377,24 @@ function InventoryGroupTable({
       title: '數量',
       width: 100,
       align: 'end',
+      /*
+       * The positions that match the filter, not every position: that is what
+       * the server sums when it sorts by this column, and what the expanded
+       * rows below add up to. Summing all of them made a filtered list sorted
+       * by quantity read out of order.
+       */
       render: (source) =>
-        source.aggregatedStock?.reduce((prev, curr) => prev + curr.quantity, 0),
+        source.filteredAggregatedStock?.reduce(
+          (prev, curr) => prev + curr.quantity,
+          0,
+        ),
+      ...getColumnSortProps('quantity'),
     },
     {
       key: 'baseUnit',
       title: '單位',
       width: 100,
+      ...getColumnSortProps('baseUnit'),
       align: 'center',
       render: (source) => source.material?.baseUnit?.key,
     },
@@ -455,6 +500,10 @@ function InventoryGroupTable({
   const subColumns: TableColumn<DataType>[] = aggregatedStockColumns.map(
     (c, index) => (index <= subPinnedUntil ? { ...c, fixed: 'start' } : c),
   );
+  const sortChildren = (stocks: DataType[]): DataType[] =>
+    childSort
+      ? sortAggregatedStocks(stocks, childSort.key, childSort.order)
+      : stocks;
 
   return (
     <Table<DataType>
@@ -475,7 +524,7 @@ function InventoryGroupTable({
           <MznTable<DataType>
             fullWidth
             columns={subColumns}
-            dataSource={record.filteredAggregatedStock || []}
+            dataSource={sortChildren(record.filteredAggregatedStock || [])}
             rowState={(source) =>
               targetInventoryIds.includes(source.id) ? 'added' : undefined
             }

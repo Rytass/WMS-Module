@@ -396,6 +396,12 @@ export class AllocateInventoryOrderService<
         },
       );
 
+    // No UI sorts this list, so it takes no `sort`; it still needs a fixed
+    // order or `skip`/`take` pages can repeat or skip orders. Property paths,
+    // not quoted columns: the item joins above put the paginated DISTINCT
+    // subquery in play, which can only carry those.
+    queryBuilder.orderBy('to.createdAt', 'DESC').addOrderBy('to.id', 'ASC');
+
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
 

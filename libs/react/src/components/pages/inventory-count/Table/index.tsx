@@ -27,8 +27,16 @@ const InventoryCountTable: FC<InventoryCountTableProps> = ({
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
   const { push } = useWmsRouter();
 
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryInventoryCountOrders(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryInventoryCountOrders(currentFilter);
 
   const { createInventoryCountOrder } = useInventoryCountMutations();
 
@@ -85,6 +93,7 @@ const InventoryCountTable: FC<InventoryCountTableProps> = ({
     },
     {
       key: 'name',
+      ...getColumnSortProps('name'),
       title: '名稱',
       width: 220,
       render: (source) => source.name || '-',
@@ -106,6 +115,7 @@ const InventoryCountTable: FC<InventoryCountTableProps> = ({
     },
     {
       key: 'countDate',
+      ...getColumnSortProps('countDate'),
       title: '盤點日期',
       width: 165,
       render: (source) =>
@@ -113,12 +123,14 @@ const InventoryCountTable: FC<InventoryCountTableProps> = ({
     },
     {
       key: 'createdBy',
+      ...getColumnSortProps('createdBy'),
       title: '建立者',
       width: 165,
       render: (source) => source.createdBy || '-',
     },
     {
       key: 'status',
+      ...getColumnSortProps('status'),
       title: '狀態',
       width: 140,
       render: (source) =>

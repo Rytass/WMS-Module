@@ -700,28 +700,195 @@ type ReclassifyInventoryOrderDto {
 type Query {
   units: [UnitDto!]!
   loader(id: ID!): LoaderDto!
-  loaders(offset: Int, limit: Int, key: String, typeId: ID, typeIds: [ID!], locationId: ID, locationIds: [ID!], serialId: String, serialIds: [String!], isActive: Boolean, dateRange: DateRangeArgs, note: String, locationKey: String, loaderTypeKey: String): Loaders!
+  loaders(
+    offset: Int
+    limit: Int
+    key: String
+    typeId: ID
+    typeIds: [ID!]
+    locationId: ID
+    locationIds: [ID!]
+    serialId: String
+    serialIds: [String!]
+    isActive: Boolean
+    dateRange: DateRangeArgs
+    note: String
+    locationKey: String
+    loaderTypeKey: String
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: LoaderSortInput
+  ): Loaders!
   loaderType(id: ID!): LoaderTypeDto!
-  loaderTypes(offset: Int, limit: Int, description: String, isActive: Boolean, dateRange: DateRangeArgs, key: String): LoaderTypes!
+  loaderTypes(
+    offset: Int
+    limit: Int
+    description: String
+    isActive: Boolean
+    dateRange: DateRangeArgs
+    key: String
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: LoaderTypeSortInput
+  ): LoaderTypes!
   loaderUnits(type: LoaderUnit!): [LoaderUnitDto!]!
   availableLoaders(locationId: ID): [LoaderDto!]!
   material(id: ID, key: String): MaterialDto!
-  materials(offset: Int, limit: Int, key: String, description: String): Materials!
+  materials(
+    offset: Int
+    limit: Int
+    key: String
+    description: String
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: MaterialSortInput
+  ): Materials!
   batches(offset: Int, limit: Int, key: String, materialId: ID): Batches!
   stock(id: ID!): StockDto!
   stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Stocks!
-  stocksGroupedByMaterial(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Materials!
-  aggregatedStocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): AggregatedStocks!
-  changeLogs(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): ChangeLogs!
+  stocksGroupedByMaterial(
+    materialId: ID
+    batchId: ID
+    locationId: ID
+    excludeLocationIds: [ID!]
+    loaderId: ID
+    ids: [ID!]
+    description: String
+    status: StockStatus
+    materialKey: String
+    batchKey: String
+    locationKey: String
+    loaderKey: String
+    vendorId: String
+    customerId: String
+    saleId: String
+    saleSerialId: String
+    offset: Int
+    limit: Int
+
+    """Omitted: material key ascending. Ties by material id."""
+    sort: StockGroupedByMaterialSortInput
+  ): Materials!
+  aggregatedStocks(
+    materialId: ID
+    batchId: ID
+    locationId: ID
+    excludeLocationIds: [ID!]
+    loaderId: ID
+    ids: [ID!]
+    description: String
+    status: StockStatus
+    materialKey: String
+    batchKey: String
+    locationKey: String
+    loaderKey: String
+    vendorId: String
+    customerId: String
+    saleId: String
+    saleSerialId: String
+    offset: Int
+    limit: Int
+
+    """
+    Omitted: by the group key (material id, batch id, location id, loader id, status). A sort is followed by that same key.
+    """
+    sort: AggregatedStockSortInput
+  ): AggregatedStocks!
+  changeLogs(
+    materialId: ID
+    batchId: ID
+    locationId: ID
+    excludeLocationIds: [ID!]
+    loaderId: ID
+    ids: [ID!]
+    description: String
+    status: StockStatus
+    materialKey: String
+    batchKey: String
+    locationKey: String
+    loaderKey: String
+    vendorId: String
+    customerId: String
+    saleId: String
+    saleSerialId: String
+    offset: Int
+    limit: Int
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: ChangeLogSortInput
+  ): ChangeLogs!
   receiveInventoryOrder(id: ID!): ReceiveInventoryOrderDto!
-  receiveInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ReceiveInventoryOrderStatus, statuses: [ReceiveInventoryOrderStatus!], dateRange: DateRangeArgs, description: String, key: String, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): ReceiveInventoryOrders!
+  receiveInventoryOrders(
+    offset: Int
+    limit: Int
+    id: ID
+    createdBy: String
+    status: ReceiveInventoryOrderStatus
+    statuses: [ReceiveInventoryOrderStatus!]
+    dateRange: DateRangeArgs
+    description: String
+    key: String
+    materialKey: String
+    batchKey: String
+    locationKey: String
+    loaderKey: String
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: ReceiveInventoryOrderSortInput
+  ): ReceiveInventoryOrders!
   shipInventoryOrder(id: ID!): ShipInventoryOrderDto!
-  shipInventoryOrders(offset: Int, limit: Int, id: ID, createdBy: String, status: ShipInventoryOrderStatus, statuses: [ShipInventoryOrderStatus!], dateRange: DateRangeArgs, description: String, key: String, materialKey: String, batchKey: String, locationKey: String, loaderKey: String): ShipInventoryOrders!
-  transferOrders(offset: Int, limit: Int, key: String, receiver: String, dateRange: DateRangeArgs, description: String, materialId: ID, batchId: ID, locationId: ID, loaderId: ID, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, targetLocationKey: String, targetLoaderKey: String): TransferOrders!
+  shipInventoryOrders(
+    offset: Int
+    limit: Int
+    id: ID
+    createdBy: String
+    status: ShipInventoryOrderStatus
+    statuses: [ShipInventoryOrderStatus!]
+    dateRange: DateRangeArgs
+    description: String
+    key: String
+    materialKey: String
+    batchKey: String
+    locationKey: String
+    loaderKey: String
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: ShipInventoryOrderSortInput
+  ): ShipInventoryOrders!
+  transferOrders(
+    offset: Int
+    limit: Int
+    key: String
+    receiver: String
+    dateRange: DateRangeArgs
+    description: String
+    materialId: ID
+    batchId: ID
+    locationId: ID
+    loaderId: ID
+    materialKey: String
+    batchKey: String
+    locationKey: String
+    loaderKey: String
+    targetLocationKey: String
+    targetLoaderKey: String
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: TransferOrderSortInput
+  ): TransferOrders!
   transferOrder(id: ID!): TransferOrderDto!
   holdInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): HoldInventoryOrders!
   location(id: ID!): LocationDto!
-  locations(offset: Int, limit: Int, description: String, isActive: Boolean, key: String): Locations!
+  locations(
+    offset: Int
+    limit: Int
+    description: String
+    isActive: Boolean
+    key: String
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: LocationSortInput
+  ): Locations!
   allocateInventoryOrders(offset: Int, limit: Int, key: String, dateRange: DateRangeArgs, materialId: ID, batchId: ID, locationId: ID, loaderId: ID): AllocateInventoryOrders!
   saleOrderDistinctIds(offset: Int, limit: Int, key: String): [String!]!
   saleOrders(id: ID!): [String!]!
@@ -731,12 +898,57 @@ type Query {
   The map a location is drawn on and the breadcrumb of maps leading to it; null when no map draws it.
   """
   locationMapPreview(key: String!): LocationMapPreviewDto
-  inventoryCountOrders(offset: Int, limit: Int, name: String, statuses: [InventoryCountStatus!], createdBy: String, countDateFrom: String, countDateTo: String, locationIds: [ID!]): InventoryCountOrders!
-  inventoryCountOrderItems(offset: Int, limit: Int, id: ID!, materialKey: String, materialDescription: String, batchKey: String, locationKey: String, loaderSerialId: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String, onlyVariance: Boolean): InventoryCountOrderItems!
+  inventoryCountOrders(
+    offset: Int
+    limit: Int
+    name: String
+    statuses: [InventoryCountStatus!]
+    createdBy: String
+    countDateFrom: String
+    countDateTo: String
+    locationIds: [ID!]
+
+    """Omitted: latest countDate first, then newest createdAt, then id."""
+    sort: InventoryCountOrderSortInput
+  ): InventoryCountOrders!
+  inventoryCountOrderItems(
+    offset: Int
+    limit: Int
+    id: ID!
+    materialKey: String
+    materialDescription: String
+    batchKey: String
+    locationKey: String
+    loaderSerialId: String
+    vendorId: String
+    customerId: String
+    saleId: String
+    saleSerialId: String
+    onlyVariance: Boolean
+
+    """Omitted: additions first, then material key, batch key, then id."""
+    sort: InventoryCountOrderItemSortInput
+  ): InventoryCountOrderItems!
   inventoryCountOrder(id: ID!): InventoryCountOrderDto!
   orderReferences(offset: Int, limit: Int, orderType: WmsOrderType, orderId: ID, itemId: ID, referenceType: String, referenceId: String, referenceLine: String): OrderReferences!
   consumptionOrder(id: ID!): ConsumptionOrderDto!
-  consumptionOrders(offset: Int, limit: Int, ids: [ID!], key: String, description: String, materialId: ID, batchId: ID, locationId: ID, createdBy: String, createdAtFrom: DateTime, createdAtTo: DateTime, includeRemoved: Boolean): ConsumptionOrders!
+  consumptionOrders(
+    offset: Int
+    limit: Int
+    ids: [ID!]
+    key: String
+    description: String
+    materialId: ID
+    batchId: ID
+    locationId: ID
+    createdBy: String
+    createdAtFrom: DateTime
+    createdAtTo: DateTime
+    includeRemoved: Boolean
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: ConsumptionOrderSortInput
+  ): ConsumptionOrders!
 }
 
 input DateRangeArgs {
@@ -744,9 +956,204 @@ input DateRangeArgs {
   to: DateTime!
 }
 
+input LoaderSortInput {
+  field: LoaderSortField!
+  order: SortOrder!
+}
+
+enum LoaderSortField {
+  SERIAL_ID
+  TYPE_DESCRIPTION
+  LOCATION_KEY
+  LENGTH
+  WIDTH
+  HEIGHT
+  SIZE_UNIT
+  VOLUME
+  VOLUME_UNIT
+  NOTE
+  IS_ACTIVE
+  CREATED_AT
+}
+
+"""Direction of a list sort. NULLs always sort last."""
+enum SortOrder {
+  ASC
+  DESC
+}
+
+input LoaderTypeSortInput {
+  field: LoaderTypeSortField!
+  order: SortOrder!
+}
+
+enum LoaderTypeSortField {
+  KEY
+  DESCRIPTION
+  IS_ACTIVE
+  CREATED_AT
+}
+
 enum LoaderUnit {
   VOLUME
   SIZE
+}
+
+input MaterialSortInput {
+  field: MaterialSortField!
+  order: SortOrder!
+}
+
+enum MaterialSortField {
+  KEY
+  DESCRIPTION
+  BASE_UNIT
+  IS_ACTIVE
+  CREATED_AT
+}
+
+input StockGroupedByMaterialSortInput {
+  field: StockGroupedByMaterialSortField!
+  order: SortOrder!
+}
+
+enum StockGroupedByMaterialSortField {
+  MATERIAL_KEY
+  MATERIAL_DESCRIPTION
+  QUANTITY
+  BASE_UNIT
+}
+
+input AggregatedStockSortInput {
+  field: AggregatedStockSortField!
+  order: SortOrder!
+}
+
+enum AggregatedStockSortField {
+  STATUS
+  MATERIAL_KEY
+  MATERIAL_DESCRIPTION
+  BATCH_KEY
+  LOCATION_KEY
+  LOADER_SERIAL_ID
+  QUANTITY
+  BASE_UNIT
+  VENDOR_ID
+  CUSTOMER_ID
+  SALE_ID
+  SALE_SERIAL_ID
+}
+
+input ChangeLogSortInput {
+  field: ChangeLogSortField!
+  order: SortOrder!
+}
+
+enum ChangeLogSortField {
+  CHANGE_TYPE
+  MATERIAL_KEY
+  MATERIAL_DESCRIPTION
+  BATCH_KEY
+  LOCATION_KEY
+  QUANTITY
+  BASE_UNIT
+  CREATED_AT
+}
+
+input ReceiveInventoryOrderSortInput {
+  field: ReceiveInventoryOrderSortField!
+  order: SortOrder!
+}
+
+enum ReceiveInventoryOrderSortField {
+  STATUS
+  KEY
+  CREATED_BY
+  CREATED_AT
+  DESCRIPTION
+}
+
+input ShipInventoryOrderSortInput {
+  field: ShipInventoryOrderSortField!
+  order: SortOrder!
+}
+
+enum ShipInventoryOrderSortField {
+  STATUS
+  KEY
+  CREATED_BY
+  CREATED_AT
+  DESCRIPTION
+}
+
+input TransferOrderSortInput {
+  field: TransferOrderSortField!
+  order: SortOrder!
+}
+
+enum TransferOrderSortField {
+  KEY
+  RECEIVER
+  DESCRIPTION
+  CREATED_BY
+  CREATED_AT
+}
+
+input LocationSortInput {
+  field: LocationSortField!
+  order: SortOrder!
+}
+
+enum LocationSortField {
+  KEY
+  DESCRIPTION
+  IS_ACTIVE
+  CREATED_AT
+}
+
+input InventoryCountOrderSortInput {
+  field: InventoryCountOrderSortField!
+  order: SortOrder!
+}
+
+enum InventoryCountOrderSortField {
+  NAME
+  STATUS
+  COUNT_DATE
+  CREATED_BY
+  CREATED_AT
+}
+
+input InventoryCountOrderItemSortInput {
+  field: InventoryCountOrderItemSortField!
+  order: SortOrder!
+}
+
+enum InventoryCountOrderItemSortField {
+  MATERIAL_KEY
+  MATERIAL_DESCRIPTION
+  BATCH_KEY
+  LOCATION_KEY
+  LOADER_SERIAL_ID
+  VENDOR_ID
+  CUSTOMER_ID
+  SALE_ID
+  SALE_SERIAL_ID
+  IS_ADDITION
+  HELD
+  IN_TRANSFER
+  INSPECTION
+}
+
+input ConsumptionOrderSortInput {
+  field: ConsumptionOrderSortField!
+  order: SortOrder!
+}
+
+enum ConsumptionOrderSortField {
+  KEY
+  DESCRIPTION
+  CREATED_AT
 }
 
 type Mutation {

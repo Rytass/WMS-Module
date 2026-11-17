@@ -1,7 +1,26 @@
-import { Field, ID, ArgsType, registerEnumType } from '@nestjs/graphql';
+import {
+  Field,
+  ID,
+  ArgsType,
+  InputType,
+  registerEnumType,
+} from '@nestjs/graphql';
 import { PaginationArgs } from './pagination.args';
 import { DateRangeArgs } from './date-range.args';
-import { ReceiveInventoryOrderStatus } from '@rytass/wms-module-core';
+import { SortInput } from './sort.input';
+import {
+  ReceiveInventoryOrderSortField,
+  ReceiveInventoryOrderStatus,
+} from '@rytass/wms-module-core';
+
+registerEnumType(ReceiveInventoryOrderSortField, {
+  name: 'ReceiveInventoryOrderSortField',
+});
+
+@InputType()
+export class ReceiveInventoryOrderSortInput extends SortInput(
+  ReceiveInventoryOrderSortField,
+) {}
 
 registerEnumType(ReceiveInventoryOrderStatus, {
   name: 'ReceiveInventoryOrderStatus',
@@ -41,4 +60,10 @@ export class FindReceiveInventoryOrderArgs extends PaginationArgs {
 
   @Field(() => String, { nullable: true })
   loaderKey?: string;
+
+  @Field(() => ReceiveInventoryOrderSortInput, {
+    nullable: true,
+    description: 'Omitted: newest first (createdAt DESC), then id.',
+  })
+  sort?: ReceiveInventoryOrderSortInput | null;
 }

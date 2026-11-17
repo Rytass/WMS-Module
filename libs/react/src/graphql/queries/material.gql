@@ -1,9 +1,16 @@
-query Materials($offset: Int, $limit: Int, $key: String, $description: String) {
+query Materials(
+  $offset: Int
+  $limit: Int
+  $key: String
+  $description: String
+  $sort: MaterialSortInput
+) {
   materials(
     offset: $offset
     limit: $limit
     key: $key
     description: $description
+    sort: $sort
   ) {
     id
     items {

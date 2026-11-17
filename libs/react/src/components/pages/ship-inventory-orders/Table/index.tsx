@@ -20,8 +20,16 @@ function ShipInventoryOrdersTable() {
   const [createModalOpened, setCreateModalOpened] = useState<boolean>(false);
   const { push } = useWmsRouter();
 
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryShipInventoryOrders();
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryShipInventoryOrders();
 
   const { createShipInventoryOrder } = useCreateShipInventoryOrder();
 
@@ -65,24 +73,28 @@ function ShipInventoryOrdersTable() {
     },
     {
       key: 'status',
+      ...getColumnSortProps('status'),
       title: '狀態',
       width: 165,
       render: (source) => <Status status={source.status} />,
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '出庫單號',
       width: 165,
       render: (source) => source.key,
     },
     {
       key: 'createdBy',
+      ...getColumnSortProps('createdBy'),
       title: '建立者',
       width: 165,
       render: (source) => source.createdBy || '-',
     },
     {
       key: 'createdAt',
+      ...getColumnSortProps('createdAt'),
       title: '建立日期',
       width: 165,
       render: (source) =>
@@ -90,6 +102,7 @@ function ShipInventoryOrdersTable() {
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '備註',
       render: (source) => source.description || '-',
     },

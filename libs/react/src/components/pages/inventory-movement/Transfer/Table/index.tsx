@@ -27,8 +27,16 @@ interface InventoryMovementTransferTableProps {
 function InventoryMovementTransferTable({
   currentFilter,
 }: InventoryMovementTransferTableProps) {
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryTransferOrders(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryTransferOrders(currentFilter);
 
   const dataSource = useMemo(
     (): TransferOrderFragment[] => data?.transferOrders.items ?? [],
@@ -44,12 +52,14 @@ function InventoryMovementTransferTable({
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '調撥單號',
       width: 140,
       render: (source) => source.key,
     },
     {
       key: 'receiver',
+      ...getColumnSortProps('receiver'),
       title: '接收者',
       width: 140,
       render: (source) => source.receiver,
@@ -119,12 +129,14 @@ function InventoryMovementTransferTable({
     },
     {
       key: 'createdBy',
+      ...getColumnSortProps('createdBy'),
       title: '建立者',
       width: 140,
       render: (source) => source.createdBy,
     },
     {
       key: 'createdAt',
+      ...getColumnSortProps('createdAt'),
       title: '建立時間',
       width: 140,
       render: (source) =>
@@ -132,6 +144,7 @@ function InventoryMovementTransferTable({
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '備註',
       width: 140,
       render: (source) => source.description || '-',

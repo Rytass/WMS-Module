@@ -3,10 +3,12 @@ import {
   useTablePageState,
   useTablePageTotal,
 } from '../../../hooks/useTablePagination';
+import { useTableSort } from '../../../hooks/useTableSort';
 import {
   UpdateMaterialDocument,
   CreateMaterialDocument,
   MaterialsDocument,
+  MaterialSortField,
 } from '../../../graphql/generated/.graphql';
 import { FilterType } from '../../FilterWrapper/typing';
 import { FilterValues } from './typing';
@@ -31,8 +33,20 @@ export function useUpdateMaterial() {
   };
 }
 
+/** Table column key → `MaterialSortField`; columns not listed do not sort. */
+const MATERIAL_SORT_FIELDS = {
+  isActive: MaterialSortField.IS_ACTIVE,
+  key: MaterialSortField.KEY,
+  description: MaterialSortField.DESCRIPTION,
+  baseUnit: MaterialSortField.BASE_UNIT,
+} as const;
+
 export function useQueryMaterials(currentFilter?: FilterValues) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: MATERIAL_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(MaterialsDocument, {
     variables: {
@@ -43,6 +57,7 @@ export function useQueryMaterials(currentFilter?: FilterValues) {
         currentFilter?.['material-search'] ||
         undefined,
       description: currentFilter?.[FilterType.materialDescription] || undefined,
+      sort,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -62,5 +77,6 @@ export function useQueryMaterials(currentFilter?: FilterValues) {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }

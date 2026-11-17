@@ -24,7 +24,12 @@ import {
   CreateTransferOrderInput,
   UpdateTransferOrderInput,
 } from '../typings/create-transfer-order.input';
-import { FindTransferOrderInput } from '../typings/find-transfer-order.input';
+import {
+  FindTransferOrderInput,
+  TransferOrderSortField,
+} from '../typings/find-transfer-order.input';
+import { SortOrder } from '../typings/list-sort';
+import { applyListSort } from '../utils/list-sort';
 import { TransferOrderInput } from '../typings/transfer-order.input';
 import { CancelTransferOrderInput } from '../typings/cancel-transfer-order.input';
 import { MaterialService } from './material.service';
@@ -33,6 +38,16 @@ import { StockService } from './stock.service';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf } from '../utils/table-path';
 import { runInTransaction } from '../utils/run-in-transaction';
+
+const TRANSFER_ORDER_SORT_FIELDS: Readonly<
+  Record<TransferOrderSortField, string>
+> = {
+  [TransferOrderSortField.KEY]: 'to.key',
+  [TransferOrderSortField.RECEIVER]: 'to.receiver',
+  [TransferOrderSortField.DESCRIPTION]: 'to.description',
+  [TransferOrderSortField.CREATED_BY]: 'to.createdBy',
+  [TransferOrderSortField.CREATED_AT]: 'to.createdAt',
+};
 
 /**
  * What an item still has reserved and not yet executed, in base units.
@@ -540,7 +555,7 @@ export class TransferOrderService<
     return updated as T;
   }
 
-  findMany(options: FindTransferOrderInput): Promise<[T[], number]> {
+  async findMany(options: FindTransferOrderInput): Promise<[T[], number]> {
     const queryBuilder = this.dataSource
       .getRepository<T>(this.transferOrderEntity)
       .createQueryBuilder('to');
@@ -669,6 +684,16 @@ export class TransferOrderService<
         )`,
         { targetLoaderKey: `%${options.targetLoaderKey}%` },
       );
+
+    applyListSort(queryBuilder, {
+      sort: options.sort,
+      fields: TRANSFER_ORDER_SORT_FIELDS,
+      defaultOrder: {
+        field: TransferOrderSortField.CREATED_AT,
+        order: SortOrder.DESC,
+      },
+      tiebreaker: 'to.id',
+    });
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);

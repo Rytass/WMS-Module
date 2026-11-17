@@ -87,6 +87,7 @@ function ViewInventoryCount() {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   } = useQueryInventoryCountOrderItems(id, itemFilter);
   const { fetchAllItems } = useLazyQueryAllInventoryCountOrderItems();
   const {
@@ -576,8 +577,10 @@ function ViewInventoryCount() {
      */
     {
       key: 'inspectionResult',
+      ...getColumnSortProps('inspectionResult'),
       title: '待檢驗',
-      width: 48,
+      // Wide enough for the title plus the sort icon clear of the resize handle.
+      width: 88,
       align: 'center',
       render: (item) =>
         item.requiresInspection && isNull(item.inspectionResult) ? (
@@ -588,16 +591,18 @@ function ViewInventoryCount() {
     },
     {
       key: 'held',
+      ...getColumnSortProps('held'),
       title: '凍結',
-      width: 48,
+      width: 72,
       align: 'center',
       render: (item) =>
         item.held ? <Icon icon={LockIcon} color="brand" size={16} /> : null,
     },
     {
       key: 'inTransfer',
+      ...getColumnSortProps('inTransfer'),
       title: '調撥',
-      width: 48,
+      width: 72,
       align: 'center',
       render: (item) =>
         item.transferId ? (
@@ -606,12 +611,14 @@ function ViewInventoryCount() {
     },
     {
       key: 'materialKey',
+      ...getColumnSortProps('materialKey'),
       title: '料號',
       width: 165,
       render: (item) => renderQuickFilter('materialKey', item.material?.key),
     },
     {
       key: 'materialDescription',
+      ...getColumnSortProps('materialDescription'),
       title: '物料說明',
       width: 200,
       render: (item) =>
@@ -619,12 +626,14 @@ function ViewInventoryCount() {
     },
     {
       key: 'batch',
+      ...getColumnSortProps('batch'),
       title: '批號',
       width: 165,
       render: (item) => renderQuickFilter('batchKey', item.batch?.key),
     },
     {
       key: 'location',
+      ...getColumnSortProps('location'),
       title: '儲存位置',
       width: 165,
       render: (item) => (
@@ -648,6 +657,7 @@ function ViewInventoryCount() {
     },
     {
       key: 'loader',
+      ...getColumnSortProps('loader'),
       title: '載具',
       width: 140,
       render: (item) =>
@@ -655,24 +665,28 @@ function ViewInventoryCount() {
     },
     {
       key: 'vendorId',
+      ...getColumnSortProps('vendorId'),
       title: '供應商',
       width: 140,
       render: (item) => renderQuickFilter('vendorId', item.vendorId),
     },
     {
       key: 'customerId',
+      ...getColumnSortProps('customerId'),
       title: '客戶',
       width: 140,
       render: (item) => renderQuickFilter('customerId', item.customerId),
     },
     {
       key: 'saleId',
+      ...getColumnSortProps('saleId'),
       title: '銷售訂單號碼',
       width: 140,
       render: (item) => renderQuickFilter('saleId', item.saleId),
     },
     {
       key: 'saleSerialId',
+      ...getColumnSortProps('saleSerialId'),
       title: '銷售訂單項次',
       width: 140,
       render: (item) => renderQuickFilter('saleSerialId', item.saleSerialId),

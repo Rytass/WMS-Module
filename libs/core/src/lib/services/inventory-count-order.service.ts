@@ -25,11 +25,57 @@ import {
   StockEntityClass,
 } from '../models';
 import { WmsEntities } from '../models/wms-entities';
+import {
+  InventoryCountOrderItemSortField,
+  InventoryCountOrderSortField,
+} from '../typings/find-inventory-count-order.input';
+import { ListSort, SortOrder } from '../typings/list-sort';
+import { applyListSort } from '../utils/list-sort';
 import { quotedTablePathOf } from '../utils/table-path';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
+
+const INVENTORY_COUNT_ORDER_SORT_FIELDS: Readonly<
+  Record<InventoryCountOrderSortField, string>
+> = {
+  [InventoryCountOrderSortField.NAME]: 'count_order.name',
+  // A PostgreSQL enum: ORDER BY follows its declaration order (the lifecycle).
+  [InventoryCountOrderSortField.STATUS]: 'count_order.status',
+  [InventoryCountOrderSortField.COUNT_DATE]: 'count_order.countDate',
+  [InventoryCountOrderSortField.CREATED_BY]: 'count_order.createdBy',
+  [InventoryCountOrderSortField.CREATED_AT]: 'count_order.createdAt',
+};
+
+/**
+ * The count sheet reads with `getMany` + `offset`/`limit` over string-table
+ * joins, so these are SQL (raw mode). The three flag fields sort by the same
+ * test the sheet's icons render from.
+ */
+const INVENTORY_COUNT_ORDER_ITEM_SORT_FIELDS: Readonly<
+  Record<InventoryCountOrderItemSortField, string>
+> = {
+  [InventoryCountOrderItemSortField.MATERIAL_KEY]: 'material.key',
+  [InventoryCountOrderItemSortField.MATERIAL_DESCRIPTION]:
+    'material.description',
+  [InventoryCountOrderItemSortField.BATCH_KEY]: 'batch.key',
+  [InventoryCountOrderItemSortField.LOCATION_KEY]: 'location.key',
+  [InventoryCountOrderItemSortField.LOADER_SERIAL_ID]: 'loader."serialId"',
+  [InventoryCountOrderItemSortField.VENDOR_ID]: 'item."vendorId"',
+  [InventoryCountOrderItemSortField.CUSTOMER_ID]: 'item."customerId"',
+  [InventoryCountOrderItemSortField.SALE_ID]: 'item."saleId"',
+  [InventoryCountOrderItemSortField.SALE_SERIAL_ID]: 'item."saleSerialId"',
+  [InventoryCountOrderItemSortField.IS_ADDITION]: 'item."isAddition"',
+  [InventoryCountOrderItemSortField.HELD]: 'COALESCE(item.held, false)',
+  [InventoryCountOrderItemSortField.IN_TRANSFER]:
+    '(item."transferId" IS NOT NULL)',
+  [InventoryCountOrderItemSortField.INSPECTION]: `(CASE
+    WHEN item."requiresInspection" = true AND item."inspectionResult" IS NULL THEN 2
+    WHEN item."inspectionResult" = false THEN 1
+    ELSE 0
+  END)`,
+};
 
 /** A physical position the count tracks: one row of the count sheet. */
 interface StockPosition {
@@ -66,6 +112,8 @@ export interface FindInventoryCountOrderInput {
   readonly locationIds?: readonly string[] | null;
   readonly offset?: number;
   readonly limit?: number;
+  /** Omitted: latest count date first, then newest created, then `id`. */
+  readonly sort?: ListSort<InventoryCountOrderSortField> | null;
 }
 
 /**
@@ -90,6 +138,11 @@ export interface FindInventoryCountOrderItemInput {
   readonly onlyVariance?: boolean | null;
   readonly offset?: number;
   readonly limit?: number;
+  /**
+   * Omitted: additions first, then material key, batch key, `id`. The CSV
+   * export and the upload's row matching read the whole sheet and do not care.
+   */
+  readonly sort?: ListSort<InventoryCountOrderItemSortField> | null;
 }
 
 export interface CreateInventoryCountOrderInput {
@@ -436,9 +489,7 @@ export class InventoryCountOrderService<
       // `order."countDate"` and fail to parse; and a camelCase alias would be
       // emitted quoted by the query builder while the unquoted references here
       // fold to lowercase, so the two would never match.
-      .order.createQueryBuilder('count_order')
-      .orderBy('count_order."countDate"', 'DESC')
-      .addOrderBy('count_order."createdAt"', 'DESC');
+      .order.createQueryBuilder('count_order');
 
     if (options.name) {
       query.andWhere('count_order.name ILIKE :name', {
@@ -482,6 +533,22 @@ export class InventoryCountOrderService<
         { locationIds: options.locationIds },
       );
     }
+
+    applyListSort(query, {
+      sort: options.sort,
+      fields: INVENTORY_COUNT_ORDER_SORT_FIELDS,
+      defaultOrder: [
+        {
+          field: InventoryCountOrderSortField.COUNT_DATE,
+          order: SortOrder.DESC,
+        },
+        {
+          field: InventoryCountOrderSortField.CREATED_AT,
+          order: SortOrder.DESC,
+        },
+      ],
+      tiebreaker: 'count_order.id',
+    });
 
     if (options.offset !== undefined && options.offset >= 0) {
       query.skip(options.offset);
@@ -590,13 +657,28 @@ export class InventoryCountOrderService<
     // that rewrite fail.
     const total = await query.getCount();
 
-    // Additions first — they are what the operator just typed — then a stable
-    // order so paging cannot repeat or skip a line.
-    query
-      .orderBy('item."isAddition"', 'DESC')
-      .addOrderBy('material.key', 'ASC')
-      .addOrderBy('batch.key', 'ASC')
-      .addOrderBy('item.id', 'ASC');
+    // Default: additions first — they are what the operator just typed — then
+    // material and batch; `id` last so paging cannot repeat or skip a line.
+    applyListSort(query, {
+      sort: options.sort,
+      fields: INVENTORY_COUNT_ORDER_ITEM_SORT_FIELDS,
+      defaultOrder: [
+        {
+          field: InventoryCountOrderItemSortField.IS_ADDITION,
+          order: SortOrder.DESC,
+        },
+        {
+          field: InventoryCountOrderItemSortField.MATERIAL_KEY,
+          order: SortOrder.ASC,
+        },
+        {
+          field: InventoryCountOrderItemSortField.BATCH_KEY,
+          order: SortOrder.ASC,
+        },
+      ],
+      tiebreaker: 'item.id',
+      mode: 'raw',
+    });
 
     // `limit`/`offset` rather than `take`/`skip`: the latter wraps the query in a
     // DISTINCT subquery to survive one-to-many joins, and then cannot map an
