@@ -5,8 +5,11 @@ import { ApolloDriver } from '@nestjs/apollo';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { graphql, type GraphQLSchema } from 'graphql';
 import { Client } from 'pg';
-import { DataSource, type DeepPartial } from 'typeorm';
+import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
 import {
+  LocationEntityClass,
+  LocationService,
+  LocationSortField,
   MaterialEntityClass,
   MaterialService,
   MaterialSortField,
@@ -312,6 +315,124 @@ const materialsCase: ListSortCase<MaterialSortField> = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Fixture helpers
+// ---------------------------------------------------------------------------
+
+const day = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
+
+/**
+ * Save rows one at a time, then stamp each `createdAt` — `@CreateDateColumn`
+ * ignores a value given on insert.
+ */
+const saveStamped = async <E extends { id: string }>(
+  dataSource: DataSource,
+  target: EntityTarget<E>,
+  rows: readonly { row: DeepPartial<E>; createdAt: Date }[],
+): Promise<E[]> => {
+  const repository = dataSource.getRepository<E>(target);
+
+  return rows.reduce<Promise<E[]>>(async (acc, { row, createdAt }) => {
+    const done = await acc;
+    const saved = await repository.save(repository.create(row));
+
+    await repository.update(saved.id, { createdAt } as never);
+
+    return [...done, saved];
+  }, Promise.resolve([]));
+};
+
+/**
+ * A service list called directly, the way a consumer would — no `sort` — must
+ * come back in its documented default order, and two pages of two must be the
+ * first four rows of it.
+ */
+const expectDirectDefaultOrder = async <
+  R extends { id: string },
+  F extends string,
+>(
+  fetch: (page?: { offset: number; limit: number }) => Promise<[R[], number]>,
+  values: (row: R) => Readonly<Record<F, SortValue>>,
+  order: readonly { field: F; order: SortOrder }[],
+): Promise<void> => {
+  const [all, total] = await fetch();
+  const expected = expectedOrder(
+    new Map(all.map((row) => [row.id, values(row)])),
+    order,
+  );
+
+  expect(total).toBe(all.length);
+  expect(all.length).toBeGreaterThan(4);
+  expect(all.map(({ id }) => id)).toEqual(expected);
+
+  const [first] = await fetch({ offset: 0, limit: 2 });
+  const [second] = await fetch({ offset: 2, limit: 2 });
+
+  expect([...first, ...second].map(({ id }) => id)).toEqual(
+    expected.slice(0, 4),
+  );
+};
+
+const newestFirst = <F extends string>(
+  field: F,
+): readonly { field: F; order: SortOrder }[] => [
+  { field, order: SortOrder.DESC },
+];
+
+// The module seeds a DEFAULT location, loader type and loader on start-up, and
+// several cases create rows of the same entity. Every case therefore narrows
+// its list to its own fixtures with a filter on a prefix nobody else uses.
+
+const locationsCase: ListSortCase<LocationSortField> = {
+  name: 'locations',
+  sortFields: LocationSortField,
+  defaultOrder: newestFirst(LocationSortField.CREATED_AT),
+  fetchPage: graphqlPage<LocationSortField>('locations', 'description: "locd"'),
+  seed: async ({ dataSource, entities }) => {
+    const fixtures = (
+      [
+        ['locs01', 'locda', true, '2026-01-03'],
+        ['locs02', 'locdb', false, '2026-01-01'],
+        ['locs03', 'locda', true, '2026-01-02'],
+        ['locs04', 'locdc', true, '2026-01-02'],
+        ['locs05', 'locdb', false, '2026-01-05'],
+        ['locs06', 'locda', true, '2026-01-04'],
+        ['locs07', 'locdc', false, '2026-01-04'],
+        ['locs08', 'locdb', true, '2026-01-01'],
+      ] as const
+    ).map(([key, description, isActive, created]) => ({
+      key,
+      description,
+      isActive,
+      createdAt: day(created),
+    }));
+    const saved = await saveStamped<LocationEntityClass>(
+      dataSource,
+      entities.location,
+      fixtures.map(({ createdAt, ...row }) => ({
+        row: row as DeepPartial<LocationEntityClass>,
+        createdAt,
+      })),
+    );
+
+    return new Map(
+      saved.map(({ id }, index) => {
+        const fixture = fixtures[index];
+
+        return [
+          id,
+          {
+            [LocationSortField.KEY]: fixture.key,
+            [LocationSortField.DESCRIPTION]: fixture.description,
+            [LocationSortField.IS_ACTIVE]: fixture.isActive,
+            [LocationSortField.CREATED_AT]: fixture.createdAt,
+          },
+        ];
+      }),
+    );
+  },
+};
+
 describe('list sorting (integration)', () => {
   let app: INestApplication;
   let context: ListSortContext;
@@ -379,6 +500,18 @@ describe('list sorting (integration)', () => {
   });
 
   describeListSort(materialsCase, () => context);
+
+  describeListSort(locationsCase, () => context);
+
+  describe('LocationService.findMany called directly', () => {
+    it('LocationService.findMany defaults to newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app.get(LocationService).findMany({ description: 'locd', ...page }),
+        (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+  });
 
   describe('MaterialService.findMany called directly', () => {
     it('defaults to newest first, then id, with no sort argument', async () => {
