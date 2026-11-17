@@ -12,8 +12,16 @@ interface ChangeHistoryTableProps {
 }
 
 function ChangeHistoryTable({ currentFilter }: ChangeHistoryTableProps) {
-  const { data, loading, pageTotal, page, setPage, limit, setLimit } =
-    useQueryChangeLogs(currentFilter);
+  const {
+    data,
+    loading,
+    pageTotal,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    getColumnSortProps,
+  } = useQueryChangeLogs(currentFilter);
 
   const dataSource = useMemo(
     (): ChangeLogFragment[] => data?.changeLogs.items ?? [],
@@ -23,36 +31,42 @@ function ChangeHistoryTable({ currentFilter }: ChangeHistoryTableProps) {
   const columns: TableColumn<ChangeLogFragment>[] = [
     {
       key: 'changeType',
+      ...getColumnSortProps('changeType'),
       title: '異動行為',
       width: 140,
       render: (source) => changeTypeName(source.changeType),
     },
     {
       key: 'key',
+      ...getColumnSortProps('key'),
       title: '料號',
       width: 140,
       render: (source) => source.material?.key,
     },
     {
       key: 'description',
+      ...getColumnSortProps('description'),
       title: '物料說明',
       width: 140,
       render: (source) => source.material?.description,
     },
     {
       key: 'batchKey',
+      ...getColumnSortProps('batchKey'),
       title: '批號',
       width: 140,
       render: (source) => source.batch?.key,
     },
     {
       key: 'locationKey',
+      ...getColumnSortProps('locationKey'),
       title: '儲存位置',
       width: 140,
       render: (source) => formatKeyName(source.location?.key),
     },
     {
       key: 'quantity',
+      ...getColumnSortProps('quantity'),
       title: '數量',
       width: 100,
       align: 'end',
@@ -60,6 +74,7 @@ function ChangeHistoryTable({ currentFilter }: ChangeHistoryTableProps) {
     },
     {
       key: 'baseUnit',
+      ...getColumnSortProps('baseUnit'),
       title: '單位',
       width: 100,
       align: 'center',
