@@ -8,6 +8,7 @@ import {
 import { WaitIcon, TransferIcon } from '../icons';
 import { stockStatusName } from '../components/inventoryActions/utils';
 import { formatKeyName } from './share';
+import LocationMapPreview from '../components/map/LocationMapPreview';
 
 /**
  * Host-defined batch attributes as a readable line.
@@ -108,7 +109,9 @@ export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
     key: 'locationKey',
     title: '儲存位置',
     width: 140,
-    render: (source) => formatKeyName(source.location?.key),
+    render: (source) => (
+      <LocationMapPreview locationKey={source.location?.key} />
+    ),
   },
   {
     key: 'loaderSerialId',
