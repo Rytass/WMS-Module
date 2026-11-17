@@ -20,6 +20,7 @@ import { FilterValues as ListFilterValues } from './List/typing';
 import { FilterValues as TypesFilterValues } from './Types/typing';
 import { FilterType } from '../../FilterWrapper/typing';
 import { YesOrNo } from '../../../utils/share';
+import { AGGREGATED_STOCK_SORT_FIELDS } from '../../../utils/columns';
 
 /** Table column key → `LoaderSortField`; columns not listed do not sort. */
 const LOADER_SORT_FIELDS = {
@@ -161,12 +162,17 @@ export function useQueryLoaderTypes(currentFilter?: TypesFilterValues) {
 
 export function useQueryStocksByLoaderId(loaderId: string) {
   const { page, setPage, limit, setLimit, offset } = useTablePageState();
+  const { sort, getColumnSortProps } = useTableSort({
+    fields: AGGREGATED_STOCK_SORT_FIELDS,
+    setPage,
+  });
 
   const { data, loading } = useQuery(AggregatedStocksDocument, {
     variables: {
       limit,
       offset,
       loaderId,
+      sort,
     },
     fetchPolicy: 'cache-and-network',
   });
@@ -186,6 +192,7 @@ export function useQueryStocksByLoaderId(loaderId: string) {
     setPage,
     limit,
     setLimit,
+    getColumnSortProps,
   };
 }
 

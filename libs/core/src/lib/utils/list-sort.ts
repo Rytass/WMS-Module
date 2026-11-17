@@ -31,8 +31,12 @@ export interface ListSortOptions<F extends string> {
    * A unique expression (normally the primary key) appended last, ascending,
    * so rows that tie on every criterion still come back in one fixed order —
    * without it `LIMIT`/`OFFSET` pages can repeat or skip rows.
+   *
+   * A list without a single-column key (an aggregate, whose row is identified
+   * by its whole group key) passes the key's columns in order; together they
+   * must be unique.
    */
-  tiebreaker: string;
+  tiebreaker: string | readonly string[];
   /** Defaults to `entity`. */
   mode?: ListSortMode;
 }
@@ -89,11 +93,19 @@ export function resolveListSort<F extends string>(
     return { expression: fields[field], order, nulls: LIST_SORT_NULLS };
   });
 
-  // TypeORM keys ORDER BY by expression, so appending the tiebreaker when it is
-  // already a criterion would overwrite that criterion's direction.
-  return clauses.some(({ expression }) => expression === tiebreaker)
-    ? clauses
-    : [...clauses, { expression: tiebreaker, order: SortOrder.ASC }];
+  const tiebreakers: readonly string[] =
+    typeof tiebreaker === 'string' ? [tiebreaker] : tiebreaker;
+
+  // TypeORM keys ORDER BY by expression, so appending a tiebreaker column that
+  // is already a criterion would overwrite that criterion's direction.
+  return [
+    ...clauses,
+    ...tiebreakers
+      .filter((column) =>
+        clauses.every(({ expression }) => expression !== column),
+      )
+      .map((expression) => ({ expression, order: SortOrder.ASC })),
+  ];
 }
 
 function assertEntityOrderPath<E extends ObjectLiteral>(

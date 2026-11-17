@@ -119,6 +119,17 @@ describe('resolveListSort', () => {
     ).toEqual(['item.id DESC']);
   });
 
+  it('appends a composite tiebreaker in order, skipping columns already sorted on', () => {
+    expect(
+      resolveListSort({
+        sort: { field: ItemSortField.ID, order: SortOrder.DESC },
+        fields: FIELDS,
+        defaultOrder: DEFAULT,
+        tiebreaker: ['item.groupId', 'item.id', 'item.slot'],
+      }).map(({ expression, order }) => `${expression} ${order}`),
+    ).toEqual(['item.id DESC', 'item.groupId ASC', 'item.slot ASC']);
+  });
+
   it('rejects a field outside the whitelist instead of falling back', () => {
     expect(() =>
       resolveListSort({

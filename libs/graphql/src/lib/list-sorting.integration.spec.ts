@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { graphql, type GraphQLSchema } from 'graphql';
 import { Client } from 'pg';
 import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
+import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   ChangeLogSortField,
   ChangeType,
@@ -42,10 +43,13 @@ import {
   LocationEntityClass,
   LocationService,
   LocationSortField,
+  AggregatedStockSortField,
+  BatchService,
   MaterialEntityClass,
   MaterialService,
   MaterialSortField,
   SortOrder,
+  StockGroupedByMaterialSortField,
   UnitEntityClass,
   WmsEntities,
 } from '@rytass/wms-module-core';
@@ -1649,6 +1653,315 @@ const changeLogsCase: ListSortCase<ChangeLogSortField> = {
     );
   },
 };
+// Stock lists. Rows here are positions or materials built from stock rows;
+// each list is scoped to its own material-key prefix so the other cases'
+// materials stay out of its `total`.
+// ---------------------------------------------------------------------------
+
+interface StockRow {
+  materialId: string;
+  batchId: string;
+  locationId: string;
+  loaderId: string;
+  quantity: number;
+}
+
+const saveStockRows = async (
+  { dataSource, entities }: ListSortContext,
+  rows: readonly StockRow[],
+): Promise<void> => {
+  const orderRepository = dataSource.getRepository<OrderEntity>(entities.order);
+  const stockRepository = dataSource.getRepository<StockEntityClass>(
+    entities.stock,
+  );
+
+  await rows.reduce<Promise<void>>(async (previous, row) => {
+    await previous;
+
+    const order = await orderRepository.save(orderRepository.create({}));
+
+    await stockRepository.save({ ...row, orderId: order.id } as never);
+  }, Promise.resolve());
+};
+
+const saveMaterials = async (
+  { dataSource, entities }: ListSortContext,
+  fixtures: readonly { key: string; description: string; baseUnit: string }[],
+): Promise<MaterialEntityClass[]> => {
+  const repository = dataSource.getRepository<MaterialEntityClass>(
+    entities.material,
+  );
+
+  return repository.save(
+    fixtures.map((fixture) =>
+      repository.create(fixture as DeepPartial<MaterialEntityClass>),
+    ),
+  );
+};
+
+const saveLocations = async (
+  { dataSource, entities }: ListSortContext,
+  keys: readonly string[],
+): Promise<LocationEntityClass[]> => {
+  const repository = dataSource.getRepository<LocationEntityClass>(
+    entities.location,
+  );
+
+  return repository.save(
+    keys.map((key) =>
+      repository.create({
+        key,
+        description: key,
+        isActive: true,
+      } as DeepPartial<LocationEntityClass>),
+    ),
+  );
+};
+
+// A material whose unit no longer exists: the BASE_UNIT join yields NULL.
+const ORPHAN_UNIT_ID = '00000000-0000-4000-8000-000000000001';
+
+/**
+ * A row is a (material, batch, location, loader, status) position; its `id` is
+ * those five joined with `|`. The first four are fixed-width ids, so comparing
+ * the joined string compares the tuple — the harness's "ties by id" is
+ * exactly the list's group-key tiebreaker, with no extension needed.
+ */
+const aggregatedStocksCase: ListSortCase<AggregatedStockSortField> = {
+  name: 'aggregatedStocks',
+  sortFields: AggregatedStockSortField,
+  // Omitted sort: the group key alone, i.e. the id.
+  defaultOrder: [],
+  fetchPage: graphqlPage<AggregatedStockSortField>(
+    'aggregatedStocks',
+    'materialKey: "aggsm"',
+  ),
+  seed: async (ctx) => {
+    const { app, dataSource, entities } = ctx;
+    const stockService = app.get(StockService);
+    const batchService = app.get(BatchService);
+    const unitRepository = dataSource.getRepository(UnitEntityClass);
+    const units = await unitRepository.save([
+      unitRepository.create({ key: 'unitc' }),
+      unitRepository.create({ key: 'unitd' }),
+    ]);
+    const unitKeys = new Map(units.map(({ id, key }) => [id, key]));
+    const materials = await saveMaterials(ctx, [
+      { key: 'aggsm01', description: 'descb', baseUnit: units[0].id },
+      { key: 'aggsm02', description: 'desca', baseUnit: units[1].id },
+      { key: 'aggsm03', description: 'descb', baseUnit: ORPHAN_UNIT_ID },
+    ]);
+    const locations = await saveLocations(ctx, ['aggla', 'agglb']);
+    const loaderRepository = dataSource.getRepository(LoadersEntityClass);
+    const defaultLoader = await loaderRepository.findOneByOrFail({
+      id: stockService.resolveLoaderId(null),
+    });
+    const loaders = await loaderRepository.save(
+      ['ldra02', 'ldra01'].map((serialId) =>
+        loaderRepository.create({
+          serialId,
+          typeId: defaultLoader.typeId,
+          locationId: defaultLoader.locationId,
+        }),
+      ),
+    );
+
+    const batchRepository = dataSource.getRepository<BatchEntityClass>(
+      entities.batch,
+    );
+    // material, batch key, held, vendor, customer, sale, sale serial
+    const batchFixtures: readonly [
+      number,
+      string,
+      boolean,
+      string | null,
+      string | null,
+      string | null,
+      string | null,
+    ][] = [
+      [0, 'bata01', false, 'vena', null, 'salea', 'sera'],
+      [0, 'bata02', true, null, 'cusa', 'saleb', 'serb'],
+      [1, 'bata01', false, 'vena', 'cusa', null, null],
+      [1, 'bata02', false, 'venb', null, 'salea', 'sera'],
+      [2, 'bata01', false, null, 'cusb', 'saleb', 'serb'],
+      [2, 'bata02', true, 'venb', 'cusa', 'salea', 'sera'],
+    ];
+    const batches = await batchFixtures.reduce<
+      Promise<{ id: string; fixture: (typeof batchFixtures)[number] }[]>
+    >(async (acc, fixture) => {
+      const [material, key, held, vendorId, customerId, saleId, saleSerialId] =
+        fixture;
+      const batch = await batchService.getBatch({
+        key,
+        materialId: materials[material].id,
+      });
+
+      await batchRepository.update(batch.id, {
+        held,
+        vendorId,
+        customerId,
+        saleId,
+        saleSerialId,
+      } as never);
+
+      return [...(await acc), { id: batch.id, fixture }];
+    }, Promise.resolve([]));
+
+    // batch, location, loader, the quantities of its stock rows
+    const positions: readonly [number, number, number, number[]][] = [
+      [0, 0, 0, [3, 2]],
+      [0, 1, 1, [7]],
+      [1, 0, 0, [5]],
+      [2, 0, 1, [3]],
+      [3, 1, 0, [10, -3]],
+      [4, 1, 0, [3]],
+      [5, 0, 1, [9]],
+      [2, 1, 0, [5]],
+    ];
+
+    await saveStockRows(
+      ctx,
+      positions.flatMap(([batch, location, loader, quantities]) =>
+        quantities.map((quantity) => ({
+          materialId: materials[batches[batch].fixture[0]].id,
+          batchId: batches[batch].id,
+          locationId: locations[location].id,
+          loaderId: loaders[loader].id,
+          quantity,
+        })),
+      ),
+    );
+
+    return new Map(
+      positions.map(([batch, location, loader, quantities]) => {
+        const { id: batchId, fixture } = batches[batch];
+        const [materialIndex, batchKey, held, vendor, customer, sale, serial] =
+          fixture;
+        const material = materials[materialIndex];
+        const status = held ? 'HELD' : 'FREE';
+
+        return [
+          [
+            material.id,
+            batchId,
+            locations[location].id,
+            loaders[loader].id,
+            status,
+          ].join('|'),
+          {
+            [AggregatedStockSortField.STATUS]: status,
+            [AggregatedStockSortField.MATERIAL_KEY]: material.key,
+            [AggregatedStockSortField.MATERIAL_DESCRIPTION]:
+              material.description,
+            [AggregatedStockSortField.BATCH_KEY]: batchKey,
+            [AggregatedStockSortField.LOCATION_KEY]: locations[location].key,
+            [AggregatedStockSortField.LOADER_SERIAL_ID]:
+              loaders[loader].serialId,
+            [AggregatedStockSortField.QUANTITY]: quantities.reduce(
+              (sum, quantity) => sum + quantity,
+              0,
+            ),
+            [AggregatedStockSortField.BASE_UNIT]:
+              unitKeys.get(material.baseUnit) ?? null,
+            [AggregatedStockSortField.VENDOR_ID]: vendor,
+            [AggregatedStockSortField.CUSTOMER_ID]: customer,
+            [AggregatedStockSortField.SALE_ID]: sale,
+            [AggregatedStockSortField.SALE_SERIAL_ID]: serial,
+          },
+        ];
+      }),
+    );
+  },
+};
+
+/**
+ * One row per material; QUANTITY is the material's total over its positions,
+ * including a negative one and one that nets to zero across two locations
+ * (still listed: each position is non-zero).
+ */
+const stocksGroupedByMaterialCase: ListSortCase<StockGroupedByMaterialSortField> =
+  {
+    name: 'stocksGroupedByMaterial',
+    sortFields: StockGroupedByMaterialSortField,
+    defaultOrder: [
+      {
+        field: StockGroupedByMaterialSortField.MATERIAL_KEY,
+        order: SortOrder.ASC,
+      },
+    ],
+    fetchPage: graphqlPage<StockGroupedByMaterialSortField>(
+      'stocksGroupedByMaterial',
+      'materialKey: "grpsm"',
+    ),
+    seed: async (ctx) => {
+      const { app, dataSource } = ctx;
+      const stockService = app.get(StockService);
+      const batchService = app.get(BatchService);
+      const unitRepository = dataSource.getRepository(UnitEntityClass);
+      const units = await unitRepository.save([
+        unitRepository.create({ key: 'unite' }),
+        unitRepository.create({ key: 'unitf' }),
+      ]);
+      const unitKeys = new Map(units.map(({ id, key }) => [id, key]));
+      const locations = await saveLocations(ctx, ['grpla', 'grplb']);
+      // key, description, unit, quantities at location a / b
+      const fixtures: readonly [string, string, string, number[]][] = [
+        ['grpsm05', 'desca', units[1].id, [1]],
+        ['grpsm02', 'desca', units[1].id, [3, 2]],
+        ['grpsm07', 'descc', units[0].id, [3]],
+        ['grpsm01', 'descb', units[0].id, [5]],
+        ['grpsm04', 'descc', ORPHAN_UNIT_ID, [9]],
+        ['grpsm03', 'descb', units[0].id, [-4]],
+        ['grpsm06', 'descb', ORPHAN_UNIT_ID, [5, -5]],
+      ];
+      const materials = await saveMaterials(
+        ctx,
+        fixtures.map(([key, description, baseUnit]) => ({
+          key,
+          description,
+          baseUnit,
+        })),
+      );
+      const rows = await materials.reduce<Promise<StockRow[]>>(
+        async (acc, material, index) => {
+          const batch = await batchService.getBatch({
+            key: 'batg01',
+            materialId: material.id,
+          });
+
+          return [
+            ...(await acc),
+            ...fixtures[index][3].map((quantity, location) => ({
+              materialId: material.id,
+              batchId: batch.id,
+              locationId: locations[location].id,
+              loaderId: stockService.resolveLoaderId(null),
+              quantity,
+            })),
+          ];
+        },
+        Promise.resolve([]),
+      );
+
+      await saveStockRows(ctx, rows);
+
+      return new Map(
+        materials.map((material, index) => [
+          material.id,
+          {
+            [StockGroupedByMaterialSortField.MATERIAL_KEY]: material.key,
+            [StockGroupedByMaterialSortField.MATERIAL_DESCRIPTION]:
+              material.description,
+            [StockGroupedByMaterialSortField.QUANTITY]: fixtures[
+              index
+            ][3].reduce((sum, quantity) => sum + quantity, 0),
+            [StockGroupedByMaterialSortField.BASE_UNIT]:
+              unitKeys.get(material.baseUnit) ?? null,
+          },
+        ]),
+      );
+    },
+  };
 
 describe('list sorting (integration)', () => {
   let app: INestApplication;
@@ -1920,6 +2233,99 @@ describe('list sorting (integration)', () => {
         app.get(MaterialService).findMany({
           sort: {
             field: 'baseUnit' as MaterialSortField,
+            order: SortOrder.ASC,
+          },
+        }),
+      ).rejects.toThrow('Unknown sort field');
+    });
+  });
+
+  describeListSort(aggregatedStocksCase, () => context);
+
+  describe('StockService.findAggregatedStocks called directly', () => {
+    const groupKey = (row: {
+      materialId: string;
+      batchId: string;
+      locationId: string;
+      loaderId: string;
+      status: string;
+    }): string =>
+      [
+        row.materialId,
+        row.batchId,
+        row.locationId,
+        row.loaderId,
+        row.status,
+      ].join('|');
+
+    it('keeps the group-key order, page by page, with no sort argument', async () => {
+      const service = app.get(StockService);
+      const [all, total] = await service.findAggregatedStocks({
+        materialKey: 'aggsm',
+      });
+      const [firstPage] = await service.findAggregatedStocks({
+        materialKey: 'aggsm',
+        offset: 0,
+        limit: 3,
+      });
+      const [secondPage] = await service.findAggregatedStocks({
+        materialKey: 'aggsm',
+        offset: 3,
+        limit: 3,
+      });
+      const keys = all.map(groupKey);
+
+      expect(total).toBe(8);
+      expect(keys).toEqual([...keys].sort());
+      expect([...firstPage, ...secondPage].map(groupKey)).toEqual(
+        keys.slice(0, 6),
+      );
+    });
+
+    it('rejects a sort field outside the whitelist', async () => {
+      await expect(
+        app.get(StockService).findAggregatedStocks({
+          sort: {
+            field: 'quantity' as AggregatedStockSortField,
+            order: SortOrder.ASC,
+          },
+        }),
+      ).rejects.toThrow('Unknown sort field');
+    });
+  });
+
+  describeListSort(stocksGroupedByMaterialCase, () => context);
+
+  describe('StockService.findManyGroupedByMaterialId called directly', () => {
+    it('defaults to material key, then id, with no sort argument', async () => {
+      const service = app.get(StockService);
+      const [all, total] = await service.findManyGroupedByMaterialId({
+        materialKey: 'grpsm',
+      });
+      const [secondPage] = await service.findManyGroupedByMaterialId({
+        materialKey: 'grpsm',
+        offset: 2,
+        limit: 2,
+      });
+
+      expect(total).toBe(7);
+      expect(all.map(({ key }) => key)).toEqual([
+        'grpsm01',
+        'grpsm02',
+        'grpsm03',
+        'grpsm04',
+        'grpsm05',
+        'grpsm06',
+        'grpsm07',
+      ]);
+      expect(secondPage.map(({ key }) => key)).toEqual(['grpsm03', 'grpsm04']);
+    });
+
+    it('rejects a sort field outside the whitelist', async () => {
+      await expect(
+        app.get(StockService).findManyGroupedByMaterialId({
+          sort: {
+            field: 'quantity' as StockGroupedByMaterialSortField,
             order: SortOrder.ASC,
           },
         }),

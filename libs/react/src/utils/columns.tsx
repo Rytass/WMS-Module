@@ -4,7 +4,9 @@ import { LockIcon, DangerousOutlineIcon } from '@mezzanine-ui/icons';
 import {
   StockStatus,
   AggregatedStockFragment,
+  AggregatedStockSortField,
 } from '../graphql/generated/.graphql';
+import type { TableColumnSortProps } from '../hooks/useTableSort';
 import { WaitIcon, TransferIcon } from '../icons';
 import { stockStatusName } from '../components/inventoryActions/utils';
 import { formatKeyName } from './share';
@@ -177,3 +179,104 @@ export const aggregatedStockColumns: TableColumn<AggregatedStockFragment>[] = [
     render: (source) => formatBatchAttributes(source.attributes),
   },
 ];
+
+/**
+ * `aggregatedStockColumns` key → `AggregatedStockSortField`: the columns that
+ * sort. Left out: the 48px icon columns (a derived flag, and the sort icon
+ * would sit under the resize handle), the parent batch id and the host's
+ * attributes.
+ */
+export const AGGREGATED_STOCK_SORT_FIELDS = {
+  status: AggregatedStockSortField.STATUS,
+  materialKey: AggregatedStockSortField.MATERIAL_KEY,
+  description: AggregatedStockSortField.MATERIAL_DESCRIPTION,
+  batchKey: AggregatedStockSortField.BATCH_KEY,
+  locationKey: AggregatedStockSortField.LOCATION_KEY,
+  loaderSerialId: AggregatedStockSortField.LOADER_SERIAL_ID,
+  quantity: AggregatedStockSortField.QUANTITY,
+  baseUnit: AggregatedStockSortField.BASE_UNIT,
+  vendorId: AggregatedStockSortField.VENDOR_ID,
+  customerId: AggregatedStockSortField.CUSTOMER_ID,
+  saleId: AggregatedStockSortField.SALE_ID,
+  saleSerialId: AggregatedStockSortField.SALE_SERIAL_ID,
+} as const;
+
+export type AggregatedStockSortColumnKey =
+  keyof typeof AGGREGATED_STOCK_SORT_FIELDS;
+
+const isAggregatedStockSortColumnKey = (
+  key: string,
+): key is AggregatedStockSortColumnKey =>
+  Object.prototype.hasOwnProperty.call(AGGREGATED_STOCK_SORT_FIELDS, key);
+
+/**
+ * `aggregatedStockColumns` with the sortable ones wired to
+ * `getColumnSortProps` — `useTableSort`'s, or a client-side equivalent.
+ */
+export function getAggregatedStockColumns<
+  T extends AggregatedStockFragment = AggregatedStockFragment,
+>(
+  getColumnSortProps: (
+    key: AggregatedStockSortColumnKey,
+  ) => TableColumnSortProps,
+): TableColumn<T>[] {
+  return aggregatedStockColumns.map(
+    (column): TableColumn<T> =>
+      (isAggregatedStockSortColumnKey(column.key)
+        ? { ...column, ...getColumnSortProps(column.key) }
+        : column) as TableColumn<T>,
+  );
+}
+
+/** What each sortable column orders by, read off a loaded row. */
+const AGGREGATED_STOCK_SORT_VALUES: Readonly<
+  Record<
+    AggregatedStockSortColumnKey,
+    (stock: AggregatedStockFragment) => string | number | null | undefined
+  >
+> = {
+  status: (stock) => stock.status,
+  materialKey: (stock) => stock.material?.key,
+  description: (stock) => stock.material?.description,
+  batchKey: (stock) => stock.batch?.key,
+  locationKey: (stock) => stock.location?.key,
+  loaderSerialId: (stock) => stock.loader?.serialId,
+  quantity: (stock) => stock.quantity,
+  baseUnit: (stock) => stock.material?.baseUnit?.key,
+  vendorId: (stock) => stock.vendorId,
+  customerId: (stock) => stock.customerId,
+  saleId: (stock) => stock.saleId,
+  saleSerialId: (stock) => stock.saleSerialId,
+};
+
+/**
+ * Sort rows already loaded, the way the server sorts a page: missing values
+ * last in both directions, ties by `id` (the group key).
+ */
+export function sortAggregatedStocks<T extends AggregatedStockFragment>(
+  stocks: readonly T[],
+  key: AggregatedStockSortColumnKey,
+  order: 'ascend' | 'descend',
+): T[] {
+  const valueOf = AGGREGATED_STOCK_SORT_VALUES[key];
+  const direction = order === 'ascend' ? 1 : -1;
+  const byId = (left: T, right: T): number =>
+    left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+
+  return [...stocks].sort((left, right) => {
+    const a = valueOf(left);
+    const b = valueOf(right);
+    const aMissing = a === null || a === undefined;
+    const bMissing = b === null || b === undefined;
+
+    if (aMissing !== bMissing) return aMissing ? 1 : -1;
+    if (aMissing || a === b) return byId(left, right);
+
+    const compared =
+      typeof a === 'number' && typeof b === 'number'
+        ? a - b
+        : String(a).localeCompare(String(b));
+
+    return compared === 0 ? byId(left, right) : compared * direction;
+  });
+}
