@@ -41,6 +41,14 @@ export {
   type OrderReferenceProviderProps,
 } from './components/orderReference/OrderReferenceProvider';
 export { default as OrderReferenceList } from './components/orderReference/OrderReferenceList';
+// Hover (tap, on touch) a location key to see the map it is drawn on.
+export {
+  default as LocationMapPreview,
+  LocationMapPreviewList,
+  type LocationMapPreviewProps,
+  type LocationMapPreviewListProps,
+  type LocationMapPreviewTriggerProps,
+} from './components/map/LocationMapPreview';
 export {
   useOrderReference,
   type OrderReferenceValue,
