@@ -112,3 +112,23 @@ export class MapDataDto {
   @Field(() => [MapRangeDto])
   ranges!: MapRangeDto[];
 }
+
+@ObjectType()
+export class LocationMapPreviewDto {
+  @Field(() => String)
+  locationKey!: string;
+
+  @Field(() => String, {
+    description: 'Id of the map the location is drawn on.',
+  })
+  mapKey!: string;
+
+  @Field(() => [String], {
+    description:
+      'Map ids from the root map down to mapKey (inclusive). The root is the seeded DEFAULT_MAP_DATA_KEY map in a normal deployment.',
+  })
+  path!: string[];
+
+  @Field(() => MapDataDto)
+  mapData!: MapDataDto;
+}
