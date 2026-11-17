@@ -219,6 +219,18 @@ Order keys and loader serials are reserved by `WmsSequenceService.reserve`, neve
 sequence aborted the caller's transaction, #185). `sequenceStorage: 'table'` counts in
 the `sequences` table with one `INSERT … ON CONFLICT … RETURNING` and runs no DDL.
 
+#### List sorting is server-side, through `applyListSort`
+
+A sortable list takes an optional `sort: <List>SortInput { field: <List>SortField, order:
+SortOrder }` and its service orders through `applyListSort` (`libs/core/src/lib/utils/list-sort.ts`):
+whitelisted fields only (anything else throws), NULLs last in both directions, primary key
+appended as tiebreaker, and a deterministic default when `sort` is omitted. In entity mode
+every expression is `alias.propertyPath`, and a joined column must be `addSelect`ed or
+TypeORM's paginated DISTINCT subquery cannot order by it. The frontend uses `useTableSort`
+(state in the component, not the URL; a sort change resets to page 1). Each new list adds one
+case to `libs/graphql/src/lib/list-sorting.integration.spec.ts`. Full steps:
+[`docs/list-sorting.md`](docs/list-sorting.md).
+
 #### A raw list query paginates with `offset`/`limit`, never `skip`/`take`
 
 `skip`/`take` are entity-mode pagination. On a `getRawMany()` query TypeORM only turns them
