@@ -9,6 +9,7 @@ import { ReceiveInventoryOrderFragment } from '../../../../../graphql/generated/
 import { useQueryReceiveInventoryOrders } from '../../useApi';
 import { formatKeyName } from '../../../../../utils/share';
 import { FilterValues } from '../typing';
+import { LocationMapPreviewList } from '../../../../map/LocationMapPreview';
 
 interface InventoryMovementReceiveTableProps {
   currentFilter?: FilterValues;
@@ -69,10 +70,12 @@ function InventoryMovementReceiveTable({
       key: 'location',
       title: '目標位置',
       width: 140,
-      render: (source) =>
-        uniq(
-          (source.items ?? []).map((item) => formatKeyName(item.location?.key)),
-        ).join(','),
+      render: (source) => (
+        <LocationMapPreviewList
+          locationKeys={(source.items ?? []).map((item) => item.location?.key)}
+          separator=","
+        />
+      ),
     },
     {
       key: 'loader',
