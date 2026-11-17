@@ -45,7 +45,9 @@ sorted without a join that multiplies rows — leave it out.
 ### 2. Apply the sort in the service
 
 ```ts
-const RECEIVE_ORDER_SORT_FIELDS: Readonly<Record<ReceiveOrderSortField, string>> = {
+const RECEIVE_ORDER_SORT_FIELDS: Readonly<
+  Record<ReceiveOrderSortField, string>
+> = {
   [ReceiveOrderSortField.KEY]: 'order.key',
   [ReceiveOrderSortField.CREATED_AT]: 'order.createdAt',
 };
@@ -53,7 +55,10 @@ const RECEIVE_ORDER_SORT_FIELDS: Readonly<Record<ReceiveOrderSortField, string>>
 applyListSort(qb, {
   sort: options.sort,
   fields: RECEIVE_ORDER_SORT_FIELDS,
-  defaultOrder: { field: ReceiveOrderSortField.CREATED_AT, order: SortOrder.DESC },
+  defaultOrder: {
+    field: ReceiveOrderSortField.CREATED_AT,
+    order: SortOrder.DESC,
+  },
   tiebreaker: 'order.id',
   mode: 'raw', // only for getRawMany() lists
 });
@@ -65,10 +70,25 @@ pagination. `defaultOrder` may be an array for a multi-column default.
 
 Pick the mode by how the list is read:
 
-| List reads with | `mode` | Expression form | Paginate with |
-| --- | --- | --- | --- |
-| `getMany` / `getManyAndCount` | `entity` (default) | `alias.propertyPath` only | `skip` / `take` |
-| `getRawMany` | `raw` | selected alias (`status`) or SQL | `offset` / `limit` |
+| List reads with               | `mode`             | Expression form                  | Paginate with      |
+| ----------------------------- | ------------------ | -------------------------------- | ------------------ |
+| `getMany` / `getManyAndCount` | `entity` (default) | `alias.propertyPath` only        | `skip` / `take`    |
+| `getRawMany`                  | `raw`              | selected alias (`status`) or SQL | `offset` / `limit` |
+
+A list whose row has no single-column key (an aggregate) passes its group key
+as the tiebreaker, `tiebreaker: ['agg."materialId"', 'agg."batchId"', …]`; a
+column already used as the sort criterion is skipped. `findAggregatedStocks`
+is the example: it joins what a sort field needs (material, batch group,
+location, loader, unit) only for that field, so an unsorted call keeps its
+plain query. `findManyGroupedByMaterialId` shows the other raw shape: the
+material repository as main alias (soft delete and discriminator still apply),
+the per-material `SUM` as an inner-joined subquery, `getRawAndEntities()`
+with `offset`/`limit`, and `COUNT(*) OVER ()` for the total.
+
+Embedding one single-table child's query inside another's: TypeORM names
+every discriminator parameter `discriminatorColumnValues`, so the outer
+query's value overwrites the inner one. Rename the inner placeholder, as
+`findManyGroupedByMaterialId` does.
 
 Entity mode is strict because of TypeORM's paginated DISTINCT subquery (used as
 soon as `skip`/`take` meets a join): it rewrites each ORDER BY key into a column
@@ -77,8 +97,11 @@ metadata **whose column is in the SELECT**. The helper checks this up front and
 throws with the fix in the message. For a joined column:
 
 ```ts
-qb.leftJoin(UnitEntityClass, 'baseUnit', 'CAST(baseUnit.id AS text) = material.baseUnit')
-  .addSelect('baseUnit.key'); // required — the DISTINCT subquery must see it
+qb.leftJoin(
+  UnitEntityClass,
+  'baseUnit',
+  'CAST(baseUnit.id AS text) = material.baseUnit',
+).addSelect('baseUnit.key'); // required — the DISTINCT subquery must see it
 ```
 
 - Join **by entity class** (or the Symbol from `WmsEntities` for overridable
@@ -138,14 +161,19 @@ regenerating (steps 1 and 3) after the merge, never by hand.
 
 ```ts
 const SORT_FIELDS = {
-  key: ReceiveOrderSortField.KEY,          // column key → GraphQL sort field
+  key: ReceiveOrderSortField.KEY, // column key → GraphQL sort field
   createdAt: ReceiveOrderSortField.CREATED_AT,
 } as const;
 
 const { page, setPage, limit, offset } = useTablePageState();
-const { sort, getColumnSortProps } = useTableSort({ fields: SORT_FIELDS, setPage });
+const { sort, getColumnSortProps } = useTableSort({
+  fields: SORT_FIELDS,
+  setPage,
+});
 
-useQuery(ReceiveInventoryOrdersDocument, { variables: { offset, limit, sort } });
+useQuery(ReceiveInventoryOrdersDocument, {
+  variables: { offset, limit, sort },
+});
 
 const columns: TableColumn<Row>[] = [
   { key: 'key', title: '單號', ...getColumnSortProps('key') },
@@ -159,7 +187,7 @@ const columns: TableColumn<Row>[] = [
   page.
 - Leave the query variables to the hook; do not put `sort` in the URL.
 - Check the sort icon is clickable: in a narrow column (long title, `align:
-  'center'`) the icon lands under the column resize handle and the click goes
+'center'`) the icon lands under the column resize handle and the click goes
   nowhere. Widen the column (`width`) until it clears.
 
 ## Tests
@@ -180,6 +208,7 @@ const columns: TableColumn<Row>[] = [
    collation agrees with JS, **duplicates in every sortable column**, a NULL
    where the column can be NULL, explicit timestamps (`@CreateDateColumn`
    ignores an insert value — `update` it afterwards).
+
 2. **Direct service call** — per CLAUDE.md, call the exported service method
    with `sort` omitted (`app.get(TheService).findMany({})`) and assert the
    default order; see the `MaterialService.findMany called directly` block.
