@@ -693,7 +693,15 @@ type Query {
   loaderUnits(type: LoaderUnit!): [LoaderUnitDto!]!
   availableLoaders(locationId: ID): [LoaderDto!]!
   material(id: ID, key: String): MaterialDto!
-  materials(offset: Int, limit: Int, key: String, description: String): Materials!
+  materials(
+    offset: Int
+    limit: Int
+    key: String
+    description: String
+
+    """Omitted: newest first (createdAt DESC), then id."""
+    sort: MaterialSortInput
+  ): Materials!
   batches(offset: Int, limit: Int, key: String, materialId: ID): Batches!
   stock(id: ID!): StockDto!
   stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Stocks!
@@ -729,6 +737,25 @@ input DateRangeArgs {
 enum LoaderUnit {
   VOLUME
   SIZE
+}
+
+input MaterialSortInput {
+  field: MaterialSortField!
+  order: SortOrder!
+}
+
+enum MaterialSortField {
+  KEY
+  DESCRIPTION
+  BASE_UNIT
+  IS_ACTIVE
+  CREATED_AT
+}
+
+"""Direction of a list sort. NULLs always sort last."""
+enum SortOrder {
+  ASC
+  DESC
 }
 
 type Mutation {

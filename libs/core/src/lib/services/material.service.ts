@@ -17,8 +17,22 @@ import {
   Repository,
   type EntityTarget,
 } from 'typeorm';
-import { FindMaterialInput } from '../typings/find-material.input';
+import {
+  FindMaterialInput,
+  MaterialSortField,
+} from '../typings/find-material.input';
+import { SortOrder } from '../typings/list-sort';
 import { UnitEntityClass } from '../models';
+import { applyListSort } from '../utils/list-sort';
+
+/** ORDER BY expressions per sort field; `baseUnit` is joined on demand. */
+const MATERIAL_SORT_FIELDS: Readonly<Record<MaterialSortField, string>> = {
+  [MaterialSortField.KEY]: 'material.key',
+  [MaterialSortField.DESCRIPTION]: 'material.description',
+  [MaterialSortField.BASE_UNIT]: 'baseUnit.key',
+  [MaterialSortField.IS_ACTIVE]: 'material.isActive',
+  [MaterialSortField.CREATED_AT]: 'material.createdAt',
+};
 
 /**
  * Service for managing materials and their units
@@ -159,7 +173,7 @@ export class MaterialService<
     return updated as T;
   }
 
-  findMany(options: FindMaterialInput<T>): Promise<[T[], number]> {
+  async findMany(options: FindMaterialInput<T>): Promise<[T[], number]> {
     const queryBuilder = this.dataSource
       .getRepository<T>(this.materialEntity)
       .createQueryBuilder('material');
@@ -185,6 +199,32 @@ export class MaterialService<
         value: `%${value}%`,
       });
     }
+
+    // `materials.baseUnit` holds the unit's id; sorting by it would order by
+    // uuid. Join the unit (by class, so the table prefix and the paginated
+    // DISTINCT subquery both resolve it) and select its key, only when asked —
+    // the join is one row per material (`units.id` is the primary key).
+    if (options.sort?.field === MaterialSortField.BASE_UNIT) {
+      queryBuilder
+        .leftJoin(
+          UnitEntityClass,
+          'baseUnit',
+          // `CAST(...)`, not `::text`: TypeORM only rewrites `alias.property`
+          // when a space, `=`, `)` or `,` follows it.
+          'CAST(baseUnit.id AS text) = material.baseUnit',
+        )
+        .addSelect('baseUnit.key');
+    }
+
+    applyListSort(queryBuilder, {
+      sort: options.sort,
+      fields: MATERIAL_SORT_FIELDS,
+      defaultOrder: {
+        field: MaterialSortField.CREATED_AT,
+        order: SortOrder.DESC,
+      },
+      tiebreaker: 'material.id',
+    });
 
     if (options.offset !== undefined && options.offset >= 0)
       queryBuilder.skip(options.offset);
