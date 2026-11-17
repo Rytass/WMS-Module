@@ -7,10 +7,14 @@ import { graphql, type GraphQLSchema } from 'graphql';
 import { Client } from 'pg';
 import { DataSource, type DeepPartial, type EntityTarget } from 'typeorm';
 import {
+  ChangeLogSortField,
+  ChangeType,
   ReceiveInventoryOrderService,
   ReceiveInventoryOrderSortField,
   ShipInventoryOrderService,
   ShipInventoryOrderSortField,
+  StockEntityClass,
+  StockService,
   StockStatus,
   WmsOperationRunner,
   AllocateInventoryOrderEntityClass,
@@ -1487,6 +1491,161 @@ const shipOrdersCase: ListSortCase<ShipInventoryOrderSortField> = {
   },
 };
 
+/** Set by the change log seed: each history row's stamped `createdAt`. */
+let changeLogCreatedAt: ReadonlyMap<string, Date> = new Map();
+
+const CHANGE_TYPE_ORDER: readonly ChangeType[] = Object.values(ChangeType);
+
+const changeLogsCase: ListSortCase<ChangeLogSortField> = {
+  name: 'changeLogs',
+  sortFields: ChangeLogSortField,
+  defaultOrder: newestFirst(ChangeLogSortField.CREATED_AT),
+  fetchPage: graphqlPage<ChangeLogSortField>(
+    'changeLogs',
+    'materialKey: "clm"',
+  ),
+  seed: async (ctx) => {
+    const { app, dataSource, entities } = ctx;
+    const [unitB, unitA] = await dataSource
+      .getRepository(UnitEntityClass)
+      .save([{ key: 'clunb' }, { key: 'cluna' }]);
+    // A unit that no longer exists: the BASE_UNIT join yields NULL.
+    const orphanUnitId = '00000000-0000-4000-8000-0000000000cc';
+    const materials = await saveNamed<MaterialEntityClass>(
+      dataSource,
+      entities.material,
+      [
+        { key: 'clmatb', description: 'cldesa', baseUnit: unitB.id },
+        { key: 'clmata', description: 'cldesb', baseUnit: unitA.id },
+        { key: 'clmatc', description: 'cldesa', baseUnit: orphanUnitId },
+      ] as DeepPartial<MaterialEntityClass>[],
+    );
+    const locations = await saveNamed<LocationEntityClass>(
+      dataSource,
+      entities.location,
+      [
+        { key: 'cllocb', description: 'clloc' },
+        { key: 'clloca', description: 'clloc' },
+      ] as DeepPartial<LocationEntityClass>[],
+    );
+
+    // Six receipts (RECEIVED rows) ...
+    const receipts = [
+      [0, 'clbtb', 0, 3],
+      [1, 'clbta', 1, 5],
+      [2, 'clbta', 1, 3],
+      [0, 'clbta', 0, 5],
+      [1, 'clbtb', 1, 3],
+      [2, 'clbtb', 0, 5],
+    ] as const;
+
+    await receipts.reduce<Promise<void>>(
+      async (acc, [material, batchKey, location, quantity], index) => {
+        await acc;
+        await receiveOrder(ctx, {
+          key: `clro0${index}`,
+          description: 'clrcv',
+          materialKey: materials[material].key,
+          batchKey,
+          locationKey: locations[location].key,
+          target: quantity,
+          received: quantity,
+        });
+      },
+      Promise.resolve(),
+    );
+
+    // ... and two shipments (SHIPPED rows), so the change type has duplicates.
+    const batchRepository = dataSource.getRepository<BatchEntityClass>(
+      entities.batch,
+    );
+    const shipments = [
+      [0, 'clbtb', 0],
+      [1, 'clbta', 1],
+    ] as const;
+
+    await shipments.reduce<Promise<void>>(
+      async (acc, [material, batchKey, location], index) => {
+        await acc;
+
+        const batch = await batchRepository.findOneByOrFail({
+          key: batchKey,
+          materialId: materials[material].id,
+        });
+
+        await shipOrder(ctx, {
+          key: `clso0${index}`,
+          description: 'clshp',
+          materialId: materials[material].id,
+          batchId: batch.id,
+          locationId: locations[location].id,
+          target: 1,
+          shipped: 1,
+        });
+      },
+      Promise.resolve(),
+    );
+
+    // Read the history back for its ids and computed change types, then stamp
+    // creation times with duplicates (rows written together share `now()`).
+    const [rows] = await app
+      .get(StockService)
+      .findChangeLogs({ materialKey: 'clm' });
+    const stamps = ['2026-10-02', '2026-10-01', '2026-10-03'].map(day);
+    const stockRepository = dataSource.getRepository<StockEntityClass>(
+      entities.stock,
+    );
+
+    changeLogCreatedAt = new Map(
+      rows.map(({ id }, index) => [id, stamps[index % stamps.length]]),
+    );
+
+    await [...changeLogCreatedAt].reduce<Promise<void>>(
+      async (acc, [id, createdAt]) => {
+        await acc;
+        await stockRepository.update(id, { createdAt } as never);
+      },
+      Promise.resolve(),
+    );
+
+    const materialById = new Map(materials.map((m) => [m.id, m]));
+    const unitKeys = new Map([
+      [unitA.id, unitA.key],
+      [unitB.id, unitB.key],
+    ]);
+    const batchKeys = new Map(
+      (await batchRepository.find()).map(({ id, key }) => [id, key]),
+    );
+    const locationKeys = new Map(locations.map(({ id, key }) => [id, key]));
+
+    return new Map(
+      rows.map((row) => {
+        const material = materialById.get(row.materialId);
+
+        return [
+          row.id,
+          {
+            [ChangeLogSortField.CHANGE_TYPE]: CHANGE_TYPE_ORDER.indexOf(
+              row.changeType,
+            ),
+            [ChangeLogSortField.MATERIAL_KEY]: material?.key ?? null,
+            [ChangeLogSortField.MATERIAL_DESCRIPTION]:
+              material?.description ?? null,
+            [ChangeLogSortField.BATCH_KEY]: batchKeys.get(row.batchId) ?? null,
+            [ChangeLogSortField.LOCATION_KEY]:
+              locationKeys.get(row.locationId) ?? null,
+            [ChangeLogSortField.QUANTITY]: Number(row.quantity),
+            [ChangeLogSortField.BASE_UNIT]:
+              unitKeys.get(String(material?.baseUnit)) ?? null,
+            [ChangeLogSortField.CREATED_AT]:
+              changeLogCreatedAt.get(row.id) ?? null,
+          },
+        ];
+      }),
+    );
+  },
+};
+
 describe('list sorting (integration)', () => {
   let app: INestApplication;
   let context: ListSortContext;
@@ -1597,6 +1756,7 @@ describe('list sorting (integration)', () => {
 
   describeListSort(receiveOrdersCase, () => context);
   describeListSort(shipOrdersCase, () => context);
+  describeListSort(changeLogsCase, () => context);
 
   describe('raw lists called directly', () => {
     it('ReceiveInventoryOrderService.findMany defaults to newest first, then id', () =>
@@ -1618,6 +1778,14 @@ describe('list sorting (integration)', () => {
             ...page,
           }),
         (row) => ({ createdAt: row.createdAt }),
+        [{ field: 'createdAt', order: SortOrder.DESC }],
+      ));
+
+    it('StockService.findChangeLogs defaults to newest first, then id', () =>
+      expectDirectDefaultOrder(
+        (page) =>
+          app.get(StockService).findChangeLogs({ materialKey: 'clm', ...page }),
+        (row) => ({ createdAt: changeLogCreatedAt.get(row.id) ?? null }),
         [{ field: 'createdAt', order: SortOrder.DESC }],
       ));
   });

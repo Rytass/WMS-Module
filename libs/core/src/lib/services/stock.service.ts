@@ -24,7 +24,14 @@ import {
   LoadersEntityClass,
   LoaderTypeEntityClass,
   LocationEntityClass,
+  UnitEntityClass,
 } from '../models';
+import {
+  ChangeLogSortField,
+  FindChangeLogInput,
+} from '../typings/find-change-log.input';
+import { SortOrder } from '../typings/list-sort';
+import { applyListSort } from '../utils/list-sort';
 import { WMS_CORE_MODULE_OPTIONS } from '../typings/core-module-options';
 import type { WmsModuleCoreModuleOptions } from '../typings/core-module-options';
 import { WmsEntities } from '../models/wms-entities';
@@ -761,14 +768,15 @@ export class StockService<
   }
 
   async findChangeLogs(
-    options: FindStockInput<T>,
+    options: FindChangeLogInput<T>,
   ): Promise<[ChangeLog[], number]> {
+    const { sort, ...filters } = options;
     // Our own change tables, named as they ended up under `withWmsTablePrefix`.
     const prefix = getWmsTablePrefix();
 
     // Build base query with all change entity joins
     const changesQueryBuilder = this.pipeSelectOptionsToQueryBuilder(
-      { ...options, offset: undefined, limit: undefined },
+      { ...filters, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
       false,
     )
@@ -871,17 +879,9 @@ export class StockService<
       resultQueryBuilder.limit(options.limit);
     }
 
-    // Explicitly select only the fields needed for ChangeLog
-    resultQueryBuilder
-      .select('stock.id', 'id')
-      .addSelect('stock.quantity', 'quantity')
-      .addSelect('stock_status.status', 'status')
-      .addSelect('stock."materialId"', 'materialId')
-      .addSelect('stock."batchId"', 'batchId')
-      .addSelect('stock."locationId"', 'locationId')
-      .addSelect('stock."loaderId"', 'loaderId')
-      .addSelect(
-        `CASE
+    // Also the ORDER BY for CHANGE_TYPE: PostgreSQL accepts an output alias
+    // in ORDER BY only on its own, never inside an expression.
+    const changeTypeSql = `CASE
           WHEN receive_change.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
           WHEN ship_change.id IS NOT NULL THEN
             CASE WHEN ship_change."quantityChanged" > 0 THEN '${ChangeType.IN_SHIPMENT}'
@@ -906,16 +906,85 @@ export class StockService<
           WHEN reclassify_change.id IS NOT NULL THEN '${ChangeType.RECLASSIFIED}'
           WHEN scrape_change.id IS NOT NULL THEN '${ChangeType.SCRAPED}'
           ELSE NULL
-        END`,
-        'changeType',
+        END`;
+
+    // Explicitly select only the fields needed for ChangeLog
+    resultQueryBuilder
+      .select('stock.id', 'id')
+      .addSelect('stock.quantity', 'quantity')
+      .addSelect('stock_status.status', 'status')
+      .addSelect('stock."materialId"', 'materialId')
+      .addSelect('stock."batchId"', 'batchId')
+      .addSelect('stock."locationId"', 'locationId')
+      .addSelect('stock."loaderId"', 'loaderId')
+      .addSelect(changeTypeSql, 'changeType');
+
+    // Joined only for the column asked for, by entity (the overridable ones
+    // through `WmsEntities`) so the table prefix applies; every join is on a
+    // primary key, so no row is multiplied. Aliases avoid the filter joins'.
+    if (
+      sort?.field === ChangeLogSortField.MATERIAL_KEY ||
+      sort?.field === ChangeLogSortField.MATERIAL_DESCRIPTION ||
+      sort?.field === ChangeLogSortField.BASE_UNIT
+    ) {
+      resultQueryBuilder.leftJoin(
+        this.entities.material,
+        'cl_material',
+        'cl_material.id = stock."materialId"',
       );
+    }
+
+    if (sort?.field === ChangeLogSortField.BASE_UNIT) {
+      resultQueryBuilder.leftJoin(
+        UnitEntityClass,
+        'cl_unit',
+        'CAST(cl_unit.id AS text) = cl_material."baseUnit"',
+      );
+    }
+
+    if (sort?.field === ChangeLogSortField.BATCH_KEY) {
+      resultQueryBuilder.leftJoin(
+        this.entities.batch,
+        'cl_batch',
+        'cl_batch.id = stock."batchId"',
+      );
+    }
+
+    if (sort?.field === ChangeLogSortField.LOCATION_KEY) {
+      resultQueryBuilder.leftJoin(
+        this.entities.location,
+        'cl_location',
+        'cl_location.id = stock."locationId"',
+      );
+    }
+
+    const changeTypeRank = `(CASE ${changeTypeSql} ${Object.values(ChangeType)
+      .map((type, rank) => `WHEN '${type}' THEN ${rank}`)
+      .join(' ')} END)`;
 
     // The id tiebreaker is what keeps two pages from overlapping when several
     // rows share a timestamp, which a multi-line order always produces.
-    const items = await resultQueryBuilder
-      .addOrderBy('stock."createdAt"', 'DESC')
-      .addOrderBy('stock.id', 'ASC')
-      .getRawMany<ChangeLog>();
+    applyListSort(resultQueryBuilder, {
+      sort,
+      fields: {
+        [ChangeLogSortField.CHANGE_TYPE]: changeTypeRank,
+        [ChangeLogSortField.MATERIAL_KEY]: 'cl_material.key',
+        [ChangeLogSortField.MATERIAL_DESCRIPTION]: 'cl_material.description',
+        [ChangeLogSortField.BATCH_KEY]: 'cl_batch.key',
+        [ChangeLogSortField.LOCATION_KEY]: 'cl_location.key',
+        [ChangeLogSortField.QUANTITY]: 'stock.quantity',
+        [ChangeLogSortField.BASE_UNIT]: 'cl_unit.key',
+        [ChangeLogSortField.CREATED_AT]: 'stock."createdAt"',
+      },
+      defaultOrder: {
+        field: ChangeLogSortField.CREATED_AT,
+        order: SortOrder.DESC,
+      },
+      tiebreaker: 'stock.id',
+      mode: 'raw',
+    });
+
+    const items = await resultQueryBuilder.getRawMany<ChangeLog>();
 
     return [items, count];
   }
