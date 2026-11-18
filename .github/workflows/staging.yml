@@ -112,6 +112,12 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
 
       - name: 'Update image on GKE'
+        env:
+          # gcloud >= 571 crashes in `config config-helper` ('Credentials' object has no
+          # attribute 'private_key_id') when auth exports CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE.
+          # get-credentials then writes a kubeconfig whose gke-gcloud-auth-plugin reads
+          # GOOGLE_APPLICATION_CREDENTIALS directly instead of calling that helper.
+          CLOUDSDK_CONTAINER_USE_APPLICATION_DEFAULT_CREDENTIALS: 'true'
         run: |-
           gcloud components install kubectl
           gcloud container clusters get-credentials rytass-cluster --region asia-east1 --project develop-server
