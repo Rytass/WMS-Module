@@ -2,8 +2,6 @@
 
 .container {
   --wms-map-selected-ring: #{palette.semantic-variable(border, brand)};
-  --wms-map-label-dark: #{palette.semantic-variable(text, neutral-solid)};
-  --wms-map-label-light: #{palette.semantic-variable(text, fixed-light)};
 
   min-height: 500px;
   width: 100%;
