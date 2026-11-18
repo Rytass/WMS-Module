@@ -49,6 +49,13 @@ export {
   type LocationMapPreviewListProps,
   type LocationMapPreviewTriggerProps,
 } from './components/map/LocationMapPreview';
+// Host preferences for every map in the module (e.g. skip the selection dialog).
+export {
+  MapSettingsProvider,
+  useMapSettings,
+  type MapSettings,
+  type MapSettingsProviderProps,
+} from './components/map/settings';
 export {
   useOrderReference,
   type OrderReferenceValue,

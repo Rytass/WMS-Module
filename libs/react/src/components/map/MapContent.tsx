@@ -11,6 +11,7 @@ import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
 import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
+import { useMapSettings } from './settings';
 import { uploadFile } from '../../utils/upload';
 import classes from './MapContent.module.scss';
 
@@ -22,14 +23,19 @@ interface MapContentProps {
     isExistingLocation: boolean,
     editMode: EditMode,
   ) => void;
+  /** Overrides `MapSettingsProvider`; see `MapSettings.confirmSelection`. */
+  confirmSelection?: boolean;
 }
 
 function MapContent({
   viewMode = ViewMode.EDIT,
   onSave,
   onNodeClick: onNodeClickProps,
+  confirmSelection: confirmSelectionProp,
 }: MapContentProps) {
   const { openDialog } = useDialog();
+  const settings = useMapSettings();
+  const confirmSelection = confirmSelectionProp ?? settings.confirmSelection;
   const [editMode, setEditMode] = useState<EditMode>(EditMode.BACKGROUND);
   const [drawingMode, setDrawingMode] = useState<DrawingMode>(DrawingMode.NONE);
   const [selectedColor, setSelectedColor] = useState<string>(COLOR_PALETTE[0]);
@@ -58,13 +64,15 @@ function MapContent({
   const onNodeClick = useCallback(
     async (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
       if (onNodeClickProps && nodeInfo.type !== 'imageNode') {
-        const isConfirm = await openDialog({
-          modalStatusType: 'info',
-          title: '確認選擇此位置',
-          supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
-          cancelText: '取消',
-          confirmText: '確認',
-        });
+        const isConfirm =
+          !confirmSelection ||
+          (await openDialog({
+            modalStatusType: 'info',
+            title: '確認選擇此位置',
+            supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
+            cancelText: '取消',
+            confirmText: '確認',
+          }));
 
         if (isConfirm) {
           onNodeClickProps(
@@ -75,7 +83,7 @@ function MapContent({
         }
       }
     },
-    [existingLocationKeys, onNodeClickProps, openDialog],
+    [confirmSelection, existingLocationKeys, onNodeClickProps, openDialog],
   );
 
   const onNodeDoubleClick = useCallback(
