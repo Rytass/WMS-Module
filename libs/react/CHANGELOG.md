@@ -1,3 +1,14 @@
+## 0.11.0 (2026-11-18)
+
+### 🚀 Features
+
+- **react:** require wms-map-react-components 0.4 ([23850184](https://github.com/Rytass/WMS-Module/commit/23850184))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.10.0 (2026-11-18)
 
 ### 🚀 Features
