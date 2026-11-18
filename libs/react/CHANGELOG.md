@@ -1,3 +1,14 @@
+## 0.10.0 (2026-11-18)
+
+### 🚀 Features
+
+- **react:** pick dark or light map labels from what is behind them ([a8ca3b75](https://github.com/Rytass/WMS-Module/commit/a8ca3b75))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.9.0 (2026-11-18)
 
 ### 🚀 Features
