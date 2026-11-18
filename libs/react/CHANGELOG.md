@@ -1,3 +1,14 @@
+## 0.9.0 (2026-11-18)
+
+### 🚀 Features
+
+- **react:** highlight the selected location and shorten the maps page map ([2f3998da](https://github.com/Rytass/WMS-Module/commit/2f3998da))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.8.0 (2026-11-18)
 
 ### 🚀 Features
