@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -27,7 +27,7 @@ jobs:
 
       - id: tagging
         name: Bump version and push tag
-        uses: anothrNick/github-tag-action@1.69.0
+        uses: anothrNick/github-tag-action@1.75.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # if you don't want to set write permissions use a PAT token
           DEFAULT_BUMP: patch
@@ -45,20 +45,20 @@ jobs:
 
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log into registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: asia-east1-docker.pkg.dev
           username: _json_key
           password: ${{ secrets.GAR_JSON_KEY }}
 
       - name: Build and push Client Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
@@ -71,7 +71,7 @@ jobs:
           cache-to: type=local,dest=/tmp/runner-cache-client,mode=min,compression=zstd
 
       # - name: Build docker image (Admin)
-      #   uses: docker/build-push-action@v5
+      #   uses: docker/build-push-action@v7
       #   with:
       #     context: .
       #     push: true
@@ -83,7 +83,7 @@ jobs:
       #     cache-to: type=local,dest=/tmp/runner-cache-admin,mode=min,compression=zstd
 
       - name: Build and push API Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
@@ -104,12 +104,12 @@ jobs:
 
     steps:
       - name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v1'
+        uses: 'google-github-actions/auth@v3'
         with:
           credentials_json: ${{ secrets.GAR_JSON_KEY }}
 
       - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+        uses: 'google-github-actions/setup-gcloud@v3'
 
       - name: 'Update image on GKE'
         run: |-
