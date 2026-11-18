@@ -1,3 +1,14 @@
+## 0.8.0 (2026-11-18)
+
+### 🚀 Features
+
+- **react:** let hosts skip the map selection dialog ([bbfbbff7](https://github.com/Rytass/WMS-Module/commit/bbfbbff7))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.7.0 (2026-11-18)
 
 ### 🚀 Features
