@@ -8,6 +8,7 @@ import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
 import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
+import { useMapSettings } from './settings';
 
 interface MapModalProps {
   open: boolean;
@@ -18,6 +19,8 @@ interface MapModalProps {
     nodeInfo: WMSNodeClickInfo,
     isExistingLocation: boolean,
   ) => void;
+  /** Overrides `MapSettingsProvider`; see `MapSettings.confirmSelection`. */
+  confirmSelection?: boolean;
 }
 
 function MapModal({
@@ -26,8 +29,11 @@ function MapModal({
   title = '庫位地圖',
   viewMode = ViewMode.VIEW,
   onNodeClick: onNodeClickProps,
+  confirmSelection: confirmSelectionProp,
 }: MapModalProps) {
   const { openDialog } = useDialog();
+  const settings = useMapSettings();
+  const confirmSelection = confirmSelectionProp ?? settings.confirmSelection;
 
   const {
     setCurrentMapKey,
@@ -62,13 +68,15 @@ function MapModal({
   const onNodeClick = useCallback(
     async (nodeInfo: WMSNodeClickInfo) => {
       if (onNodeClickProps && nodeInfo.type !== 'imageNode') {
-        const isConfirm = await openDialog({
-          modalStatusType: 'info',
-          title: '確認選擇此位置',
-          supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
-          cancelText: '取消',
-          confirmText: '確認',
-        });
+        const isConfirm =
+          !confirmSelection ||
+          (await openDialog({
+            modalStatusType: 'info',
+            title: '確認選擇此位置',
+            supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
+            cancelText: '取消',
+            confirmText: '確認',
+          }));
 
         if (isConfirm) {
           onNodeClickProps(
@@ -78,7 +86,7 @@ function MapModal({
         }
       }
     },
-    [existingLocationKeys, onNodeClickProps, openDialog],
+    [confirmSelection, existingLocationKeys, onNodeClickProps, openDialog],
   );
 
   const onNodeDoubleClick = useCallback(

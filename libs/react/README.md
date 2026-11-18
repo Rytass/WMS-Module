@@ -251,6 +251,23 @@ resource. Pass `haveInventoryActionsSystem={false}` to make it read-only:
 The default stays `true` in this major for backwards compatibility; **it flips to
 `false` in the next major.**
 
+## Selecting a location on a map without the dialog
+
+A click on a map range asks 「確認選擇此位置」 before it selects anything — on the
+`Maps` page and in the map picker of `LocationsField`. Turn that off for the whole
+app with the optional `MapSettingsProvider`, mounted next to the other providers:
+
+```tsx
+import { MapSettingsProvider } from '@rytass/wms-module-react';
+
+<MapSettingsProvider confirmSelection={false}>{children}</MapSettingsProvider>
+```
+
+A single map can still override it: `<Maps confirmMapSelection />`,
+`<LocationsField confirmMapSelection={false} … />`. Without the provider nothing
+changes. A double-click still only drills down: the map component drops the click
+that precedes it.
+
 ## Inventory counting
 
 `InventoryCount` (the list) and `ViewInventoryCount` (one count) implement the full
