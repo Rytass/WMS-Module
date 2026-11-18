@@ -18,7 +18,6 @@ import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
 import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
 import { useMapSettings } from './settings';
-import { useRangeLabelTones, type LabelTone } from './labelContrast';
 import { uploadFile } from '../../utils/upload';
 import classes from './MapContent.module.scss';
 
@@ -59,36 +58,6 @@ function selectionStyle(scope: string, key: string): string {
 ${root} ${selected} { outline: 3px solid var(--wms-map-selected-ring); outline-offset: 2px; border-radius: 6px; }`;
 }
 
-/**
- * Range labels in the tone `useRangeLabelTones` picked, each with a halo of the
- * opposite tone so it stays legible across the linework of a floor plan. The
- * package sets `color: white` on the label's parent, so the rule targets the
- * label `span` itself and needs no `!important`.
- */
-function labelStyle(
-  scope: string,
-  tones: ReadonlyMap<string, LabelTone>,
-): string {
-  const root = `[data-wms-map="${CSS.escape(scope)}"]`;
-  const rule = (tone: LabelTone): string => {
-    const ids = [...tones]
-      .filter(([, t]) => t === tone)
-      .map(
-        ([id]) => `${root} .react-flow__node[data-id="${CSS.escape(id)}"] span`,
-      );
-    const [text, halo] =
-      tone === 'dark'
-        ? ['--wms-map-label-dark', '--wms-map-label-light']
-        : ['--wms-map-label-light', '--wms-map-label-dark'];
-
-    return ids.length
-      ? `${ids.join(', ')} { color: var(${text}); text-shadow: 0 0 2px var(${halo}), 0 0 2px var(${halo}), 0 0 4px var(${halo}); }`
-      : '';
-  };
-
-  return `${rule('dark')}\n${rule('light')}`;
-}
-
 function MapContent({
   viewMode = ViewMode.EDIT,
   onSave,
@@ -113,12 +82,6 @@ function MapContent({
     existingLocationKeys,
     initialNodes,
   } = useQueryMapData();
-
-  const labelTones = useRangeLabelTones(initialNodes);
-  const labels = useMemo(
-    () => (labelTones.size ? labelStyle(scope, labelTones) : ''),
-    [labelTones, scope],
-  );
 
   const onBreadcrumbClick = useCallback(
     (warehouseId: string, index: number) => {
@@ -206,7 +169,6 @@ function MapContent({
         height ? ({ '--wms-map-height': height } as CSSProperties) : undefined
       }
     >
-      {labels ? <style>{labels}</style> : null}
       {selectedLocationKey &&
       initialNodes.some((node) => node.id === selectedLocationKey) ? (
         <style>{selectionStyle(scope, selectedLocationKey)}</style>

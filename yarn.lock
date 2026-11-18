@@ -6762,9 +6762,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rytass/wms-map-react-components@npm:0.3.0":
-  version: 0.3.0
-  resolution: "@rytass/wms-map-react-components@npm:0.3.0"
+"@rytass/wms-map-react-components@npm:0.4.0":
+  version: 0.4.0
+  resolution: "@rytass/wms-map-react-components@npm:0.4.0"
   dependencies:
     "@xyflow/react": "npm:^12.10.1"
   peerDependencies:
@@ -6772,7 +6772,7 @@ __metadata:
     react: "*"
     react-dom: "*"
     react-hook-form: "*"
-  checksum: 10c0/12cf1a121b1916a29dfbf33c2934a6ed4a4e2f5fb598a7461056a50db19ce866ec84f001a8bd0cfc73d8287f2c7802d168a7c7ce818a8b14a6ce573cdd44cd66
+  checksum: 10c0/5e1b0c073662a0d15020310f63714e622d96ba6f18c9783e0b62f1fe0729f5292b0be04e0b1b7d331b7c2210c2e86f09e003461ead28ec48156d9cf36b1fbf65
   languageName: node
   linkType: hard
 
@@ -8386,7 +8386,7 @@ __metadata:
     "@rollup/plugin-typescript": "npm:^12.1.0"
     "@rytass/secret-adapter-vault-nestjs": "npm:^0.4.4"
     "@rytass/wms-base-nestjs-module": "npm:0.4.0"
-    "@rytass/wms-map-react-components": "npm:0.3.0"
+    "@rytass/wms-map-react-components": "npm:0.4.0"
     "@swc-node/register": "npm:~1.9.1"
     "@swc/cli": "npm:~0.6.0"
     "@swc/core": "npm:~1.5.7"
