@@ -12,6 +12,7 @@ import {
   TABLE_ACTIONS_KEY,
 } from '@mezzanine-ui/core/table';
 import { usePersistedColumnWidths } from '../../../hooks/usePersistedColumnWidths';
+import { useCompactLayout } from '../../../hooks/useCompactLayout';
 
 const COLUMN_MIN_WIDTH = 40;
 
@@ -81,6 +82,7 @@ const Table = <T extends TableDataSource>({
   pinnedColumnKeys?: readonly string[];
 }) => {
   const [containerRef, containerWidth] = useElementWidth();
+  const compact = useCompactLayout();
 
   const { columnWidths, onColumnWidthsChange } = usePersistedColumnWidths(
     tableKey,
@@ -106,12 +108,16 @@ const Table = <T extends TableDataSource>({
         ...c,
         width: c.width ?? DEFAULT_COLUMN_WIDTH,
         minWidth: COLUMN_MIN_WIDTH,
+        // On a phone the pinned block alone is wider than the screen, and
+        // pinned columns never scroll: whatever lies past them (the material
+        // key, on the inventory list) could not be reached at all.
         fixed:
-          index <= pinnedUntilIndex || pinnedColumnKeys?.includes(c.key)
+          !compact &&
+          (index <= pinnedUntilIndex || pinnedColumnKeys?.includes(c.key))
             ? 'start'
             : c.fixed,
       })),
-    [pinnedColumnKeys, pinnedUntilIndex, props.columns],
+    [compact, pinnedColumnKeys, pinnedUntilIndex, props.columns],
   );
 
   const leadingControlsWidth =
@@ -172,6 +178,15 @@ const Table = <T extends TableDataSource>({
                 pageSizeLabel: '每頁顯示：',
                 pageSizeOptions: [5, 10, 15, 20],
                 ...props.pagination,
+                // A full pager (size picker, five page numbers, both ends)
+                // is wider than a phone and pushed the page sideways.
+                ...(compact
+                  ? {
+                      showPageSizeOptions: false,
+                      siblingCount: 0,
+                      boundaryCount: 1,
+                    }
+                  : {}),
               }
         }
       />
