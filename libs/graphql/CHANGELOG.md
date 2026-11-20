@@ -1,3 +1,18 @@
+## 0.15.0 (2026-11-20)
+
+### 🚀 Features
+
+- **core,graphql:** look locations up by exact key ([c2d2ebc2](https://github.com/Rytass/WMS-Module/commit/c2d2ebc2))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.13.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.14.0 (2026-11-20)
 
 ### 🚀 Features

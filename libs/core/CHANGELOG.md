@@ -1,3 +1,14 @@
+## 0.13.0 (2026-11-20)
+
+### 🚀 Features
+
+- **core,graphql:** look locations up by exact key ([c2d2ebc2](https://github.com/Rytass/WMS-Module/commit/c2d2ebc2))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.12.0 (2026-11-20)
 
 ### 🚀 Features

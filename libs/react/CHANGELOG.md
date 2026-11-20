@@ -1,3 +1,18 @@
+## 0.13.0 (2026-11-20)
+
+### 🚀 Features
+
+- **react:** pass keys through the Locations operation ([97eed14c](https://github.com/Rytass/WMS-Module/commit/97eed14c))
+
+### 🩹 Fixes
+
+- **react:** keep list pages within a phone screen ([5f19d499](https://github.com/Rytass/WMS-Module/commit/5f19d499))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.12.0 (2026-11-20)
 
 ### 🚀 Features
