@@ -925,6 +925,11 @@ type Query {
     isActive: Boolean
     key: String
 
+    """
+    Exact, case-sensitive match on the location key, for a scanned label. `key` is a substring search; this is not.
+    """
+    keys: [String!]
+
     """Omitted: newest first (createdAt DESC), then id."""
     sort: LocationSortInput
   ): Locations!

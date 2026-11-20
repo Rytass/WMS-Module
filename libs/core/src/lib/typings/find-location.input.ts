@@ -16,6 +16,12 @@ export type FindLocationInput<U extends object> = PaginationInput & {
   description?: string;
   isActive?: boolean;
   root?: boolean;
+  /**
+   * Exact, case-sensitive match on `key`, for a scanned label. Unlike the
+   * `wildcard` substring search, `A1` never returns `0A1` or `A10`. An empty
+   * array matches nothing.
+   */
+  keys?: readonly string[];
   wildcard?: {
     key: keyof U;
     value: string;

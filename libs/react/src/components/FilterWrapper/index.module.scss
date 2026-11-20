@@ -6,6 +6,11 @@
   justify-content: flex-start;
   gap: spacing.semantic-variable(gap, base);
 
+  // Matches useCompactLayout: the buttons go under the filters.
+  @media (max-width: 767px) {
+    flex-direction: column;
+  }
+
   .filters {
     flex: 1;
     display: flex;

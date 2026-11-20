@@ -9,6 +9,7 @@ import { isEqual } from 'lodash';
 import { Button, cx } from '@mezzanine-ui/react';
 import { ChevronDownIcon } from '@mezzanine-ui/icons';
 import { usePreviousValue } from '../../hooks/usePreviousValue';
+import { useCompactLayout } from '../../hooks/useCompactLayout';
 import { FormWrapper } from '../fields/FormWrapper';
 import FormActionButtons from '../FormActionButtons';
 import { renderFilter } from './utils';
@@ -59,6 +60,12 @@ const FilterWrapper = <T extends FieldValues>({
     }
   }, [methods, prevSyncValues, syncValues]);
 
+  // On a phone every filter takes the full width: five side by side squeezed
+  // each label into a column of single characters.
+  const compact = useCompactLayout();
+  const columns = (template: string): string =>
+    compact ? 'minmax(0, 1fr)' : template;
+
   const onReset = useCallback(() => {
     methods.reset();
     onSubmit?.({} as T);
@@ -69,7 +76,9 @@ const FilterWrapper = <T extends FieldValues>({
       <div className={classes.filters}>
         <div
           className={classes.filterLine}
-          style={{ gridTemplateColumns: baseFilters.gridTemplateColumns }}
+          style={{
+            gridTemplateColumns: columns(baseFilters.gridTemplateColumns),
+          }}
         >
           {baseFilters.filters.map(renderFilter)}
         </div>
@@ -84,7 +93,9 @@ const FilterWrapper = <T extends FieldValues>({
                 <div
                   className={classes.filterLine}
                   style={{
-                    gridTemplateColumns: expandedFilters1.gridTemplateColumns,
+                    gridTemplateColumns: columns(
+                      expandedFilters1.gridTemplateColumns,
+                    ),
                   }}
                 >
                   {expandedFilters1.filters.map(renderFilter)}
@@ -94,7 +105,9 @@ const FilterWrapper = <T extends FieldValues>({
                 <div
                   className={classes.filterLine}
                   style={{
-                    gridTemplateColumns: expandedFilters2.gridTemplateColumns,
+                    gridTemplateColumns: columns(
+                      expandedFilters2.gridTemplateColumns,
+                    ),
                   }}
                 >
                   {expandedFilters2.filters.map(renderFilter)}
