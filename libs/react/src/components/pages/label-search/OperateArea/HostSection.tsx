@@ -73,11 +73,20 @@ const HostSection: FC<HostSectionProps> = ({
   // bubble — on a phone the submit just did nothing. Catch the native event,
   // reveal the pane, then let the browser point at the field.
   const onInvalidCapture = (event: FormEvent<HTMLDivElement>): void => {
-    if (!showTabs || pane === 'settings') return;
+    if (!showTabs) return;
 
     const control = event.target;
+    // Children when tabbed: the tab bar, the items pane, the settings pane.
+    const settingsPane = event.currentTarget.children.item(2);
+    const owner =
+      control instanceof Node && settingsPane?.contains(control)
+        ? 'settings'
+        : 'items';
 
-    setPane('settings');
+    // The visible pane reports its own fields.
+    if (owner === pane) return;
+
+    setPane(owner);
 
     if (
       control instanceof HTMLInputElement ||

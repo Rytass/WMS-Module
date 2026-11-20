@@ -16,7 +16,7 @@ const CAMERA_HINTS: Readonly<Record<Exclude<CameraState, 'scanning'>, string>> =
   {
     starting: '正在開啟相機…',
     denied: '沒有相機權限。請在瀏覽器設定中允許本網站使用相機，或改用掃碼槍 / 手動輸入。',
-    unavailable: '這台裝置無法使用相機（需要 HTTPS 與後置相機）。請改用掃碼槍 / 手動輸入。',
+    unavailable: '這台裝置無法使用相機（需要 HTTPS 與後鏡頭）。請改用掃碼槍 / 手動輸入。',
   };
 
 /**
@@ -81,6 +81,14 @@ const CameraScanModal = ({
           { video: { facingMode: { ideal: 'environment' } }, audio: false },
           videoRef.current,
           (result, _error, scanner) => {
+            // Closing the modal before the stream resolved can only flag
+            // `cancelled`; a frame decoded in between must not count.
+            if (cancelled) {
+              scanner.stop();
+
+              return;
+            }
+
             const text = result?.getText().trim();
 
             if (text) {
