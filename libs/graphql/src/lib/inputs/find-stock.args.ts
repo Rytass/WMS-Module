@@ -45,6 +45,13 @@ export class FindStockArgs extends PaginationArgs {
   @Field(() => String, { nullable: true })
   loaderKey?: string;
 
+  @Field(() => String, {
+    nullable: true,
+    description:
+      'A scanned label, matched exactly against a material key, then a batch key, then a location key; the first kind that knows the code wins.',
+  })
+  scanCode?: string;
+
   /**
    * Commercial attributes carried by the stock's batch. Matched exactly — they
    * are identifiers from the host system, and a partial match on 「SO-1」 would
