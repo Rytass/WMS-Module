@@ -93,6 +93,7 @@ query AggregatedStocks(
   $customerId: String
   $saleId: String
   $saleSerialId: String
+  $scanCode: String
   $sort: AggregatedStockSortInput
 ) {
   aggregatedStocks(
@@ -112,6 +113,7 @@ query AggregatedStocks(
     customerId: $customerId
     saleId: $saleId
     saleSerialId: $saleSerialId
+    scanCode: $scanCode
     sort: $sort
   ) {
     id

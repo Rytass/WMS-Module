@@ -11,7 +11,7 @@ yarn add @rytass/wms-module-react
 # peer deps
 yarn add react react-dom next @apollo/client graphql \
   @mezzanine-ui/core @mezzanine-ui/system @mezzanine-ui/react @mezzanine-ui/icons \
-  @rytass/wms-map-react-components \
+  @rytass/wms-map-react-components @zxing/browser @zxing/library \
   react-hook-form @hookform/resolvers yup nuqs lodash
 ```
 
@@ -267,6 +267,30 @@ A single map can still override it: `<Maps confirmMapSelection />`,
 `<LocationsField confirmMapSelection={false} … />`. Without the provider nothing
 changes. A double-click still only drills down: the map component drops the click
 that precedes it.
+
+## Label search on a phone
+
+`LabelSearch` works from a handheld scanner, the phone camera or the keyboard, and
+lays itself out for a 390px screen below 768px.
+
+- **Matching is exact.** The page sends the code as `scanCode`, which matches a
+  material key, then a batch key (a split batch is found by its label too), then a
+  location key; the first kind that knows the code wins. One position is added
+  straight away; several open a pick list.
+- **The camera needs `@zxing/browser` and `@zxing/library`.** They are peer
+  dependencies loaded on demand when the camera opens, but your bundler still has
+  to resolve them at build time. The camera only starts over HTTPS (or localhost).
+  It reads QR, Data Matrix, Code 128, Code 39, EAN-13 and EAN-8.
+- **Set the viewport scale.** iOS Safari zooms into any input under 16px when it
+  gets focus, and Mezzanine inputs are 14px. Without a scale, the page is left
+  scrollable sideways. Set it once in your app shell:
+
+  ```tsx
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  ```
+
+  This stops the auto-zoom, and iOS still allows pinch zoom. Android Chrome also
+  stops pinch zoom, so leave it out if your operators need that on Android.
 
 ## Inventory counting
 

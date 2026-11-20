@@ -9,12 +9,17 @@
   .cardsWrapper {
     display: grid;
     align-self: stretch;
-    grid-template-columns: 1fr;
+    // minmax(0, …): a long line inside a card must wrap, not widen the column.
+    grid-template-columns: minmax(0, 1fr);
     align-items: flex-start;
     gap: spacing.semantic-variable(gap, calm);
 
     &.expandedLayout {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      @media (max-width: 767px) {
+        grid-template-columns: minmax(0, 1fr);
+      }
     }
   }
 }

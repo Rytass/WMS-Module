@@ -15,11 +15,53 @@
     grid-template-columns: 3fr 2fr;
   }
 
+  // Tablet: settings move under the list instead of beside it.
+  @media (max-width: 1199px) {
+    &.haveAdditionalBlock {
+      grid-template-columns: 1fr;
+      grid-row-gap: spacing.semantic-variable(gap, calm);
+      overflow-y: auto;
+    }
+  }
+
+  @media (max-width: 767px) {
+    padding: 0 spacing.semantic-variable(padding, horizontal, comfort)
+      spacing.semantic-variable(padding, vertical, calm);
+  }
+
+  // Phone: one pane at a time, chosen by the tabs.
+  &.tabbed {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-row-gap: spacing.semantic-variable(gap, calm);
+
+    > :nth-child(3) {
+      display: none;
+
+      // The tab already names the pane.
+      > h3:first-child {
+        display: none;
+      }
+    }
+
+    &.showSettings {
+      > :nth-child(2) {
+        display: none;
+      }
+
+      > :nth-child(3) {
+        display: flex;
+      }
+    }
+  }
+
   .block {
     overflow-y: auto;
 
     .titleWrapper {
       display: flex;
+      flex-wrap: wrap;
+      gap: spacing.semantic-variable(gap, base);
       align-items: center;
       justify-content: space-between;
 
