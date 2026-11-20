@@ -58,9 +58,16 @@ const Table = <T extends TableDataSource>({
   tableKey,
   pinnedUntilColumnKey,
   pinnedColumnKeys,
+  unpaginated = false,
   ...props
 }: TableProps<T> & {
   tableKey: string;
+  /**
+   * Render every row with no pager. The wrapper otherwise always hands
+   * Mezzanine a pagination object, which draws a pager even without
+   * `total` / `current`.
+   */
+  unpaginated?: boolean;
   /**
    * Pin every data column up to and including this one to the start edge
    * while the table scrolls horizontally.
@@ -157,12 +164,16 @@ const Table = <T extends TableDataSource>({
           title: '查無資料',
           ...props.emptyProps,
         }}
-        pagination={{
-          showPageSizeOptions: true,
-          pageSizeLabel: '每頁顯示：',
-          pageSizeOptions: [5, 10, 15, 20],
-          ...props.pagination,
-        }}
+        pagination={
+          unpaginated
+            ? undefined
+            : {
+                showPageSizeOptions: true,
+                pageSizeLabel: '每頁顯示：',
+                pageSizeOptions: [5, 10, 15, 20],
+                ...props.pagination,
+              }
+        }
       />
     </div>
   );

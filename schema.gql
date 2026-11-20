@@ -745,7 +745,31 @@ type Query {
   ): Materials!
   batches(offset: Int, limit: Int, key: String, materialId: ID): Batches!
   stock(id: ID!): StockDto!
-  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Stocks!
+  stocks(
+    offset: Int
+    limit: Int
+    materialId: ID
+    batchId: ID
+    locationId: ID
+    excludeLocationIds: [ID!]
+    loaderId: ID
+    ids: [ID!]
+    description: String
+    status: StockStatus
+    materialKey: String
+    batchKey: String
+    locationKey: String
+    loaderKey: String
+
+    """
+    A scanned label, matched exactly against a material key, then a batch key, then a location key; the first kind that knows the code wins.
+    """
+    scanCode: String
+    vendorId: String
+    customerId: String
+    saleId: String
+    saleSerialId: String
+  ): Stocks!
   stocksGroupedByMaterial(
     materialId: ID
     batchId: ID
@@ -759,6 +783,11 @@ type Query {
     batchKey: String
     locationKey: String
     loaderKey: String
+
+    """
+    A scanned label, matched exactly against a material key, then a batch key, then a location key; the first kind that knows the code wins.
+    """
+    scanCode: String
     vendorId: String
     customerId: String
     saleId: String
@@ -782,6 +811,11 @@ type Query {
     batchKey: String
     locationKey: String
     loaderKey: String
+
+    """
+    A scanned label, matched exactly against a material key, then a batch key, then a location key; the first kind that knows the code wins.
+    """
+    scanCode: String
     vendorId: String
     customerId: String
     saleId: String
@@ -807,6 +841,11 @@ type Query {
     batchKey: String
     locationKey: String
     loaderKey: String
+
+    """
+    A scanned label, matched exactly against a material key, then a batch key, then a location key; the first kind that knows the code wins.
+    """
+    scanCode: String
     vendorId: String
     customerId: String
     saleId: String

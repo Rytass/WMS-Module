@@ -6,6 +6,7 @@ const externalPatterns = [
   /^@hookform\//,
   /^@mezzanine-ui\//,
   /^@rytass\//,
+  /^@zxing\//,
   'axios',
   'graphql',
   /^graphql\//,

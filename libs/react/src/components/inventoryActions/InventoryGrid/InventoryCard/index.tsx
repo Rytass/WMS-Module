@@ -15,8 +15,13 @@ import {
   Message,
   cx,
 } from '@mezzanine-ui/react';
-import { TrashIcon, ErrorFilledIcon } from '@mezzanine-ui/icons';
+import {
+  TrashIcon,
+  ErrorFilledIcon,
+  WarningFilledIcon,
+} from '@mezzanine-ui/icons';
 import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
+import { stockStatusName } from '../../utils';
 import {
   useInventoryActions,
   useInventorySignature,
@@ -67,6 +72,22 @@ const InventoryCard: FC<InventoryCardProps> = ({
       disabledCard,
     [inventory, targetAction, isAllSameMaterial, disabledCard],
   );
+
+  // Greyed out alone, a card left the operator guessing why. Say which rule
+  // it failed; `disabledCard` is the panel's own decision and explains itself.
+  const disabledReason = useMemo((): string | null => {
+    if (!targetAction) return null;
+
+    if (!targetAction.condition(inventory)) {
+      return `目前狀態「${stockStatusName(inventory.status)}」不符合「${targetAction.submitText}」的條件`;
+    }
+
+    if (targetAction.needSameMaterial && !isAllSameMaterial) {
+      return `${targetAction.submitText}僅能選取相同料號`;
+    }
+
+    return null;
+  }, [inventory, isAllSameMaterial, targetAction]);
 
   const currentErrorSignature = useMemo(
     () => errorSignature[inventory.id],
@@ -144,9 +165,16 @@ const InventoryCard: FC<InventoryCardProps> = ({
             })}
           >
             <div className={classes.expandedWrapper}>
-              <Typography variant="body-highlight" color="text-neutral-solid">
-                {inventory.material.key}
-              </Typography>
+              <div className={classes.materialText}>
+                <Typography variant="body-highlight" color="text-neutral-solid">
+                  {inventory.material.key}
+                </Typography>
+                {inventory.material.description && (
+                  <Typography variant="caption" color="text-neutral">
+                    {inventory.material.description}
+                  </Typography>
+                )}
+              </div>
               {onlySelectUnit && inventory.saleId && (
                 <Typography variant="caption" color="text-neutral">
                   {saleInformation}
@@ -154,13 +182,22 @@ const InventoryCard: FC<InventoryCardProps> = ({
               )}
             </div>
             <div className={classes.expandedWrapper}>
-              <Typography
-                variant="label-secondary"
-                color="text-neutral"
-                className={classes.tag}
-              >
-                {inventory.batch.key}
-              </Typography>
+              <div className={classes.tags}>
+                <Typography
+                  variant="label-secondary"
+                  color="text-neutral"
+                  className={classes.tag}
+                >
+                  {inventory.batch.key}
+                </Typography>
+                <Typography
+                  variant="label-secondary"
+                  color="text-neutral"
+                  className={classes.tag}
+                >
+                  {inventory.location.key}
+                </Typography>
+              </div>
               {onlySelectUnit && (
                 <div className={classes.unitSelectorWrapper}>
                   <Description title="庫存 :" widthType="hug">
@@ -267,6 +304,16 @@ const InventoryCard: FC<InventoryCardProps> = ({
           </div>
         )}
       </div>
+      {/* Not InlineMessage: its text never wraps, and on a phone card it
+          pushed the card wider than the screen. */}
+      {disabledReason && (
+        <div className={classes.disabledReason}>
+          <Icon icon={WarningFilledIcon} size={14} color="warning" />
+          <Typography variant="caption" color="text-warning-strong">
+            {disabledReason}
+          </Typography>
+        </div>
+      )}
       {currentErrorSignature && (
         <div className={classes.errorWrapper}>
           <Icon icon={ErrorFilledIcon} size={14} color="error" />

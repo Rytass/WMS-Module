@@ -42,7 +42,7 @@ import {
 import { WMS_CORE_MODULE_OPTIONS } from '../typings/core-module-options';
 import type { WmsModuleCoreModuleOptions } from '../typings/core-module-options';
 import { WmsEntities } from '../models/wms-entities';
-import { tablePathOf } from '../utils/table-path';
+import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
 import { getWmsTablePrefix } from '../table-prefix/logical-table-name';
 
 /**
@@ -323,6 +323,61 @@ export class StockService<
     return locationId || this.defaultLocationId;
   }
 
+  /**
+   * Narrows to the stock a scanned label names, matching keys exactly with
+   * material → batch → location precedence (see `FindStockInput.scanCode`).
+   *
+   * One SQL predicate rather than three look-ups first: it keeps this a plain
+   * filter on whatever builder the caller passes (so it composes with every
+   * other filter and with pagination), and it needs no extra round trip.
+   * Tables come from the configured entities, never a literal, so a prefixed or
+   * overridden table is the one read.
+   */
+  private applyScanCode<U extends ObjectLiteral>(
+    queryBuilder: SelectQueryBuilder<U>,
+    scanCode: string,
+  ): void {
+    /*
+     * Hand-written rather than `subQuery().from(entity)`: TypeORM appends the
+     * single-table discriminator to a sub-select of an overridable entity, so a
+     * host's subclass rows (or ours, under a host's override) would silently
+     * fall outside it. Same reasoning as the hand-written key joins below.
+     */
+    const keyIds = (entity: EntityTarget<ObjectLiteral>): string => {
+      const metadata = this.dataSource.getMetadata(entity);
+      const notDeleted = metadata.deleteDateColumn
+        ? ` AND "${metadata.deleteDateColumn.databaseName}" IS NULL`
+        : '';
+
+      return `(SELECT "id" FROM ${quotedTablePathOf(this.dataSource, entity)} WHERE "key" = :scanCode${notDeleted})`;
+    };
+
+    const materialIds = keyIds(this.materialEntity);
+    const locationIds = keyIds(this.entities.location);
+
+    /*
+     * A batch label carries the batch *group* key: acting on part (or all) of
+     * a batch splits a child off as `<group key>_<timestamp>`, and every screen
+     * shows the group key for it. Matching `batches.key` alone made a batch
+     * unscannable the moment it was held, transferred or shipped. So the code
+     * names every batch of its group; a child key typed in full still matches
+     * that one batch.
+     */
+    const batchMetadata = this.dataSource.getMetadata(this.entities.batch);
+    const batchNotDeleted = batchMetadata.deleteDateColumn
+      ? ` AND b."${batchMetadata.deleteDateColumn.databaseName}" IS NULL`
+      : '';
+    const batchIds = `(SELECT b."id" FROM ${quotedTablePathOf(this.dataSource, this.entities.batch)} b WHERE (b."key" = :scanCode OR b."groupId" IN (SELECT g."id" FROM ${quotedTablePathOf(this.dataSource, BatchGroupEntityClass)} g WHERE g."key" = :scanCode))${batchNotDeleted})`;
+
+    const byPrecedence = [
+      `stock."materialId" IN ${materialIds}`,
+      `(NOT EXISTS ${materialIds} AND stock."batchId" IN ${batchIds})`,
+      `(NOT EXISTS ${materialIds} AND NOT EXISTS ${batchIds} AND stock."locationId" IN ${locationIds})`,
+    ].join(' OR ');
+
+    queryBuilder.andWhere(`(${byPrecedence})`, { scanCode });
+  }
+
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(
     options: FindStockInput<T>,
     queryBuilder: SelectQueryBuilder<U>,
@@ -463,6 +518,8 @@ export class StockService<
           locationKey: `%${options.locationKey}%`,
         },
       );
+
+    if (options.scanCode) this.applyScanCode(queryBuilder, options.scanCode);
 
     if (options.loaderKey)
       queryBuilder.innerJoin(
