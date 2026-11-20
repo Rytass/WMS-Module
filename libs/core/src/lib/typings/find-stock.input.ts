@@ -45,6 +45,17 @@ export type FindStockInput<U extends object> = PaginationInput & {
   loaderKey?: string;
 
   /**
+   * A scanned label: matched **exactly** against a material key, then a batch
+   * key, then a location key — the first kind that knows the code wins.
+   *
+   * The `*Key` filters above are substring searches for a person typing into a
+   * list filter. A scanner is not a person: scanning `A100` must not also bring
+   * back `A1001`. The precedence matters only when the same string is both, say,
+   * a material key and a batch key; then the material reading is the one used.
+   */
+  scanCode?: string;
+
+  /**
    * Commercial attributes of the stock's batch.
    *
    * They live on the batch table, not on stock, which is why they need their own
