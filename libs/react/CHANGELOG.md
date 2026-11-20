@@ -1,3 +1,19 @@
+## 0.12.0 (2026-11-20)
+
+### 🚀 Features
+
+- **react:** make the label search work from a scanner or the camera on a phone ([bcd64754](https://github.com/Rytass/WMS-Module/commit/bcd64754))
+- **react:** let the table drop its pager and the modal go full screen ([5e6a2370](https://github.com/Rytass/WMS-Module/commit/5e6a2370))
+
+### 🩹 Fixes
+
+- **react:** open the pane that owns an invalid field, ignore a frame decoded after close ([bcb5499e](https://github.com/Rytass/WMS-Module/commit/bcb5499e))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.11.0 (2026-11-18)
 
 ### 🚀 Features

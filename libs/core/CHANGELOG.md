@@ -1,3 +1,14 @@
+## 0.12.0 (2026-11-20)
+
+### 🚀 Features
+
+- **core:** match a scanned label exactly in the stock queries ([29b4ba86](https://github.com/Rytass/WMS-Module/commit/29b4ba86))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.11.0 (2026-11-18)
 
 ### 🚀 Features

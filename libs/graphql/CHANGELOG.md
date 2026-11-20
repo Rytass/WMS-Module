@@ -1,3 +1,18 @@
+## 0.14.0 (2026-11-20)
+
+### 🚀 Features
+
+- **graphql:** accept scanCode on the stock queries ([48f9aa00](https://github.com/Rytass/WMS-Module/commit/48f9aa00))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.12.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.13.0 (2026-11-18)
 
 ### 🚀 Features
