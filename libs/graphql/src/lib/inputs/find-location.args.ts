@@ -19,6 +19,13 @@ export class FindLocationArgs extends PaginationArgs {
   @Field(() => String, { nullable: true })
   key?: string;
 
+  @Field(() => [String], {
+    nullable: true,
+    description:
+      'Exact, case-sensitive match on the location key, for a scanned label. `key` is a substring search; this is not.',
+  })
+  keys?: string[];
+
   @Field(() => LocationSortInput, {
     nullable: true,
     description: 'Omitted: newest first (createdAt DESC), then id.',

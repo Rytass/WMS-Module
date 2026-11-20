@@ -9,6 +9,7 @@ import { ExecutionResult, GraphQLSchema, graphql } from 'graphql';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
   BatchService,
+  LocationService,
   LocationEntityClass,
   MaterialEntityClass,
   StockEntityClass,
@@ -71,6 +72,7 @@ describe('stock scanCode (integration)', () => {
   let schema: GraphQLSchema;
   let loaderService: LoaderService;
   let heldChildKey: string;
+  let locationService: LocationService;
 
   const scan = async (
     args: string,
@@ -93,7 +95,10 @@ describe('stock scanCode (integration)', () => {
       total: number;
     };
 
-    return { rows: payload.items.map(describeRow).sort(), total: payload.total };
+    return {
+      rows: payload.items.map(describeRow).sort(),
+      total: payload.total,
+    };
   };
 
   beforeAll(async () => {
@@ -138,6 +143,7 @@ describe('stock scanCode (integration)', () => {
     const batchService = app.get(BatchService);
 
     stockService = app.get(StockService);
+    locationService = app.get(LocationService);
     schema = app.get(GraphQLSchemaHost).schema;
     loaderService = app.get(LoaderService);
 
@@ -156,7 +162,14 @@ describe('stock scanCode (integration)', () => {
 
     const locationIds = new Map<string, string>();
 
-    for (const key of ['SCAN-LOC-A', 'SCAN-LOC-B']) {
+    // A-SCAN-LOC-A and SCAN-LOC-A2 contain SCAN-LOC-A, and the first sorts before
+    // it: what a substring search returns ahead of the label actually scanned.
+    for (const key of [
+      'SCAN-LOC-A',
+      'SCAN-LOC-B',
+      'A-SCAN-LOC-A',
+      'SCAN-LOC-A2',
+    ]) {
       const location = await locationRepository.save(
         locationRepository.create({
           key,
@@ -297,6 +310,62 @@ describe('stock scanCode (integration)', () => {
 
       expect(total).toBe(2);
       expect(items).toHaveLength(2);
+    });
+  });
+
+  describe('locations keys', () => {
+    const locationKeys = async (args: string): Promise<string[]> => {
+      const result = (await graphql({
+        schema,
+        source: `{ locations(${args}) { items { key } total } }`,
+        contextValue: { ...createWmsLoaders(loaderService) },
+      })) as ExecutionResult<Record<string, unknown>>;
+
+      expect(result.errors).toBeUndefined();
+
+      const payload = result.data?.['locations'] as {
+        items: { key: string }[];
+      };
+
+      return payload.items.map((item) => item.key).sort();
+    };
+
+    it('matches exactly, where key returns every location containing the code', async () => {
+      expect(await locationKeys('key: "SCAN-LOC-A"')).toEqual([
+        'A-SCAN-LOC-A',
+        'SCAN-LOC-A',
+        'SCAN-LOC-A2',
+      ]);
+      expect(await locationKeys('keys: ["SCAN-LOC-A"]')).toEqual([
+        'SCAN-LOC-A',
+      ]);
+    });
+
+    it('is case-sensitive and finds nothing for a fragment', async () => {
+      expect(await locationKeys('keys: ["scan-loc-a", "SCAN-LOC"]')).toEqual(
+        [],
+      );
+    });
+
+    it('takes several keys at once', async () => {
+      expect(await locationKeys('keys: ["SCAN-LOC-A", "SCAN-LOC-B"]')).toEqual([
+        'SCAN-LOC-A',
+        'SCAN-LOC-B',
+      ]);
+    });
+
+    it('applies keys through LocationService.findMany with every other option left out', async () => {
+      const [items, total] = await locationService.findMany({
+        keys: ['SCAN-LOC-B'],
+      });
+
+      expect(total).toBe(1);
+      expect(items.map((item) => item.key)).toEqual(['SCAN-LOC-B']);
+
+      const [none, noneTotal] = await locationService.findMany({ keys: [] });
+
+      expect(noneTotal).toBe(0);
+      expect(none).toEqual([]);
     });
   });
 });
