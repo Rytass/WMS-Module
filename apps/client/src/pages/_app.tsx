@@ -16,6 +16,15 @@ function CustomApp({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <title>WMS</title>
+        {/* iOS Safari zooms into any input under 16px on focus (Mezzanine's
+            are 14px) and leaves the page scrolled sideways with the menu off
+            screen. maximum-scale=1 stops that auto-zoom; iOS still allows
+            pinch zoom. */}
+        <meta
+          key="viewport"
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1"
+        />
       </Head>
       <ApolloProvider client={ApolloClient}>
         <CalendarConfigProviderDayjs>

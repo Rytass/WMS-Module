@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { Navigation as MznNavigation } from '@mezzanine-ui/react';
@@ -16,9 +16,38 @@ import { useRoutes } from '@rytass/wms-module-react';
 import logo from '/public/logo.jpg';
 import classes from './index.module.scss';
 
+const NARROW_QUERY = '(max-width: 1199px)';
+
+const subscribeNarrow = (onChange: () => void): (() => void) => {
+  const list = window.matchMedia(NARROW_QUERY);
+
+  list.addEventListener('change', onChange);
+
+  return () => list.removeEventListener('change', onChange);
+};
+
+/**
+ * Below 1200px the expanded menu takes a quarter to a half of the screen, so
+ * it starts collapsed to its icon rail. Someone who opens it gets it until the
+ * next navigation or until the viewport changes class.
+ */
+function useNarrowViewport(): boolean {
+  return useSyncExternalStore(
+    subscribeNarrow,
+    () => window.matchMedia(NARROW_QUERY).matches,
+    () => false,
+  );
+}
+
 function Navigation() {
   const { pathname, push } = useRouter();
   const routes = useRoutes();
+  const narrow = useNarrowViewport();
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(narrow);
+  }, [narrow, pathname]);
 
   const renderOptions = useCallback(
     (): NavigationChild => (
@@ -67,7 +96,7 @@ function Navigation() {
 
   return (
     <div className={classes.navigation}>
-      <MznNavigation>
+      <MznNavigation collapsed={collapsed} onCollapseChange={setCollapsed}>
         <NavigationHeader title="Rytass">
           <Image src={logo} alt="" width={28} height={28} />
         </NavigationHeader>
