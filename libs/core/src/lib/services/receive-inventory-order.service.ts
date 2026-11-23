@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   ReceiveInventoryOrderEntity,
   ReceiveInventoryOrderEntityClass,
@@ -45,6 +45,7 @@ import {
   assertPositiveQuantity,
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
+import { assertAllFound, assertKeyFound } from '../utils/assert-found';
 import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
@@ -190,45 +191,46 @@ export class ReceiveInventoryOrderService<
       async (accPromise, item) => {
         const acc = await accPromise;
 
-        try {
-          const material = await materialRepository.findOneBy({
-            key: item.materialKey,
-          });
-          if (!material) return acc;
-          const batch = item.batchKey
-            ? await this.batchService.getBatch({
-                manager,
-                materialId: material.id,
-                key: item.batchKey,
-              })
-            : null;
-
-          const location = item.locationKey
-            ? await locationRepository.findOneBy({
-                key: item.locationKey,
-              })
-            : null;
-
-          const loader = item.loaderKey
-            ? await loaderRepository.findOneBy({
-                serialId: item.loaderKey,
-              })
-            : null;
-
-          return [
-            ...acc,
-            {
-              ...item,
-              orderId,
+        const material = assertKeyFound(
+          await materialRepository.findOneBy({ key: item.materialKey }),
+          'Material',
+          item.materialKey,
+        );
+        const batch = item.batchKey
+          ? await this.batchService.getBatch({
+              manager,
               materialId: material.id,
-              batchId: batch?.id || null,
-              locationId: this.stockService.resolveLocationId(location?.id),
-              loaderId: loader?.id || null,
-            },
-          ];
-        } catch {
-          return acc;
-        }
+              key: item.batchKey,
+            })
+          : null;
+
+        const location = item.locationKey
+          ? assertKeyFound(
+              await locationRepository.findOneBy({ key: item.locationKey }),
+              'Location',
+              item.locationKey,
+            )
+          : null;
+
+        const loader = item.loaderKey
+          ? assertKeyFound(
+              await loaderRepository.findOneBy({ serialId: item.loaderKey }),
+              'Loader',
+              item.loaderKey,
+            )
+          : null;
+
+        return [
+          ...acc,
+          {
+            ...item,
+            orderId,
+            materialId: material.id,
+            batchId: batch?.id || null,
+            locationId: this.stockService.resolveLocationId(location?.id),
+            loaderId: loader?.id || null,
+          },
+        ];
       },
       Promise.resolve(
         [] as DeepPartial<ReceiveInventoryOrderItemEntityClass>[],
@@ -343,6 +345,10 @@ export class ReceiveInventoryOrderService<
               else if (!item.id) newItems.push(item);
               else if (itemSet.has(item.id))
                 existingItems.push(asRemovalMarker(item));
+              else
+                throw new NotFoundException(
+                  `Receive inventory order item ${item.id} not found on order ${id}`,
+                );
             });
           });
 
@@ -542,6 +548,11 @@ export class ReceiveInventoryOrderService<
         where: { id: In(options.map((o) => o.itemId)) },
         relations: { changes: true },
       });
+      assertAllFound(
+        options.map((o) => o.itemId),
+        items,
+        'Receive inventory order item',
+      );
       const itemMap = new Map(items.map((i) => [i.id, i]));
 
       /*
@@ -554,7 +565,11 @@ export class ReceiveInventoryOrderService<
       for (const option of options) {
         await (async () => {
           const item = itemMap.get(option.itemId);
-          if (!item) return;
+          if (!item) {
+            throw new NotFoundException(
+              `Receive inventory order item ${option.itemId} not found`,
+            );
+          }
           if (!item.batchId && option.batchKey) {
             // if batchKey is provided but item doesn't have batchId, attempt to find or create batch and update item with batchId
             item.batchId = await this.batchService

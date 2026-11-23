@@ -2891,6 +2891,119 @@ describe('host service layer (integration, no GraphQL)', () => {
       expect(new Set(keys).size).toBe(4);
     });
   });
+  describe('#224: an id or key the caller names must exist', () => {
+    const missing = '00000000-0000-4000-8000-000000000000';
+
+    it.each([
+      [
+        'ship',
+        (): Promise<boolean> =>
+          shipService.ship({ itemId: missing, quantity: 1 }),
+      ],
+      [
+        'receive',
+        (): Promise<boolean> =>
+          receiveService.receive({ itemId: missing, quantity: 1 }),
+      ],
+      [
+        'transfer',
+        (): Promise<unknown> =>
+          transferService.transfer({ itemId: missing, quantity: 1 }),
+      ],
+    ])('%s throws for an unknown itemId', async (_name, call) => {
+      await expect(call()).rejects.toThrow(new RegExp(missing));
+    });
+
+    it('cancelShip and cancelTransfer throw for an unknown itemId', async () => {
+      await expect(
+        shipService.cancelShip({ itemId: missing, quantity: 1 }),
+      ).rejects.toThrow(new RegExp(missing));
+      await expect(
+        transferService.cancelTransfer({ itemId: missing, quantity: 1 }),
+      ).rejects.toThrow(new RegExp(missing));
+    });
+
+    it('one unknown id in a batch of receives rolls the whole call back', async () => {
+      const material = await newMaterial();
+      const { itemId } = await createReceive(material.key, unique('B'), 5);
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        receiveService.receive([
+          { itemId, quantity: 5 },
+          { itemId: missing, quantity: 1 },
+        ]),
+      ).rejects.toThrow(new RegExp(missing));
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+    });
+
+    const receiveLine = (
+      materialKey: string,
+      extra: Record<string, string> = {},
+    ): Parameters<
+      ReceiveInventoryOrderService['createReceiveInventoryOrder']
+    >[0]['items'][number] => ({
+      serialId: unique('HSL-L'),
+      locationKey: 'HSL-SHELF',
+      batchKey: unique('HSL-B'),
+      materialKey,
+      targetReceivedQuantity: 5,
+      requireInspection: false,
+      ...extra,
+    });
+
+    const orderCount = async (): Promise<number> =>
+      Number(
+        (
+          await dataSource.query<[{ count: string }]>(
+            `SELECT COUNT(*) AS count FROM "${dataSource.getMetadata(receiveService.receiveInventoryOrderEntity).tablePath}"`,
+          )
+        )[0].count,
+      );
+
+    it('createReceiveInventoryOrder fails whole when one materialKey does not exist', async () => {
+      const material = await newMaterial();
+      const orders = await orderCount();
+      const items = await dataSource
+        .getRepository(receiveService.receiveInventoryOrderItemEntity)
+        .count();
+
+      await expect(
+        receiveService.createReceiveInventoryOrder({
+          key: unique('HSL-RCV'),
+          description: 'x',
+          items: [receiveLine('NO-SUCH-MATERIAL'), receiveLine(material.key)],
+        }),
+      ).rejects.toThrow(/NO-SUCH-MATERIAL/);
+
+      expect(await orderCount()).toBe(orders);
+      expect(
+        await dataSource
+          .getRepository(receiveService.receiveInventoryOrderItemEntity)
+          .count(),
+      ).toBe(items);
+    });
+
+    it('createReceiveInventoryOrder rejects an unknown loaderKey or locationKey', async () => {
+      const material = await newMaterial();
+      const create = (extra: Record<string, string>): Promise<unknown> =>
+        receiveService.createReceiveInventoryOrder({
+          key: unique('HSL-RCV'),
+          description: 'x',
+          items: [receiveLine(material.key, extra)],
+        });
+
+      await expect(create({ loaderKey: 'NO-SUCH-LOADER' })).rejects.toThrow(
+        /NO-SUCH-LOADER/,
+      );
+      await expect(create({ locationKey: 'NO-SUCH-LOCATION' })).rejects.toThrow(
+        /NO-SUCH-LOCATION/,
+      );
+    });
+  });
 });
 
 /** Keeps the type import used for loader rows honest at compile time. */
