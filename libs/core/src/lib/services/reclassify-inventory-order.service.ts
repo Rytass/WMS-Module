@@ -18,7 +18,6 @@ import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
 import {
   assertPositiveQuantity,
-  assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
