@@ -42,7 +42,7 @@ import {
 /**
  * A host that uses the services and nothing else.
  *
- * Shuttle mounts `WmsModuleCoreModule` without `WmsModuleGraphqlModule` and
+ * Such a host mounts `WmsModuleCoreModule` without `WmsModuleGraphqlModule` and
  * calls services from inside its own transactions (deduct stock, write its own
  * outbox row, move its own document's status — all or nothing). Every spec
  * before this one entered through the GraphQL schema, so none of what follows

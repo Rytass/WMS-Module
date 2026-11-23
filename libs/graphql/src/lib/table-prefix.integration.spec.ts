@@ -41,7 +41,7 @@ import {
 
 /**
  * `withWmsTablePrefix`, held to the five constraints a host with its own
- * schema put on it (Shuttle):
+ * schema put on it:
  *
  * 1. a host entity with exactly base's class name **and** table name
  *    (`LocationEntity` on `locations`) keeps its table, and our relations bind
@@ -54,7 +54,7 @@ import {
  *    end under the prefix, events and the count lock included.
  *
  * Driven through the service layer only, with no GraphQL module mounted —
- * which is how a host like Shuttle uses the package.
+ * which is how such a host uses the package.
  *
  * Requires a reachable PostgreSQL; override with WMS_TEST_DB_* env vars.
  */

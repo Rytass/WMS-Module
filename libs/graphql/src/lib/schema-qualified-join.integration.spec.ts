@@ -23,8 +23,8 @@ type PostgresConnectionOptions = Extract<
 >;
 
 /**
- * A host whose connection names a schema (Shuttle runs each environment in its
- * own one). Every table path then reads `<schema>.<table>`, and a hand-written
+ * A host whose connection names a schema (for example one schema per
+ * environment). Every table path then reads `<schema>.<table>`, and a hand-written
  * join that passes that string is parsed by TypeORM as `<alias>.<relation>` —
  * `"<schema>" alias was not found`. Joins must pass the entity instead.
  *
