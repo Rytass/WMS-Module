@@ -26,6 +26,13 @@ describe('WmsEventDispatcher', () => {
     errorSpy.mockRestore();
   });
 
+  it('works without a bridge argument at all (the optional provider is absent)', async () => {
+    const dispatcher = new WmsEventDispatcher({});
+
+    expect(dispatcher.isActive()).toBe(false);
+    await expect(dispatcher.flush([stockEvent('a')])).resolves.toBeUndefined();
+  });
+
   describe('isActive', () => {
     it('is false with nothing wired', () => {
       expect(make({}).isActive()).toBe(false);
