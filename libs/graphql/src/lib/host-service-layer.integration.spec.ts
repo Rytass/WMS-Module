@@ -3004,6 +3004,230 @@ describe('host service layer (integration, no GraphQL)', () => {
       );
     });
   });
+  describe('#223: receive places stock where the loader is', () => {
+    const loaderOf = async (
+      loaderId: string,
+    ): Promise<{ serialId: string; locationId: string }> =>
+      dataSource
+        .getRepository(LoadersEntityClass)
+        .findOneByOrFail({ id: loaderId });
+
+    const receiveOnto = async (
+      materialKey: string,
+      loaderSerialId: string,
+      locationKey: string,
+      quantity: number,
+    ): Promise<string> => {
+      const order = await receiveService.createReceiveInventoryOrder({
+        key: unique('HSL-RCV'),
+        description: 'x',
+        items: [
+          {
+            serialId: unique('HSL-L'),
+            materialKey,
+            batchKey: unique('HSL-B'),
+            loaderKey: loaderSerialId,
+            locationKey,
+            targetReceivedQuantity: quantity,
+            requireInspection: false,
+          },
+        ],
+      });
+      const [item] = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId: order.id } });
+
+      return item.id;
+    };
+
+    const stockedAt = async (
+      materialId: string,
+      loaderId: string,
+    ): Promise<Record<string, number>> =>
+      (
+        await dataSource.query<{ locationId: string; q: string }[]>(
+          `SELECT "locationId", SUM(quantity) AS q FROM "${dataSource.getMetadata(entities.stock).tablePath}" WHERE "materialId" = $1 AND "loaderId" = $2 GROUP BY "locationId"`,
+          [materialId, loaderId],
+        )
+      ).reduce((acc, row) => ({ ...acc, [row.locationId]: Number(row.q) }), {});
+
+    it('receives as before when the loader is already at the location', async () => {
+      const material = await newMaterial();
+      const loaderId = await newLoader(shelfId);
+      const { serialId } = await loaderOf(loaderId);
+      const itemId = await receiveOnto(material.key, serialId, 'HSL-SHELF', 7);
+
+      await receiveService.receive({ itemId, quantity: 7 });
+
+      expect(await stockedAt(material.id, loaderId)).toEqual({ [shelfId]: 7 });
+    });
+
+    it('refuses a receipt naming a location other than the loader’s, empty loader or not, and writes nothing', async () => {
+      const material = await newMaterial();
+      const loaderId = await newLoader(shelfId);
+      const { serialId } = await loaderOf(loaderId);
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        receiveOnto(material.key, serialId, 'HSL-DOCK', 7),
+      ).rejects.toThrow(/enable relocateEmptyLoaders/);
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect((await loaderOf(loaderId)).locationId).toBe(shelfId);
+    });
+
+    it('refuses at execution time when the loader was moved after the order was created', async () => {
+      const material = await newMaterial();
+      const loaderId = await newLoader(shelfId);
+      const { serialId } = await loaderOf(loaderId);
+      const itemId = await receiveOnto(material.key, serialId, 'HSL-SHELF', 7);
+      await dataSource
+        .getRepository(LoadersEntityClass)
+        .update({ id: loaderId }, { locationId: dockId });
+
+      await expect(
+        receiveService.receive({ itemId, quantity: 7 }),
+      ).rejects.toThrow(/stock cannot be placed on it there/);
+    });
+
+    describe('with relocateEmptyLoaders', () => {
+      const relocDb = `${DB_NAME}_p223`;
+      let relocApp: INestApplication;
+
+      beforeAll(async () => {
+        await resetDatabase(relocDb);
+
+        relocApp = await Test.createTestingModule({
+          imports: [
+            TypeOrmModule.forRoot({
+              type: 'postgres',
+              host: DB_HOST,
+              port: DB_PORT,
+              username: DB_USER,
+              password: DB_PASS,
+              database: relocDb,
+              autoLoadEntities: true,
+              synchronize: true,
+              uuidExtension: 'uuid-ossp',
+            }),
+            WmsModuleCoreModule.forRootAsync({
+              useFactory: async () => ({}),
+              defaultLoaderSerialId: 'DEFAULT',
+              defaultLoaderTypeKey: 'DEFAULT',
+              defaultLocationKey: 'DEFAULT',
+              relocateEmptyLoaders: true,
+            }),
+          ],
+        })
+          .compile()
+          .then((moduleRef) => moduleRef.createNestApplication());
+        await relocApp.init();
+      });
+
+      afterAll(async () => {
+        await relocApp?.close();
+        await resetDatabase(relocDb, false);
+      });
+
+      it('moves an empty loader to the receiving location, but not one holding stock', async () => {
+        const ds = relocApp.get(DataSource);
+        const ents = relocApp.get(WmsEntities);
+        const loaders = relocApp.get(LoaderService);
+        const receives = relocApp.get(ReceiveInventoryOrderService);
+        const locationRepository = ds.getRepository<LocationEntityClass>(
+          ents.location,
+        );
+        const [a, d] = await Promise.all(
+          ['PA', 'PD'].map(
+            async (key) =>
+              (
+                await locationRepository.save(
+                  locationRepository.create({
+                    key,
+                    description: key,
+                    isActive: true,
+                  } as DeepPartial<LocationEntityClass>),
+                )
+              ).id,
+          ),
+        );
+        const type = await loaders.createLoaderType({
+          key: 'PP',
+          description: 'p',
+        });
+        const [empty, full] = await loaders.createLoader({
+          typeId: type.id,
+          locationId: a,
+          quantity: 2,
+        });
+        const materialRepository = ds.getRepository<MaterialEntityClass>(
+          ents.material,
+        );
+        const material = await materialRepository.save(
+          materialRepository.create({
+            key: 'PM',
+          } as DeepPartial<MaterialEntityClass>),
+        );
+        const make = async (
+          serialId: string,
+          locationKey: string,
+          batchKey: string,
+        ): Promise<string> => {
+          const order = await receives.createReceiveInventoryOrder({
+            key: `PR-${batchKey}`,
+            description: 'x',
+            items: [
+              {
+                serialId: batchKey,
+                materialKey: 'PM',
+                batchKey,
+                loaderKey: serialId,
+                locationKey,
+                targetReceivedQuantity: 9,
+                requireInspection: false,
+              },
+            ],
+          });
+          const [item] = await ds
+            .getRepository<ReceiveInventoryOrderItemEntityClass>(
+              receives.receiveInventoryOrderItemEntity,
+            )
+            .find({ where: { orderId: order.id } });
+
+          return item.id;
+        };
+        const locationOf = async (id: string): Promise<string> =>
+          (await ds.getRepository(LoadersEntityClass).findOneByOrFail({ id }))
+            .locationId;
+
+        // `full` first receives at its own location, so it holds stock.
+        await receives.receive({
+          itemId: await make(full.serialId, 'PA', 'F1'),
+          quantity: 2,
+        });
+        await expect(make(full.serialId, 'PD', 'F2')).rejects.toThrow(
+          /still holds stock/,
+        );
+        expect(await locationOf(full.id)).toBe(a);
+
+        await receives.receive({
+          itemId: await make(empty.serialId, 'PD', 'E1'),
+          quantity: 9,
+        });
+        expect(await locationOf(empty.id)).toBe(d);
+        expect(
+          await ds.query<{ locationId: string }[]>(
+            `SELECT DISTINCT "locationId" FROM "${ds.getMetadata(ents.stock).tablePath}" WHERE "loaderId" = $1`,
+            [empty.id],
+          ),
+        ).toEqual([{ locationId: d }]);
+      });
+    });
+  });
 });
 
 /** Keeps the type import used for loader rows honest at compile time. */

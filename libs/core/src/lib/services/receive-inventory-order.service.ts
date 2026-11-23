@@ -196,14 +196,6 @@ export class ReceiveInventoryOrderService<
           'Material',
           item.materialKey,
         );
-        const batch = item.batchKey
-          ? await this.batchService.getBatch({
-              manager,
-              materialId: material.id,
-              key: item.batchKey,
-            })
-          : null;
-
         const location = item.locationKey
           ? assertKeyFound(
               await locationRepository.findOneBy({ key: item.locationKey }),
@@ -218,6 +210,25 @@ export class ReceiveInventoryOrderService<
               'Loader',
               item.loaderKey,
             )
+          : null;
+
+        // Stock must land where its loader is (#223). Checked now so a bad
+        // order fails early, and again in `receive()` because the loader can
+        // be moved after the order is created. Nothing is relocated here.
+        if (loader) {
+          await this.stockService.resolveLoaderPlacement(
+            loader.id,
+            this.stockService.resolveLocationId(location?.id),
+            manager,
+          );
+        }
+
+        const batch = item.batchKey
+          ? await this.batchService.getBatch({
+              manager,
+              materialId: material.id,
+              key: item.batchKey,
+            })
           : null;
 
         return [
@@ -556,6 +567,67 @@ export class ReceiveInventoryOrderService<
       const itemMap = new Map(items.map((i) => [i.id, i]));
 
       /*
+       * Where each line will be stocked, resolved before any write. The loader
+       * rows are locked here, in id order, ahead of every batch and stock lock
+       * the loop below takes (see `StockService.lockLoaders`), and a loader
+       * that sits elsewhere is refused or -- empty, with
+       * `relocateEmptyLoaders` -- queued to move (#223).
+       */
+      const placements = new Map<
+        ReceiveInventoryOrderInput,
+        {
+          readonly locationId: string | null;
+          readonly loaderId: string | null;
+          readonly relocate: boolean;
+        }
+      >();
+      const resolved = await Promise.all(
+        options.map(async (option) => {
+          const item = itemMap.get(option.itemId);
+          if (!item) {
+            throw new NotFoundException(
+              `Receive inventory order item ${option.itemId} not found`,
+            );
+          }
+
+          return {
+            option,
+            locationId:
+              item.locationId ??
+              (option.locationKey
+                ? await locationRepository
+                    .findOneByOrFail({ key: option.locationKey })
+                    .then(({ id }) => id)
+                : null),
+            loaderId:
+              item.loaderId ??
+              (option.loaderKey
+                ? await loaderRepository
+                    .findOneByOrFail({ serialId: option.loaderKey })
+                    .then(({ id }) => id)
+                : null),
+          };
+        }),
+      );
+      await this.stockService.lockLoaders(
+        resolved.flatMap(({ loaderId }) => (loaderId ? [loaderId] : [])),
+        manager,
+      );
+      for (const { option, locationId, loaderId } of resolved) {
+        placements.set(option, {
+          locationId,
+          loaderId,
+          relocate: loaderId
+            ? (await this.stockService.resolveLoaderPlacement(
+                loaderId,
+                this.stockService.resolveLocationId(locationId),
+                manager,
+              )) === 'relocate'
+            : false,
+        });
+      }
+
+      /*
        * Sequential, not `Promise.all`. Two options for one item both reach the
        * batch lookups below before either has written, so `splitBatch`'s
        * read-then-create misses twice and one receipt ends up fragmented across
@@ -684,17 +756,15 @@ export class ReceiveInventoryOrderService<
             }
           }
 
-          let locationId = item.locationId;
-          if (option.locationKey && !locationId)
-            locationId = await locationRepository
-              .findOneByOrFail({ key: option.locationKey })
-              .then(({ id }) => id);
+          const placement = placements.get(option);
+          const locationId = placement?.locationId ?? null;
+          const loaderId = placement?.loaderId ?? null;
 
-          let loaderId = item.loaderId;
-          if (option.loaderKey && !loaderId)
-            loaderId = await loaderRepository
-              .findOneByOrFail({ serialId: option.loaderKey })
-              .then(({ id }) => id);
+          if (placement?.relocate && loaderId) {
+            await loaderRepository.update({ id: loaderId }, {
+              locationId: this.stockService.resolveLocationId(locationId),
+            } as DeepPartial<LoadersEntityClass>);
+          }
 
           await Promise.all([
             changeRepository.save(
