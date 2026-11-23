@@ -112,6 +112,24 @@ interface StockEventRecord {
 
 const stockEvents: StockEventRecord[] = [];
 
+/**
+ * An upgrade statement the integration guide tells hosts to run, read from the
+ * guide itself so the guide and the test cannot drift apart.
+ */
+const guideSql = (marker: string): string => {
+  const guide = readFileSync(
+    join(__dirname, '../../../core/docs/integration-guide.md'),
+    'utf8',
+  );
+  const block = guide.match(
+    new RegExp('```sql\\n(-- ' + marker + '[\\s\\S]*?)```'),
+  );
+
+  if (!block) throw new Error(`${marker} not found in the guide`);
+
+  return block[1].replace(/<prefix>/g, getWmsTablePrefix());
+};
+
 /** Not re-exported from core's index; derived from the method instead. */
 type CreateTransferOrderItemInput = Parameters<
   TransferOrderService['createTransferOrder']
@@ -446,6 +464,8 @@ describe('host service layer (integration, no GraphQL)', () => {
             'stock.issued': recordStockEvent,
             'stock.shipped': recordStockEvent,
             'stock.ship-cancelled': recordStockEvent,
+            'stock.transferred': recordStockEvent,
+            'stock.transfer-cancelled': recordStockEvent,
           },
         }),
       ],
@@ -1899,23 +1919,8 @@ describe('host service layer (integration, no GraphQL)', () => {
     });
 
     describe('upgrade SQL for rows written before the kind column', () => {
-      /**
-       * The statement the integration guide tells hosts to run, read from the
-       * guide itself so the two cannot drift apart.
-       */
-      const backfillSql = (): string => {
-        const guide = readFileSync(
-          join(__dirname, '../../../core/docs/integration-guide.md'),
-          'utf8',
-        );
-        const block = guide.match(
-          /```sql\n(-- wms:ship-change-kind-backfill[\s\S]*?)```/,
-        );
-
-        if (!block) throw new Error('backfill SQL not found in the guide');
-
-        return block[1].replace(/<prefix>/g, getWmsTablePrefix());
-      };
+      const backfillSql = (): string =>
+        guideSql('wms:ship-change-kind-backfill');
 
       it('names reserve, ship and cancel rows from the stock rows they wrote', async () => {
         const { orderId, itemId } = await prepare(10);
@@ -1950,6 +1955,111 @@ describe('host service layer (integration, no GraphQL)', () => {
           'SHIP',
           'CANCEL',
         ]);
+      });
+    });
+  });
+
+  describe('#195(c) transfer: a cancelled transfer is not an executed one', () => {
+    const changeTypesOf = async (materialId: string): Promise<string[]> => {
+      const [logs] = await stockService.findChangeLogs({ materialId });
+
+      return logs.map(({ changeType }) => changeType as string);
+    };
+
+    const changeRows = async (
+      itemId: string,
+    ): Promise<{ kind: string | null; quantityChanged: number }[]> => {
+      const table = dataSource.getMetadata(
+        getWmsTablePrefix() + 'transfer_order_changes',
+      ).tablePath;
+      const rows = await dataSource.query<
+        { kind: string | null; quantityChanged: string }[]
+      >(
+        `SELECT kind, "quantityChanged" FROM "${table}" WHERE "itemId" = $1 ORDER BY "quantityChanged" DESC, kind`,
+        [itemId],
+      );
+
+      return rows.map((row) => ({
+        kind: row.kind,
+        quantityChanged: Number(row.quantityChanged),
+      }));
+    };
+
+    const inEvents = <T>(work: () => Promise<T>): Promise<T> =>
+      runner.run({}, work);
+
+    it('logs the cancel as TRANSFER_CANCELLED, emits stock.transfer-cancelled, and leaves the rest to execute', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 5);
+      const { itemId } = await createTransfer(material.id, batchId, 5);
+
+      await inEvents(() =>
+        transferService.cancelTransfer({ itemId, quantity: 2 }),
+      );
+
+      const types = await changeTypesOf(material.id);
+      expect(types).toContain('TRANSFER_CANCELLED');
+      expect(types).not.toContain('TRANSFERRED');
+      expect(stockEvents.map(({ event }) => event)).toEqual([
+        'stock.transfer-cancelled',
+      ]);
+
+      await expect(
+        inEvents(() => transferService.transfer({ itemId, quantity: 3 })),
+      ).resolves.toBe(true);
+      expect(stockEvents.map(({ event }) => event)).toEqual([
+        'stock.transfer-cancelled',
+        'stock.transferred',
+      ]);
+      await expect(
+        transferService.transfer({ itemId, quantity: 1 }),
+      ).rejects.toThrow(/Transfer quantity exceeds remaining quantity/);
+      await expect(
+        transferService.cancelTransfer({ itemId, quantity: 1 }),
+      ).rejects.toThrow(/exceeds pending transfer/);
+    });
+
+    it('a transfer executed in part leaves exactly the rest to cancel', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 5);
+      const { itemId } = await createTransfer(material.id, batchId, 5);
+
+      await transferService.transfer({ itemId, quantity: 3 });
+      await expect(
+        transferService.cancelTransfer({ itemId, quantity: 3 }),
+      ).rejects.toThrow(/exceeds pending transfer/);
+      await expect(
+        transferService.cancelTransfer({ itemId, quantity: 2 }),
+      ).resolves.toBe(true);
+    });
+
+    describe('upgrade SQL for rows written before the kind column', () => {
+      it('names reserve, transfer and cancel rows from the stock rows they wrote', async () => {
+        const material = await newMaterial();
+        const { batchId } = await seedStock(material.id, 5);
+        const { itemId } = await createTransfer(material.id, batchId, 5);
+
+        await transferService.transfer({ itemId, quantity: 3 });
+        await transferService.cancelTransfer({ itemId, quantity: 2 });
+
+        const before = await changeRows(itemId);
+        const table = dataSource.getMetadata(
+          getWmsTablePrefix() + 'transfer_order_changes',
+        ).tablePath;
+
+        expect(before.map(({ kind }) => kind)).toEqual([
+          'RESERVE',
+          'CANCEL',
+          'TRANSFER',
+        ]);
+
+        await dataSource.query(
+          `UPDATE "${table}" SET kind = NULL WHERE "itemId" = $1`,
+          [itemId],
+        );
+        await dataSource.query(guideSql('wms:transfer-change-kind-backfill'));
+
+        expect(await changeRows(itemId)).toEqual(before);
       });
     });
   });

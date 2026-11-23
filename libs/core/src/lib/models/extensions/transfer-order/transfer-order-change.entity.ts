@@ -7,6 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { TransferChangeKind } from '../../../constants/transfer-change-kind';
 import { TransferOrderItemEntityClass } from './transfer-order-item.entity';
 
 export const TransferOrderChangeEntity = Symbol('TransferOrderChangeEntity');
@@ -20,6 +21,16 @@ export class TransferOrderChangeEntityClass {
 
   @Column({ type: 'numeric' })
   quantityChanged!: number;
+
+  /**
+   * Which of the three actions wrote this row. An execution and a cancel are
+   * both negative, so the sign cannot carry it -- see {@link TransferChangeKind}.
+   *
+   * Nullable only so a table that already holds rows can gain the column; the
+   * integration guide's upgrade SQL fills it. Every write sets it.
+   */
+  @Column({ type: 'varchar', nullable: true })
+  kind!: TransferChangeKind | null;
 
   @OneToOne('orders')
   @JoinColumn({ name: 'id', referencedColumnName: 'id' })

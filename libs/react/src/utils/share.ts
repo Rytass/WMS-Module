@@ -111,6 +111,9 @@ export function changeTypeName(type: ChangeType): string {
     case ChangeType.SHIP_CANCELLED:
       return '取消出貨';
 
+    case ChangeType.TRANSFER_CANCELLED:
+      return '取消調撥';
+
     default:
       return type;
   }

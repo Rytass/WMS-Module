@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { ConsumptionChangeKind } from '../constants/consumption-change-kind';
 import { ShipChangeKind } from '../constants/ship-change-kind';
+import { TransferChangeKind } from '../constants/transfer-change-kind';
 import { ChangeType } from '../constants/stock-status';
 import type {
   WmsCustomChangeTable,
@@ -25,7 +26,11 @@ interface ChangeRowLike {
   readonly quantityChanged: number | string;
   readonly result?: boolean | null;
   /** Consumption orders record intent rather than encoding it in the sign. */
-  readonly kind?: ConsumptionChangeKind | ShipChangeKind | null;
+  readonly kind?:
+    | ConsumptionChangeKind
+    | ShipChangeKind
+    | TransferChangeKind
+    | null;
 }
 
 /** The subset of order-item columns used to enrich a stock event. */
@@ -65,6 +70,16 @@ const SHIP_KIND_TO_CHANGE_TYPE: Readonly<Record<string, ChangeType>> = {
 };
 
 /**
+ * The transfer order's three actions: an execution and a cancel are both
+ * negative. Rows without a kind are left unclassified, like the ship order's.
+ */
+const TRANSFER_KIND_TO_CHANGE_TYPE: Readonly<Record<string, ChangeType>> = {
+  [TransferChangeKind.RESERVE]: ChangeType.IN_TRANSFER,
+  [TransferChangeKind.TRANSFER]: ChangeType.TRANSFERRED,
+  [TransferChangeKind.CANCEL]: ChangeType.TRANSFER_CANCELLED,
+};
+
+/**
  * Resolve the `ChangeType` for a change table. Most tables whose semantics
  * depend on direction (ship / transfer / vendor / customer / hold / allocate)
  * branch on the sign of `quantityChanged`; the rest are fixed. The resolver is
@@ -82,8 +97,7 @@ const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   ],
   [
     'transfer_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.IN_TRANSFER : ChangeType.TRANSFERRED,
+    ({ kind }) => (kind ? (TRANSFER_KIND_TO_CHANGE_TYPE[kind] ?? null) : null),
   ],
   [
     'transfer_vendor_order_changes',
@@ -147,6 +161,7 @@ const CHANGE_TYPE_TO_EVENT: Readonly<Record<ChangeType, WmsStockEventName>> = {
   [ChangeType.RETURNED]: 'stock.returned',
   [ChangeType.CONSUMED]: 'stock.consumed',
   [ChangeType.SHIP_CANCELLED]: 'stock.ship-cancelled',
+  [ChangeType.TRANSFER_CANCELLED]: 'stock.transfer-cancelled',
 };
 
 const QUALITY_INSPECTION_TABLE = 'quality_inspection_order_changes';

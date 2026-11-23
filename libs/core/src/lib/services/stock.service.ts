@@ -23,6 +23,7 @@ import {
 } from '../models/metadata/material.entity';
 import { StockStatus, ChangeType } from '../constants/stock-status';
 import { ShipChangeKind } from '../constants/ship-change-kind';
+import { TransferChangeKind } from '../constants/transfer-change-kind';
 import {
   AggregatedStock,
   ChangeLog,
@@ -1264,8 +1265,15 @@ export class StockService<
                         ELSE '${ChangeType.SHIPPED}' END
             END
           WHEN transfer_change.id IS NOT NULL THEN
-            CASE WHEN transfer_change."quantityChanged" > 0 THEN '${ChangeType.IN_TRANSFER}'
-                 ELSE '${ChangeType.TRANSFERRED}' END
+            CASE transfer_change.kind
+              WHEN '${TransferChangeKind.RESERVE}' THEN '${ChangeType.IN_TRANSFER}'
+              WHEN '${TransferChangeKind.TRANSFER}' THEN '${ChangeType.TRANSFERRED}'
+              WHEN '${TransferChangeKind.CANCEL}' THEN '${ChangeType.TRANSFER_CANCELLED}'
+              -- A row from before the kind column: the sign is all there is
+              -- until the upgrade SQL runs (see the ship branch above).
+              ELSE CASE WHEN transfer_change."quantityChanged" > 0 THEN '${ChangeType.IN_TRANSFER}'
+                        ELSE '${ChangeType.TRANSFERRED}' END
+            END
           WHEN vendor_change.id IS NOT NULL THEN
             CASE WHEN vendor_change."quantityChanged" > 0 THEN '${ChangeType.VENDOR_TRANSFERRED}'
                  ELSE '${ChangeType.VENDOR_RETURNED}' END

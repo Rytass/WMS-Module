@@ -432,7 +432,7 @@ enum ChangeType {
   CUSTOMER_HELD, CUSTOMER_RETURNED, SPLITTED, MERGED,
   ALLOCATED, DEALLOCATED, RECLASSIFIED, SCRAPED,
   COUNT_GAINED, COUNT_LOST,
-  ISSUED, RETURNED, CONSUMED, SHIP_CANCELLED   // 耗料單：ConsumptionChangeKind 的 ISSUE / RETURN / SETTLE 分別對應這三者（見 events/stock-change.subscriber.ts）
+  ISSUED, RETURNED, CONSUMED, SHIP_CANCELLED, TRANSFER_CANCELLED   // 耗料單：ConsumptionChangeKind 的 ISSUE / RETURN / SETTLE 分別對應這三者（見 events/stock-change.subscriber.ts）
 }
 ```
 來源: `lib/constants/stock-status.ts`

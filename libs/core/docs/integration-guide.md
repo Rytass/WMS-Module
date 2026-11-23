@@ -442,6 +442,38 @@ above zero), `PARTIAL_SHIPPED` while some has shipped and some is still to go, o
 `PENDING`. `changeLogs` reports a cancel as `SHIP_CANCELLED` and the event is
 `stock.ship-cancelled`; `stock.shipped` now means goods actually left.
 
+**Transfer orders have the same column.** `transfer_order_changes.kind` is `RESERVE` / `TRANSFER`
+/ `CANCEL`, nullable for the same reason, and drives the pending quantity (target - transferred -
+cancelled), the `transferredQuantity` field, `changeLogs` (`TRANSFER_CANCELLED`) and the event
+`stock.transfer-cancelled`; `stock.transferred` now means stock actually arrived. An executed
+transfer puts stock back on the original batch at the *destination* and a cancel puts it back at
+the *source*, so a negative row whose stock pair changes location or loader is a transfer and one
+whose pair stays where it was is a cancel. (A transfer whose destination equals its source writes
+exactly what a cancel writes, so the two cannot be told apart and it backfills as `CANCEL`. Such a
+transfer moves nothing.)
+
+```sql
+-- wms:transfer-change-kind-backfill
+UPDATE <prefix>transfer_order_changes AS c
+SET kind = CASE
+  WHEN c."quantityChanged" > 0 THEN 'RESERVE'
+  WHEN EXISTS (
+    SELECT 1
+    FROM stocks AS p
+    JOIN stocks AS n ON n."orderId" = p."orderId"
+    WHERE p."orderId" = c.id
+      AND p.quantity > 0
+      AND n.quantity < 0
+      AND (p."locationId" IS DISTINCT FROM n."locationId"
+        OR p."loaderId" IS DISTINCT FROM n."loaderId")
+  ) THEN 'TRANSFER'
+  ELSE 'CANCEL'
+END
+WHERE c.kind IS NULL;
+```
+
+Run both statements in the same step; each is idempotent.
+
 ---
 
 ## 5. Frontend setup (Next.js Pages Router)

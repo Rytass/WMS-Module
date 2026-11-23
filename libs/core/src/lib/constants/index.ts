@@ -1,5 +1,6 @@
 export * from './consumption-change-kind';
 export * from './ship-change-kind';
+export * from './transfer-change-kind';
 export * from './inventory-count-status';
 export * from './operations';
 export * from './order-type';

@@ -42,6 +42,8 @@ import {
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
+import { TransferChangeKind } from '../constants/transfer-change-kind';
+import { sumTransferChanges } from '../utils/transfer-change-quantities';
 
 const TRANSFER_ORDER_SORT_FIELDS: Readonly<
   Record<TransferOrderSortField, string>
@@ -53,16 +55,25 @@ const TRANSFER_ORDER_SORT_FIELDS: Readonly<
   [TransferOrderSortField.CREATED_AT]: 'to.createdAt',
 };
 
+const transferredAndCancelled = (
+  changes: TransferOrderItemEntityClass['changes'],
+): number => {
+  const { transferred, cancelled } = sumTransferChanges(changes);
+
+  return transferred + cancelled;
+};
+
 /**
  * What an item still has reserved and not yet executed, in base units.
  *
- * An item's change rows are one positive row written at reservation
- * (`+target`) and one negative row per execution or cancellation (`-qty`).
- * The pending quantity is therefore the target plus the negative rows only.
- * Summing every row instead -- what cancel and remove used to do -- counts
- * the reservation row against itself and yields the quantity already
- * *executed*: zero straight after reservation, so a reservation that never
- * executed could be neither cancelled nor released (#183).
+ * An item's change rows are one reservation row written up front (`+target`,
+ * kind RESERVE) and one negative row per execution (TRANSFER) or cancellation
+ * (CANCEL). The pending quantity is therefore the target less what was
+ * executed and what was cancelled. Summing every row instead -- what cancel
+ * and remove used to do -- counts the reservation row against itself and
+ * yields the quantity already *executed*: zero straight after reservation, so
+ * a reservation that never executed could be neither cancelled nor released
+ * (#183).
  */
 const pendingBaseQuantity = (
   item: Pick<
@@ -71,14 +82,8 @@ const pendingBaseQuantity = (
   >,
   conversionFactor: number,
 ): number =>
-  item.targetTransferredQuantity * conversionFactor +
-  item.changes.reduce(
-    (sum, change) =>
-      Number(change.quantityChanged) < 0
-        ? sum + Number(change.quantityChanged)
-        : sum,
-    0,
-  );
+  item.targetTransferredQuantity * conversionFactor -
+  transferredAndCancelled(item.changes);
 
 @Injectable()
 export class TransferOrderService<
@@ -164,6 +169,7 @@ export class TransferOrderService<
           itemId: item.id,
           id: base.id,
           quantityChanged: item.targetTransferredQuantity * conversionFactor,
+          kind: TransferChangeKind.RESERVE,
         }),
       );
 
@@ -328,6 +334,7 @@ export class TransferOrderService<
               itemId: option.itemId,
               id: reverseOrder.id,
               quantityChanged: -1 * cancelQuantity,
+              kind: TransferChangeKind.CANCEL,
             }),
           ),
           // Stock ledger will reconcile +/- quantities by batch metrics grouping
@@ -864,13 +871,7 @@ export class TransferOrderService<
             manager,
           );
           const targetBase = orderItem.targetTransferredQuantity * factor;
-          const alreadyTransferred = orderItem.changes.reduce(
-            (sum, c) =>
-              c.quantityChanged < 0
-                ? sum + Math.abs(Number(c.quantityChanged))
-                : sum,
-            0,
-          );
+          const alreadyTransferred = transferredAndCancelled(orderItem.changes);
           if (alreadyTransferred >= targetBase) continue; // already fully transferred (committed or cancelled)
           const inputOpt = inputMap.get(orderItem.id);
           if (inputOpt) {
@@ -939,15 +940,7 @@ export class TransferOrderService<
               manager,
             );
 
-          const totalTransferred = item.changes.reduce((sum, change) => {
-            if (change.quantityChanged < 0)
-              sum += Number(change.quantityChanged);
-            return sum;
-          }, 0);
-
-          const remainingQuantity =
-            item.targetTransferredQuantity * conversionFactor +
-            totalTransferred;
+          const remainingQuantity = pendingBaseQuantity(item, conversionFactor);
 
           if (remainingQuantity - option.quantity * conversionFactor < 0)
             throw new Error(
@@ -1002,6 +995,7 @@ export class TransferOrderService<
                 itemId: item.id,
                 id: base.id,
                 quantityChanged: -1 * option.quantity * conversionFactor,
+                kind: TransferChangeKind.TRANSFER,
               }),
             ),
             // Stock pair: +qty FREE @ original batch at TARGET loc/loader

@@ -174,6 +174,7 @@ enum ChangeType {
   RETURNED
   CONSUMED
   SHIP_CANCELLED
+  TRANSFER_CANCELLED
 }
 
 type ChangeLogs {

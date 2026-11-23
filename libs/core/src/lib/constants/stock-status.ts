@@ -20,10 +20,10 @@ export enum ChangeType {
   // ship-inventory-order-change.entity.ts, kind = SHIP
   SHIPPED = 'SHIPPED',
 
-  // transfer-order-change.entity.ts, change > 0
+  // transfer-order-change.entity.ts, kind = RESERVE
   IN_TRANSFER = 'IN_TRANSFER',
 
-  // transfer-order-change.entity.ts, change < 0
+  // transfer-order-change.entity.ts, kind = TRANSFER
   TRANSFERRED = 'TRANSFERRED',
 
   // vendor-inventory-change.entity.ts, change > 0
@@ -79,4 +79,7 @@ export enum ChangeType {
 
   // ship-inventory-order-change.entity.ts, kind = CANCEL
   SHIP_CANCELLED = 'SHIP_CANCELLED',
+
+  // transfer-order-change.entity.ts, kind = CANCEL
+  TRANSFER_CANCELLED = 'TRANSFER_CANCELLED',
 }

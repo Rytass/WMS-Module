@@ -105,6 +105,8 @@ export type WmsStockEventName =
   | 'stock.consumed'
   // A ship reservation undone; the stock went back to its batch.
   | 'stock.ship-cancelled'
+  // A transfer reservation undone; the stock went back to its source.
+  | 'stock.transfer-cancelled'
   /**
    * A movement on a change table the host registered through
    * `customChangeTables`, whose kind this package has no name for. The host's
