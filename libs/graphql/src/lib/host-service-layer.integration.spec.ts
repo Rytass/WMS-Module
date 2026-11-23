@@ -1956,6 +1956,40 @@ describe('host service layer (integration, no GraphQL)', () => {
           'CANCEL',
         ]);
       });
+
+      it('refuses to ship or cancel an item whose rows have no kind, until the SQL has run', async () => {
+        const { orderId, itemId } = await prepare(10);
+
+        await ship(itemId, 4);
+
+        const table = dataSource.getMetadata(
+          getWmsTablePrefix() + 'ship_inventory_order_changes',
+        ).tablePath;
+        const before = await changeRows(orderId);
+        const stocksBefore = await stockService.findChangeLogs({});
+
+        await dataSource.query(
+          `UPDATE "${table}" SET kind = NULL WHERE "itemId" = $1`,
+          [itemId],
+        );
+
+        await expect(ship(itemId, 3)).rejects.toThrow(/without a kind/);
+        await expect(cancel(itemId, 3)).rejects.toThrow(/without a kind/);
+        await expect(
+          dataSource.transaction((manager) =>
+            shipService.removeShipInventoryOrder(orderId, manager),
+          ),
+        ).rejects.toThrow(/without a kind/);
+        expect((await stockService.findChangeLogs({}))[1]).toBe(
+          stocksBefore[1],
+        );
+
+        await dataSource.query(backfillSql());
+
+        expect(await changeRows(orderId)).toEqual(before);
+        await expect(ship(itemId, 3)).resolves.toBe(true);
+        await expect(cancel(itemId, 3)).resolves.toBe(true);
+      });
     });
   });
 
@@ -2060,6 +2094,40 @@ describe('host service layer (integration, no GraphQL)', () => {
         await dataSource.query(guideSql('wms:transfer-change-kind-backfill'));
 
         expect(await changeRows(itemId)).toEqual(before);
+      });
+
+      it('refuses to transfer or cancel an item whose rows have no kind, until the SQL has run', async () => {
+        const material = await newMaterial();
+        const { batchId } = await seedStock(material.id, 5);
+        const { itemId } = await createTransfer(material.id, batchId, 5);
+
+        await transferService.transfer({ itemId, quantity: 2 });
+
+        const table = dataSource.getMetadata(
+          getWmsTablePrefix() + 'transfer_order_changes',
+        ).tablePath;
+        const before = await changeRows(itemId);
+        const logsBefore = (await stockService.findChangeLogs({}))[1];
+
+        await dataSource.query(
+          `UPDATE "${table}" SET kind = NULL WHERE "itemId" = $1`,
+          [itemId],
+        );
+
+        await expect(
+          transferService.transfer({ itemId, quantity: 4 }),
+        ).rejects.toThrow(/without a kind/);
+        await expect(
+          transferService.cancelTransfer({ itemId, quantity: 4 }),
+        ).rejects.toThrow(/without a kind/);
+        expect((await stockService.findChangeLogs({}))[1]).toBe(logsBefore);
+
+        await dataSource.query(guideSql('wms:transfer-change-kind-backfill'));
+
+        expect(await changeRows(itemId)).toEqual(before);
+        await expect(
+          transferService.transfer({ itemId, quantity: 3 }),
+        ).resolves.toBe(true);
       });
     });
   });

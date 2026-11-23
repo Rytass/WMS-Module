@@ -32,6 +32,7 @@ import {
 import { SortOrder } from '../typings/list-sort';
 import { ShipChangeKind } from '../constants/ship-change-kind';
 import { sumShipChanges } from '../utils/ship-change-quantities';
+import { assertChangesHaveKind } from '../utils/assert-change-kinds';
 import { applyListSort } from '../utils/list-sort';
 import { OrderEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
@@ -574,6 +575,7 @@ export class ShipInventoryOrderService<
           manager,
         );
 
+        assertChangesHaveKind(item.id, item.changes);
         const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
         const cancellableQuantity = reserved - shipped - cancelled;
 
@@ -712,6 +714,7 @@ export class ShipInventoryOrderService<
     const inShipmentBatches = await this.lockWithInShipmentBatches(
       items.filter(
         (item) => {
+          assertChangesHaveKind(item.id, item.changes);
           const { reserved, shipped, cancelled } = sumShipChanges(
             item.changes,
           );
@@ -732,6 +735,7 @@ export class ShipInventoryOrderService<
           manager,
         );
 
+        assertChangesHaveKind(item.id, item.changes);
         const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
         const cancellableQuantity = reserved - shipped - cancelled;
 
@@ -1015,6 +1019,7 @@ export class ShipInventoryOrderService<
 
           // A cancelled quantity is not going out either, so it leaves the
           // room to ship just as a shipped one does.
+          assertChangesHaveKind(item.id, item.changes);
           const { shipped, cancelled } = sumShipChanges(item.changes);
           const remainingQuantity =
             conversionFactor * item.targetShippedQuantity - shipped - cancelled;

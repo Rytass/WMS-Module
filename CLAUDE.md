@@ -387,7 +387,10 @@ Two things to keep in mind when touching it:
   goes by it, never by sign; `sumShipChanges` / `sumTransferChanges` are the one place that adds
   them up. The columns are nullable only so existing tables can gain them -- the upgrade SQL
   is in `libs/core/docs/integration-guide.md` §4.8, and a new `*_order_changes` writer must set
-  `kind`.
+  `kind`. Reads count a `NULL` row as zero, but every path that
+  writes the ledger (ship, cancelShip, removeShipInventoryOrder, transfer, cancelTransfer,
+  removeTransferOrder) calls `assertChangesHaveKind` first and refuses -- zero would overstate
+  what is left to move and let stock move twice.
 - Nothing is denormalised onto the item. `getProgress` and the `issuedQuantity` /
   `outstandingQuantity` resolvers read the change rows back every time, because those rows
   are what the stock ledger and the `stock.*` events agree with; a counter kept alongside

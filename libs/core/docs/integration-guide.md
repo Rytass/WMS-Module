@@ -416,6 +416,13 @@ order reads as if nothing had shipped and the row emits no event (`changeLogs` f
 old sign rule for it). **Run it once, right after the schema change, before serving traffic.** It
 is idempotent (it only touches `NULL` rows).
 
+Until it has run, an item whose rows include a `NULL` kind **cannot be shipped, transferred or
+cancelled**: `ship`, `cancelShip`, `removeShipInventoryOrder`, `transfer`, `cancelTransfer` and
+`removeTransferOrder` (including a whole-loader item) throw
+`Item <id> has change rows without a kind; run the upgrade SQL in integration-guide §4.8 before
+moving its stock`. Reading is unaffected. The refusal is deliberate: counting a `NULL` row as zero
+would overstate what is left to ship or transfer and let the same stock move twice.
+
 `<prefix>` is your `withWmsTablePrefix` prefix (empty by default). `stocks` belongs to
 `@rytass/wms-base-nestjs-module` and carries no prefix.
 

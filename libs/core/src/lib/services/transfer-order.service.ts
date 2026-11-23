@@ -44,6 +44,7 @@ import {
 import { runInTransaction } from '../utils/run-in-transaction';
 import { TransferChangeKind } from '../constants/transfer-change-kind';
 import { sumTransferChanges } from '../utils/transfer-change-quantities';
+import { assertChangesHaveKind } from '../utils/assert-change-kinds';
 
 const TRANSFER_ORDER_SORT_FIELDS: Readonly<
   Record<TransferOrderSortField, string>
@@ -78,12 +79,18 @@ const transferredAndCancelled = (
 const pendingBaseQuantity = (
   item: Pick<
     TransferOrderItemEntityClass,
-    'targetTransferredQuantity' | 'changes'
+    'id' | 'targetTransferredQuantity' | 'changes'
   >,
   conversionFactor: number,
-): number =>
-  item.targetTransferredQuantity * conversionFactor -
-  transferredAndCancelled(item.changes);
+): number => {
+  // Every caller goes on to write the ledger, so a row without a kind is refused.
+  assertChangesHaveKind(item.id, item.changes);
+
+  return (
+    item.targetTransferredQuantity * conversionFactor -
+    transferredAndCancelled(item.changes)
+  );
+};
 
 @Injectable()
 export class TransferOrderService<
@@ -871,6 +878,7 @@ export class TransferOrderService<
             manager,
           );
           const targetBase = orderItem.targetTransferredQuantity * factor;
+          assertChangesHaveKind(orderItem.id, orderItem.changes);
           const alreadyTransferred = transferredAndCancelled(orderItem.changes);
           if (alreadyTransferred >= targetBase) continue; // already fully transferred (committed or cancelled)
           const inputOpt = inputMap.get(orderItem.id);
