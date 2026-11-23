@@ -31,10 +31,10 @@
 | #228  | `stocks.createdAt` 無時區                         | C       | 欄位定義在 `@rytass/wms-base-nestjs-module` 的 `stock.entity` | P5（上游）         |
 | #229  | core-only host 裝不起來（`@nestjs/graphql` peer） | C       | base module 的 peer 全是 `*`，沒有 `peerDependenciesMeta`     | P5（上游）         |
 | #180  | 寬表格 resize 無法往右撐                          | E       | PR #198 只做了 200px 保留區繞過，見 §6                        | P5                 |
-| #183  | 未執行的調撥預留無法釋放                          | D       | 已修，`pendingBaseQuantity`；`core@0.10.0` 起                 | 關單               |
-| #184  | `requireInspection:false` 仍拆批                  | D       | 已修；`core@0.10.0` 起                                        | 關單               |
-| #185  | loader 序號用 CURRVAL                             | D       | 已修，改走 `WmsSequenceService`；`core@0.10.0` 起             | 關單               |
-| #186  | 同批兩行調撥第二行無法執行                        | D       | 已修，逐筆處理＋`lockStockSlots`；`core@0.10.0` 起            | 關單               |
+| #183  | 未執行的調撥預留無法釋放                          | D       | 已修，`pendingBaseQuantity`；`core@0.10.0` 起                 | 已關單             |
+| #184  | `requireInspection:false` 仍拆批                  | D       | 已修；`core@0.10.0` 起                                        | 已關單             |
+| #185  | loader 序號用 CURRVAL                             | D       | 已修，改走 `WmsSequenceService`；`core@0.10.0` 起             | 已關單             |
+| #186  | 同批兩行調撥第二行無法執行                        | D       | 已修，逐筆處理＋`lockStockSlots`；`core@0.10.0` 起            | 已關單             |
 
 所有 issue 都屬於 library 層級應有的範圍。唯一的例外是 #228／#229：需求本身合理，但根因在 base module。
 
