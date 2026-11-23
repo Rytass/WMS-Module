@@ -188,8 +188,8 @@ export class StockService<
               .addSelect('b."customerId"', 'customerId')
               .from(tablePathOf(this.dataSource, this.stockEntity), 's')
               // The entity, not its table path: a schema-qualified path such as
-              // `shuttle.wms_batches` reads to TypeORM as `<alias>.<relation>`
-              // in a join and fails with `"shuttle" alias was not found`.
+              // `app.wms_batches` reads to TypeORM as `<alias>.<relation>`
+              // in a join and fails with `"app" alias was not found`.
               .innerJoin(this.entities.batch, 'b', 's."batchId" = b.id'),
           'stock_status',
           `stock_status."stockId" = ${alias}.id`,
