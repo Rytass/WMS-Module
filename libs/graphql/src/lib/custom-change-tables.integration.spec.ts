@@ -337,6 +337,92 @@ describe('custom change tables (integration)', () => {
   });
 
   /*
+   * The change log lists a host row when its resolver names one of our own
+   * types. `ChangeType` is the GraphQL enum, so a host's own string has no
+   * member to appear as and the row is left out rather than shown wrongly.
+   */
+  describe('the change log', () => {
+    // Its own material, so the stock written here stays out of the aggregates
+    // the cases below add up.
+    let logMaterialId: string;
+    let logBatchId: string;
+
+    beforeAll(async () => {
+      const materialRepository = dataSource.getRepository<MaterialEntityClass>(
+        entities.material,
+      );
+
+      logMaterialId = (
+        await materialRepository.save(
+          materialRepository.create({
+            key: 'REWORK-LOG-MATERIAL',
+          } as DeepPartial<MaterialEntityClass>),
+        )
+      ).id;
+      logBatchId = (
+        await batchService.getBatch({
+          key: 'REWORK-LOG-B1',
+          materialId: logMaterialId,
+        })
+      ).id;
+    });
+
+    /** A change row and the stock it moved, sharing one base order id. */
+    const writeMovement = async (
+      stage: string,
+      quantityChanged: number,
+    ): Promise<void> => {
+      await runner.run({}, async () => {
+        const orderId = await newBaseOrderId();
+
+        await dataSource.getRepository(ReworkOrderChangeEntity).save(
+          dataSource.getRepository(ReworkOrderChangeEntity).create({
+            id: orderId,
+            itemId,
+            quantityChanged,
+            reworkStage: stage,
+          } as DeepPartial<ReworkOrderChangeEntity>),
+        );
+        await dataSource.getRepository<StockEntityClass>(entities.stock).save({
+          orderId,
+          materialId: logMaterialId,
+          batchId: logBatchId,
+          locationId,
+          loaderId: stockService.resolveLoaderId(null),
+          quantity: quantityChanged,
+        } as never);
+      });
+    };
+
+    const changeTypes = async (): Promise<string[]> => {
+      const [rows] = await stockService.findChangeLogs({
+        materialId: logMaterialId,
+      });
+
+      return rows.map(({ changeType }) => changeType as string);
+    };
+
+    it('lists a row the host classified as one of our types, and only that', async () => {
+      const before = (await changeTypes()).length;
+
+      await writeMovement('written-off', -2);
+      await writeMovement('reworking', -1);
+      await writeMovement('inspected', 0);
+
+      const after = await changeTypes();
+
+      expect(after.length - before).toBe(1);
+      expect(after.filter((type) => type === 'SCRAPED')).toHaveLength(1);
+
+      const [, total] = await stockService.findChangeLogs({
+        materialId: logMaterialId,
+      });
+
+      expect(total).toBe(after.length);
+    });
+  });
+
+  /*
    * The half a host would otherwise reimplement. Neither of these needed any
    * registration: they follow from the naming convention and from the ledger
    * being ordinary `stocks` rows.
