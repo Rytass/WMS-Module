@@ -1742,6 +1742,91 @@ describe('host service layer (integration, no GraphQL)', () => {
           ),
       },
       {
+        name: 'updateTransferOrder (new line)',
+        call: async (q, i, m) => {
+          const order = await transferService.createTransferOrder(
+            { locationId: dockId, items: [] },
+            m,
+          );
+
+          return transferService.updateTransferOrder({
+            id: order.id,
+            manager: m,
+            items: [
+              {
+                locationId: shelfId,
+                materialId: i.materialId,
+                batchId: i.batchId,
+                targetTransferredQuantity: q,
+              } as CreateTransferOrderItemInput,
+            ],
+          });
+        },
+      },
+      {
+        name: 'updateTransferOrder (existing line)',
+        call: async (q, i, m) => {
+          const order = await transferService.createTransferOrder(
+            {
+              locationId: dockId,
+              items: [
+                {
+                  locationId: shelfId,
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetTransferredQuantity: 1,
+                } as CreateTransferOrderItemInput,
+              ],
+            },
+            m,
+          );
+          const [line] = await m
+            .getRepository<TransferOrderItemEntityClass>(
+              transferService.transferOrderItemEntity,
+            )
+            .find({ where: { orderId: order.id } });
+
+          return transferService.updateTransferOrder({
+            id: order.id,
+            manager: m,
+            items: [{ id: line.id, targetTransferredQuantity: q }],
+          } as Parameters<TransferOrderService['updateTransferOrder']>[0]);
+        },
+      },
+      {
+        name: 'updateConsumptionOrder',
+        call: async (q, i, m) => {
+          const order = await consumptionService.createConsumptionOrder(
+            {
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  quantity: 1,
+                  targetLocationId: benchId,
+                },
+              ],
+            },
+            m,
+          );
+
+          return consumptionService.updateConsumptionOrder(
+            {
+              id: order.id,
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  quantity: q,
+                  targetLocationId: benchId,
+                },
+              ],
+            },
+            m,
+          );
+        },
+      },
+      {
         name: 'transfer',
         call: (q, i, m) =>
           transferService.transfer({ itemId: i.itemId, quantity: q }, m),

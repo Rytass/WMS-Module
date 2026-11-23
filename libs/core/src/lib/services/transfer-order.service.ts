@@ -549,6 +549,25 @@ export class TransferOrderService<
     const repos = this.getRepositories(manager);
     const { items, ...orderOptions } = options;
 
+    // The set checked is the set processed below: every line that is not
+    // removed. A new line must state a quantity; an existing one may leave it
+    // alone but cannot set it to something unusable.
+    items
+      ?.filter((item) => !item.removedAt)
+      .forEach((item, index) =>
+        item.id
+          ? assertPositiveQuantityIfPresent(
+              item.targetTransferredQuantity,
+              'targetTransferredQuantity',
+              `item ${item.id}`,
+            )
+          : assertPositiveQuantity(
+              item.targetTransferredQuantity,
+              'targetTransferredQuantity',
+              `item #${index}`,
+            ),
+      );
+
     const order = await repos.transferOrder.findOneByOrFail({ id });
     const updated = await repos.transferOrder.save(
       repos.transferOrder.create({ ...order, ...orderOptions }),

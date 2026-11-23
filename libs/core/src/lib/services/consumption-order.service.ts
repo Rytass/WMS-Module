@@ -177,6 +177,10 @@ export class ConsumptionOrderService<
     options: UpdateConsumptionOrderInput,
     outerManager?: EntityManager,
   ): Promise<T> {
+    options.items?.forEach((item, index) =>
+      assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+    );
+
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
 
