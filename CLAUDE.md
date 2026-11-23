@@ -198,6 +198,27 @@ and `validateStockAvailability` **throw** outside an active transaction (in auto
 lock is gone before the sum it guards) and `lockStockSlots` throws on a slot without a
 material or batch; never make either of them quietly skip.
 
+A shipment's source is the **in-shipment child** of the item's batch, not the item's own batch.
+`ship()` and `cancelShipInternal` therefore find that child read-only first
+(`BatchService.findSplitSibling`, which shares its where-builder with `splitBatch`) and hand both slots to
+`lockStockSlots` before `splitBatch` takes the group lock, then validate the child (#195). Never validate or
+lock a slot only after a split.
+
+#### Quantities from a caller must be greater than 0
+
+Public write entry points call `assertPositiveQuantity` (`libs/core/src/lib/utils`) on `quantity`,
+`target*Quantity` and `items[].quantity`; a zero, negative or `NaN` value throws `BadRequestException` before
+anything is written (#221). Do **not** put it in the shared `process*Items` helpers: `release`, `deallocate`
+and `return*` write negative targets on purpose. On `update*` paths the check and the persistence loop must
+share one predicate (a new line carrying `removedAt` is skipped, not created).
+
+#### A transfer never moves a loader away from its stock
+
+Only a whole-loader item (`item.loaderId === item.targetLoaderId`) relocates its loader on `transfer()`.
+Consolidating onto a loader at another location is refused in `createTransferOrder` (and re-checked at
+`transfer`) unless `relocateEmptyLoaders: true` **and** the loader's stock sums to 0 over every status
+(`StockService.resolveLoaderPlacement` / `isLoaderEmpty`, reusable by the receive path) (#222).
+
 #### Table names are reached through metadata; the prefix follows class identity
 
 `withWmsTablePrefix(options, 'wms_')` (`libs/core/src/lib/table-prefix`) rewrites the
