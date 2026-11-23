@@ -3094,6 +3094,48 @@ describe('host service layer (integration, no GraphQL)', () => {
       ).rejects.toThrow(/stock cannot be placed on it there/);
     });
 
+    it('refuses two lines of one call that put one loader at two locations, writing nothing', async () => {
+      const material = await newMaterial();
+      const loaderId = await newLoader(shelfId);
+      const { serialId } = await loaderOf(loaderId);
+      const line = (
+        locationKey: string,
+      ): Parameters<
+        ReceiveInventoryOrderService['createReceiveInventoryOrder']
+      >[0]['items'][number] => ({
+        serialId: unique('HSL-L'),
+        materialKey: material.key,
+        batchKey: unique('HSL-B'),
+        locationKey,
+        targetReceivedQuantity: 3,
+        requireInspection: false,
+      });
+      const order = await receiveService.createReceiveInventoryOrder({
+        key: unique('HSL-RCV'),
+        description: 'x',
+        items: [line('HSL-SHELF'), line('HSL-DOCK')],
+      });
+      const items = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId: order.id } });
+      // Created without a loader (so creation passes); the loader arrives with the receipt.
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        receiveService.receive([
+          { itemId: items[0].id, quantity: 3, loaderKey: serialId },
+          { itemId: items[1].id, quantity: 3, loaderKey: serialId },
+        ]),
+      ).rejects.toThrow(/at both location/);
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect((await loaderOf(loaderId)).locationId).toBe(shelfId);
+    });
+
     describe('with relocateEmptyLoaders', () => {
       const relocDb = `${DB_NAME}_p223`;
       let relocApp: INestApplication;

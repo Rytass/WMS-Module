@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   ReceiveInventoryOrderEntity,
   ReceiveInventoryOrderEntityClass,
@@ -578,7 +583,6 @@ export class ReceiveInventoryOrderService<
         {
           readonly locationId: string | null;
           readonly loaderId: string | null;
-          readonly relocate: boolean;
         }
       >();
       const resolved = await Promise.all(
@@ -613,18 +617,30 @@ export class ReceiveInventoryOrderService<
         resolved.flatMap(({ loaderId }) => (loaderId ? [loaderId] : [])),
         manager,
       );
+      // One loader cannot be received at two locations in one call: it would
+      // be moved under the first line's stock to serve the second.
+      const targetByLoader = new Map<string, string>();
       for (const { option, locationId, loaderId } of resolved) {
-        placements.set(option, {
-          locationId,
+        placements.set(option, { locationId, loaderId });
+        if (!loaderId) continue;
+
+        const target = this.stockService.resolveLocationId(locationId);
+        const seen = targetByLoader.get(loaderId);
+
+        if (seen !== undefined && seen !== target) {
+          throw new BadRequestException(
+            `Loader ${loaderId} is received at both location ${seen} and ${target} in one call; a loader sits at one location`,
+          );
+        }
+
+        targetByLoader.set(loaderId, target);
+        // Early refusal before anything is written; the decision that moves
+        // the loader is taken again right before this line's rows land.
+        await this.stockService.resolveLoaderPlacement(
           loaderId,
-          relocate: loaderId
-            ? (await this.stockService.resolveLoaderPlacement(
-                loaderId,
-                this.stockService.resolveLocationId(locationId),
-                manager,
-              )) === 'relocate'
-            : false,
-        });
+          target,
+          manager,
+        );
       }
 
       /*
@@ -760,7 +776,17 @@ export class ReceiveInventoryOrderService<
           const locationId = placement?.locationId ?? null;
           const loaderId = placement?.loaderId ?? null;
 
-          if (placement?.relocate && loaderId) {
+          // Decided now, after earlier lines of this call have written: a loader
+          // an earlier line stocked is no longer empty, so it is refused here
+          // instead of being moved away from that stock.
+          if (
+            loaderId &&
+            (await this.stockService.resolveLoaderPlacement(
+              loaderId,
+              this.stockService.resolveLocationId(locationId),
+              manager,
+            )) === 'relocate'
+          ) {
             await loaderRepository.update({ id: loaderId }, {
               locationId: this.stockService.resolveLocationId(locationId),
             } as DeepPartial<LoadersEntityClass>);
