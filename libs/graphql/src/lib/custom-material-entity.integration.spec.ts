@@ -4,7 +4,13 @@ import { GraphQLModule, GraphQLSchemaHost } from '@nestjs/graphql';
 import { ApolloDriver } from '@nestjs/apollo';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Client } from 'pg';
-import { ChildEntity, Column, DataSource, Repository } from 'typeorm';
+import {
+  ChildEntity,
+  Column,
+  DataSource,
+  Repository,
+  type DataSourceOptions,
+} from 'typeorm';
 import { ExecutionResult, GraphQLSchema, graphql } from 'graphql';
 import {
   MaterialEntity as BaseMaterialEntity,
@@ -667,22 +673,26 @@ describe('materialEntity configuration errors', () => {
     try {
       const moduleRef = await Test.createTestingModule({
         imports: [
-          TypeOrmModule.forRoot({
-            type: 'postgres',
-            host: DB_HOST,
-            port: DB_PORT,
-            username: DB_USER,
-            password: DB_PASS,
-            database: DB_NAME,
-            autoLoadEntities: true,
-            // The schema is already there (the suite's main app created it).
-            // Syncing again from an unregistered child adds its column a
-            // second time and fails the connection, and TypeOrmModule retries.
-            synchronize: false,
-            uuidExtension: 'uuid-ossp',
-            retryAttempts: 0,
-            dataSourceFactory: async (options) => {
-              const dataSource = await new DataSource(options!).initialize();
+          TypeOrmModule.forRootAsync({
+            useFactory: () => ({
+              type: 'postgres' as const,
+              host: DB_HOST,
+              port: DB_PORT,
+              username: DB_USER,
+              password: DB_PASS,
+              database: DB_NAME,
+              autoLoadEntities: true,
+              // The schema is already there (the suite's main app created it).
+              // Syncing again from an unregistered child adds its column a
+              // second time and fails the connection, and TypeOrmModule retries.
+              synchronize: false,
+              uuidExtension: 'uuid-ossp',
+              retryAttempts: 0,
+            }),
+            dataSourceFactory: async (options?: DataSourceOptions) => {
+              const dataSource = await new DataSource(
+                options as DataSourceOptions,
+              ).initialize();
 
               opened.push(dataSource);
 
