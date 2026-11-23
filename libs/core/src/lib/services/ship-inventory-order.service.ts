@@ -13,7 +13,9 @@ import {
   EntityManager,
   In,
   IsNull,
+  MoreThan,
   SelectQueryBuilder,
+  type FindOptionsWhere,
   type EntityTarget,
 } from 'typeorm';
 import {
@@ -597,45 +599,75 @@ export class ShipInventoryOrderService<
   }
 
   /**
-   * Look up the in-shipment child of every item's batch and take the stock
-   * locks of both the source batch and that child, in one sorted pass.
+   * Name the in-shipment child of every item from the ledger, and take the
+   * stock locks of both the source batch and that child in one sorted pass.
    *
-   * `splitBatch` takes the batch-group lock, and a stock lock must never be
-   * taken after it. The child is therefore found read-only first
-   * (`findSplitSibling`), so its slot can join the up-front `lockStockSlots`.
-   * An item without a child has nothing prepared for shipment and is absent
-   * from the returned map; the caller decides what that means.
+   * The child is read off the reservation itself, never re-derived from the
+   * source batch's current attributes: a prepare writes a change row whose `id`
+   * is the `orderId` of the stock rows it moved, and the positive stock row of
+   * that order sits on the child. A lookup by batch state would stop matching
+   * as soon as the source batch changed afterwards -- a later receipt flagging
+   * the emptied batch `requiresInspection`, say -- and strand the order.
+   *
+   * Reservations are the change rows with a positive `quantityChanged`
+   * (cancels and shipments are negative). One item is reserved exactly once,
+   * by `processShipInventoryOrderItems`, so they all name one child; if the
+   * ledger ever names two, that is a corrupted order and is refused rather than
+   * guessed at. An item with no reservation is absent from the returned map and
+   * the caller decides what that means.
+   *
+   * No batch-group lock is taken here, and one must never be taken before the
+   * stock locks: `splitBatch` takes the group lock, so stock locks come first.
+   * Loader-row locks (loader placement) come before both.
    */
   private async lockWithInShipmentBatches(
     items: readonly ShipInventoryOrderItemEntityClass[],
     manager: EntityManager,
-  ): Promise<Map<string, BatchEntityClass>> {
-    const siblings: [string, BatchEntityClass | null][] = [];
-    for (const item of items) {
-      siblings.push([
-        item.id,
-        await this.batchService.findSplitSibling({
-          id: item.batchId,
-          inShipment: true,
-          manager,
-        }),
-      ]);
-    }
-
-    const found = new Map(
-      siblings.filter(
-        (entry): entry is [string, BatchEntityClass] => entry[1] !== null,
-      ),
+  ): Promise<Map<string, string>> {
+    const stockRepository = manager.getRepository<StockEntityClass>(
+      this.entities.stock,
     );
+    const reservationIds = (
+      item: ShipInventoryOrderItemEntityClass,
+    ): string[] =>
+      item.changes
+        .filter((change) => Number(change.quantityChanged) > 0)
+        .map((change) => change.id);
+
+    const allIds = items.flatMap(reservationIds);
+    const rows = allIds.length
+      ? await stockRepository.find({
+          where: {
+            orderId: In(allIds),
+            quantity: MoreThan(0),
+          } as FindOptionsWhere<StockEntityClass>,
+        })
+      : [];
+    const batchByOrder = new Map(rows.map((row) => [row.orderId, row.batchId]));
+
+    const found = new Map<string, string>();
+    for (const item of items) {
+      const batchIds = [
+        ...new Set(
+          reservationIds(item).flatMap((id) => batchByOrder.get(id) ?? []),
+        ),
+      ];
+
+      if (batchIds.length > 1) {
+        throw new Error(
+          `Ship item ${item.id} was reserved onto more than one in-shipment batch (${batchIds.join(', ')})`,
+        );
+      }
+
+      if (batchIds.length === 1) found.set(item.id, batchIds[0]);
+    }
 
     await this.stockService.lockStockSlots(
       [
         ...items,
         ...items.flatMap((item) => {
-          const sibling = found.get(item.id);
-          return sibling
-            ? [{ materialId: item.materialId, batchId: sibling.id }]
-            : [];
+          const batchId = found.get(item.id);
+          return batchId ? [{ materialId: item.materialId, batchId }] : [];
         }),
       ],
       manager,
@@ -673,8 +705,15 @@ export class ShipInventoryOrderService<
     const itemMap = new Map(items.map((item) => [item.id, item]));
     // Source and in-shipment (material, batch) locks first, in a fixed order,
     // before any batch-group lock -- the same order every path uses.
+    // An item with nothing left to cancel needs no child and no lock.
     const inShipmentBatches = await this.lockWithInShipmentBatches(
-      items,
+      items.filter(
+        (item) =>
+          item.changes.reduce(
+            (sum, change) => sum + Number(change.quantityChanged),
+            0,
+          ) > 0,
+      ),
       manager,
     );
 
@@ -714,8 +753,8 @@ export class ShipInventoryOrderService<
 
         if (cancelQuantity <= 0) return;
 
-        const inShipmentBatch = inShipmentBatches.get(item.id);
-        if (!inShipmentBatch) {
+        const inShipmentBatchId = inShipmentBatches.get(item.id);
+        if (!inShipmentBatchId) {
           throw new Error(
             `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${cancelQuantity}`,
           );
@@ -728,7 +767,7 @@ export class ShipInventoryOrderService<
         await this.stockService.validateStockAvailability(
           {
             materialId: item.materialId,
-            batchId: inShipmentBatch.id,
+            batchId: inShipmentBatchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: cancelQuantity,
@@ -759,7 +798,7 @@ export class ShipInventoryOrderService<
               {
                 orderId: reverseOrder.id,
                 materialId: item.materialId,
-                batchId: inShipmentBatch.id,
+                batchId: inShipmentBatchId,
                 locationId: this.stockService.resolveLocationId(
                   item.locationId,
                 ),
@@ -992,8 +1031,8 @@ export class ShipInventoryOrderService<
             );
           }
 
-          const shippedBatch = shippedBatches.get(item.id);
-          if (!shippedBatch) {
+          const shippedBatchId = shippedBatches.get(item.id);
+          if (!shippedBatchId) {
             throw new Error(
               `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${option.quantity * conversionFactor}`,
             );
@@ -1004,7 +1043,7 @@ export class ShipInventoryOrderService<
           await this.stockService.validateStockAvailability(
             {
               materialId: item.materialId,
-              batchId: shippedBatch.id,
+              batchId: shippedBatchId,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: option.quantity * conversionFactor,
@@ -1023,7 +1062,7 @@ export class ShipInventoryOrderService<
             stockRepository.save(
               stockRepository.create([
                 {
-                  batchId: shippedBatch.id,
+                  batchId: shippedBatchId,
                   materialId: item.materialId,
                   locationId: this.stockService.resolveLocationId(
                     item.locationId,

@@ -1573,6 +1573,91 @@ describe('host service layer (integration, no GraphQL)', () => {
     });
 
     /**
+     * The in-shipment child is named by the ledger, not re-derived from the
+     * source batch's current attributes. Here a later default receipt lands on a
+     * batch that is empty because it was fully prepared, flags it in place
+     * (`requiresInspection`), and a sibling lookup by batch state would no
+     * longer match the child the reservation created.
+     */
+    describe('the child survives a later change to the source batch', () => {
+      const prepareThenReceiveOntoSource = async (): Promise<{
+        materialId: string;
+        batchId: string;
+        childId: string;
+        itemId: string;
+        orderId: string;
+      }> => {
+        const material = await newMaterial();
+        const { batchId, batchKey } = await seedStock(material.id, 100);
+        const { itemId, orderId } = await createShip(
+          material.id,
+          batchId,
+          100,
+        );
+        const childId = await inShipmentChild(batchId);
+
+        const receive = await receiveService.createReceiveInventoryOrder({
+          key: unique('HSL-RCV'),
+          description: 'late receipt',
+          items: [
+            {
+              serialId: unique('HSL-RCV-LINE'),
+              materialKey: material.key,
+              batchKey,
+              locationKey: 'HSL-SHELF',
+              targetReceivedQuantity: 5,
+            },
+          ],
+        });
+        const [receiveItem] = await dataSource
+          .getRepository<ReceiveInventoryOrderItemEntityClass>(
+            receiveService.receiveInventoryOrderItemEntity,
+          )
+          .find({ where: { orderId: receive.id } });
+        await receiveService.receive({ itemId: receiveItem.id, quantity: 5 });
+
+        const source = await dataSource
+          .getRepository<BatchEntityClass>(entities.batch)
+          .findOneByOrFail({ id: batchId });
+        expect(source.requiresInspection).toBe(true);
+
+        return { materialId: material.id, batchId, childId, itemId, orderId };
+      };
+
+      it('ship() still finds the prepared child', async () => {
+        const { itemId, childId } = await prepareThenReceiveOntoSource();
+
+        await dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 100 }, manager),
+        );
+
+        expect(await batchQuantity(childId)).toBe(0);
+      });
+
+      it('cancelShip() still finds the prepared child', async () => {
+        const { itemId, childId, batchId } =
+          await prepareThenReceiveOntoSource();
+
+        await dataSource.transaction((manager) =>
+          shipService.cancelShip({ itemId, quantity: 100 }, manager),
+        );
+
+        expect(await batchQuantity(childId)).toBe(0);
+        expect(await batchQuantity(batchId)).toBe(105);
+      });
+
+      it('removeShipInventoryOrder still releases the reservation', async () => {
+        const { orderId, childId } = await prepareThenReceiveOntoSource();
+
+        await dataSource.transaction((manager) =>
+          shipService.removeShipInventoryOrder(orderId, manager),
+        );
+
+        expect(await batchQuantity(childId)).toBe(0);
+      });
+    });
+
+    /**
      * ship() and cancelShip() take the stock locks of the source batch *and* the
      * in-shipment child up front, before `splitBatch` would take a batch-group
      * lock. Two transactions reaching the same two batches in opposite order
