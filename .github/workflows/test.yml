@@ -1,0 +1,70 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: self-hosted
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        # No fixed host port: the runner host may already run a Postgres, and
+        # concurrent jobs must not fight over 5432.
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      WMS_TEST_DB_HOST: localhost
+      WMS_TEST_DB_USER: postgres
+      WMS_TEST_DB_PASS: postgres
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v7
+
+      # `job` is not available in job-level `env`, so the mapped port is exported
+      # for the later steps here.
+      - name: Point integration tests at the Postgres service
+        run: echo "WMS_TEST_DB_PORT=${{ job.services.postgres.ports['5432'] }}" >> "$GITHUB_ENV"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Lint and typecheck
+        run: npx nx run-many -t typecheck,lint --projects=core,graphql --parallel=2
+
+      - name: Typecheck specs
+        run: yarn typecheck:specs
+
+      # Core unit specs and graphql integration specs in one run, so the report
+      # is merged (see jest.config.mjs for why it has to be one config).
+      - name: Test with coverage
+        run: yarn test:coverage:run
+
+      - name: Coverage gate
+        run: yarn test:coverage:gate
