@@ -19,6 +19,7 @@ import {
   BatchService,
   ConsumptionOrderService,
   HoldInventoryOrderService,
+  InventoryCountOrderService,
   MaterialService,
   MaterialUnitEntityClass,
   MergeBatchOrderService,
@@ -47,6 +48,8 @@ import {
   WmsModuleCoreModule,
   WmsOperationRunner,
   type WmsAfterEventContext,
+  type WmsModuleCoreModuleOptions,
+  WMS_CORE_MODULE_OPTIONS,
   getWmsTablePrefix,
   WmsSequenceService,
 } from '@rytass/wms-module-core';
@@ -114,6 +117,19 @@ interface StockEventRecord {
 }
 
 const stockEvents: StockEventRecord[] = [];
+
+/** Every stock event of every name, for the change log consistency checks. */
+const allStockEvents: { event: string; changeType: string | null }[] = [];
+
+const recordAnyStockEvent = async (
+  context: WmsAfterEventContext,
+): Promise<void> => {
+  allStockEvents.push({
+    event: context.event,
+    changeType:
+      (context.payload as { changeType: string | null }).changeType ?? null,
+  });
+};
 
 /**
  * An upgrade statement the integration guide tells hosts to run, read from the
@@ -443,6 +459,7 @@ describe('host service layer (integration, no GraphQL)', () => {
         event: context.event,
         committedChanges: Number(count),
       });
+      await recordAnyStockEvent(context);
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -469,6 +486,18 @@ describe('host service layer (integration, no GraphQL)', () => {
             'stock.ship-cancelled': recordStockEvent,
             'stock.transferred': recordStockEvent,
             'stock.transfer-cancelled': recordStockEvent,
+            'stock.received': recordAnyStockEvent,
+            'stock.in-shipment': recordAnyStockEvent,
+            'stock.in-transfer': recordAnyStockEvent,
+            'stock.held': recordAnyStockEvent,
+            'stock.released': recordAnyStockEvent,
+            'stock.allocated': recordAnyStockEvent,
+            'stock.deallocated': recordAnyStockEvent,
+            'stock.scraped': recordAnyStockEvent,
+            'stock.count-gained': recordAnyStockEvent,
+            'stock.count-lost': recordAnyStockEvent,
+            'stock.returned': recordAnyStockEvent,
+            'stock.consumed': recordAnyStockEvent,
           },
         }),
       ],
@@ -3095,6 +3124,9 @@ describe('host service layer (integration, no GraphQL)', () => {
       const { batchId } = await seedStock(material.id, 10);
       const { orderId, itemId } = await createShip(material.id, batchId, 4);
 
+      await dataSource.transaction((manager) =>
+        shipService.cancelShip({ itemId }, manager),
+      );
       await shipService.updateShipInventoryOrder({
         id: orderId,
         items: [
@@ -3262,13 +3294,22 @@ describe('host service layer (integration, no GraphQL)', () => {
         ),
       );
 
-    const removeLine = (orderId: string, itemId: string): Promise<unknown> =>
-      shipService.updateShipInventoryOrder({
+    // A line holding a reservation cannot be removed until it is cancelled.
+    const removeLine = async (
+      orderId: string,
+      itemId: string,
+    ): Promise<unknown> => {
+      await dataSource.transaction((manager) =>
+        shipService.cancelShip({ itemId }, manager),
+      );
+
+      return shipService.updateShipInventoryOrder({
         id: orderId,
         items: [{ id: itemId, removedAt: removed }],
       } as Parameters<
         ShipInventoryOrderService['updateShipInventoryOrder']
       >[0]);
+    };
 
     it('is SHIPPED once the remaining line has shipped', async () => {
       const { orderId, itemA, itemB } = await twoLines();
@@ -3538,6 +3579,685 @@ describe('host service layer (integration, no GraphQL)', () => {
         receiveService.receive({ itemId: item.id, quantity: 1 }, manager),
       );
       expect(await receiveStatus(order.id)).toBe('RECEIVED');
+    });
+  });
+
+  describe('D2: the change log lists every movement the subscriber classifies', () => {
+    const inRun = <R>(work: () => Promise<R>): Promise<R> =>
+      runner.run({}, work);
+
+    /** Run `work`, then return the change types of its events and of the log. */
+    const observe = async (
+      materialIds: readonly string[],
+      work: () => Promise<void>,
+    ): Promise<{ events: string[]; logged: string[] }> => {
+      allStockEvents.length = 0;
+      await work();
+
+      const logged = (
+        await Promise.all(
+          materialIds.map(async (materialId) => {
+            const [rows] = await stockService.findChangeLogs({ materialId });
+
+            return rows.map(({ changeType }) => changeType as string);
+          }),
+        )
+      ).flat();
+
+      return {
+        events: allStockEvents
+          .map(({ changeType }) => changeType as string)
+          .sort(),
+        logged: logged.sort(),
+      };
+    };
+
+    const sorted = (...types: string[]): string[] => [...types].sort();
+
+    it('receive, ship, transfer, hold, allocate: event and log agree', async () => {
+      const material = await newMaterial();
+
+      const { events, logged } = await observe([material.id], async () => {
+        const received = await inRun(async () => {
+          const { batchKey } = await seedStock(material.id, 0).then(
+            async ({ batchKey: key }) => ({ batchKey: key }),
+          );
+
+          return createReceive(material.key, batchKey, 4).then(
+            async ({ itemId }) => {
+              await receiveService.receive({ itemId, quantity: 4 });
+
+              return itemId;
+            },
+          );
+        });
+
+        expect(received).toBeDefined();
+
+        const shipBatch = await seedStock(material.id, 10);
+        const ship = await inRun(() =>
+          createShip(material.id, shipBatch.batchId, 10),
+        );
+        await inRun(() =>
+          shipService.ship({ itemId: ship.itemId, quantity: 4 }),
+        );
+        await inRun(() =>
+          shipService.cancelShip({ itemId: ship.itemId, quantity: 3 }),
+        );
+
+        const transferBatch = await seedStock(material.id, 3);
+        const transfer = await inRun(() =>
+          createTransfer(material.id, transferBatch.batchId, 3),
+        );
+        await inRun(() =>
+          transferService.transfer({ itemId: transfer.itemId, quantity: 1 }),
+        );
+        await inRun(() =>
+          transferService.cancelTransfer({
+            itemId: transfer.itemId,
+            quantity: 2,
+          }),
+        );
+
+        const heldBatch = await seedStock(material.id, 5);
+        await inRun(() =>
+          holdService.createHoldInventoryOrder({
+            items: [
+              {
+                materialId: material.id,
+                batchId: heldBatch.batchId,
+                locationId: shelfId,
+                targetHeldQuantity: 2,
+              },
+            ],
+          }),
+        );
+        await inRun(async () =>
+          holdService.release([
+            {
+              materialId: material.id,
+              batchId: await childBatch(heldBatch.batchId, { held: true }),
+              locationId: shelfId,
+              quantity: 2,
+            },
+          ]),
+        );
+
+        const allocated = await seedStock(material.id, 5);
+        await inRun(() =>
+          allocateService.createAllocateInventoryOrder({
+            items: [
+              {
+                materialId: material.id,
+                batchId: allocated.batchId,
+                locationId: shelfId,
+                targetAllocatedQuantity: 2,
+                saleId: 'HSL-D2-SO',
+                saleSerialId: 'HSL-D2-SO-1',
+              },
+            ],
+          }),
+        );
+        await inRun(async () =>
+          allocateService.deallocate([
+            {
+              materialId: material.id,
+              batchId: await childBatch(allocated.batchId, 'allocated'),
+              locationId: shelfId,
+              quantity: 2,
+            },
+          ]),
+        );
+      });
+
+      // What the subscriber emitted is the reference; the log must list exactly
+      // that. (Release and deallocate are not asserted by name: which type they
+      // carry is the subscriber's call, and the log has to follow it.)
+      expect(events).toEqual(
+        expect.arrayContaining([
+          'RECEIVED',
+          'IN_SHIPMENT',
+          'SHIPPED',
+          'SHIP_CANCELLED',
+          'IN_TRANSFER',
+          'TRANSFERRED',
+          'TRANSFER_CANCELLED',
+          'HELD',
+          'ALLOCATED',
+        ]),
+      );
+      expect(logged).toEqual(events);
+    });
+
+    it('scrape: a positive change over a negative stock row is listed as SCRAPED', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+
+      const { events, logged } = await observe([material.id], () =>
+        inRun(async () => {
+          await scrapeService.scrape([
+            {
+              materialId: material.id,
+              batchId,
+              locationId: shelfId,
+              quantity: 3,
+            },
+          ]);
+        }),
+      );
+
+      expect(events).toEqual(['SCRAPED']);
+      expect(logged).toEqual(['SCRAPED']);
+
+      const [[row]] = await stockService.findChangeLogs({
+        materialId: material.id,
+      });
+
+      expect(Number(row.quantity)).toBe(-3);
+    });
+
+    it('consumption: issue, return and settle are ISSUED, RETURNED and CONSUMED', async () => {
+      const material = await newMaterial();
+
+      const { events, logged } = await observe([material.id], async () => {
+        const returned = await seedStock(material.id, 10);
+        const { orderId: returnOrder } = await createConsumption(
+          material.id,
+          returned.batchId,
+          10,
+        );
+        await inRun(() => consumptionService.issue({ orderId: returnOrder }));
+        await inRun(() => consumptionService.return({ orderId: returnOrder }));
+
+        const settled = await seedStock(material.id, 10);
+        const { orderId: settleOrder } = await createConsumption(
+          material.id,
+          settled.batchId,
+          10,
+        );
+        await inRun(() => consumptionService.issue({ orderId: settleOrder }));
+        await inRun(() => consumptionService.settle({ orderId: settleOrder }));
+      });
+
+      expect(events).toEqual(
+        sorted('ISSUED', 'RETURNED', 'ISSUED', 'CONSUMED'),
+      );
+      expect(logged).toEqual(events);
+    });
+
+    it('inventory count: a gain and a loss are COUNT_GAINED and COUNT_LOST', async () => {
+      const countBayId = (
+        await dataSource
+          .getRepository<LocationEntityClass>(entities.location)
+          .save({
+            key: unique('HSL-COUNT-BAY'),
+            description: 'count bay',
+            isActive: true,
+          } as DeepPartial<LocationEntityClass>)
+      ).id;
+      const lost = await newMaterial();
+      const gained = await newMaterial();
+
+      await seedStock(lost.id, 10, { locationId: countBayId });
+      await seedStock(gained.id, 10, { locationId: countBayId });
+
+      const countService = app.get(InventoryCountOrderService);
+
+      const { events, logged } = await observe(
+        [lost.id, gained.id],
+        async () => {
+          const order = await countService.create({
+            name: unique('HSL-D2-COUNT'),
+            countDate: '2026-11-01',
+            locationIds: [countBayId],
+          });
+
+          await countService.start(order.id);
+
+          const [items] = await countService.findItems(order.id);
+
+          await countService.count(
+            order.id,
+            items.map((item) => ({
+              itemId: item.id,
+              countedQuantity:
+                Number(item.bookQuantity) +
+                (item.materialId === gained.id ? 2 : -2),
+            })),
+          );
+          await inRun(() => countService.settle(order.id));
+        },
+      );
+
+      expect(events).toEqual(sorted('COUNT_GAINED', 'COUNT_LOST'));
+      expect(logged).toEqual(events);
+    });
+
+    it('pages over the full set and reports a total that matches', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const { orderId } = await createConsumption(material.id, batchId, 10);
+
+      await inRun(() => consumptionService.issue({ orderId }));
+      await inRun(() => consumptionService.settle({ orderId }));
+      await inRun(() =>
+        scrapeService.scrape([
+          {
+            materialId: material.id,
+            batchId,
+            locationId: shelfId,
+            quantity: 0.5,
+          },
+        ]),
+      ).catch(() => undefined);
+
+      const [all, total] = await stockService.findChangeLogs({
+        materialId: material.id,
+      });
+      const pages = await Promise.all(
+        all.map((_, offset) =>
+          stockService.findChangeLogs({
+            materialId: material.id,
+            offset,
+            limit: 1,
+          }),
+        ),
+      );
+
+      expect(total).toBe(all.length);
+      expect(total).toBeGreaterThanOrEqual(2);
+      expect(pages.map(([[row]]) => row.id).sort()).toEqual(
+        all.map(({ id }) => id).sort(),
+      );
+    });
+  });
+
+  describe('D3: merging batches', () => {
+    const mergeService = (): MergeBatchOrderService =>
+      app.get(MergeBatchOrderService);
+
+    const setBatch = async (
+      batchId: string,
+      patch: {
+        attributes?: Record<string, unknown> | null;
+        requiresInspection?: boolean;
+      },
+    ): Promise<void> => {
+      await dataSource
+        .getRepository<BatchEntityClass>(entities.batch)
+        .update({ id: batchId }, patch as never);
+    };
+
+    /** The batch a merge put its stock into: the one holding positive stock. */
+    const mergedBatchOf = async (
+      materialId: string,
+      batchKey: string,
+    ): Promise<BatchEntityClass> => {
+      const target = await dataSource
+        .getRepository<BatchEntityClass>(entities.batch)
+        .findOneByOrFail({ materialId, key: batchKey });
+      const children = await dataSource
+        .getRepository<BatchEntityClass>(entities.batch)
+        .find({ where: { parentBatchId: target.id } });
+
+      return children.length === 1 ? children[0] : target;
+    };
+
+    const twoBatches = async (
+      first: Parameters<typeof setBatch>[1],
+      second: Parameters<typeof setBatch>[1],
+    ): Promise<{ materialId: string; a: string; b: string }> => {
+      const material = await newMaterial();
+      const a = await seedStock(material.id, 5);
+      const b = await seedStock(material.id, 5);
+
+      await setBatch(a.batchId, first);
+      await setBatch(b.batchId, second);
+
+      return { materialId: material.id, a: a.batchId, b: b.batchId };
+    };
+
+    const merge = (
+      materialId: string,
+      batchKey: string,
+      batchIds: readonly string[],
+    ): Promise<unknown> =>
+      mergeService().merge({
+        batchKey,
+        materialId,
+        items: batchIds.map((batchId) => ({
+          batchId,
+          locationId: shelfId,
+          quantity: 5,
+        })),
+      });
+
+    it('merges a batch that sits at two locations', async () => {
+      const material = await newMaterial();
+      const first = await seedStock(material.id, 5);
+      await seedStock(material.id, 4, {
+        batchId: first.batchId,
+        locationId: benchId,
+      });
+
+      await mergeService().merge({
+        batchKey: unique('HSL-MERGED'),
+        materialId: material.id,
+        items: [
+          { batchId: first.batchId, locationId: shelfId, quantity: 5 },
+          { batchId: first.batchId, locationId: benchId, quantity: 4 },
+        ],
+      });
+
+      const shelf = await byStatus(material.id, shelfId);
+      const bench = await byStatus(material.id, benchId);
+
+      expect(shelf[StockStatus.FREE]).toBe(5);
+      expect(bench[StockStatus.FREE]).toBe(4);
+      // The source batch is emptied at both places.
+      const [rows] = await stockService.findAggregatedStocks({
+        materialId: material.id,
+        batchId: first.batchId,
+      });
+
+      expect(rows.reduce((sum, row) => sum + Number(row.quantity), 0)).toBe(0);
+    });
+
+    it('refuses batches whose attributes differ, and writes nothing', async () => {
+      const { materialId, a, b } = await twoBatches(
+        { attributes: { grade: 'A' } },
+        { attributes: { grade: 'B' } },
+      );
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        merge(materialId, unique('HSL-MERGED'), [a, b]),
+      ).rejects.toThrow(/attributes/);
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+    });
+
+    it('refuses a batch with attributes against one without', async () => {
+      const { materialId, a, b } = await twoBatches(
+        { attributes: { grade: 'A' } },
+        { attributes: null },
+      );
+
+      await expect(
+        merge(materialId, unique('HSL-MERGED'), [a, b]),
+      ).rejects.toThrow(/attributes/);
+    });
+
+    it('refuses batches that differ in requiresInspection', async () => {
+      const { materialId, a, b } = await twoBatches(
+        { requiresInspection: true },
+        { requiresInspection: false },
+      );
+
+      await expect(
+        merge(materialId, unique('HSL-MERGED'), [a, b]),
+      ).rejects.toThrow(/requiresInspection/);
+    });
+
+    it('compares attributes by content, not by key order', async () => {
+      const { materialId, a, b } = await twoBatches(
+        { attributes: { grade: 'A', bin: 'B1', nested: { x: 1, y: 2 } } },
+        { attributes: { nested: { y: 2, x: 1 }, bin: 'B1', grade: 'A' } },
+      );
+
+      await expect(
+        merge(materialId, unique('HSL-MERGED'), [a, b]),
+      ).resolves.toBeDefined();
+    });
+
+    it('carries attributes and requiresInspection onto the merged batch', async () => {
+      const { materialId, a, b } = await twoBatches(
+        { attributes: { grade: 'A' }, requiresInspection: true },
+        { attributes: { grade: 'A' }, requiresInspection: true },
+      );
+      const key = unique('HSL-MERGED');
+
+      await merge(materialId, key, [a, b]);
+
+      const merged = await mergedBatchOf(materialId, key);
+
+      expect(merged.attributes).toEqual({ grade: 'A' });
+      expect(merged.requiresInspection).toBe(true);
+    });
+  });
+
+  describe('D4: removing a ship line that still holds a reservation', () => {
+    const coreOptions = (): WmsModuleCoreModuleOptions =>
+      app.get<WmsModuleCoreModuleOptions>(WMS_CORE_MODULE_OPTIONS);
+
+    const withOption = async (
+      value: boolean,
+      work: () => Promise<void>,
+    ): Promise<void> => {
+      const options = coreOptions();
+      const before = options.cancelReservationOnShipLineRemoval;
+
+      options.cancelReservationOnShipLineRemoval = value;
+
+      try {
+        await work();
+      } finally {
+        options.cancelReservationOnShipLineRemoval = before;
+      }
+    };
+
+    const removeLine = (orderId: string, itemId: string): Promise<unknown> =>
+      shipService.updateShipInventoryOrder({
+        id: orderId,
+        items: [{ id: itemId, removedAt: new Date() }],
+      } as Parameters<
+        ShipInventoryOrderService['updateShipInventoryOrder']
+      >[0]);
+
+    const prepare = async (
+      quantity: number,
+    ): Promise<{
+      materialId: string;
+      orderId: string;
+      itemId: string;
+    }> => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, quantity);
+      const { orderId, itemId } = await createShip(
+        material.id,
+        batchId,
+        quantity,
+      );
+
+      return { materialId: material.id, orderId, itemId };
+    };
+
+    const lineRemovedAt = async (itemId: string): Promise<Date | null> =>
+      (
+        await dataSource
+          .getRepository<ShipInventoryOrderItemEntityClass>(
+            shipService.shipInventoryOrderItemEntity,
+          )
+          .findOneByOrFail({ id: itemId })
+      ).removedAt ?? null;
+
+    it('is off unless a deployment turns it on', () => {
+      expect(coreOptions().cancelReservationOnShipLineRemoval).toBeFalsy();
+    });
+
+    it('refuses by default, names the line, and writes nothing', async () => {
+      const { materialId, orderId, itemId } = await prepare(5);
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(removeLine(orderId, itemId)).rejects.toThrow(
+        /still holds 5 reserved.*cancelShip/,
+      );
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect(await lineRemovedAt(itemId)).toBeNull();
+      expect((await byStatus(materialId))[StockStatus.IN_SHIPMENT]).toBe(5);
+    });
+
+    it('refuses a partly shipped line for what is left of it', async () => {
+      const { orderId, itemId } = await prepare(5);
+
+      await runner.run({}, () =>
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 2 }, manager),
+        ),
+      );
+
+      await expect(removeLine(orderId, itemId)).rejects.toThrow(
+        /still holds 3 reserved/,
+      );
+    });
+
+    it('removes the line once cancelShip has released it', async () => {
+      const { materialId, orderId, itemId } = await prepare(5);
+
+      await dataSource.transaction((manager) =>
+        shipService.cancelShip({ itemId }, manager),
+      );
+      await removeLine(orderId, itemId);
+
+      expect(await lineRemovedAt(itemId)).not.toBeNull();
+      expect((await byStatus(materialId))[StockStatus.FREE]).toBe(5);
+    });
+
+    it('removes a line that has shipped in full', async () => {
+      const { orderId, itemId } = await prepare(5);
+
+      await runner.run({}, () =>
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 5 }, manager),
+        ),
+      );
+      await removeLine(orderId, itemId);
+
+      expect(await lineRemovedAt(itemId)).not.toBeNull();
+    });
+
+    it('removes a line that never had a reservation', async () => {
+      const { orderId, itemId } = await prepare(5);
+
+      await dataSource.transaction((manager) =>
+        shipService.cancelShip({ itemId }, manager),
+      );
+
+      await expect(removeLine(orderId, itemId)).resolves.toBeDefined();
+    });
+
+    it('with cancelReservationOnShipLineRemoval, cancels what is left and returns it to the batch', async () => {
+      const { materialId, orderId, itemId } = await prepare(5);
+
+      await withOption(true, async () => {
+        await runner.run({}, () =>
+          dataSource.transaction((manager) =>
+            shipService.ship({ itemId, quantity: 2 }, manager),
+          ),
+        );
+        await removeLine(orderId, itemId);
+      });
+
+      const free = await byStatus(materialId);
+
+      expect(await lineRemovedAt(itemId)).not.toBeNull();
+      expect(free[StockStatus.FREE]).toBe(3);
+      expect(free[StockStatus.IN_SHIPMENT] ?? 0).toBe(0);
+
+      const [changes] = await dataSource
+        .query<
+          { kind: string; quantityChanged: string }[][]
+        >(`SELECT c.kind, c."quantityChanged" FROM "${dataSource.getMetadata(getWmsTablePrefix() + 'ship_inventory_order_changes').tablePath}" c WHERE c."itemId" = $1 AND c.kind = 'CANCEL'`, [itemId])
+        .then((rows) => [rows]);
+
+      expect(changes.map((row) => Number(row.quantityChanged))).toEqual([-3]);
+    });
+
+    it('with the option on, a line without a reservation is removed as usual', async () => {
+      const { orderId, itemId } = await prepare(5);
+
+      await dataSource.transaction((manager) =>
+        shipService.cancelShip({ itemId }, manager),
+      );
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await withOption(true, async () => {
+        await removeLine(orderId, itemId);
+      });
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect(await lineRemovedAt(itemId)).not.toBeNull();
+    });
+
+    it('with the option on, the cancel and the removal commit or roll back together', async () => {
+      const { materialId, orderId, itemId } = await prepare(5);
+
+      await withOption(true, async () => {
+        await expect(
+          dataSource.transaction(async (manager) => {
+            await shipService.updateShipInventoryOrder({
+              id: orderId,
+              items: [{ id: itemId, removedAt: new Date() }],
+              manager,
+            } as Parameters<
+              ShipInventoryOrderService['updateShipInventoryOrder']
+            >[0]);
+
+            throw new Rollback();
+          }),
+        ).rejects.toThrow(Rollback);
+      });
+
+      expect(await lineRemovedAt(itemId)).toBeNull();
+      expect((await byStatus(materialId))[StockStatus.IN_SHIPMENT]).toBe(5);
+    });
+
+    it('removing the whole order releases a line removed earlier with its reservation still standing', async () => {
+      const { materialId, orderId, itemId } = await prepare(5);
+
+      // A line removed before the rule existed: stamped, reservation left.
+      await dataSource
+        .getRepository<ShipInventoryOrderItemEntityClass>(
+          shipService.shipInventoryOrderItemEntity,
+        )
+        .update({ id: itemId }, { removedAt: new Date() } as never);
+      expect((await byStatus(materialId))[StockStatus.IN_SHIPMENT]).toBe(5);
+
+      await dataSource.transaction((manager) =>
+        shipService.removeShipInventoryOrder(orderId, manager),
+      );
+
+      const after = await byStatus(materialId);
+
+      expect(after[StockStatus.FREE]).toBe(5);
+      expect(after[StockStatus.IN_SHIPMENT] ?? 0).toBe(0);
+    });
+
+    it('forRootAsync hands the option to the providers', () => {
+      const provider = (
+        WmsModuleCoreModule.forRootAsync({
+          useFactory: async () => ({}),
+          defaultLoaderSerialId: 'DEFAULT',
+          defaultLoaderTypeKey: 'DEFAULT',
+          defaultLocationKey: 'DEFAULT',
+          cancelReservationOnShipLineRemoval: true,
+        }).providers ?? []
+      ).find(
+        (candidate) =>
+          typeof candidate === 'object' &&
+          'provide' in candidate &&
+          candidate.provide === WMS_CORE_MODULE_OPTIONS,
+      );
+
+      expect(provider).toMatchObject({
+        useValue: { cancelReservationOnShipLineRemoval: true },
+      });
     });
   });
 });

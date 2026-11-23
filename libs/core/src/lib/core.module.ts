@@ -326,6 +326,7 @@ export class WmsModuleCoreModule {
       sequenceStorage,
       seedDefaults,
       relocateEmptyLoaders,
+      cancelReservationOnShipLineRemoval,
       tablePrefix,
       ...baseOptions
     } = options;
@@ -357,6 +358,7 @@ export class WmsModuleCoreModule {
             sequenceStorage,
             seedDefaults,
             relocateEmptyLoaders,
+            cancelReservationOnShipLineRemoval,
             tablePrefix,
           },
         },

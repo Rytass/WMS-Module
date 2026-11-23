@@ -1,4 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import {
   ShipInventoryOrderEntity,
   ShipInventoryOrderEntityClass,
@@ -60,6 +65,10 @@ import {
 import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import {
+  WMS_CORE_MODULE_OPTIONS,
+  type WmsModuleCoreModuleOptions,
+} from '../typings/core-module-options';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
 
 /**
@@ -110,6 +119,9 @@ export class ShipInventoryOrderService<
     readonly shipInventoryOrderReferenceEntity: EntityTarget<ShipInventoryOrderReferenceEntityClass>,
     @Inject(SaleOrderEntity)
     readonly saleOrderEntity: EntityTarget<SaleOrderEntityClass>,
+    @Optional()
+    @Inject(WMS_CORE_MODULE_OPTIONS)
+    private readonly coreOptions: WmsModuleCoreModuleOptions | null = null,
   ) {
     this.selectQueryBuilder = (alias: string) => {
       return this.dataSource
@@ -438,6 +450,16 @@ export class ShipInventoryOrderService<
         id,
         removedAt: IsNull(),
       });
+
+      // Decided before anything is written: a refusal leaves no trace even in a
+      // caller's transaction that carries on after catching it.
+      const releaseOnRemoval = await this.planReleaseOfRemovedLines(
+        id,
+        (options.items ?? [])
+          .filter((line) => line.id && line.removedAt)
+          .map((line) => line.id as string),
+        manager,
+      );
       const { references, items, ...orderOptions } = options;
       const updated = await shipInventoryOrderRepository.save(
         shipInventoryOrderRepository.create({
@@ -528,6 +550,10 @@ export class ShipInventoryOrderService<
             });
           });
 
+        // First, so the stock a removed line gives back is there for the lines
+        // this same update adds.
+        if (releaseOnRemoval.length)
+          await this.cancelShipInternal(releaseOnRemoval, manager);
         if (newItems.length)
           await this.processShipInventoryOrderItems(newItems, manager);
         if (existingItems.length)
@@ -543,6 +569,52 @@ export class ShipInventoryOrderService<
 
       return updated as T;
     });
+  }
+
+  /**
+   * What removing these lines must cancel first: for each line that is still
+   * live and still holds a reservation (reserved - shipped - cancelled > 0,
+   * read from the change rows' `kind`), the cancel that releases it.
+   *
+   * A line removed with its reservation standing keeps the stock parked on its
+   * in-shipment child with nothing left that could ship or cancel it, so unless
+   * `cancelReservationOnShipLineRemoval` is on, such a removal is refused here.
+   */
+  private async planReleaseOfRemovedLines(
+    orderId: string,
+    itemIds: readonly string[],
+    manager: EntityManager,
+  ): Promise<CancelShipInventoryOrderInput[]> {
+    if (itemIds.length === 0) return [];
+
+    const lines = await manager
+      .getRepository<ShipInventoryOrderItemEntityClass>(
+        this.shipInventoryOrderItemEntity,
+      )
+      .find({
+        where: { id: In([...itemIds]), orderId, removedAt: IsNull() },
+        relations: { changes: true },
+      });
+    const release: CancelShipInventoryOrderInput[] = [];
+
+    for (const line of lines) {
+      assertChangesHaveKind(line.id, line.changes);
+      const { reserved, shipped, cancelled } = sumShipChanges(line.changes);
+      const outstanding = reserved - shipped - cancelled;
+
+      if (outstanding <= 0) continue;
+
+      if (!this.coreOptions?.cancelReservationOnShipLineRemoval) {
+        throw new BadRequestException(
+          `Ship line ${line.serialId} (${line.id}) still holds ${outstanding} reserved and neither shipped nor cancelled; cancelShip it before removing the line (or enable cancelReservationOnShipLineRemoval)`,
+        );
+      }
+
+      // No quantity: everything still reserved, exactly, with no unit round trip.
+      release.push({ itemId: line.id });
+    }
+
+    return release;
   }
 
   /**
