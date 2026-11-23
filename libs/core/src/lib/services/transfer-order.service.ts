@@ -438,6 +438,13 @@ export class TransferOrderService<
       ),
     );
 
+    // The header loader is read by the gates below and by the placement check;
+    // lock its row first (loader locks precede every stock lock) so a concurrent
+    // move of it cannot slip between the read and the writes.
+    if (options.loaderId && items?.length) {
+      await this.stockService.lockLoaders([options.loaderId], manager);
+    }
+
     // Whole-loader transfer validation (Phase 2d-sync).
     // If any item's source loader matches the header's targetLoaderId, treat the
     // items sharing that source loader as a whole-loader group:
@@ -499,9 +506,18 @@ export class TransferOrderService<
     // Consolidating onto a loader that is somewhere else would split the loader
     // from its stock (#222). Refuse before anything is written; whole-loader
     // items move their own loader and are exempt.
+    // A header loader that is itself the whole-loader source of an item in
+    // this order is being moved by that item; the order's priority rule
+    // (whole-loader items execute first) makes it sit at the target by the
+    // time the consolidating items run, and `transfer()` checks again then.
+    const headerLoaderMovesWithOrder = !!items?.some(
+      (item) => item.loaderId === options.loaderId,
+    );
+
     if (
       options.loaderId &&
       options.locationId &&
+      !headerLoaderMovesWithOrder &&
       items?.some((item) => item.loaderId !== options.loaderId)
     ) {
       await this.stockService.resolveLoaderPlacement(
@@ -792,6 +808,19 @@ export class TransferOrderService<
 
       const itemMap = new Map(items.map((item) => [item.id, item]));
 
+      // Every loader this call reads the location of or moves, locked before
+      // any stock lock (see `StockService.lockLoaders`).
+      await this.stockService.lockLoaders(
+        items.flatMap((item) =>
+          item.loaderId && item.loaderId === item.targetLoaderId
+            ? [item.loaderId]
+            : item.targetLoaderId && item.targetLocationId
+              ? [item.targetLoaderId]
+              : [],
+        ),
+        manager,
+      );
+
       // Source (material, batch) locks first, in a fixed order, before any
 
       // batch-group lock a split takes -- the same order every path uses.
@@ -888,7 +917,17 @@ export class TransferOrderService<
         }
       }
 
-      for (const option of options) {
+      // A whole-loader item moves the loader, which every consolidation onto
+      // it then has to find already in place: run those first.
+      const isWholeLoaderOption = (option: TransferOrderInput): boolean => {
+        const item = itemMap.get(option.itemId);
+        return !!item?.loaderId && item.loaderId === item.targetLoaderId;
+      };
+
+      for (const option of [
+        ...options.filter(isWholeLoaderOption),
+        ...options.filter((option) => !isWholeLoaderOption(option)),
+      ]) {
         await (async () => {
           const item = itemMap.get(option.itemId);
           if (!item) return;

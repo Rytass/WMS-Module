@@ -1589,11 +1589,7 @@ describe('host service layer (integration, no GraphQL)', () => {
       }> => {
         const material = await newMaterial();
         const { batchId, batchKey } = await seedStock(material.id, 100);
-        const { itemId, orderId } = await createShip(
-          material.id,
-          batchId,
-          100,
-        );
+        const { itemId, orderId } = await createShip(material.id, batchId, 100);
         const childId = await inShipmentChild(batchId);
 
         const receive = await receiveService.createReceiveInventoryOrder({
@@ -2241,6 +2237,201 @@ describe('host service layer (integration, no GraphQL)', () => {
       await transferService.transfer({ itemId: item.id, quantity: 5 });
 
       expect(await loaderLocation(loader)).toBe(dockId);
+    });
+
+    /** Non-zero stock rows of one loader, as `locationId -> quantity`. */
+    const loaderStockLocations = async (
+      loaderId: string,
+    ): Promise<Record<string, number>> => {
+      const rows = await dataSource.query<
+        { locationId: string; total: string }[]
+      >(
+        `SELECT "locationId", SUM(quantity) AS total FROM "${dataSource.getMetadata(entities.stock).tablePath}" WHERE "loaderId" = $1 GROUP BY "locationId" HAVING SUM(quantity) <> 0`,
+        [loaderId],
+      );
+
+      return Object.fromEntries(
+        rows.map((row) => [row.locationId, Number(row.total)]),
+      );
+    };
+
+    it('refuses at execution when the loader moved away after the order was created', async () => {
+      const material = await newMaterial();
+      const target = await newLoader(shelfId);
+      const source = await newLoader(shelfId);
+      const { batchId } = await seedStock(material.id, 5, {
+        loaderId: source,
+      });
+      // Passes at creation: the empty target loader is already at the shelf.
+      const order = await consolidate(
+        material.id,
+        batchId,
+        source,
+        target,
+        shelfId,
+      );
+      const [item] = await transferItems(order.id);
+
+      // Afterwards it goes elsewhere and picks up stock there.
+      await dataSource
+        .getRepository(LoadersEntityClass)
+        .update({ id: target }, { locationId: dockId });
+      await seedStock(material.id, 10, {
+        loaderId: target,
+        locationId: dockId,
+      });
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        transferService.transfer({ itemId: item.id, quantity: 5 }),
+      ).rejects.toThrow(/stock cannot be placed on it there/);
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+    });
+
+    it('a whole-loader move and a consolidation onto that loader never leave it apart from its stock', async () => {
+      const wholeMaterial = await newMaterial();
+      const otherMaterial = await newMaterial();
+      const pallet = await newLoader(shelfId);
+      const feeder = await newLoader(dockId);
+      const whole = await seedStock(wholeMaterial.id, 10, { loaderId: pallet });
+      const other = await seedStock(otherMaterial.id, 5, {
+        loaderId: feeder,
+        locationId: dockId,
+      });
+
+      const wholeOrder = await transferService.createTransferOrder({
+        locationId: dockId,
+        loaderId: pallet,
+        items: [
+          {
+            locationId: shelfId,
+            loaderId: pallet,
+            materialId: wholeMaterial.id,
+            batchId: whole.batchId,
+            targetTransferredQuantity: 10,
+          } as CreateTransferOrderItemInput,
+        ],
+      });
+      // Created while the pallet is still on the shelf, so it passes.
+      const mergeOrder = await transferService.createTransferOrder({
+        locationId: shelfId,
+        loaderId: pallet,
+        items: [
+          {
+            locationId: dockId,
+            loaderId: feeder,
+            materialId: otherMaterial.id,
+            batchId: other.batchId,
+            targetTransferredQuantity: 5,
+          } as CreateTransferOrderItemInput,
+        ],
+      });
+      const [wholeItem] = await transferItems(wholeOrder.id);
+      const [mergeItem] = await transferItems(mergeOrder.id);
+
+      let release!: () => void;
+      const hold = new Promise<void>((resolve) => (release = resolve));
+      let moved!: () => void;
+      const movedFirst = new Promise<void>((resolve) => (moved = resolve));
+
+      const first = dataSource.transaction(async (manager) => {
+        await transferService.transfer(
+          { itemId: wholeItem.id, quantity: 10 },
+          manager,
+        );
+        moved();
+        await hold;
+      });
+      await movedFirst;
+      const second = dataSource.transaction((manager) =>
+        transferService.transfer(
+          { itemId: mergeItem.id, quantity: 5 },
+          manager,
+        ),
+      );
+      // Give the second one the chance to run all its checks while the first
+      // still has the pallet's move uncommitted.
+      await Promise.race([
+        second.catch(() => undefined),
+        new Promise((resolve) => setTimeout(resolve, 500)),
+      ]);
+      release();
+      await Promise.allSettled([first, second]);
+
+      const location = await loaderLocation(pallet);
+      expect(Object.keys(await loaderStockLocations(pallet))).toEqual([
+        location,
+      ]);
+    });
+
+    describe('a whole-loader item and a consolidation in one order', () => {
+      const mixedOrder = async (): Promise<{
+        pallet: string;
+        wholeItemId: string;
+        mergeItemId: string;
+      }> => {
+        const wholeMaterial = await newMaterial();
+        const otherMaterial = await newMaterial();
+        const pallet = await newLoader(shelfId);
+        const whole = await seedStock(wholeMaterial.id, 10, {
+          loaderId: pallet,
+        });
+        const other = await seedStock(otherMaterial.id, 5);
+        const order = await transferService.createTransferOrder({
+          locationId: dockId,
+          loaderId: pallet,
+          items: [
+            {
+              locationId: shelfId,
+              loaderId: pallet,
+              materialId: wholeMaterial.id,
+              batchId: whole.batchId,
+              targetTransferredQuantity: 10,
+            } as CreateTransferOrderItemInput,
+            {
+              locationId: shelfId,
+              materialId: otherMaterial.id,
+              batchId: other.batchId,
+              targetTransferredQuantity: 5,
+            } as CreateTransferOrderItemInput,
+          ],
+        });
+        const items = await transferItems(order.id);
+
+        return {
+          pallet,
+          wholeItemId: items.find(
+            ({ materialId }) => materialId === wholeMaterial.id,
+          )!.id,
+          mergeItemId: items.find(
+            ({ materialId }) => materialId === otherMaterial.id,
+          )!.id,
+        };
+      };
+
+      it('can be created, and the whole-loader item must go first', async () => {
+        const { wholeItemId, mergeItemId } = await mixedOrder();
+
+        await expect(
+          transferService.transfer({ itemId: mergeItemId, quantity: 5 }),
+        ).rejects.toThrow(/Whole-loader item must be fully transferred first/);
+
+        await transferService.transfer({ itemId: wholeItemId, quantity: 10 });
+        await transferService.transfer({ itemId: mergeItemId, quantity: 5 });
+      });
+
+      it('ends with the loader and every row of its stock at the target', async () => {
+        const { pallet, wholeItemId, mergeItemId } = await mixedOrder();
+
+        await transferService.transfer({ itemId: wholeItemId, quantity: 10 });
+        await transferService.transfer({ itemId: mergeItemId, quantity: 5 });
+
+        expect(await loaderLocation(pallet)).toBe(dockId);
+        expect(await loaderStockLocations(pallet)).toEqual({ [dockId]: 15 });
+      });
     });
 
     describe('with relocateEmptyLoaders', () => {
