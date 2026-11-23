@@ -611,8 +611,9 @@ export class ShipInventoryOrderService<
    * as soon as the source batch changed afterwards -- a later receipt flagging
    * the emptied batch `requiresInspection`, say -- and strand the order.
    *
-   * Reservations are the change rows with a positive `quantityChanged`
-   * (cancels and shipments are negative). One item is reserved exactly once,
+   * Reservations are the change rows whose `kind` is `RESERVE` (cancels and
+   * shipments are both negative, so the sign cannot tell them apart; a row
+   * without a kind counts for nothing, as in `sumShipChanges`). One item is reserved exactly once,
    * by `processShipInventoryOrderItems`, so they all name one child; if the
    * ledger ever names two, that is a corrupted order and is refused rather than
    * guessed at. An item with no reservation is absent from the returned map and
@@ -633,7 +634,7 @@ export class ShipInventoryOrderService<
       item: ShipInventoryOrderItemEntityClass,
     ): string[] =>
       item.changes
-        .filter((change) => Number(change.quantityChanged) > 0)
+        .filter((change) => change.kind === ShipChangeKind.RESERVE)
         .map((change) => change.id);
 
     const allIds = items.flatMap(reservationIds);
@@ -710,11 +711,12 @@ export class ShipInventoryOrderService<
     // An item with nothing left to cancel needs no child and no lock.
     const inShipmentBatches = await this.lockWithInShipmentBatches(
       items.filter(
-        (item) =>
-          item.changes.reduce(
-            (sum, change) => sum + Number(change.quantityChanged),
-            0,
-          ) > 0,
+        (item) => {
+          const { reserved, shipped, cancelled } = sumShipChanges(
+            item.changes,
+          );
+          return reserved - shipped - cancelled > 0;
+        },
       ),
       manager,
     );

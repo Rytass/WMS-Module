@@ -202,7 +202,7 @@ A shipment's source is the **in-shipment child** of the item's batch, not the it
 named by the **ledger**, never re-derived from the source batch's current attributes. A prepare writes a change
 row whose `id` is the `orderId` of the stock rows it moved; the positive stock row of that order sits on the
 child. `ship()` and `cancelShipInternal` read it that way (`lockWithInShipmentBatches`; reservations are the
-change rows with `quantityChanged > 0`) and hand both slots to `lockStockSlots`, then validate and deduct on
+change rows with `kind = RESERVE`; a row without a kind counts for nothing, as in `sumShipChanges`) and hand both slots to `lockStockSlots`, then validate and deduct on
 that same child (#195). A sibling lookup by batch state stops matching once the source batch changes (a later
 receipt flags the emptied batch `requiresInspection`) and strands the order. Never validate or lock a slot only
 after a split.
