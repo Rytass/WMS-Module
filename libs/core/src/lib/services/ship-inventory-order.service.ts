@@ -146,6 +146,9 @@ export class ShipInventoryOrderService<
                       ),
                       'i',
                     )
+                    // A removed line is out of the order: its target, and what it
+                    // shipped or cancelled, no longer count toward the status.
+                    .where('i."removedAt" IS NULL')
                     .groupBy('i."orderId"'),
                 'target_sum',
                 'target_sum.orderid = o.id',
@@ -180,6 +183,7 @@ export class ShipInventoryOrderService<
                       'i',
                       'c."itemId" = i.id',
                     )
+                    .where('i."removedAt" IS NULL')
                     .groupBy('i."orderId"'),
                 'change_sums',
                 'change_sums.orderid = o.id',

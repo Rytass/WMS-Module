@@ -3199,6 +3199,111 @@ describe('host service layer (integration, no GraphQL)', () => {
     });
   });
 
+  describe('a removed line stays out of the order status', () => {
+    const removed = new Date();
+
+    const orderStatus = async (orderId: string): Promise<string> => {
+      const [[row]] = await shipService.findMany({ id: orderId });
+
+      return (row as unknown as { status: string }).status;
+    };
+
+    // One order, two lines (A and B) with 5 prepared on each.
+    const twoLines = async (): Promise<{
+      orderId: string;
+      itemA: string;
+      itemB: string;
+    }> => {
+      const material = await newMaterial();
+      const a = await seedStock(material.id, 5);
+      const b = await seedStock(material.id, 5);
+      const { orderId, itemId: itemA } = await createShip(
+        material.id,
+        a.batchId,
+        5,
+      );
+      await dataSource.transaction((manager) =>
+        shipService.addShipInventoryOrderItems(
+          {
+            orderId,
+            items: [
+              {
+                materialId: material.id,
+                batchId: b.batchId,
+                locationId: shelfId,
+                targetShippedQuantity: 5,
+                status: StockStatus.FREE,
+                serialId: unique('HSL-SHIP-LINE'),
+                orderId,
+              },
+            ],
+          },
+          manager,
+        ),
+      );
+      const items = await dataSource
+        .getRepository<ShipInventoryOrderItemEntityClass>(
+          shipService.shipInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId } });
+      const itemB = items.find(({ id }) => id !== itemA);
+      if (!itemB) throw new Error('second line missing');
+
+      return { orderId, itemA, itemB: itemB.id };
+    };
+
+    const ship = (itemId: string, quantity: number): Promise<boolean> =>
+      runner.run({}, () =>
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity }, manager),
+        ),
+      );
+
+    const removeLine = (orderId: string, itemId: string): Promise<unknown> =>
+      shipService.updateShipInventoryOrder({
+        id: orderId,
+        items: [{ id: itemId, removedAt: removed }],
+      } as Parameters<ShipInventoryOrderService['updateShipInventoryOrder']>[0]);
+
+    it('is SHIPPED once the remaining line has shipped', async () => {
+      const { orderId, itemA, itemB } = await twoLines();
+
+      await ship(itemA, 5);
+      await removeLine(orderId, itemB);
+
+      expect(await orderStatus(orderId)).toBe('SHIPPED');
+    });
+
+    it('is PARTIAL_SHIPPED while the remaining line is short of its target', async () => {
+      const { orderId, itemA, itemB } = await twoLines();
+
+      await ship(itemA, 3);
+      await removeLine(orderId, itemB);
+
+      expect(await orderStatus(orderId)).toBe('PARTIAL_SHIPPED');
+    });
+
+    it('does not count what a removed line shipped', async () => {
+      const { orderId, itemA, itemB } = await twoLines();
+
+      await ship(itemB, 2);
+      await removeLine(orderId, itemB);
+      expect(await orderStatus(orderId)).toBe('PENDING');
+
+      await ship(itemA, 5);
+      expect(await orderStatus(orderId)).toBe('SHIPPED');
+    });
+
+    it('is PENDING when every line has been removed', async () => {
+      const { orderId, itemA, itemB } = await twoLines();
+
+      await removeLine(orderId, itemA);
+      await removeLine(orderId, itemB);
+
+      expect(await orderStatus(orderId)).toBe('PENDING');
+    });
+  });
+
   describe('#186: two items of one batch in one transfer order', () => {
     it('both execute', async () => {
       const material = await newMaterial();

@@ -446,7 +446,9 @@ WHERE c.kind IS NULL;
 
 Order status after a cancel: `SHIPPED` once what shipped covers `target - cancelled` (and that is
 above zero), `PARTIAL_SHIPPED` while some has shipped and some is still to go, otherwise
-`PENDING`. `changeLogs` reports a cancel as `SHIP_CANCELLED` and the event is
+`PENDING`. Lines marked `removedAt` are left out of all three sums (target, shipped, cancelled), so
+the status follows the remaining lines only; an order whose lines are all removed reads `PENDING`.
+`changeLogs` reports a cancel as `SHIP_CANCELLED` and the event is
 `stock.ship-cancelled`; `stock.shipped` now means goods actually left.
 
 **Transfer orders have the same column.** `transfer_order_changes.kind` is `RESERVE` / `TRANSFER`
