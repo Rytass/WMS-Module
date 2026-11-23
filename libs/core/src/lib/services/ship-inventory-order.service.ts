@@ -33,6 +33,7 @@ import { OrderEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
   ShipInventoryOrderChangeEntityClass,
   LoadersEntityClass,
+  BatchEntityClass,
   ShipInventoryOrderReferenceEntity,
   ShipInventoryOrderReferenceEntityClass,
   MaterialEntityClass,
@@ -571,6 +572,54 @@ export class ShipInventoryOrderService<
   }
 
   /**
+   * Look up the in-shipment child of every item's batch and take the stock
+   * locks of both the source batch and that child, in one sorted pass.
+   *
+   * `splitBatch` takes the batch-group lock, and a stock lock must never be
+   * taken after it. The child is therefore found read-only first
+   * (`findSplitSibling`), so its slot can join the up-front `lockStockSlots`.
+   * An item without a child has nothing prepared for shipment and is absent
+   * from the returned map; the caller decides what that means.
+   */
+  private async lockWithInShipmentBatches(
+    items: readonly ShipInventoryOrderItemEntityClass[],
+    manager: EntityManager,
+  ): Promise<Map<string, BatchEntityClass>> {
+    const siblings: [string, BatchEntityClass | null][] = [];
+    for (const item of items) {
+      siblings.push([
+        item.id,
+        await this.batchService.findSplitSibling({
+          id: item.batchId,
+          inShipment: true,
+          manager,
+        }),
+      ]);
+    }
+
+    const found = new Map(
+      siblings.filter(
+        (entry): entry is [string, BatchEntityClass] => entry[1] !== null,
+      ),
+    );
+
+    await this.stockService.lockStockSlots(
+      [
+        ...items,
+        ...items.flatMap((item) => {
+          const sibling = found.get(item.id);
+          return sibling
+            ? [{ materialId: item.materialId, batchId: sibling.id }]
+            : [];
+        }),
+      ],
+      manager,
+    );
+
+    return found;
+  }
+
+  /**
    * Internal cancel method that accepts a manager for transaction support
    */
   private async cancelShipInternal(
@@ -597,9 +646,12 @@ export class ShipInventoryOrderService<
       relations: { changes: true },
     });
     const itemMap = new Map(items.map((item) => [item.id, item]));
-    // Source (material, batch) locks first, in a fixed order, before any
-    // batch-group lock a split takes -- the same order every path uses.
-    await this.stockService.lockStockSlots(items, manager);
+    // Source and in-shipment (material, batch) locks first, in a fixed order,
+    // before any batch-group lock -- the same order every path uses.
+    const inShipmentBatches = await this.lockWithInShipmentBatches(
+      items,
+      manager,
+    );
 
     for (const option of options) {
       await (async () => {
@@ -637,11 +689,12 @@ export class ShipInventoryOrderService<
 
         if (cancelQuantity <= 0) return;
 
-        const inShipmentBatch = await this.batchService.splitBatch({
-          id: item.batchId,
-          inShipment: true,
-          manager,
-        });
+        const inShipmentBatch = inShipmentBatches.get(item.id);
+        if (!inShipmentBatch) {
+          throw new Error(
+            `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${cancelQuantity}`,
+          );
+        }
 
         const reverseOrder = await orderRepository.save(
           orderRepository.create(),
@@ -863,9 +916,15 @@ export class ShipInventoryOrderService<
         relations: { changes: true },
       });
       const itemMap = new Map(items.map((item) => [item.id, item]));
-      // Source (material, batch) locks first, in a fixed order, before any
-      // batch-group lock a split takes -- the same order every path uses.
-      await this.stockService.lockStockSlots(items, manager);
+      // Stock is taken off the in-shipment child, so that is the slot to
+      // validate -- and to lock, together with the source slot, before any
+      // batch-group lock is taken (stock locks first, never after).
+      const shippedBatches = await this.lockWithInShipmentBatches(
+        items.filter((item) =>
+          options.some((option) => option.itemId === item.id),
+        ),
+        manager,
+      );
       for (const option of options) {
         await (async () => {
           const item = itemMap.get(option.itemId);
@@ -892,19 +951,19 @@ export class ShipInventoryOrderService<
             );
           }
 
-          // Create splitted batch for ship completion
-          const shippedBatch = await this.batchService.splitBatch({
-            id: item.batchId,
-            inShipment: true,
-            manager,
-          });
+          const shippedBatch = shippedBatches.get(item.id);
+          if (!shippedBatch) {
+            throw new Error(
+              `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${option.quantity * conversionFactor}`,
+            );
+          }
 
           const newOrder = await orderRepository.save(orderRepository.create());
 
           await this.stockService.validateStockAvailability(
             {
               materialId: item.materialId,
-              batchId: item.batchId,
+              batchId: shippedBatch.id,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: option.quantity * conversionFactor,

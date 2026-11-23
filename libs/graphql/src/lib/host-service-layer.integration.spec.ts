@@ -1457,6 +1457,171 @@ describe('host service layer (integration, no GraphQL)', () => {
     });
   });
 
+  describe('#195: ship() validates and locks the in-shipment batch it takes stock from', () => {
+    const batchQuantity = async (batchId: string): Promise<number> => {
+      const [{ total }] = await dataSource.query<[{ total: string }]>(
+        `SELECT COALESCE(SUM(quantity), 0) AS total FROM "${dataSource.getMetadata(entities.stock).tablePath}" WHERE "batchId" = $1`,
+        [batchId],
+      );
+
+      return Number(total);
+    };
+
+    const inShipmentChild = async (batchId: string): Promise<string> => {
+      const child = await dataSource
+        .getRepository<BatchEntityClass>(entities.batch)
+        .findOneByOrFail({ parentBatchId: batchId, inShipment: true });
+
+      return child.id;
+    };
+
+    it("ships a line prepared in full, which the item's own batch can no longer cover", async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 100);
+      const childId = await inShipmentChild(batchId);
+
+      expect(await batchQuantity(batchId)).toBe(0);
+      expect(await batchQuantity(childId)).toBe(100);
+
+      await expect(
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 100 }, manager),
+        ),
+      ).resolves.toBe(true);
+
+      expect(await batchQuantity(childId)).toBe(0);
+      expect(await batchQuantity(batchId)).toBe(0);
+    });
+
+    it('ships a partly prepared line off the in-shipment batch and leaves the original alone', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 60);
+      const childId = await inShipmentChild(batchId);
+
+      await dataSource.transaction((manager) =>
+        shipService.ship({ itemId, quantity: 60 }, manager),
+      );
+
+      expect(await batchQuantity(childId)).toBe(0);
+      expect(await batchQuantity(batchId)).toBe(40);
+    });
+
+    it('refuses to ship more than the in-shipment batch still holds', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 10);
+      const childId = await inShipmentChild(batchId);
+
+      // Someone else drained the shared in-shipment batch down to 2.
+      const orderRepository = dataSource.getRepository<OrderEntity>(
+        entities.order,
+      );
+      const drain = await orderRepository.save(orderRepository.create({}));
+      await dataSource.getRepository<StockEntityClass>(entities.stock).save({
+        orderId: drain.id,
+        materialId: material.id,
+        batchId: childId,
+        locationId: shelfId,
+        loaderId: stockService.resolveLoaderId(undefined),
+        quantity: -8,
+      } as DeepPartial<StockEntityClass>);
+
+      await expect(
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 5 }, manager),
+        ),
+      ).rejects.toThrow(/Insufficient stock: available 2, requested 5/);
+      expect(await batchQuantity(childId)).toBe(2);
+    });
+
+    it('still refuses to ship over the item target', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 10);
+
+      await expect(
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 11 }, manager),
+        ),
+      ).rejects.toThrow(/Shipping quantity exceeds target/);
+    });
+
+    it('cancels a prepared quantity back to the original batch', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 30);
+      const childId = await inShipmentChild(batchId);
+
+      await dataSource.transaction((manager) =>
+        shipService.cancelShip({ itemId, quantity: 30 }, manager),
+      );
+
+      expect(await batchQuantity(childId)).toBe(0);
+      expect(await batchQuantity(batchId)).toBe(100);
+    });
+
+    /**
+     * ship() and cancelShip() take the stock locks of the source batch *and* the
+     * in-shipment child up front, before `splitBatch` would take a batch-group
+     * lock. Two transactions reaching the same two batches in opposite order
+     * therefore queue instead of each holding one lock and waiting on the other.
+     */
+    it('two ship calls on the same two batches in opposite order both complete', async () => {
+      const material = await newMaterial();
+      const x = await seedStock(material.id, 100);
+      const y = await seedStock(material.id, 100);
+
+      for (let round = 0; round < 5; round += 1) {
+        const [xFirst, yFirst, xSecond, ySecond] = await Promise.all([
+          createShip(material.id, x.batchId, 5),
+          createShip(material.id, y.batchId, 5),
+          createShip(material.id, x.batchId, 5),
+          createShip(material.id, y.batchId, 5),
+        ]);
+
+        const results = await Promise.allSettled([
+          dataSource.transaction((manager) =>
+            shipService.ship(
+              [
+                { itemId: xFirst.itemId, quantity: 1 },
+                { itemId: yFirst.itemId, quantity: 1 },
+              ],
+              manager,
+            ),
+          ),
+          dataSource.transaction((manager) =>
+            shipService.ship(
+              [
+                { itemId: ySecond.itemId, quantity: 1 },
+                { itemId: xSecond.itemId, quantity: 1 },
+              ],
+              manager,
+            ),
+          ),
+          dataSource.transaction((manager) =>
+            shipService.cancelShip(
+              [
+                { itemId: ySecond.itemId, quantity: 1 },
+                { itemId: xFirst.itemId, quantity: 1 },
+              ],
+              manager,
+            ),
+          ),
+        ]);
+
+        expect(
+          results.map((result) =>
+            result.status === 'fulfilled'
+              ? 'ok'
+              : (result.reason as Error).message,
+          ),
+        ).toEqual(['ok', 'ok', 'ok']);
+      }
+    });
+  });
+
   describe('#186: two items of one batch in one transfer order', () => {
     it('both execute', async () => {
       const material = await newMaterial();
