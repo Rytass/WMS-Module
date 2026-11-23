@@ -1655,6 +1655,46 @@ describe('host service layer (integration, no GraphQL)', () => {
     });
 
     /**
+     * The collision the lock order exists for: a path that holds the stock lock
+     * of the in-shipment child and then wants the batch-group lock (every split
+     * does, in that order) against a ship() that would take the group lock first
+     * and the child's stock lock second. ship() must queue behind the first.
+     */
+    it('ship() queues behind a path holding the child stock lock and then splitting the group', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 50);
+      const childId = await inShipmentChild(batchId);
+
+      let locked!: () => void;
+      const childLocked = new Promise<void>((resolve) => (locked = resolve));
+
+      const splitter = dataSource.transaction(async (manager) => {
+        await stockService.lockStockSlots(
+          [{ materialId: material.id, batchId: childId }],
+          manager,
+        );
+        locked();
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        await batchService.splitBatch({ id: batchId, held: true, manager });
+      });
+      await childLocked;
+      const shipper = dataSource.transaction((manager) =>
+        shipService.ship({ itemId, quantity: 10 }, manager),
+      );
+
+      const results = await Promise.allSettled([splitter, shipper]);
+
+      expect(
+        results.map((result) =>
+          result.status === 'fulfilled'
+            ? 'ok'
+            : (result.reason as Error).message,
+        ),
+      ).toEqual(['ok', 'ok']);
+    });
+
+    /**
      * ship() and cancelShip() take the stock locks of the source batch *and* the
      * in-shipment child up front, before `splitBatch` would take a batch-group
      * lock. Two transactions reaching the same two batches in opposite order
