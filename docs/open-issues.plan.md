@@ -194,8 +194,9 @@ issue 是在 Mezzanine 1.4.3 上量測的；目前專案是 `@mezzanine-ui/react
    - 預設行為：棧板位置與目標儲位不一致時，一律拒絕；
    - 設為 `true` 時：棧板上所有狀態的庫存合計為 0，就先把棧板移到目標儲位再繼續；
    - 有庫存的棧板位置不符時，不論設定為何都拒絕。
-4. **#227 的 decimal 做法**。比較在 SQL `numeric` 端做，或引入 decimal 函式庫（例如 `decimal.js`，要同步改
-   rollup externals 與 `dependencies`）。建議用函式庫，不自己寫 BigInt 縮放。
+4. **#227（已決定，2026-11-23）**：數量運算改用 `decimal.js`。
+   - 加進 core 的 `dependencies`，並放進 rollup 的 `externalPatterns`；
+   - 數量的加總與比較統一經過 `utils/` 的一層薄包裝，service 不直接 import `decimal.js`。
 5. **#228／#229 的上游 PR**。由我在 base module 開 PR，或由維護者處理。
 6. **#183–#186 關單**。附上「fixed in core@0.10.0」的說明後關閉。
 7. **#195 (c) 另開 issue**。
