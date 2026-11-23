@@ -231,6 +231,20 @@ locks. A header loader that is the whole-loader source of an item in the same or
 check: whole-loader items run first (the priority rule, and first within one `transfer()` call), after which the
 loader is at the target and the consolidating items pass the execution-time check.
 
+`receive()` goes through `resolveLoaderPlacement` too (#223): stock is received where its loader is, an empty loader
+elsewhere is moved to the receiving location only with `relocateEmptyLoaders`, and `createReceiveInventoryOrder`
+checks at creation as well. A line without a loader (the DEFAULT loader) is not checked.
+
+#### An id or key the caller names must exist, or the call throws
+
+`ship`, `receive`, `transfer`, `cancelShip`, `cancelTransfer`, the `update*Order` paths and the `create*` item
+processors throw `NotFoundException` (message names the id or key) when a caller-supplied item id, material key,
+loader key, location key or loader type is not found, and roll the whole call back (#224). Never `return` /
+`continue` past it, and never wrap a lookup in a `try { … } catch { return acc }`: the old code dropped a line
+for an unknown material and swallowed every other error from the line too, so a bad id looked like success.
+`assertAllFound` / `assertKeyFound` (`libs/core/src/lib/utils/assert-found.ts`) do the check; run it before the
+first write. Silently skipping is only right for something the service derived itself.
+
 #### Table names are reached through metadata; the prefix follows class identity
 
 `withWmsTablePrefix(options, 'wms_')` (`libs/core/src/lib/table-prefix`) rewrites the
