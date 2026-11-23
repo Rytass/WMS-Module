@@ -177,7 +177,12 @@ issue 是在 Mezzanine 1.4.3 上量測的；目前專案是 `@mezzanine-ui/react
 
 決策回來後回寫本節。
 
-1. **#225 的形狀**。建議新增 `TransferOrderService.moveLoader`，紀錄沿用 transfer order 的表，不加新表、不需 migration（§4.1）。不建議放寬現有 transfer 的 gate。
+1. **#225（已決定，2026-11-23）**：
+   - 新增 `TransferOrderService.moveLoader`，不經過預留與拆子批流程；
+   - 棧板上所有庫存列以原批次 id 在舊位置記負、新位置記正，旗標不變；
+   - 紀錄沿用 transfer order 的表，不新增資料表；
+   - 未完成的 ship／hold／allocate 明細，在同一個交易內把 `locationId` 同步改為新位置；
+   - 不採用「扣帳時改看棧板目前位置」的方案，那會改變所有扣帳路徑的語意。
 2. **#226 的差異公式與旗標位置**。
    - 公式：issue 要的是「實盤 − 快照」，時間差交給 ERP 處理。另一種是「實盤 − 結算當下帳面」。兩者寫進帳本的
      結果不同。「實盤 − 快照」在盤點期間若有出貨，結算後可能把 slot 扣成負數。
