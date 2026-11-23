@@ -47,6 +47,10 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
@@ -323,6 +327,14 @@ export class ShipInventoryOrderService<
     ...options
   }: CreateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.references?.forEach((reference) =>
+        assertPositiveQuantity(
+          reference.targetShippedQuantity,
+          'targetShippedQuantity',
+          `reference ${reference.serialId}`,
+        ),
+      );
+
       const orderRepository = manager.getRepository<OrderEntity>(
         this.entities.order,
       );
@@ -375,6 +387,16 @@ export class ShipInventoryOrderService<
     ...options
   }: UpdateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      [...(options.references ?? []), ...(options.items ?? [])]
+        .filter((line) => !line.removedAt)
+        .forEach((line) =>
+          assertPositiveQuantityIfPresent(
+            line.targetShippedQuantity,
+            'targetShippedQuantity',
+            line.id ? `line ${line.id}` : `line ${line.serialId}`,
+          ),
+        );
+
       const shipInventoryOrderRepository =
         manager.getRepository<ShipInventoryOrderEntityClass>(
           this.shipInventoryOrderEntity,
@@ -867,6 +889,14 @@ export class ShipInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item) =>
+        assertPositiveQuantity(
+          item.targetShippedQuantity,
+          'targetShippedQuantity',
+          `item ${item.serialId}`,
+        ),
+      );
+
       const shipInventoryOrderRepository =
         manager.getRepository<ShipInventoryOrderEntityClass>(
           this.shipInventoryOrderEntity,
@@ -895,6 +925,14 @@ export class ShipInventoryOrderService<
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.forEach((option) =>
+        assertPositiveQuantity(
+          option.quantity,
+          'quantity',
+          `item ${option.itemId}`,
+        ),
+      );
+
       const changeRepository =
         manager.getRepository<ShipInventoryOrderChangeEntityClass>(
           ShipInventoryOrderChangeEntityClass,
@@ -1014,6 +1052,19 @@ export class ShipInventoryOrderService<
     if (!Array.isArray(options)) options = [options];
 
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      // An absent quantity means "cancel everything cancellable"; a given one
+      // must be positive. A zero or negative one used to return `true` and do
+      // nothing.
+      options.forEach((option) =>
+        option.quantity === undefined || option.quantity === null
+          ? undefined
+          : assertPositiveQuantity(
+              option.quantity,
+              'quantity',
+              `item ${option.itemId}`,
+            ),
+      );
+
       await this.cancelShipInternal(options, manager);
       return true;
     });

@@ -20,6 +20,10 @@ import { ReleaseInventoryOrderItemInput } from '../typings/release-inventory-ord
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
@@ -144,6 +148,14 @@ export class HoldInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item, index) =>
+        assertPositiveQuantity(
+          item.targetHeldQuantity,
+          'targetHeldQuantity',
+          `item #${index}`,
+        ),
+      );
+
       const repos = this.getRepositories(manager);
       const { items, ...orderOptions } = options;
 
@@ -173,6 +185,16 @@ export class HoldInventoryOrderService<
     ...options
   }: UpdateHoldInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items
+        ?.filter((item) => !item.removedAt)
+        .forEach((item, index) =>
+          assertPositiveQuantityIfPresent(
+            item.targetHeldQuantity,
+            'targetHeldQuantity',
+            `item #${index}`,
+          ),
+        );
+
       const repos = this.getRepositories(manager);
       const { items, ...orderOptions } = options;
 
@@ -289,6 +311,11 @@ export class HoldInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const list = Array.isArray(options) ? options : [options];
+      list.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       if (!Array.isArray(options)) options = [options];
       const repos = this.getRepositories(manager);
 

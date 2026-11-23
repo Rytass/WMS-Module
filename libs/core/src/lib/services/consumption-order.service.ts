@@ -32,6 +32,7 @@ import { applyListSort } from '../utils/list-sort';
 import { WmsEntities } from '../models/wms-entities';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
+import { assertPositiveQuantity } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { StockService } from './stock.service';
 
@@ -140,6 +141,10 @@ export class ConsumptionOrderService<
     if (!options.items.length) {
       throw new Error('A consumption order needs at least one item');
     }
+
+    options.items.forEach((item, index) =>
+      assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+    );
 
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
@@ -354,6 +359,16 @@ export class ConsumptionOrderService<
     kind: ConsumptionChangeKind,
     outerManager: EntityManager | undefined,
   ): Promise<boolean> {
+    options.items?.forEach((line) => {
+      if (line.quantity !== undefined) {
+        assertPositiveQuantity(
+          line.quantity,
+          'quantity',
+          `item ${line.itemId}`,
+        );
+      }
+    });
+
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
 

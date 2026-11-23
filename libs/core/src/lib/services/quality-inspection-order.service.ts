@@ -13,6 +13,10 @@ import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { BatchService } from './batch.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
@@ -43,6 +47,10 @@ export class QualityInspectionOrderService<
     options: CreateInspectionOrderInput;
   }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       const orderRepository = manager.getRepository<OrderEntity>(
         this.entities.order,
       );

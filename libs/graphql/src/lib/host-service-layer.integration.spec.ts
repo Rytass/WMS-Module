@@ -16,6 +16,12 @@ import {
   BatchService,
   ConsumptionOrderService,
   HoldInventoryOrderService,
+  MergeBatchOrderService,
+  QualityInspectionOrderService,
+  ReclassifyInventoryOrderService,
+  SplitBatchOrderService,
+  TransferCustomerOrderService,
+  TransferVendorOrderService,
   LoaderService,
   LoaderTypeEntityClass,
   LoadersEntityClass,
@@ -1620,6 +1626,339 @@ describe('host service layer (integration, no GraphQL)', () => {
         ).toEqual(['ok', 'ok', 'ok']);
       }
     });
+  });
+
+  describe('#221: quantities must be greater than 0', () => {
+    interface Entry {
+      readonly name: string;
+      readonly call: (
+        quantity: number,
+        ids: { materialId: string; batchId: string; itemId: string },
+        manager: EntityManager,
+      ) => Promise<unknown>;
+    }
+
+    const stockLine = (
+      ids: { materialId: string; batchId: string },
+      quantity: number,
+    ): {
+      materialId: string;
+      batchId: string;
+      locationId: string;
+      quantity: number;
+    } => ({
+      materialId: ids.materialId,
+      batchId: ids.batchId,
+      locationId: shelfId,
+      quantity,
+    });
+
+    const entries: readonly Entry[] = [
+      {
+        name: 'ship',
+        call: (q, i, m) =>
+          shipService.ship({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'cancelShip',
+        call: (q, i, m) =>
+          shipService.cancelShip({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'addShipInventoryOrderItems',
+        call: (q, i, m) =>
+          shipService.addShipInventoryOrderItems(
+            {
+              orderId: i.itemId,
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  locationId: shelfId,
+                  targetShippedQuantity: q,
+                  status: StockStatus.FREE,
+                  serialId: '1',
+                  orderId: i.itemId,
+                },
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'createShipInventoryOrder',
+        call: (q, _i, m) =>
+          shipService.createShipInventoryOrder({
+            key: unique('HSL-NEG'),
+            description: 'x',
+            references: [
+              { materialKey: 'x', targetShippedQuantity: q, serialId: '1' },
+            ],
+            manager: m,
+          }),
+      },
+      {
+        name: 'receive',
+        call: (q, i, m) =>
+          receiveService.receive({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'createReceiveInventoryOrder',
+        call: (q, _i, m) =>
+          receiveService.createReceiveInventoryOrder({
+            key: unique('HSL-NEG'),
+            description: 'x',
+            items: [
+              {
+                serialId: '1',
+                materialKey: 'x',
+                batchKey: 'x',
+                targetReceivedQuantity: q,
+              },
+            ],
+            manager: m,
+          }),
+      },
+      {
+        name: 'createTransferOrder',
+        call: (q, i, m) =>
+          transferService.createTransferOrder(
+            {
+              locationId: dockId,
+              items: [
+                {
+                  locationId: shelfId,
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetTransferredQuantity: q,
+                } as CreateTransferOrderItemInput,
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'transfer',
+        call: (q, i, m) =>
+          transferService.transfer({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'cancelTransfer',
+        call: (q, i, m) =>
+          transferService.cancelTransfer({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'createHoldInventoryOrder',
+        call: (q, i, m) =>
+          holdService.createHoldInventoryOrder(
+            {
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetHeldQuantity: q,
+                },
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'release',
+        call: (q, i, m) => holdService.release(stockLine(i, q), m),
+      },
+      {
+        name: 'createAllocateInventoryOrder',
+        call: (q, i, m) =>
+          allocateService.createAllocateInventoryOrder(
+            {
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetAllocatedQuantity: q,
+                  saleId: 'S',
+                  saleSerialId: '1',
+                },
+              ],
+            } as Parameters<
+              AllocateInventoryOrderService['createAllocateInventoryOrder']
+            >[0],
+            m,
+          ),
+      },
+      {
+        name: 'deallocate',
+        call: (q, i, m) => allocateService.deallocate(stockLine(i, q), m),
+      },
+      {
+        name: 'split',
+        call: (q, i, m) =>
+          app
+            .get(SplitBatchOrderService)
+            .split(
+              {
+                batchId: i.batchId,
+                items: [{ batchKey: unique('HSL-SPLIT'), quantity: q }],
+              },
+              m,
+            ),
+      },
+      {
+        name: 'merge',
+        call: (q, i, m) =>
+          app
+            .get(MergeBatchOrderService)
+            .merge(
+              {
+                batchKey: unique('HSL-MERGE'),
+                materialId: i.materialId,
+                items: [{ batchId: i.batchId, quantity: q }],
+              },
+              m,
+            ),
+      },
+      {
+        name: 'reclassify',
+        call: (q, i, m) =>
+          app
+            .get(ReclassifyInventoryOrderService)
+            .reclassify(
+              {
+                materialKey: 'x',
+                items: [
+                  { materialId: i.materialId, batchId: i.batchId, quantity: q },
+                ],
+              },
+              m,
+            ),
+      },
+      {
+        name: 'scrape',
+        call: (q, i, m) =>
+          scrapeService.scrape(
+            [stockLine(i, q)] as Parameters<ScrapeService['scrape']>[0],
+            m,
+          ),
+      },
+      {
+        name: 'inspect',
+        call: (q, i, m) =>
+          app.get(QualityInspectionOrderService).inspect({
+            manager: m,
+            options: {
+              key: unique('HSL-QI'),
+              items: [{ ...stockLine(i, q), inspectionResult: true }],
+            },
+          }),
+      },
+      {
+        name: 'createTransferCustomerOrder',
+        call: (q, i, m) =>
+          app
+            .get(TransferCustomerOrderService)
+            .createTransferCustomerOrder(
+              {
+                customerId: 'C',
+                items: [
+                  {
+                    materialId: i.materialId,
+                    batchId: i.batchId,
+                    targetTransferredQuantity: q,
+                  },
+                ],
+              },
+              m,
+            ),
+      },
+      {
+        name: 'returnTransferCustomerOrder',
+        call: (q, i, m) =>
+          app
+            .get(TransferCustomerOrderService)
+            .returnTransferCustomerOrder(stockLine(i, q), m),
+      },
+      {
+        name: 'createTransferVendorOrder',
+        call: (q, i, m) =>
+          app
+            .get(TransferVendorOrderService)
+            .createTransferVendorOrder(
+              {
+                vendorId: 'V',
+                items: [
+                  {
+                    materialId: i.materialId,
+                    batchId: i.batchId,
+                    targetTransferredQuantity: q,
+                  },
+                ],
+              },
+              m,
+            ),
+      },
+      {
+        name: 'returnTransferVendorOrder',
+        call: (q, i, m) =>
+          app
+            .get(TransferVendorOrderService)
+            .returnTransferVendorOrder(stockLine(i, q), m),
+      },
+      {
+        name: 'createConsumptionOrder',
+        call: (q, i, m) =>
+          consumptionService.createConsumptionOrder(
+            {
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  quantity: q,
+                  targetLocationId: benchId,
+                },
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'consumption issue',
+        call: (q, i, m) =>
+          consumptionService.issue(
+            { orderId: i.itemId, items: [{ itemId: i.itemId, quantity: q }] },
+            m,
+          ),
+      },
+    ];
+
+    const cases = entries.flatMap((entry) =>
+      [-5, 0, Number.NaN].map(
+        (quantity) => [entry.name, quantity, entry] as const,
+      ),
+    );
+
+    it.each(cases)(
+      '%s refuses %p and writes nothing',
+      async (_name, quantity, entry) => {
+        const material = await newMaterial();
+        const { batchId } = await seedStock(material.id, 10);
+        const ids = { materialId: material.id, batchId, itemId: randomUUID() };
+        const before = await dataSource.transaction((m) => ledgerCounts(m));
+        const total = async (): Promise<number> =>
+          (await byStatus(material.id)).FREE ?? 0;
+
+        await expect(
+          dataSource.transaction((manager) =>
+            entry.call(quantity, ids, manager),
+          ),
+        ).rejects.toThrow(/must be a (number greater than 0)|greater than 0/);
+
+        expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+          before,
+        );
+        expect(await total()).toBe(10);
+      },
+    );
   });
 
   describe('#186: two items of one batch in one transfer order', () => {

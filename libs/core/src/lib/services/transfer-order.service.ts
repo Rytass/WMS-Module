@@ -37,6 +37,10 @@ import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf } from '../utils/table-path';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 
 const TRANSFER_ORDER_SORT_FIELDS: Readonly<
@@ -205,6 +209,16 @@ export class TransferOrderService<
     manager?: EntityManager,
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
+    // Absent quantity cancels everything pending; a given one must be positive
+    // (zero or negative used to return `true` and do nothing). Checked here and
+    // not in the internal method, which `removeTransferOrder` calls too.
+    options.forEach((option) =>
+      assertPositiveQuantityIfPresent(
+        option.quantity ?? undefined,
+        'quantity',
+        `item ${option.itemId}`,
+      ),
+    );
     return runInTransaction(
       this.dataSource,
       manager,
@@ -415,6 +429,14 @@ export class TransferOrderService<
   ): Promise<T> {
     const repos = this.getRepositories(manager);
     const { items, ...orderOptions } = options;
+
+    items?.forEach((item, index) =>
+      assertPositiveQuantity(
+        item.targetTransferredQuantity,
+        'targetTransferredQuantity',
+        `item #${index}`,
+      ),
+    );
 
     // Whole-loader transfer validation (Phase 2d-sync).
     // If any item's source loader matches the header's targetLoaderId, treat the
@@ -710,6 +732,14 @@ export class TransferOrderService<
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.forEach((option) =>
+        assertPositiveQuantity(
+          option.quantity,
+          'quantity',
+          `item ${option.itemId}`,
+        ),
+      );
+
       const changeRepository = manager.getRepository(
         TransferOrderChangeEntityClass,
       );
