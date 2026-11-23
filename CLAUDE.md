@@ -198,11 +198,18 @@ and `validateStockAvailability` **throw** outside an active transaction (in auto
 lock is gone before the sum it guards) and `lockStockSlots` throws on a slot without a
 material or batch; never make either of them quietly skip.
 
-A shipment's source is the **in-shipment child** of the item's batch, not the item's own batch.
-`ship()` and `cancelShipInternal` therefore find that child read-only first
-(`BatchService.findSplitSibling`, which shares its where-builder with `splitBatch`) and hand both slots to
-`lockStockSlots` before `splitBatch` takes the group lock, then validate the child (#195). Never validate or
-lock a slot only after a split.
+A shipment's source is the **in-shipment child** of the item's batch, not the item's own batch, and the child is
+named by the **ledger**, never re-derived from the source batch's current attributes. A prepare writes a change
+row whose `id` is the `orderId` of the stock rows it moved; the positive stock row of that order sits on the
+child. `ship()` and `cancelShipInternal` read it that way (`lockWithInShipmentBatches`; reservations are the
+change rows with `quantityChanged > 0`) and hand both slots to `lockStockSlots`, then validate and deduct on
+that same child (#195). A sibling lookup by batch state stops matching once the source batch changes (a later
+receipt flags the emptied batch `requiresInspection`) and strands the order. Never validate or lock a slot only
+after a split.
+
+**Lock order, project-wide:** loader row locks (`StockService.lockLoaders`) -> advisory stock locks
+(`lockStockSlots` / `validateStockAvailability`) -> batch-group lock (`splitBatch`). Never take an earlier kind
+after a later one.
 
 #### Quantities from a caller must be greater than 0
 
@@ -216,8 +223,13 @@ share one predicate (a new line carrying `removedAt` is skipped, not created).
 
 Only a whole-loader item (`item.loaderId === item.targetLoaderId`) relocates its loader on `transfer()`.
 Consolidating onto a loader at another location is refused in `createTransferOrder` (and re-checked at
-`transfer`) unless `relocateEmptyLoaders: true` **and** the loader's stock sums to 0 over every status
-(`StockService.resolveLoaderPlacement` / `isLoaderEmpty`, reusable by the receive path) (#222).
+`transfer`) unless `relocateEmptyLoaders: true` **and** no slot on the loader holds a non-zero quantity
+(`StockService.resolveLoaderPlacement` / `isLoaderEmpty`, reusable by the receive path) (#222). Both read the
+loader's location and then act on it, so they take a `pessimistic_write` lock on the loader row first
+(`lockLoaders`, id order, held to commit); `transfer()` locks every loader it reads or moves before its stock
+locks. A header loader that is the whole-loader source of an item in the same order skips the creation-time
+check: whole-loader items run first (the priority rule, and first within one `transfer()` call), after which the
+loader is at the target and the consolidating items pass the execution-time check.
 
 #### Table names are reached through metadata; the prefix follows class identity
 
