@@ -325,6 +325,7 @@ export class WmsModuleCoreModule {
       customChangeTables,
       sequenceStorage,
       seedDefaults,
+      relocateEmptyLoaders,
       tablePrefix,
       ...baseOptions
     } = options;
@@ -355,6 +356,7 @@ export class WmsModuleCoreModule {
             defaultLocationKey,
             sequenceStorage,
             seedDefaults,
+            relocateEmptyLoaders,
             tablePrefix,
           },
         },

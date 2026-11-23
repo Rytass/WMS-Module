@@ -496,6 +496,21 @@ export class TransferOrderService<
       }
     }
 
+    // Consolidating onto a loader that is somewhere else would split the loader
+    // from its stock (#222). Refuse before anything is written; whole-loader
+    // items move their own loader and are exempt.
+    if (
+      options.loaderId &&
+      options.locationId &&
+      items?.some((item) => item.loaderId !== options.loaderId)
+    ) {
+      await this.stockService.resolveLoaderPlacement(
+        options.loaderId,
+        options.locationId,
+        manager,
+      );
+    }
+
     const key = await this.helperService.getSeq(this.seqPrefix, manager);
     const order = await repos.transferOrder.save(
       repos.transferOrder.create({ key, ...orderOptions }),
@@ -909,6 +924,20 @@ export class TransferOrderService<
             manager,
           );
 
+          // Consolidating onto a loader (not a whole-loader move) never drags
+          // the loader away from stock it already holds; decided before this
+          // call's own rows land on it, so "empty" means empty before it.
+          const isWholeLoader =
+            !!item.loaderId && item.loaderId === item.targetLoaderId;
+          const relocateTargetLoader =
+            !isWholeLoader && item.targetLoaderId && item.targetLocationId
+              ? (await this.stockService.resolveLoaderPlacement(
+                  item.targetLoaderId,
+                  item.targetLocationId,
+                  manager,
+                )) === 'relocate'
+              : false;
+
           await Promise.all([
             changeRepository.save(
               changeRepository.create({
@@ -949,11 +978,15 @@ export class TransferOrderService<
             ),
           ]);
 
-          // Whole-loader transfer (Phase 2d-sync): unconditionally pin the target
-          // loader to the target location on commit. Idempotent in regular-decant
-          // case (loader already at target location); performs the actual
-          // relocation in whole-loader-mode case. No-op on cancel-transfer.
-          if (item.targetLoaderId && item.targetLocationId) {
+          // Whole-loader transfer (Phase 2d-sync): pin the target loader to the
+          // target location on commit. Only a whole-loader item (or an empty
+          // loader `relocateEmptyLoaders` allows) moves it; any other loader
+          // already sits where its stock is. No-op on cancel-transfer.
+          if (
+            item.targetLoaderId &&
+            item.targetLocationId &&
+            (isWholeLoader || relocateTargetLoader)
+          ) {
             await manager
               .getRepository(LoadersEntityClass)
               .update({ id: item.targetLoaderId }, {

@@ -323,6 +323,65 @@ export class StockService<
     return locationId || this.defaultLocationId;
   }
 
+  /** The `relocateEmptyLoaders` module option; `false` unless set. */
+  get relocateEmptyLoaders(): boolean {
+    return this.coreOptions.relocateEmptyLoaders ?? false;
+  }
+
+  /**
+   * Whether a loader carries no stock at all: its stock rows summed over every
+   * status come to 0. Read through `manager` so it sees the caller's own
+   * uncommitted writes.
+   */
+  async isLoaderEmpty(
+    loaderId: string,
+    manager: EntityManager,
+  ): Promise<boolean> {
+    const result = await manager
+      .getRepository<T>(this.stockEntity)
+      .createQueryBuilder('stock')
+      .select('COALESCE(SUM(stock.quantity), 0)', 'total')
+      .where('stock."loaderId" = :loaderId', { loaderId })
+      .getRawOne<{ total: string }>();
+
+    return Number(result?.total ?? 0) === 0;
+  }
+
+  /**
+   * Decide whether stock may be placed on `loaderId` at `locationId`.
+   *
+   * Returns `'in-place'` when the loader already sits there, `'relocate'` when
+   * it sits elsewhere but is empty and `relocateEmptyLoaders` is on (the caller
+   * then moves the loader), and throws otherwise -- a loader with stock at
+   * another location must never be pulled away from that stock.
+   */
+  async resolveLoaderPlacement(
+    loaderId: string,
+    locationId: string,
+    manager: EntityManager,
+  ): Promise<'in-place' | 'relocate'> {
+    const loader = await manager
+      .getRepository(LoadersEntityClass)
+      .findOneByOrFail({ id: loaderId });
+
+    if (loader.locationId === locationId) return 'in-place';
+
+    if (
+      this.relocateEmptyLoaders &&
+      (await this.isLoaderEmpty(loaderId, manager))
+    ) {
+      return 'relocate';
+    }
+
+    throw new Error(
+      `Loader ${loaderId} is at location ${loader.locationId}, not ${locationId}, so stock cannot be placed on it there${
+        this.relocateEmptyLoaders
+          ? ' (the loader still holds stock)'
+          : ' (enable relocateEmptyLoaders to move an empty loader)'
+      }`,
+    );
+  }
+
   /**
    * Narrows to the stock a scanned label names, matching keys exactly with
    * material → batch → location precedence (see `FindStockInput.scanCode`).
