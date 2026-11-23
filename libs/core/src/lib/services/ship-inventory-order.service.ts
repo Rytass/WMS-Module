@@ -53,6 +53,7 @@ import {
   assertPositiveQuantity,
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
+import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
@@ -467,7 +468,9 @@ export class ShipInventoryOrderService<
           else if (!item.id)
             newItems.push({ ...item, batchId: batch?.id || null });
           else if (itemSet.has(item.id))
-            existingItems.push({ ...item, batchId: batch?.id || null });
+            existingItems.push(
+              asRemovalMarker({ ...item, batchId: batch?.id || null }),
+            );
         });
 
         if (newItems.length) {
@@ -503,7 +506,8 @@ export class ShipInventoryOrderService<
             items?.forEach((item) => {
               if (!item.id && item.removedAt) return;
               else if (!item.id) newItems.push({ ...item, orderId: id });
-              else if (itemSet.has(item.id)) existingItems.push(item);
+              else if (itemSet.has(item.id))
+                existingItems.push(asRemovalMarker(item));
             });
           });
 

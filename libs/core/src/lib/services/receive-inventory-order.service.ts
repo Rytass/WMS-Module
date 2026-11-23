@@ -45,6 +45,7 @@ import {
   assertPositiveQuantity,
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
+import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
@@ -340,7 +341,8 @@ export class ReceiveInventoryOrderService<
             options.items?.forEach((item) => {
               if (!item.id && item.removedAt) return;
               else if (!item.id) newItems.push(item);
-              else if (itemSet.has(item.id)) existingItems.push(item);
+              else if (itemSet.has(item.id))
+                existingItems.push(asRemovalMarker(item));
             });
           });
 

@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
+  AllocateInventoryOrderItemEntityClass,
   AllocateInventoryOrderService,
   BatchEntityClass,
   BatchService,
@@ -2666,6 +2667,92 @@ describe('host service layer (integration, no GraphQL)', () => {
         before,
       );
       expect((await byStatus(material.id)).FREE).toBe(10);
+    });
+
+    it('stores only the removal of an existing ship line that also carries a negative quantity', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const { orderId, itemId } = await createShip(material.id, batchId, 4);
+
+      await shipService.updateShipInventoryOrder({
+        id: orderId,
+        items: [
+          { id: itemId, removedAt: removed, targetShippedQuantity: -100 },
+        ],
+      } as Parameters<
+        ShipInventoryOrderService['updateShipInventoryOrder']
+      >[0]);
+
+      const row = await dataSource
+        .getRepository<ShipInventoryOrderItemEntityClass>(
+          shipService.shipInventoryOrderItemEntity,
+        )
+        .findOneByOrFail({ id: itemId });
+      expect(Number(row.targetShippedQuantity)).toBe(4);
+      expect(row.removedAt).not.toBeNull();
+    });
+
+    it('stores only the removal of an existing receive line that also carries a negative quantity', async () => {
+      const material = await newMaterial();
+      const { orderId, itemId } = await createReceive(
+        material.key,
+        unique('HSL-B'),
+        4,
+      );
+
+      await receiveService.updateReceiveInventoryOrder({
+        id: orderId,
+        items: [
+          { id: itemId, removedAt: removed, targetReceivedQuantity: -100 },
+        ],
+      } as Parameters<
+        ReceiveInventoryOrderService['updateReceiveInventoryOrder']
+      >[0]);
+
+      const row = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .findOneByOrFail({ id: itemId });
+      expect(Number(row.targetReceivedQuantity)).toBe(4);
+      expect(row.removedAt).not.toBeNull();
+    });
+
+    it('stores only the removal of an existing allocate line that also carries a negative quantity', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const order = await allocateService.createAllocateInventoryOrder({
+        items: [
+          {
+            materialId: material.id,
+            batchId,
+            locationId: shelfId,
+            targetAllocatedQuantity: 4,
+            saleId: 'S',
+            saleSerialId: '1',
+          },
+        ],
+      } as Parameters<
+        AllocateInventoryOrderService['createAllocateInventoryOrder']
+      >[0]);
+      const repository =
+        dataSource.getRepository<AllocateInventoryOrderItemEntityClass>(
+          allocateService.allocateInventoryOrderItemEntity,
+        );
+      const [line] = await repository.find({ where: { orderId: order.id } });
+
+      await allocateService.updateAllocateInventoryOrder({
+        id: order.id,
+        items: [
+          { id: line.id, removedAt: removed, targetAllocatedQuantity: -100 },
+        ],
+      } as Parameters<
+        AllocateInventoryOrderService['updateAllocateInventoryOrder']
+      >[0]);
+
+      const row = await repository.findOneByOrFail({ id: line.id });
+      expect(Number(row.targetAllocatedQuantity)).toBe(4);
+      expect(row.removedAt).not.toBeNull();
     });
 
     it('refuses a live new line with a negative quantity on update', async () => {

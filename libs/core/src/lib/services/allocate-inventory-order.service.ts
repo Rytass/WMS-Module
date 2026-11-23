@@ -32,6 +32,7 @@ import {
   assertPositiveQuantity,
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
+import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
@@ -235,7 +236,7 @@ export class AllocateInventoryOrderService<
           if (!item.id && item.removedAt) return;
           else if (!item.id) newItems.push({ ...item, orderId: id });
           else if (existingItemIds.has(item.id))
-            existingItems.push({ ...item, orderId: id });
+            existingItems.push(asRemovalMarker({ ...item, orderId: id }));
         });
 
         if (newItems.length)
