@@ -22,6 +22,7 @@ import {
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
 import { StockStatus, ChangeType } from '../constants/stock-status';
+import { ShipChangeKind } from '../constants/ship-change-kind';
 import {
   AggregatedStock,
   ChangeLog,
@@ -1252,8 +1253,16 @@ export class StockService<
     const changeTypeSql = `CASE
           WHEN receive_change.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
           WHEN ship_change.id IS NOT NULL THEN
-            CASE WHEN ship_change."quantityChanged" > 0 THEN '${ChangeType.IN_SHIPMENT}'
-                 ELSE '${ChangeType.SHIPPED}' END
+            CASE ship_change.kind
+              WHEN '${ShipChangeKind.RESERVE}' THEN '${ChangeType.IN_SHIPMENT}'
+              WHEN '${ShipChangeKind.SHIP}' THEN '${ChangeType.SHIPPED}'
+              WHEN '${ShipChangeKind.CANCEL}' THEN '${ChangeType.SHIP_CANCELLED}'
+              -- A row from before the kind column: the sign is all there is
+              -- until the upgrade SQL runs, and a NULL here would fail the
+              -- whole list on the non-null GraphQL field.
+              ELSE CASE WHEN ship_change."quantityChanged" > 0 THEN '${ChangeType.IN_SHIPMENT}'
+                        ELSE '${ChangeType.SHIPPED}' END
+            END
           WHEN transfer_change.id IS NOT NULL THEN
             CASE WHEN transfer_change."quantityChanged" > 0 THEN '${ChangeType.IN_TRANSFER}'
                  ELSE '${ChangeType.TRANSFERRED}' END

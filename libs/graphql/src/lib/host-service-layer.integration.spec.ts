@@ -2,6 +2,8 @@ import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Client } from 'pg';
 import {
   DataSource,
@@ -440,7 +442,11 @@ describe('host service layer (integration, no GraphQL)', () => {
           defaultLoaderSerialId: 'DEFAULT',
           defaultLoaderTypeKey: 'DEFAULT',
           defaultLocationKey: 'DEFAULT',
-          afterListeners: { 'stock.issued': recordStockEvent },
+          afterListeners: {
+            'stock.issued': recordStockEvent,
+            'stock.shipped': recordStockEvent,
+            'stock.ship-cancelled': recordStockEvent,
+          },
         }),
       ],
     }).compile();
@@ -1751,6 +1757,200 @@ describe('host service layer (integration, no GraphQL)', () => {
           ),
         ).toEqual(['ok', 'ok', 'ok']);
       }
+    });
+  });
+
+  describe('#195(c): a cancelled shipment is not a shipped one', () => {
+    const orderStatus = async (orderId: string): Promise<string> => {
+      const [[row]] = await shipService.findMany({ id: orderId });
+
+      return (row as unknown as { status: string }).status;
+    };
+
+    const changeTypesOf = async (materialId: string): Promise<string[]> => {
+      const [logs] = await stockService.findChangeLogs({ materialId });
+
+      return logs.map(({ changeType }) => changeType as string);
+    };
+
+    const changeRows = async (
+      orderId: string,
+    ): Promise<{ kind: string | null; quantityChanged: number }[]> => {
+      const table = dataSource.getMetadata(
+        getWmsTablePrefix() + 'ship_inventory_order_changes',
+      ).tablePath;
+      const itemTable = dataSource.getMetadata(
+        shipService.shipInventoryOrderItemEntity,
+      ).tablePath;
+      const rows = await dataSource.query<
+        { kind: string | null; quantityChanged: string }[]
+      >(
+        `SELECT c.kind, c."quantityChanged" FROM "${table}" c JOIN "${itemTable}" i ON i.id = c."itemId" WHERE i."orderId" = $1 ORDER BY c."quantityChanged" DESC, c.kind`,
+        [orderId],
+      );
+
+      return rows.map((row) => ({
+        kind: row.kind,
+        quantityChanged: Number(row.quantityChanged),
+      }));
+    };
+
+    const prepare = async (
+      quantity: number,
+    ): Promise<{
+      materialId: string;
+      batchId: string;
+      orderId: string;
+      itemId: string;
+    }> => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, quantity);
+      const { orderId, itemId } = await createShip(
+        material.id,
+        batchId,
+        quantity,
+      );
+
+      return { materialId: material.id, batchId, orderId, itemId };
+    };
+
+    const cancel = (itemId: string, quantity?: number): Promise<boolean> =>
+      runner.run({}, () =>
+        dataSource.transaction((manager) =>
+          shipService.cancelShip({ itemId, quantity }, manager),
+        ),
+      );
+
+    const ship = (itemId: string, quantity: number): Promise<boolean> =>
+      runner.run({}, () =>
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity }, manager),
+        ),
+      );
+
+    it('leaves the order pending, logs the cancel and emits stock.ship-cancelled', async () => {
+      const { materialId, orderId, itemId } = await prepare(10);
+
+      await cancel(itemId, 4);
+
+      expect(await orderStatus(orderId)).toBe('PENDING');
+      expect(await changeTypesOf(materialId)).toContain('SHIP_CANCELLED');
+      expect(await changeTypesOf(materialId)).not.toContain('SHIPPED');
+      expect(stockEvents.map(({ event }) => event)).toEqual([
+        'stock.ship-cancelled',
+      ]);
+    });
+
+    it('lets the rest ship, completes the order, and refuses one more', async () => {
+      const { orderId, itemId } = await prepare(10);
+
+      await cancel(itemId, 4);
+      await expect(ship(itemId, 6)).resolves.toBe(true);
+      expect(await orderStatus(orderId)).toBe('SHIPPED');
+      expect(stockEvents.map(({ event }) => event)).toEqual([
+        'stock.ship-cancelled',
+        'stock.shipped',
+      ]);
+
+      await expect(ship(itemId, 1)).rejects.toThrow(
+        /Shipping quantity exceeds target/,
+      );
+    });
+
+    it('does not report a fully cancelled order as shipped', async () => {
+      const { orderId, itemId } = await prepare(10);
+
+      await cancel(itemId);
+
+      expect(await orderStatus(orderId)).toBe('PENDING');
+      await expect(ship(itemId, 1)).rejects.toThrow(
+        /Shipping quantity exceeds target/,
+      );
+    });
+
+    it('cancels only what is neither shipped nor already cancelled', async () => {
+      const { itemId } = await prepare(10);
+
+      await ship(itemId, 3);
+      await cancel(itemId, 2);
+
+      await expect(cancel(itemId, 6)).rejects.toThrow(
+        /Cancel quantity exceeds prepared quantity/,
+      );
+      await expect(cancel(itemId, 5)).resolves.toBe(true);
+    });
+
+    it('removes an order by cancelling what is left, whatever came before', async () => {
+      const { orderId, itemId } = await prepare(10);
+
+      await ship(itemId, 3);
+      await cancel(itemId, 2);
+      await dataSource.transaction((manager) =>
+        shipService.removeShipInventoryOrder(orderId, manager),
+      );
+
+      expect(await orderStatus(orderId)).toBe('REMOVED');
+      expect(await changeRows(orderId)).toEqual([
+        { kind: 'RESERVE', quantityChanged: 10 },
+        { kind: 'CANCEL', quantityChanged: -2 },
+        { kind: 'SHIP', quantityChanged: -3 },
+        { kind: 'CANCEL', quantityChanged: -5 },
+      ]);
+    });
+
+    describe('upgrade SQL for rows written before the kind column', () => {
+      /**
+       * The statement the integration guide tells hosts to run, read from the
+       * guide itself so the two cannot drift apart.
+       */
+      const backfillSql = (): string => {
+        const guide = readFileSync(
+          join(__dirname, '../../../core/docs/integration-guide.md'),
+          'utf8',
+        );
+        const block = guide.match(
+          /```sql\n(-- wms:ship-change-kind-backfill[\s\S]*?)```/,
+        );
+
+        if (!block) throw new Error('backfill SQL not found in the guide');
+
+        return block[1].replace(/<prefix>/g, getWmsTablePrefix());
+      };
+
+      it('names reserve, ship and cancel rows from the stock rows they wrote', async () => {
+        const { orderId, itemId } = await prepare(10);
+
+        await ship(itemId, 3);
+        await cancel(itemId, 2);
+        await cancel(itemId, 5);
+
+        const before = await changeRows(orderId);
+        const table = dataSource.getMetadata(
+          getWmsTablePrefix() + 'ship_inventory_order_changes',
+        ).tablePath;
+
+        await dataSource.query(
+          `UPDATE "${table}" SET kind = NULL WHERE "itemId" = $1`,
+          [itemId],
+        );
+        expect((await changeRows(orderId)).map(({ kind }) => kind)).toEqual([
+          null,
+          null,
+          null,
+          null,
+        ]);
+        expect(await orderStatus(orderId)).toBe('PENDING');
+
+        await dataSource.query(backfillSql());
+
+        expect(await changeRows(orderId)).toEqual(before);
+        expect(before.map(({ kind }) => kind)).toEqual([
+          'RESERVE',
+          'CANCEL',
+          'SHIP',
+          'CANCEL',
+        ]);
+      });
     });
   });
 

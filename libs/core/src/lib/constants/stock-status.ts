@@ -14,10 +14,10 @@ export enum ChangeType {
   // receive-inventory-order-change.entity.ts
   RECEIVED = 'RECEIVED',
 
-  // ship-inventory-order-change.entity.ts, change > 0
+  // ship-inventory-order-change.entity.ts, kind = RESERVE
   IN_SHIPMENT = 'IN_SHIPMENT',
 
-  // ship-inventory-order-change.entity.ts, change < 0
+  // ship-inventory-order-change.entity.ts, kind = SHIP
   SHIPPED = 'SHIPPED',
 
   // transfer-order-change.entity.ts, change > 0
@@ -76,4 +76,7 @@ export enum ChangeType {
 
   // consumption-order-change.entity.ts, kind = SETTLE
   CONSUMED = 'CONSUMED',
+
+  // ship-inventory-order-change.entity.ts, kind = CANCEL
+  SHIP_CANCELLED = 'SHIP_CANCELLED',
 }

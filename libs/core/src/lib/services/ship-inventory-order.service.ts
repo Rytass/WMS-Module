@@ -30,6 +30,8 @@ import {
   ShipInventoryOrderSortField,
 } from '../typings/find-ship-inventory-order.input';
 import { SortOrder } from '../typings/list-sort';
+import { ShipChangeKind } from '../constants/ship-change-kind';
+import { sumShipChanges } from '../utils/ship-change-quantities';
 import { applyListSort } from '../utils/list-sort';
 import { OrderEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
@@ -117,8 +119,8 @@ export class ShipInventoryOrderService<
               .select(
                 `CASE
                   WHEN o."removedAt" IS NOT NULL THEN '${ShipInventoryOrderStatus.REMOVED}'
-                  WHEN COALESCE(change_sums.shippedsum, 0) >= COALESCE(target_sum.targetsum, 0) AND COALESCE(target_sum.targetsum, 0) > 0 THEN '${ShipInventoryOrderStatus.SHIPPED}'
-                  WHEN COALESCE(change_sums.shippedsum, 0) > 0 AND COALESCE(change_sums.shippedsum, 0) < COALESCE(target_sum.targetsum, 0) THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
+                  WHEN COALESCE(target_sum.targetsum, 0) - COALESCE(change_sums.cancelledsum, 0) > 0 AND COALESCE(change_sums.shippedsum, 0) >= COALESCE(target_sum.targetsum, 0) - COALESCE(change_sums.cancelledsum, 0) THEN '${ShipInventoryOrderStatus.SHIPPED}'
+                  WHEN COALESCE(change_sums.shippedsum, 0) > 0 AND COALESCE(change_sums.shippedsum, 0) < COALESCE(target_sum.targetsum, 0) - COALESCE(change_sums.cancelledsum, 0) THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
                   ELSE '${ShipInventoryOrderStatus.PENDING}'
                 END`,
                 'status',
@@ -152,8 +154,12 @@ export class ShipInventoryOrderService<
                   sumQuery
                     .select('i."orderId"', 'orderid')
                     .addSelect(
-                      `SUM(CASE WHEN CAST(c."quantityChanged" AS NUMERIC) < 0 THEN ABS(CAST(c."quantityChanged" AS NUMERIC)) ELSE 0 END)`,
+                      `SUM(CASE WHEN c.kind = '${ShipChangeKind.SHIP}' THEN ABS(CAST(c."quantityChanged" AS NUMERIC)) ELSE 0 END)`,
                       'shippedsum',
+                    )
+                    .addSelect(
+                      `SUM(CASE WHEN c.kind = '${ShipChangeKind.CANCEL}' THEN ABS(CAST(c."quantityChanged" AS NUMERIC)) ELSE 0 END)`,
+                      'cancelledsum',
                     )
                     .from(
                       tablePathOf(
@@ -284,6 +290,7 @@ export class ShipInventoryOrderService<
             itemId: item.id,
             id: base.id,
             quantityChanged: item.targetShippedQuantity * conversionFactor,
+            kind: ShipChangeKind.RESERVE,
           }),
         );
 
@@ -567,17 +574,8 @@ export class ShipInventoryOrderService<
           manager,
         );
 
-        const preparedQuantity = item.changes.reduce((sum, change) => {
-          const qty = Number(change.quantityChanged);
-          return qty > 0 ? sum + qty : sum;
-        }, 0);
-
-        const shippedQuantity = item.changes.reduce((sum, change) => {
-          const qty = Number(change.quantityChanged);
-          return qty < 0 ? sum + Math.abs(qty) : sum;
-        }, 0);
-
-        const cancellableQuantity = preparedQuantity - shippedQuantity;
+        const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
+        const cancellableQuantity = reserved - shipped - cancelled;
 
         if (cancellableQuantity > 0) {
           // Use base quantity (without conversion) since cancelShip will apply conversion
@@ -732,17 +730,8 @@ export class ShipInventoryOrderService<
           manager,
         );
 
-        const preparedQuantity = item.changes.reduce((sum, change) => {
-          const qty = Number(change.quantityChanged);
-          return qty > 0 ? sum + qty : sum;
-        }, 0);
-
-        const shippedQuantity = item.changes.reduce((sum, change) => {
-          const qty = Number(change.quantityChanged);
-          return qty < 0 ? sum + Math.abs(qty) : sum;
-        }, 0);
-
-        const cancellableQuantity = preparedQuantity - shippedQuantity;
+        const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
+        const cancellableQuantity = reserved - shipped - cancelled;
 
         const cancelQuantity =
           option.quantity != null
@@ -785,6 +774,7 @@ export class ShipInventoryOrderService<
               itemId: option.itemId,
               id: reverseOrder.id,
               quantityChanged: -1 * cancelQuantity,
+              kind: ShipChangeKind.CANCEL,
             }),
           ),
           stockRepository.save(
@@ -1021,13 +1011,11 @@ export class ShipInventoryOrderService<
               manager,
             );
 
-          const totalShipped = item.changes.reduce((sum, change) => {
-            const qty = Number(change.quantityChanged);
-            return qty < 0 ? sum + Math.abs(qty) : sum;
-          }, 0);
-
+          // A cancelled quantity is not going out either, so it leaves the
+          // room to ship just as a shipped one does.
+          const { shipped, cancelled } = sumShipChanges(item.changes);
           const remainingQuantity =
-            conversionFactor * item.targetShippedQuantity - totalShipped;
+            conversionFactor * item.targetShippedQuantity - shipped - cancelled;
 
           if (remainingQuantity - option.quantity * conversionFactor < 0) {
             throw new Error(
@@ -1060,6 +1048,7 @@ export class ShipInventoryOrderService<
               changeRepository.create({
                 itemId: option.itemId,
                 quantityChanged: -1 * option.quantity * conversionFactor,
+                kind: ShipChangeKind.SHIP,
                 id: newOrder.id,
               }),
             ),

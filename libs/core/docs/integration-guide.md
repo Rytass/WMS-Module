@@ -14,6 +14,7 @@ Target audience: engineers integrating WMS into a new product who want a working
 4. [Backend setup (NestJS + GraphQL + TypeORM)](#4-backend-setup-nestjs--graphql--typeorm)
    - [4.6 Version compatibility matrix](#46-version-compatibility-matrix)
    - [4.7 Module format: CommonJS only](#47-module-format-commonjs-only)
+   - [4.8 Upgrading: change `kind` columns](#48-upgrading-change-kind-columns)
 5. [Frontend setup (Next.js Pages Router)](#5-frontend-setup-nextjs-pages-router)
 6. [Pages Router shell pattern (the 19 thin shells)](#6-pages-router-shell-pattern-the-19-thin-shells)
 7. [Apollo client wiring](#7-apollo-client-wiring)
@@ -397,6 +398,51 @@ problem: it finds the tables to prefix by class identity.
 ESM consumers lose nothing. Node reads named exports out of CommonJS through `cjs-module-lexer`,
 so `import { WmsModuleCoreModule } from '@rytass/wms-module-core'` works as written. The NestJS 12
 line is ESM-only; it is outside the accepted peer range (see §4.6).
+
+### 4.8 Upgrading: change `kind` columns
+
+A ship and a cancel both write a **negative** `quantityChanged`, so the sign cannot say whether
+goods left the warehouse or a reservation was undone. `ship_inventory_order_changes` therefore
+carries a `kind` column (`RESERVE` / `SHIP` / `CANCEL`), set on every write, and every read
+(order status, shipped and cancellable quantities, change logs, `stock.*` events) goes by it.
+Before this column existed a cancelled quantity counted as shipped: an order with 4 of 10
+cancelled read `PARTIAL_SHIPPED`, a fully cancelled one `SHIPPED`.
+
+The column is **nullable**, because a table that already holds rows cannot gain a `NOT NULL`
+column without a value, and any single default would silently mislabel two of the three kinds.
+`synchronize: true` adds it; with migrations, add `kind varchar NULL`. Rows written before the
+upgrade keep `NULL` until you run the statement below, and a `NULL` row counts for nothing: the
+order reads as if nothing had shipped and the row emits no event (`changeLogs` falls back to the
+old sign rule for it). **Run it once, right after the schema change, before serving traffic.** It
+is idempotent (it only touches `NULL` rows).
+
+`<prefix>` is your `withWmsTablePrefix` prefix (empty by default). `stocks` belongs to
+`@rytass/wms-base-nestjs-module` and carries no prefix.
+
+The old rows are told apart by what they wrote to `stocks` under the same id: a positive
+`quantityChanged` is a reservation; a negative one that also put stock *back* (a positive
+`stocks` row, on the item's original batch) is a cancel; a negative one that only took stock off
+the in-shipment batch is a ship.
+
+```sql
+-- wms:ship-change-kind-backfill
+UPDATE <prefix>ship_inventory_order_changes AS c
+SET kind = CASE
+  WHEN c."quantityChanged" > 0 THEN 'RESERVE'
+  WHEN EXISTS (
+    SELECT 1 FROM stocks AS s WHERE s."orderId" = c.id AND s.quantity > 0
+  ) THEN 'CANCEL'
+  ELSE 'SHIP'
+END
+WHERE c.kind IS NULL;
+```
+
+Order status after a cancel: `SHIPPED` once what shipped covers `target - cancelled` (and that is
+above zero), `PARTIAL_SHIPPED` while some has shipped and some is still to go, otherwise
+`PENDING`. `changeLogs` reports a cancel as `SHIP_CANCELLED` and the event is
+`stock.ship-cancelled`; `stock.shipped` now means goods actually left.
+
+---
 
 ## 5. Frontend setup (Next.js Pages Router)
 

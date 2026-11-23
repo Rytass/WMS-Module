@@ -7,6 +7,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { ShipChangeKind } from '../../../constants/ship-change-kind';
 import { type ShipInventoryOrderItemEntityClass } from './ship-inventory-order-item.entity';
 import { ShipInventoryOrderStatus } from '../../../typings';
 
@@ -23,6 +24,16 @@ export class ShipInventoryOrderChangeEntityClass {
 
   @Column({ type: 'numeric' })
   quantityChanged!: number;
+
+  /**
+   * Which of the three actions wrote this row. A ship and a cancel are both
+   * negative, so the sign cannot carry it -- see {@link ShipChangeKind}.
+   *
+   * Nullable only so a table that already holds rows can gain the column; the
+   * integration guide's upgrade SQL fills it. Every write sets it.
+   */
+  @Column({ type: 'varchar', nullable: true })
+  kind!: ShipChangeKind | null;
 
   @OneToOne('orders')
   @JoinColumn({ name: 'id', referencedColumnName: 'id' })

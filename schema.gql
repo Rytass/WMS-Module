@@ -173,6 +173,7 @@ enum ChangeType {
   ISSUED
   RETURNED
   CONSUMED
+  SHIP_CANCELLED
 }
 
 type ChangeLogs {
