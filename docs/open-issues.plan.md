@@ -115,8 +115,16 @@
 `ship()` 又是用 `item.locationId` 加 `splitBatch({ inShipment })` 找庫存，搬完之後出貨會在舊位置找不到貨。
 建議改成新增獨立操作，見 §7 問題 1。設計要點：
 
-- `LoaderMoveOrder`：order、item、`loader_move_order_changes`。加進 `OWNED_CHANGE_TABLES`、`TABLE_TO_CHANGE_TYPE`、
-  `models.module.ts` 的 entities；
+- **不加新資料表，紀錄寫進既有的 transfer order 三張表。** 每個 stock 寫入都需要一筆 `*_order_changes`
+  紀錄，原因有三：
+  1. `InventoryCountLockSubscriber` 靠它攔截盤點中的儲位；
+  2. `StockChangeSubscriber` 靠它發出 `stock.*` 事件；
+  3. `StockService.findChangeLogs` 靠它判定異動類型。
+
+  另開新表的話，這三處都要註冊，還要附升級 SQL。棧板搬移本質上就是位置移動，記成一張「表頭 loaderId 是該棧板」的
+  whole-loader 調撥單（建立後立即執行），異動類型 `TRANSFERRED`、事件 `stock.transferred`，語意都正確。不同的
+  只有 service 層：**不拆 `transferId` 子批**；
+
 - 每個 (batch, 狀態) 寫一組成對的 stock 列（舊位置 −、新位置 +）。**批次 id 不變**，旗標原樣帶過去；
 - 同一交易內，把該 loader 上未完成的 ship／hold／allocate／transfer item 的 `locationId` 改成新位置；
 - 盤點鎖：subscriber 已經會讀 `locationId` 與 `targetLocationId`，item 要帶上兩端，兩端都會被檢查；
@@ -169,7 +177,7 @@ issue 是在 Mezzanine 1.4.3 上量測的；目前專案是 `@mezzanine-ui/react
 
 決策回來後回寫本節。
 
-1. **#225 的形狀**。建議新增 `moveLoader` 操作（§4.1），不建議放寬 transfer gate。
+1. **#225 的形狀**。建議新增 `TransferOrderService.moveLoader`，紀錄沿用 transfer order 的表，不加新表、不需 migration（§4.1）。不建議放寬現有 transfer 的 gate。
 2. **#226 的差異公式與旗標位置**。
    - 公式：issue 要的是「實盤 − 快照」，時間差交給 ERP 處理。另一種是「實盤 − 結算當下帳面」。兩者寫進帳本的
      結果不同。「實盤 − 快照」在盤點期間若有出貨，結算後可能把 slot 扣成負數。
