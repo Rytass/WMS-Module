@@ -197,7 +197,7 @@ issue 是在 Mezzanine 1.4.3 上量測的；目前專案是 `@mezzanine-ui/react
 4. **#227（已決定，2026-11-23）**：數量運算改用 `decimal.js`。
    - 加進 core 的 `dependencies`，並放進 rollup 的 `externalPatterns`；
    - 數量的加總與比較統一經過 `utils/` 的一層薄包裝，service 不直接 import `decimal.js`。
-5. **#228／#229 的上游 PR**。由我在 base module 開 PR，或由維護者處理。
+5. **#228／#229（2026-11-23）**：交給 `Rytass/Utils` 那邊的代理處理，prompt 已提供。上游發版之後，本 repo 跟進 core 的 peer 範圍，並在 README 補上暫時解法。
 6. **#183–#186（已執行，2026-11-23）**：已附上「fixed in core@0.10.0」與對應的測試名稱，並已關單。
 7. **#195 (c) 另開 issue**。
 
