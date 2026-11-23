@@ -5,13 +5,19 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
-    runs-on: self-hosted
+    # GitHub-hosted on purpose: this repo is public and this workflow runs on
+    # pull_request, so a fork's code must never reach the self-hosted runner that
+    # holds the deploy credentials.
+    runs-on: ubuntu-latest
     timeout-minutes: 20
 
     services:
