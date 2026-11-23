@@ -348,7 +348,19 @@ Phase 1 infra+zero-refactor --> Phase 2 quantity (in #227) --> Phase 4 property
 - 範圍：P4 整合性質測試；第 6 節 react 純函式；門檻升到最終值（core 整體 92/85）。
 - 完成判準：P4 在 CI 以固定 seed 跑 ≥ 25 runs；react 指定檔 lines ≥ 90%；CI 全套（含 prefix 第二輪）< 5 分鐘。
 
-## 8. 需要使用者決策的問題
+## 8. 決策紀錄（2026-11-24）
+
+| 題目                     | 決定                                                      |
+| ------------------------ | --------------------------------------------------------- |
+| CI 的 Postgres           | workflow 起 Postgres service container                    |
+| 覆蓋率門檻               | 分層：純函式 100%；core 合併 92／85；core/services 90／80 |
+| 數量算術抽取時機         | 併入 #227                                                 |
+| 殘留 `wms_module_*_test` | fixture 上線且既有 spec 全部遷移後一起清                  |
+| §3.4 疑似缺陷            | 先由獨立代理寫測試驗證，成立者再開 issue 或併入對應 PR    |
+
+原待決策問題保留於下，僅供追溯。
+
+## 9. 需要使用者決策的問題
 
 1. **CI 的 Postgres 從哪來？**
    背景：目前沒有任何 PR 會跑測試，整合測試需要 Postgres。runner 是 self-hosted。
