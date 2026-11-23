@@ -380,6 +380,14 @@ Two things to keep in mind when touching it:
   widened to take the whole change row rather than just the quantity for exactly this, and
   its resolvers may now return `null` for a row they cannot classify (no event beats a wrong
   one).
+- **Ship and transfer changes carry a `kind` too.** `ship_inventory_order_changes.kind`
+  (`RESERVE` / `SHIP` / `CANCEL`) and `transfer_order_changes.kind` (`RESERVE` / `TRANSFER` /
+  `CANCEL`) exist for the same reason: an execution and a cancel are both negative. Every write
+  sets it and every read (status, shipped/pending quantities, `findChangeLogs`, subscriber)
+  goes by it, never by sign; `sumShipChanges` / `sumTransferChanges` are the one place that adds
+  them up. The columns are nullable only so existing tables can gain them -- the upgrade SQL
+  is in `libs/core/docs/integration-guide.md` §4.8, and a new `*_order_changes` writer must set
+  `kind`.
 - Nothing is denormalised onto the item. `getProgress` and the `issuedQuantity` /
   `outstandingQuantity` resolvers read the change rows back every time, because those rows
   are what the stock ledger and the `stock.*` events agree with; a counter kept alongside
