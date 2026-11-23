@@ -33,6 +33,7 @@ import {
   LoadersEntityClass,
   LocationEntityClass,
   MaterialEntityClass,
+  MaterialUnitEntityClass,
   ReceiveInventoryOrderChangeEntityClass,
   StockEntityClass,
 } from '../models';
@@ -144,8 +145,11 @@ export class ReceiveInventoryOrderService<
                 (sumQuery) =>
                   sumQuery
                     .select('i."orderId"', 'orderid')
+                    // Received quantities are base units, a line's target is in
+                    // the line's own unit: convert it before comparing. No unit
+                    // means the base unit.
                     .addSelect(
-                      'SUM(CAST(i."targetReceivedQuantity" AS NUMERIC))',
+                      'SUM(CAST(i."targetReceivedQuantity" AS NUMERIC) * COALESCE(u."conversionFactor", 1))',
                       'targetsum',
                     )
                     .from(
@@ -155,6 +159,7 @@ export class ReceiveInventoryOrderService<
                       ),
                       'i',
                     )
+                    .leftJoin(MaterialUnitEntityClass, 'u', 'u.id = i."unitId"')
                     .groupBy('i."orderId"'),
                 'target_sum',
                 'target_sum.orderid = o.id',

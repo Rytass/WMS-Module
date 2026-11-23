@@ -42,6 +42,7 @@ import {
   ShipInventoryOrderReferenceEntity,
   ShipInventoryOrderReferenceEntityClass,
   MaterialEntityClass,
+  MaterialUnitEntityClass,
   StockEntityClass,
   SaleOrderEntity,
   SaleOrderEntityClass,
@@ -135,8 +136,11 @@ export class ShipInventoryOrderService<
                 (sumQuery) =>
                   sumQuery
                     .select('i."orderId"', 'orderid')
+                    // Shipped and cancelled quantities are base units, a line's
+                    // target is in the line's own unit: convert it before the
+                    // two are compared. No unit means the base unit.
                     .addSelect(
-                      `SUM(CAST(i."targetShippedQuantity" AS NUMERIC))`,
+                      `SUM(CAST(i."targetShippedQuantity" AS NUMERIC) * COALESCE(u."conversionFactor", 1))`,
                       'targetsum',
                     )
                     .from(
@@ -146,6 +150,7 @@ export class ShipInventoryOrderService<
                       ),
                       'i',
                     )
+                    .leftJoin(MaterialUnitEntityClass, 'u', 'u.id = i."unitId"')
                     // A removed line is out of the order: its target, and what it
                     // shipped or cancelled, no longer count toward the status.
                     .where('i."removedAt" IS NULL')
@@ -716,15 +721,11 @@ export class ShipInventoryOrderService<
     // before any batch-group lock -- the same order every path uses.
     // An item with nothing left to cancel needs no child and no lock.
     const inShipmentBatches = await this.lockWithInShipmentBatches(
-      items.filter(
-        (item) => {
-          assertChangesHaveKind(item.id, item.changes);
-          const { reserved, shipped, cancelled } = sumShipChanges(
-            item.changes,
-          );
-          return reserved - shipped - cancelled > 0;
-        },
-      ),
+      items.filter((item) => {
+        assertChangesHaveKind(item.id, item.changes);
+        const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
+        return reserved - shipped - cancelled > 0;
+      }),
       manager,
     );
 

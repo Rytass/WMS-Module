@@ -19,6 +19,8 @@ import {
   BatchService,
   ConsumptionOrderService,
   HoldInventoryOrderService,
+  MaterialService,
+  MaterialUnitEntityClass,
   MergeBatchOrderService,
   QualityInspectionOrderService,
   ReclassifyInventoryOrderService,
@@ -35,6 +37,7 @@ import {
   ScrapeService,
   ShipInventoryOrderItemEntityClass,
   ShipInventoryOrderService,
+  ShipInventoryOrderStatus,
   StockEntityClass,
   StockService,
   StockStatus,
@@ -3263,7 +3266,9 @@ describe('host service layer (integration, no GraphQL)', () => {
       shipService.updateShipInventoryOrder({
         id: orderId,
         items: [{ id: itemId, removedAt: removed }],
-      } as Parameters<ShipInventoryOrderService['updateShipInventoryOrder']>[0]);
+      } as Parameters<
+        ShipInventoryOrderService['updateShipInventoryOrder']
+      >[0]);
 
     it('is SHIPPED once the remaining line has shipped', async () => {
       const { orderId, itemA, itemB } = await twoLines();
@@ -3372,6 +3377,167 @@ describe('host service layer (integration, no GraphQL)', () => {
       });
 
       expect(new Set(keys).size).toBe(4);
+    });
+  });
+
+  describe('D1: order status on a line in a non-base unit', () => {
+    // BOX = 12 PCS. A target of 2 BOX is 24 base units; changes are in base units.
+    const boxMaterial = async (): Promise<{
+      materialId: string;
+      materialKey: string;
+      boxUnitId: string;
+    }> => {
+      const key = unique('HSL-BOX-MAT');
+      const material = await app.get(MaterialService).createMaterial({
+        key,
+        description: 'sold by the box',
+        baseUnit: 'PCS',
+        units: [{ unit: 'BOX', conversionFactor: 12 }],
+      });
+      const unit = await dataSource
+        .getRepository<MaterialUnitEntityClass>(MaterialUnitEntityClass)
+        .findOneByOrFail({ materialId: material.id, unit: 'BOX' });
+
+      return { materialId: material.id, materialKey: key, boxUnitId: unit.id };
+    };
+
+    const shipStatus = async (orderId: string): Promise<string> => {
+      const [[row]] = await shipService.findMany({ id: orderId });
+
+      return (row as unknown as { status: string }).status;
+    };
+
+    const receiveStatus = async (orderId: string): Promise<string> => {
+      const [[row]] = await receiveService.findMany({ id: orderId });
+
+      return (row as unknown as { status: string }).status;
+    };
+
+    const shipTwoBoxes = async (): Promise<{
+      orderId: string;
+      itemId: string;
+    }> => {
+      const { materialId, boxUnitId } = await boxMaterial();
+      const { batchId } = await seedStock(materialId, 24);
+      const order = await dataSource.transaction(async (manager) => {
+        const created = await shipService.createShipInventoryOrder({
+          key: unique('HSL-SHIP'),
+          description: 'boxes',
+          references: [],
+          manager,
+        });
+        await shipService.addShipInventoryOrderItems(
+          {
+            orderId: created.id,
+            items: [
+              {
+                materialId,
+                batchId,
+                locationId: shelfId,
+                unitId: boxUnitId,
+                targetShippedQuantity: 2,
+                status: StockStatus.FREE,
+                serialId: unique('HSL-SHIP-LINE'),
+                orderId: created.id,
+              },
+            ],
+          },
+          manager,
+        );
+
+        return created;
+      });
+      const [item] = await dataSource
+        .getRepository<ShipInventoryOrderItemEntityClass>(
+          shipService.shipInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId: order.id } });
+
+      return { orderId: order.id, itemId: item.id };
+    };
+
+    const run = (work: (manager: EntityManager) => Promise<unknown>) =>
+      runner.run({}, () => dataSource.transaction(work));
+
+    it('ship: 1 of 2 BOX is PARTIAL_SHIPPED, 2 of 2 is SHIPPED', async () => {
+      const { orderId, itemId } = await shipTwoBoxes();
+
+      await run((manager) =>
+        shipService.ship({ itemId, quantity: 1 }, manager),
+      );
+      expect(await shipStatus(orderId)).toBe('PARTIAL_SHIPPED');
+
+      await run((manager) =>
+        shipService.ship({ itemId, quantity: 1 }, manager),
+      );
+      expect(await shipStatus(orderId)).toBe('SHIPPED');
+    });
+
+    it('ship: 1 BOX shipped and 1 BOX cancelled is SHIPPED, not PENDING', async () => {
+      const { orderId, itemId } = await shipTwoBoxes();
+
+      await run((manager) =>
+        shipService.ship({ itemId, quantity: 1 }, manager),
+      );
+      await run((manager) =>
+        shipService.cancelShip({ itemId, quantity: 1 }, manager),
+      );
+
+      expect(await shipStatus(orderId)).toBe('SHIPPED');
+    });
+
+    it('ship: the status filter agrees with the status column', async () => {
+      const { orderId, itemId } = await shipTwoBoxes();
+
+      await run((manager) =>
+        shipService.ship({ itemId, quantity: 1 }, manager),
+      );
+
+      const [partial] = await shipService.findMany({
+        id: orderId,
+        status: ShipInventoryOrderStatus.PARTIAL_SHIPPED,
+      });
+      const [shipped] = await shipService.findMany({
+        id: orderId,
+        status: ShipInventoryOrderStatus.SHIPPED,
+      });
+
+      expect(partial).toHaveLength(1);
+      expect(shipped).toHaveLength(0);
+    });
+
+    it('receive: 1 of 2 BOX is PARTIAL_RECEIVED, 2 of 2 is RECEIVED', async () => {
+      const { materialKey, boxUnitId } = await boxMaterial();
+      const order = await receiveService.createReceiveInventoryOrder({
+        key: unique('HSL-RCV'),
+        description: 'boxes',
+        items: [
+          {
+            serialId: unique('HSL-RCV-LINE'),
+            materialKey,
+            batchKey: unique('HSL-RCV-BATCH'),
+            locationKey: 'HSL-SHELF',
+            unitId: boxUnitId,
+            targetReceivedQuantity: 2,
+            requireInspection: false,
+          },
+        ],
+      });
+      const [item] = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId: order.id } });
+
+      await run((manager) =>
+        receiveService.receive({ itemId: item.id, quantity: 1 }, manager),
+      );
+      expect(await receiveStatus(order.id)).toBe('PARTIAL_RECEIVED');
+
+      await run((manager) =>
+        receiveService.receive({ itemId: item.id, quantity: 1 }, manager),
+      );
+      expect(await receiveStatus(order.id)).toBe('RECEIVED');
     });
   });
 });
