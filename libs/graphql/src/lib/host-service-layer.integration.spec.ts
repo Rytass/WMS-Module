@@ -2212,6 +2212,127 @@ describe('host service layer (integration, no GraphQL)', () => {
     });
   });
 
+  describe('#221: an update cannot smuggle in a line the check skipped', () => {
+    const removed = new Date();
+
+    it('ignores a new ship line that carries removedAt with a negative quantity', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const order = await shipService.createShipInventoryOrder({
+        key: unique('HSL-UPD'),
+        description: 'x',
+        references: [],
+      });
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await shipService.updateShipInventoryOrder({
+        id: order.id,
+        items: [
+          {
+            materialId: material.id,
+            batchId,
+            locationId: shelfId,
+            targetShippedQuantity: -5,
+            status: StockStatus.FREE,
+            serialId: '1',
+            removedAt: removed,
+          },
+        ],
+      });
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect((await byStatus(material.id)).FREE).toBe(10);
+    });
+
+    it('ignores a new receive line that carries removedAt with a negative quantity', async () => {
+      const material = await newMaterial();
+      const order = await receiveService.createReceiveInventoryOrder({
+        key: unique('HSL-UPD'),
+        description: 'x',
+        items: [],
+      });
+
+      await receiveService.updateReceiveInventoryOrder({
+        id: order.id,
+        items: [
+          {
+            serialId: '1',
+            materialKey: material.key,
+            batchKey: unique('HSL-B'),
+            targetReceivedQuantity: -5,
+            removedAt: removed,
+          },
+        ],
+      });
+
+      const rows = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId: order.id } });
+      expect(rows).toHaveLength(0);
+    });
+
+    it('ignores a new allocate line that carries removedAt with a negative quantity', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const order = await allocateService.createAllocateInventoryOrder({
+        items: [],
+      } as Parameters<
+        AllocateInventoryOrderService['createAllocateInventoryOrder']
+      >[0]);
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await allocateService.updateAllocateInventoryOrder({
+        id: order.id,
+        items: [
+          {
+            materialId: material.id,
+            batchId,
+            targetAllocatedQuantity: -5,
+            saleId: 'S',
+            saleSerialId: '1',
+            removedAt: removed,
+          },
+        ],
+      } as Parameters<
+        AllocateInventoryOrderService['updateAllocateInventoryOrder']
+      >[0]);
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect((await byStatus(material.id)).FREE).toBe(10);
+    });
+
+    it('refuses a live new line with a negative quantity on update', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const order = await shipService.createShipInventoryOrder({
+        key: unique('HSL-UPD'),
+        description: 'x',
+        references: [],
+      });
+
+      await expect(
+        shipService.updateShipInventoryOrder({
+          id: order.id,
+          items: [
+            {
+              materialId: material.id,
+              batchId,
+              targetShippedQuantity: -5,
+              status: StockStatus.FREE,
+              serialId: '1',
+            },
+          ],
+        }),
+      ).rejects.toThrow(/greater than 0/);
+    });
+  });
+
   describe('#186: two items of one batch in one transfer order', () => {
     it('both execute', async () => {
       const material = await newMaterial();

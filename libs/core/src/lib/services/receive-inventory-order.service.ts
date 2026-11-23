@@ -338,7 +338,8 @@ export class ReceiveInventoryOrderService<
           .then((items) => {
             const itemSet = new Set(items.map((i) => i.id));
             options.items?.forEach((item) => {
-              if (!item.id) newItems.push(item);
+              if (!item.id && item.removedAt) return;
+              else if (!item.id) newItems.push(item);
               else if (itemSet.has(item.id)) existingItems.push(item);
             });
           });

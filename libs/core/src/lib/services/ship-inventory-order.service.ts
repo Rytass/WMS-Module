@@ -461,7 +461,9 @@ export class ShipInventoryOrderService<
         results.forEach((result) => {
           if (!result) return;
           const { item, batch } = result;
-          if (!item.id) newItems.push({ ...item, batchId: batch?.id || null });
+          if (!item.id && item.removedAt) return;
+          else if (!item.id)
+            newItems.push({ ...item, batchId: batch?.id || null });
           else if (itemSet.has(item.id))
             existingItems.push({ ...item, batchId: batch?.id || null });
         });
@@ -497,7 +499,8 @@ export class ShipInventoryOrderService<
           .then((dbItems) => {
             const itemSet = new Set(dbItems.map((i) => i.id));
             items?.forEach((item) => {
-              if (!item.id) newItems.push({ ...item, orderId: id });
+              if (!item.id && item.removedAt) return;
+              else if (!item.id) newItems.push({ ...item, orderId: id });
               else if (itemSet.has(item.id)) existingItems.push(item);
             });
           });

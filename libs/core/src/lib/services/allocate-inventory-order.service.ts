@@ -232,7 +232,8 @@ export class AllocateInventoryOrderService<
           [];
 
         items.forEach((item) => {
-          if (!item.id) newItems.push({ ...item, orderId: id });
+          if (!item.id && item.removedAt) return;
+          else if (!item.id) newItems.push({ ...item, orderId: id });
           else if (existingItemIds.has(item.id))
             existingItems.push({ ...item, orderId: id });
         });
