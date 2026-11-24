@@ -16,6 +16,8 @@ Target audience: engineers integrating WMS into a new product who want a working
    - [4.7 Module format: CommonJS only](#47-module-format-commonjs-only)
    - [4.8 Upgrading: change `kind` columns](#48-upgrading-change-kind-columns)
    - [4.9 Removing a ship order line](#49-removing-a-ship-order-line)
+   - [4.10 Decimal quantities](#410-decimal-quantities)
+   - [4.11 Upgrading: `batches.groupId` index](#411-upgrading-batchesgroupid-index)
 5. [Frontend setup (Next.js Pages Router)](#5-frontend-setup-nextjs-pages-router)
 6. [Pages Router shell pattern (the 19 thin shells)](#6-pages-router-shell-pattern-the-19-thin-shells)
 7. [Apollo client wiring](#7-apollo-client-wiring)
@@ -502,6 +504,16 @@ WmsModuleCoreModule.forRootAsync({
 ### 4.10 Decimal quantities
 
 Quantities are exact decimals (`numeric`), and the services add, convert and compare them with `decimal.js` (a runtime dependency of core), so `0.1 x 3` ships against a reservation of `0.3` and a whole-loader transfer does not depend on item order. If your host does its own arithmetic on quantities, use the exported helpers (`sumQuantities`, `addQuantity`, `subtractQuantity`, `compareQuantity`, `toBaseQuantity`, `fromBaseQuantity`, ...) instead of `+`, `*` or `===`. Entity fields come back as numbers; raw query results and `SUM(...)` are still strings, which the helpers accept as they are.
+
+### 4.11 Upgrading: `batches.groupId` index
+
+`BatchService.splitBatch` finds sibling batches through `batches."groupId"`, and PostgreSQL does not index the referencing column of a foreign key. The entity now declares the index as `IDX_batches_groupId`, so `synchronize: true` creates it. With migrations, or on a large table where you want to avoid a blocking build, run once:
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "<prefix>IDX_batches_groupId" ON "<prefix>batches" ("groupId");
+```
+
+`<prefix>` is your `withWmsTablePrefix` prefix, applied to both the index and the table (empty by default). With `withWmsTablePrefix(options, 'wms_')` that is `"wms_IDX_batches_groupId"` on `"wms_batches"`. `CONCURRENTLY` cannot run inside a transaction, so keep it out of a transactional migration. Keep this exact name: `synchronize` matches the index by name, and would drop an index named otherwise and build its own.
 
 ---
 
