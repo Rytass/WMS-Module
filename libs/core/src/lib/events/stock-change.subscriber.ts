@@ -6,6 +6,10 @@ import {
   type InsertEvent,
 } from 'typeorm';
 import { ConsumptionChangeKind } from '../constants/consumption-change-kind';
+import {
+  CHANGE_CLASSIFICATIONS,
+  classifyChange,
+} from '../constants/change-classification';
 import { ShipChangeKind } from '../constants/ship-change-kind';
 import { TransferChangeKind } from '../constants/transfer-change-kind';
 import { ChangeType } from '../constants/stock-status';
@@ -49,93 +53,21 @@ type StockEnrichment = Pick<
 >;
 
 /**
- * The consumption order's three actions, which the sign cannot separate: a
- * return and a settlement are both negative.
- */
-const CONSUMPTION_KIND_TO_CHANGE_TYPE: Readonly<Record<string, ChangeType>> = {
-  [ConsumptionChangeKind.ISSUE]: ChangeType.ISSUED,
-  [ConsumptionChangeKind.RETURN]: ChangeType.RETURNED,
-  [ConsumptionChangeKind.SETTLE]: ChangeType.CONSUMED,
-};
-
-/**
- * The ship order's three actions: a ship and a cancel are both negative. A row
- * without a kind predates the column and is not classified until the upgrade
- * SQL has run (no event beats a wrong one).
- */
-const SHIP_KIND_TO_CHANGE_TYPE: Readonly<Record<string, ChangeType>> = {
-  [ShipChangeKind.RESERVE]: ChangeType.IN_SHIPMENT,
-  [ShipChangeKind.SHIP]: ChangeType.SHIPPED,
-  [ShipChangeKind.CANCEL]: ChangeType.SHIP_CANCELLED,
-};
-
-/**
- * The transfer order's three actions: an execution and a cancel are both
- * negative. Rows without a kind are left unclassified, like the ship order's.
- */
-const TRANSFER_KIND_TO_CHANGE_TYPE: Readonly<Record<string, ChangeType>> = {
-  [TransferChangeKind.RESERVE]: ChangeType.IN_TRANSFER,
-  [TransferChangeKind.TRANSFER]: ChangeType.TRANSFERRED,
-  [TransferChangeKind.CANCEL]: ChangeType.TRANSFER_CANCELLED,
-};
-
-/**
- * Resolve the `ChangeType` for a change table. Most tables whose semantics
- * depend on direction (ship / transfer / vendor / customer / hold / allocate)
- * branch on the sign of `quantityChanged`; the rest are fixed. The resolver is
+ * Resolve the `ChangeType` for a change table from the shared classification
+ * table, which `StockService.findChangeLogs` renders as SQL — so an event and
+ * the change log line for the same row can never disagree. The resolver is
  * handed the whole row rather than just the quantity because the sign is not
- * always enough — see `consumption_order_changes`.
+ * always enough: see `consumption_order_changes`.
  */
 export const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   string,
   (change: ChangeRowLike) => ChangeType | null
-> = new Map<string, (change: ChangeRowLike) => ChangeType | null>([
-  ['receive_inventory_order_changes', () => ChangeType.RECEIVED],
-  [
-    'ship_inventory_order_changes',
-    ({ kind }) => (kind ? (SHIP_KIND_TO_CHANGE_TYPE[kind] ?? null) : null),
-  ],
-  [
-    'transfer_order_changes',
-    ({ kind }) => (kind ? (TRANSFER_KIND_TO_CHANGE_TYPE[kind] ?? null) : null),
-  ],
-  [
-    'transfer_vendor_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0
-        ? ChangeType.VENDOR_TRANSFERRED
-        : ChangeType.VENDOR_RETURNED,
-  ],
-  [
-    'transfer_customer_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.CUSTOMER_HELD : ChangeType.CUSTOMER_RETURNED,
-  ],
-  [
-    'hold_inventory_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.HELD : ChangeType.RELEASED,
-  ],
-  [
-    'allocate_inventory_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.ALLOCATED : ChangeType.DEALLOCATED,
-  ],
-  ['split_batch_order_changes', () => ChangeType.SPLITTED],
-  ['merge_batch_order_changes', () => ChangeType.MERGED],
-  ['reclassify_inventory_order_changes', () => ChangeType.RECLASSIFIED],
-  ['scrape_order_changes', () => ChangeType.SCRAPED],
-  [
-    'inventory_count_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.COUNT_GAINED : ChangeType.COUNT_LOST,
-  ],
-  [
-    'consumption_order_changes',
-    ({ kind }) =>
-      kind ? (CONSUMPTION_KIND_TO_CHANGE_TYPE[kind] ?? null) : null,
-  ],
-]);
+> = new Map(
+  CHANGE_CLASSIFICATIONS.map(({ table, rule }) => [
+    table,
+    (change: ChangeRowLike): ChangeType | null => classifyChange(rule, change),
+  ]),
+);
 
 export const CHANGE_TYPE_TO_EVENT: Readonly<
   Record<ChangeType, WmsStockEventName>

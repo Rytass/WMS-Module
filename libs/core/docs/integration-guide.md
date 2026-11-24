@@ -15,6 +15,7 @@ Target audience: engineers integrating WMS into a new product who want a working
    - [4.6 Version compatibility matrix](#46-version-compatibility-matrix)
    - [4.7 Module format: CommonJS only](#47-module-format-commonjs-only)
    - [4.8 Upgrading: change `kind` columns](#48-upgrading-change-kind-columns)
+   - [4.9 Removing a ship order line](#49-removing-a-ship-order-line)
 5. [Frontend setup (Next.js Pages Router)](#5-frontend-setup-nextjs-pages-router)
 6. [Pages Router shell pattern (the 19 thin shells)](#6-pages-router-shell-pattern-the-19-thin-shells)
 7. [Apollo client wiring](#7-apollo-client-wiring)
@@ -482,6 +483,21 @@ WHERE c.kind IS NULL;
 ```
 
 Run both statements in the same step; each is idempotent.
+
+### 4.9 Removing a ship order line
+
+`updateShipInventoryOrder` with `removedAt` on a line that still holds a reservation (reserved - shipped - cancelled > 0) is **refused** with a `BadRequestException`, because the stock would stay parked on the line's in-shipment batch with nothing left to ship or cancel it. Call `cancelShip` for the line first, then remove it. A line with nothing left reserved is removed as usual.
+
+To have the removal cancel the remainder itself, in the same transaction and with a `CANCEL` change, set the module option (default `false`):
+
+```ts
+WmsModuleCoreModule.forRootAsync({
+  // ...
+  cancelReservationOnShipLineRemoval: true,
+});
+```
+
+`removeShipInventoryOrder` removes a whole order and always cancels what is left on every line, including lines removed earlier.
 
 ---
 

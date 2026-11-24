@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { StockEntity, StockEntityClass } from '../models/metadata/stock.entity';
 import {
   DataSource,
@@ -22,8 +22,6 @@ import {
   MaterialEntityClass,
 } from '../models/metadata/material.entity';
 import { StockStatus, ChangeType } from '../constants/stock-status';
-import { ShipChangeKind } from '../constants/ship-change-kind';
-import { TransferChangeKind } from '../constants/transfer-change-kind';
 import {
   AggregatedStock,
   ChangeLog,
@@ -46,6 +44,21 @@ import type { WmsModuleCoreModuleOptions } from '../typings/core-module-options'
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
 import { getWmsTablePrefix } from '../table-prefix/logical-table-name';
+import { wmsOwnedLogicalTableName } from '../table-prefix/table-prefix';
+import {
+  CHANGE_CLASSIFICATIONS,
+  changeTypeSqlOf,
+} from '../constants/change-classification';
+import { WMS_CUSTOM_CHANGE_TABLES } from '../events/wms-event.tokens';
+import type {
+  WmsCustomChangeTable,
+  WmsStockChangeRow,
+} from '../typings/custom-change-table';
+
+/** Every `ChangeType` value, for deciding whether a host reused our vocabulary. */
+const CHANGE_TYPE_VALUES: ReadonlySet<string> = new Set(
+  Object.values(ChangeType),
+);
 
 /**
  * ORDER BY expressions for `findAggregatedStocks`, over the outer query: the
@@ -155,6 +168,9 @@ export class StockService<
     @Inject(MaterialEntity) private readonly materialEntity: new () => K,
     @Inject(WMS_CORE_MODULE_OPTIONS)
     private readonly coreOptions: WmsModuleCoreModuleOptions,
+    @Optional()
+    @Inject(WMS_CUSTOM_CHANGE_TABLES)
+    private readonly customChangeTables: readonly WmsCustomChangeTable[] = [],
   ) {
     this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
     // select builder for status and quantity calculation, calculated field will override fields in stock entity.
@@ -1137,89 +1153,134 @@ export class StockService<
     return [items, count];
   }
 
+  /**
+   * Left-join every change table the log understands onto `stock` and keep the
+   * stock rows that are the visible side of one of its changes.
+   *
+   * What a change table means comes from `CHANGE_CLASSIFICATIONS`, the table the
+   * event subscriber reads too, so a movement is listed under the type its event
+   * carried. A host's `customChangeTables` entry whose resolver names one of our
+   * `ChangeType`s is listed as that type; one that names anything else (or
+   * nothing) is not listed: `ChangeType` is the GraphQL enum and a host's own
+   * string has no member to be shown as. A resolver is JavaScript, so its rows
+   * are classified by reading the host table once per call and joining on the
+   * ids it placed.
+   *
+   * Also returns the `CASE` over the same aliases, which is the ORDER BY for
+   * CHANGE_TYPE: PostgreSQL accepts an output alias in ORDER BY only on its own,
+   * never inside an expression.
+   */
+  private async joinChangeTables(
+    queryBuilder: SelectQueryBuilder<T>,
+  ): Promise<{ queryBuilder: SelectQueryBuilder<T>; changeTypeSql: string }> {
+    const branches: { alias: string; match: string; type: string }[] = [];
+
+    CHANGE_CLASSIFICATIONS.forEach(({ table, rule, stockSign }, index) => {
+      // Our own tables, wherever `withWmsTablePrefix` put them.
+      const metadata = this.dataSource.entityMetadatas.find(
+        (candidate) => wmsOwnedLogicalTableName(candidate) === table,
+      );
+
+      if (!metadata) return;
+
+      const alias = `chg_${index}`;
+
+      queryBuilder.leftJoin(
+        metadata.target,
+        alias,
+        `stock."orderId" = ${alias}.id`,
+      );
+      branches.push({
+        alias,
+        match: `${alias}."quantityChanged" * stock.quantity ${stockSign === 'same' ? '>' : '<'} 0`,
+        type: `WHEN ${alias}.id IS NOT NULL THEN ${changeTypeSqlOf(alias, rule)}`,
+      });
+    });
+
+    for (const [index, entry] of this.customChangeTables.entries()) {
+      const metadata = this.dataSource.entityMetadatas.find(
+        (candidate) =>
+          candidate.tableName === entry.table &&
+          wmsOwnedLogicalTableName(candidate) === null,
+      );
+
+      if (!metadata) continue;
+
+      const rows = await this.dataSource.query<WmsStockChangeRow[]>(
+        `SELECT * FROM ${quotedTablePathOf(this.dataSource, metadata.target)}`,
+      );
+      const idsByType = new Map<ChangeType, string[]>();
+
+      rows.forEach((row) => {
+        const resolved = entry.changeType(row);
+
+        if (!resolved || !CHANGE_TYPE_VALUES.has(resolved)) return;
+
+        idsByType.set(resolved as ChangeType, [
+          ...(idsByType.get(resolved as ChangeType) ?? []),
+          row.id,
+        ]);
+      });
+
+      if (idsByType.size === 0) continue;
+
+      const alias = `chg_custom_${index}`;
+      const typed = [...idsByType.entries()].map(([type, ids], position) => ({
+        type,
+        parameter: `${alias}_ids_${position}`,
+        ids,
+      }));
+      const listed = typed
+        .map(({ parameter }) => `${alias}.id::text = ANY(:${parameter})`)
+        .join(' OR ');
+
+      // Joined on the ids the resolver placed, so a row it did not place is
+      // simply absent from the join and cannot match below.
+      queryBuilder.leftJoin(
+        metadata.target,
+        alias,
+        `stock."orderId" = ${alias}.id AND (${listed})`,
+      );
+      typed.forEach(({ parameter, ids }) =>
+        queryBuilder.setParameter(parameter, ids),
+      );
+      branches.push({
+        alias,
+        match: `${alias}."quantityChanged" * stock.quantity > 0`,
+        type: `WHEN ${alias}.id IS NOT NULL THEN CASE ${typed
+          .map(
+            ({ type, parameter }) =>
+              `WHEN ${alias}.id::text = ANY(:${parameter}) THEN '${type}'`,
+          )
+          .join(' ')} END`,
+      });
+    }
+
+    queryBuilder.andWhere(
+      `(${branches
+        .map(({ alias, match }) => `(${alias}.id IS NOT NULL AND ${match})`)
+        .join(' OR ')})`,
+    );
+
+    return {
+      queryBuilder,
+      changeTypeSql: `CASE ${branches.map(({ type }) => type).join(' ')} ELSE NULL END`,
+    };
+  }
+
   async findChangeLogs(
     options: FindChangeLogInput<T>,
   ): Promise<[ChangeLog[], number]> {
     const { sort, ...filters } = options;
-    // Our own change tables, named as they ended up under `withWmsTablePrefix`.
-    const prefix = getWmsTablePrefix();
 
-    // Build base query with all change entity joins
-    const changesQueryBuilder = this.pipeSelectOptionsToQueryBuilder(
+    const baseQueryBuilder = this.pipeSelectOptionsToQueryBuilder(
       { ...filters, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
       false,
-    )
-      .leftJoin(
-        `${prefix}receive_inventory_order_changes`,
-        'receive_change',
-        'stock."orderId" = receive_change.id',
-      )
-      .leftJoin(
-        `${prefix}ship_inventory_order_changes`,
-        'ship_change',
-        'stock."orderId" = ship_change.id',
-      )
-      .leftJoin(
-        `${prefix}transfer_order_changes`,
-        'transfer_change',
-        'stock."orderId" = transfer_change.id',
-      )
-      .leftJoin(
-        `${prefix}transfer_vendor_order_changes`,
-        'vendor_change',
-        'stock."orderId" = vendor_change.id',
-      )
-      .leftJoin(
-        `${prefix}transfer_customer_order_changes`,
-        'customer_change',
-        'stock."orderId" = customer_change.id',
-      )
-      .leftJoin(
-        `${prefix}hold_inventory_order_changes`,
-        'hold_change',
-        'stock."orderId" = hold_change.id',
-      )
-      .leftJoin(
-        `${prefix}split_batch_order_changes`,
-        'split_change',
-        'stock."orderId" = split_change.id',
-      )
-      .leftJoin(
-        `${prefix}merge_batch_order_changes`,
-        'merge_change',
-        'stock."orderId" = merge_change.id',
-      )
-      .leftJoin(
-        `${prefix}allocate_inventory_order_changes`,
-        'allocate_change',
-        'stock."orderId" = allocate_change.id',
-      )
-      .leftJoin(
-        `${prefix}reclassify_inventory_order_changes`,
-        'reclassify_change',
-        'stock."orderId" = reclassify_change.id',
-      )
-      .leftJoin(
-        `${prefix}scrape_order_changes`,
-        'scrape_change',
-        'stock."orderId" = scrape_change.id',
-      )
-      .andWhere(
-        `(
-          (receive_change.id IS NOT NULL AND receive_change."quantityChanged" * stock.quantity > 0)
-          OR (ship_change.id IS NOT NULL AND ship_change."quantityChanged" * stock.quantity > 0)
-          OR (transfer_change.id IS NOT NULL AND transfer_change."quantityChanged" * stock.quantity > 0)
-          OR (vendor_change.id IS NOT NULL AND vendor_change."quantityChanged" * stock.quantity > 0)
-          OR (customer_change.id IS NOT NULL AND customer_change."quantityChanged" * stock.quantity > 0)
-          OR (hold_change.id IS NOT NULL AND hold_change."quantityChanged" * stock.quantity > 0)
-          OR (split_change.id IS NOT NULL AND split_change."quantityChanged" * stock.quantity > 0)
-          OR (merge_change.id IS NOT NULL AND merge_change."quantityChanged" * stock.quantity > 0)
-          OR (allocate_change.id IS NOT NULL AND allocate_change."quantityChanged" * stock.quantity > 0)
-          OR (reclassify_change.id IS NOT NULL AND reclassify_change."quantityChanged" * stock.quantity > 0)
-          OR (scrape_change.id IS NOT NULL AND scrape_change."quantityChanged" * stock.quantity > 0)
-        )`,
-      );
+    );
+
+    const { queryBuilder: changesQueryBuilder, changeTypeSql } =
+      await this.joinChangeTables(baseQueryBuilder);
 
     // Get count from the filtered base query (before adding expensive CASE)
     const countQuerySimple = changesQueryBuilder
@@ -1236,7 +1297,7 @@ export class StockService<
     // Add changeType CASE only after we have the filtered result set, apply pagination
     const resultQueryBuilder = changesQueryBuilder.clone();
 
-    // Raw query with eleven joins: `skip`/`take` are entity-mode pagination
+    // Raw query with a join per change table: `skip`/`take` are entity-mode pagination
     // and TypeORM drops them from a raw query that has a join, so the whole
     // history came back on every page. `offset`/`limit` are emitted as SQL.
     // Every join here is on a primary key (`<change>.id` is the base order
@@ -1248,50 +1309,6 @@ export class StockService<
     if (options.limit !== undefined && options.limit > 0) {
       resultQueryBuilder.limit(options.limit);
     }
-
-    // Also the ORDER BY for CHANGE_TYPE: PostgreSQL accepts an output alias
-    // in ORDER BY only on its own, never inside an expression.
-    const changeTypeSql = `CASE
-          WHEN receive_change.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
-          WHEN ship_change.id IS NOT NULL THEN
-            CASE ship_change.kind
-              WHEN '${ShipChangeKind.RESERVE}' THEN '${ChangeType.IN_SHIPMENT}'
-              WHEN '${ShipChangeKind.SHIP}' THEN '${ChangeType.SHIPPED}'
-              WHEN '${ShipChangeKind.CANCEL}' THEN '${ChangeType.SHIP_CANCELLED}'
-              -- A row from before the kind column: the sign is all there is
-              -- until the upgrade SQL runs, and a NULL here would fail the
-              -- whole list on the non-null GraphQL field.
-              ELSE CASE WHEN ship_change."quantityChanged" > 0 THEN '${ChangeType.IN_SHIPMENT}'
-                        ELSE '${ChangeType.SHIPPED}' END
-            END
-          WHEN transfer_change.id IS NOT NULL THEN
-            CASE transfer_change.kind
-              WHEN '${TransferChangeKind.RESERVE}' THEN '${ChangeType.IN_TRANSFER}'
-              WHEN '${TransferChangeKind.TRANSFER}' THEN '${ChangeType.TRANSFERRED}'
-              WHEN '${TransferChangeKind.CANCEL}' THEN '${ChangeType.TRANSFER_CANCELLED}'
-              -- A row from before the kind column: the sign is all there is
-              -- until the upgrade SQL runs (see the ship branch above).
-              ELSE CASE WHEN transfer_change."quantityChanged" > 0 THEN '${ChangeType.IN_TRANSFER}'
-                        ELSE '${ChangeType.TRANSFERRED}' END
-            END
-          WHEN vendor_change.id IS NOT NULL THEN
-            CASE WHEN vendor_change."quantityChanged" > 0 THEN '${ChangeType.VENDOR_TRANSFERRED}'
-                 ELSE '${ChangeType.VENDOR_RETURNED}' END
-          WHEN customer_change.id IS NOT NULL THEN
-            CASE WHEN customer_change."quantityChanged" > 0 THEN '${ChangeType.CUSTOMER_HELD}'
-                 ELSE '${ChangeType.CUSTOMER_RETURNED}' END
-          WHEN hold_change.id IS NOT NULL THEN
-            CASE WHEN hold_change."quantityChanged" > 0 THEN '${ChangeType.HELD}'
-                 ELSE '${ChangeType.RELEASED}' END
-          WHEN split_change.id IS NOT NULL THEN '${ChangeType.SPLITTED}'
-          WHEN merge_change.id IS NOT NULL THEN '${ChangeType.MERGED}'
-          WHEN allocate_change.id IS NOT NULL THEN
-            CASE WHEN allocate_change."quantityChanged" > 0 THEN '${ChangeType.ALLOCATED}'
-                 ELSE '${ChangeType.DEALLOCATED}' END
-          WHEN reclassify_change.id IS NOT NULL THEN '${ChangeType.RECLASSIFIED}'
-          WHEN scrape_change.id IS NOT NULL THEN '${ChangeType.SCRAPED}'
-          ELSE NULL
-        END`;
 
     // Explicitly select only the fields needed for ChangeLog
     resultQueryBuilder

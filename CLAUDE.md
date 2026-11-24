@@ -151,7 +151,7 @@ are owned outright by this package, so reference them by class per the asymmetry
 
 #### Every new Query/Mutation needs `@WmsMutationEvent` (mutations only)
 
-The mutation event/hook system (`libs/graphql/src/lib/events`, `libs/core/src/lib/events`) lets consumers veto (`beforeHooks`) and observe (`afterListeners`) mutations. Each root `@Mutation` carries `@WmsMutationEvent({ event: '<domain>.<action>' })` next to its `@WmsOperation`; the `WmsMutationInterceptor` opens an `AsyncLocalStorage` dispatch scope, runs the before-hook (throw = veto, before any transaction), and flushes events **after the outermost transaction commits** (it awaits the handler, and `dataSource.transaction` resolves post-commit). **A bare `@Mutation` emits no operation event** — always add `@WmsMutationEvent` with a name from `WmsOperationEventName`. Do **not** add it to `@Query` or `@ResolveField`. Stock domain events (`stock.*`) are collected centrally by `StockChangeSubscriber` (a TypeORM subscriber on every `*_order_change` insert, keyed by table name + sign of `quantityChanged`) — services are not touched, so any new change-writing path is covered automatically; if you add a new `*_order_change` table, add it to that subscriber's `TABLE_TO_CHANGE_TYPE` map. **Invariant:** mutation resolvers must `await` all their DB writes (never fire-and-forget) or the post-commit guarantee breaks. The `@nestjs/event-emitter` bridge lives in the separate `@rytass/wms-module-graphql/adapters/event-emitter` entrypoint (optional peer dep).
+The mutation event/hook system (`libs/graphql/src/lib/events`, `libs/core/src/lib/events`) lets consumers veto (`beforeHooks`) and observe (`afterListeners`) mutations. Each root `@Mutation` carries `@WmsMutationEvent({ event: '<domain>.<action>' })` next to its `@WmsOperation`; the `WmsMutationInterceptor` opens an `AsyncLocalStorage` dispatch scope, runs the before-hook (throw = veto, before any transaction), and flushes events **after the outermost transaction commits** (it awaits the handler, and `dataSource.transaction` resolves post-commit). **A bare `@Mutation` emits no operation event** — always add `@WmsMutationEvent` with a name from `WmsOperationEventName`. Do **not** add it to `@Query` or `@ResolveField`. Stock domain events (`stock.*`) are collected centrally by `StockChangeSubscriber` (a TypeORM subscriber on every `*_order_change` insert, keyed by table name + sign of `quantityChanged`) — services are not touched, so any new change-writing path is covered automatically; if you add a new `*_order_change` table, add it to `CHANGE_CLASSIFICATIONS` (`libs/core/src/lib/constants/change-classification.ts`). **Invariant:** mutation resolvers must `await` all their DB writes (never fire-and-forget) or the post-commit guarantee breaks. The `@nestjs/event-emitter` bridge lives in the separate `@rytass/wms-module-graphql/adapters/event-emitter` entrypoint (optional peer dep).
 
 #### Never resolve an overridable entity by its class
 
@@ -230,6 +230,10 @@ loader's location and then act on it, so they take a `pessimistic_write` lock on
 locks. A header loader that is the whole-loader source of an item in the same order skips the creation-time
 check: whole-loader items run first (the priority rule, and first within one `transfer()` call), after which the
 loader is at the target and the consolidating items pass the execution-time check.
+
+#### Removing a ship line that still holds a reservation is refused
+
+`updateShipInventoryOrder` with `removedAt` on a line whose `reserved - shipped - cancelled` (from the change rows' `kind`, via `sumShipChanges`) is above 0 throws `BadRequestException` before anything is written; the caller `cancelShip`s first. Removing only stamped `removedAt`, so the stock stayed on the in-shipment child with no line left to ship or cancel it. The `cancelReservationOnShipLineRemoval` module option (default `false`, beside `relocateEmptyLoaders`) instead cancels the remainder through `cancelShipInternal` ahead of the removal, in the same transaction. `removeShipInventoryOrder` always cancels everything left on every line, removed or not. Tests that remove lines with reservations in `host-service-layer.integration.spec.ts` toggle the option on the injected `WMS_CORE_MODULE_OPTIONS` object.
 
 `receive()` goes through `resolveLoaderPlacement` too (#223): stock is received where its loader is, an empty loader
 elsewhere is moved to the receiving location only with `relocateEmptyLoaders`, and `createReceiveInventoryOrder`
@@ -454,8 +458,21 @@ upstream once it stops being one deployment's special case.
 Registration is validated at module-definition time (`core.module.ts`): shadowing an owned
 table, registering one twice, or missing the `_order_changes` suffix all throw. Each of those
 mistakes otherwise looks exactly like working software until someone reads a report. **A new
-change table this package owns must be added to `OWNED_CHANGE_TABLES` as well as to
-`TABLE_TO_CHANGE_TYPE`.**
+change table this package owns is added to `CHANGE_CLASSIFICATIONS` and nowhere else:
+`TABLE_TO_CHANGE_TYPE` and `OWNED_CHANGE_TABLES` in the subscriber are derived from it.**
+
+#### The change log and the stock events read one classification table
+
+`CHANGE_CLASSIFICATIONS` (`libs/core/src/lib/constants/change-classification.ts`) says what a row of each change table
+means: a fixed type, one by the sign of `quantityChanged`, or one by its `kind`. `StockChangeSubscriber` runs it as a
+function to pick the event; `StockService.findChangeLogs` renders the same rule as SQL (`changeTypeSqlOf`) to list and
+sort the rows. Never write a second `CASE` for the change log: it drifted before, leaving counts, consumptions and
+scrapes out of the list and its `total`. `stockSign` names which `stocks` row of the order a change is listed
+through: `same` as the change's sign, except a scrape, which records a positive change over a negative stock row (read
+at query time, not corrected at the writer, so old rows are listed too). A host's `customChangeTables` entry is listed
+when its resolver returns one of our `ChangeType`s (the host table is read once per call to place its rows, because the
+resolver is JavaScript); a resolver that returns its own string or `null` is not listed, since the GraphQL
+`ChangeType` enum has no member to show it as. The guard is the D2 block in `host-service-layer.integration.spec.ts`.
 
 #### The event guarantee belongs to `WmsOperationRunner`, not the interceptor
 
@@ -545,6 +562,8 @@ describe rather than distinguish.
 Exposed through GraphQL as the `JSONObject` scalar in `libs/graphql/src/lib/scalars`, defined
 in-repo on top of `graphql` rather than pulled from `graphql-type-json` so the peer dependency
 list does not grow. It deliberately rejects bare scalars, arrays and class instances.
+
+`MergeBatchOrderService.merge` refuses (`BadRequestException`) source batches whose `attributes` differ by content or whose `requiresInspection` differs, like every other identity field, and passes both onto the merged batch.
 
 #### DTO and entity nullability must match
 

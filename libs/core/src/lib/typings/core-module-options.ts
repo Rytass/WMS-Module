@@ -87,6 +87,21 @@ export interface WmsModuleCoreModuleOptions extends WmsEventWiringOptions {
    */
   relocateEmptyLoaders?: boolean;
   /**
+   * What removing a ship order line does when the line still holds a
+   * reservation, meaning more was prepared than has shipped or been cancelled
+   * (default `false`).
+   *
+   * Off: the removal is refused, naming the line, and nothing is written; the
+   * caller cancels the reservation first (`cancelShip`) and removes the line
+   * after. On: the same transaction cancels what is left (a `CANCEL` change, the
+   * stock back on its original batch) and then removes the line. A line with no
+   * reservation left is removed either way.
+   *
+   * Applies to `updateShipInventoryOrder`. `removeShipInventoryOrder` removes a
+   * whole order and always cancels what is left on every line, removed or not.
+   */
+  cancelReservationOnShipLineRemoval?: boolean;
+  /**
    * The prefix this deployment expects its tables to carry. Optional and
    * purely a check: the prefix itself is applied by `withWmsTablePrefix`
    * before the `DataSource` initialises, which this module cannot do because
