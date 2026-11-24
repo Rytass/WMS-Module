@@ -1,25 +1,7 @@
 // Not published: `package.json#files` only ships `**/*.js`, `**/*.d.ts`, README,
 // LICENSE and docs — `.mjs` config files stay out of the tarball (same as
 // `rollup.config.mjs`).
-const swcOptions = {
-  jsc: {
-    target: 'es2022',
-    // TypeORM/NestJS rely on class names at runtime (STI discriminators, DI
-    // tokens), so they must survive minification-free transpilation.
-    keepClassNames: true,
-    parser: {
-      syntax: 'typescript',
-      decorators: true,
-    },
-    transform: {
-      legacyDecorator: true,
-      decoratorMetadata: true,
-    },
-  },
-  module: {
-    type: 'commonjs',
-  },
-};
+import { swcOptions } from '../../tools/jest-swc-options.mjs';
 
 export default {
   displayName: 'graphql',

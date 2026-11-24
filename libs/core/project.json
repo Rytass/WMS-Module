@@ -62,6 +62,16 @@
         "build",
         "pkg-quality"
       ]
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "parallel": false,
+        "commands": [
+          "tsc -p libs/core/tsconfig.spec.json",
+          "jest -c libs/core/jest.config.mjs --maxWorkers=2"
+        ]
+      }
     }
   },
   "tags": []

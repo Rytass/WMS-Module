@@ -3204,8 +3204,9 @@ describe('host service layer (integration, no GraphQL)', () => {
       >[0]);
 
       const row = await repository.findOneByOrFail({ id: line.id });
+      // allocate_inventory_order_items has no removedAt column, so only the
+      // quantity guard is observable here: the -100 must not be written.
       expect(Number(row.targetAllocatedQuantity)).toBe(4);
-      expect(row.removedAt).not.toBeNull();
     });
 
     it('refuses a live new line with a negative quantity on update', async () => {
