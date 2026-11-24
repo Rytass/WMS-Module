@@ -234,6 +234,17 @@ after a later one.
 
 Every GraphQL argument or field that carries a material quantity is `Float`, never `Int` (an `Int` refuses `0.1` at coercion, before any service runs). `Int` stays only for non-quantity counts: pagination, and the number of loaders in `createLoader`. Guard: `libs/graphql/src/lib/float-quantities.integration.spec.ts`.
 
+#### A line that has moved stock is reversed, never edited
+
+On allocate, hold and customer/vendor transfer orders a line moves stock when it is **created** (batch split,
+change row written). So `update*Order` refuses an existing line that carries anything but its `id` —
+`removedAt` included — with `BadRequestException` naming the reversal (`deallocate`, `release`,
+`return*Order`); `assertLineNotEdited` in `libs/core/src/lib/utils`. Stamping or rewriting the line would leave
+the stock where it is and the document disagreeing with the ledger. A line added by an update is processed like
+a created one; on the two transfer orders it takes the `customerId` / `vendorId` the existing lines carry
+(`resolveOrderParty`: the order row has no such column, and switching party after stock moved is refused).
+Ship and receive are different: their lines move stock only when executed, so removal stays a flag there.
+
 #### Quantities from a caller must be greater than 0
 
 Public write entry points call `assertPositiveQuantity` (`libs/core/src/lib/utils`) on `quantity`,
