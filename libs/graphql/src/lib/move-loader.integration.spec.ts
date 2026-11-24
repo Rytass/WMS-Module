@@ -20,6 +20,9 @@ import {
   LocationEntityClass,
   MaterialService,
   MaterialUnitEntityClass,
+  ReceiveInventoryOrderItemEntityClass,
+  ReceiveInventoryOrderService,
+  ReceiveInventoryOrderStatus,
   ShipInventoryOrderItemEntityClass,
   ShipInventoryOrderService,
   StockEntityClass,
@@ -117,6 +120,7 @@ describe('moving a loader with its stock (#225)', () => {
   let batchService: BatchService;
   let transferService: TransferOrderService;
   let shipService: ShipInventoryOrderService;
+  let receiveService: ReceiveInventoryOrderService;
   let holdService: HoldInventoryOrderService;
   let allocateService: AllocateInventoryOrderService;
   let consumptionService: ConsumptionOrderService;
@@ -418,6 +422,7 @@ describe('moving a loader with its stock (#225)', () => {
     batchService = app.get(BatchService);
     transferService = app.get(TransferOrderService);
     shipService = app.get(ShipInventoryOrderService);
+    receiveService = app.get(ReceiveInventoryOrderService);
     holdService = app.get(HoldInventoryOrderService);
     allocateService = app.get(AllocateInventoryOrderService);
     consumptionService = app.get(ConsumptionOrderService);
@@ -792,6 +797,56 @@ describe('moving a loader with its stock (#225)', () => {
       ).resolves.toBe(true);
       expect(await quantityAtText(material.id, dockId)).toBe('0');
       expect(await quantityAtText(material.id, benchId)).toBe('10');
+    });
+
+    it('a part-received line is received at the new location, with the loader', async () => {
+      const material = await newMaterial();
+      const loaderId = await newLoader();
+      const loader = await dataSource
+        .getRepository<LoadersEntityClass>(LoadersEntityClass)
+        .findOneByOrFail({ id: loaderId });
+      const key = unique('MV-RCV');
+      const batchKey = unique('MV-RCV-BATCH');
+      const order = await receiveService.createReceiveInventoryOrder({
+        key,
+        description: 'part received',
+        items: [
+          {
+            serialId: unique('MV-RCV-LINE'),
+            materialKey: material.key,
+            batchKey,
+            locationKey: 'MV-SHELF',
+            loaderKey: loader.serialId,
+            targetReceivedQuantity: 1,
+            requireInspection: false,
+          },
+        ],
+      });
+      const [item] = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId: order.id } });
+      const status = async (
+        wanted: ReceiveInventoryOrderStatus,
+      ): Promise<number> =>
+        (await receiveService.findMany({ key, statuses: [wanted] }))[1];
+
+      await receiveService.receive({ itemId: item.id, quantity: 0.4 });
+      expect(await status(ReceiveInventoryOrderStatus.PARTIAL_RECEIVED)).toBe(
+        1,
+      );
+
+      await transferService.moveLoader({ loaderId, targetLocationId: dockId });
+      await receiveService.receive({ itemId: item.id, quantity: 0.6 });
+
+      expect(await status(ReceiveInventoryOrderStatus.RECEIVED)).toBe(1);
+      expect(await quantityAtText(material.id, dockId)).toBe('1');
+      expect(await quantityAtText(material.id, shelfId)).toBe('0');
+      expect(await loaderLocation(loaderId)).toBe(dockId);
+      expect(
+        (await holdings(loaderId)).map(({ locationId }) => locationId),
+      ).toEqual([dockId]);
     });
 
     it('leaves hold and allocate lines alone: nothing reads them after the fact', async () => {
