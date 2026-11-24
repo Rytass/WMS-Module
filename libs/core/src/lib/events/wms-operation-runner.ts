@@ -12,7 +12,7 @@ import type {
  * returned, falling back to an `id` argument. Action operations that return a
  * bare `boolean` land on the argument.
  */
-const defaultResolveId = (
+export const defaultResolveId = (
   result: unknown,
   args: Readonly<Record<string, unknown>>,
 ): string | null => {

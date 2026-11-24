@@ -4,7 +4,13 @@ import { GraphQLModule, GraphQLSchemaHost } from '@nestjs/graphql';
 import { ApolloDriver } from '@nestjs/apollo';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Client } from 'pg';
-import { ChildEntity, Column, DataSource, Repository } from 'typeorm';
+import {
+  ChildEntity,
+  Column,
+  DataSource,
+  Repository,
+  type DataSourceOptions,
+} from 'typeorm';
 import { ExecutionResult, GraphQLSchema, graphql } from 'graphql';
 import {
   MaterialEntity as BaseMaterialEntity,
@@ -517,8 +523,8 @@ describe('custom material entity (integration)', () => {
       ).resolves.toBeNull();
     });
 
-    it('is not picked up as a receive order item', async () => {
-      const data = await executeOrFail(`
+    it('is not picked up as a receive order item, and the order is refused', async () => {
+      const { errors } = await execute(`
         mutation {
           createReceiveInventoryOrder(
             key: "CME-RO-LEGACY"
@@ -534,14 +540,13 @@ describe('custom material entity (integration)', () => {
         }
       `);
 
-      expect(
-        (data['createReceiveInventoryOrder'] as { readonly items: unknown[] })
-          .items,
-      ).toHaveLength(0);
+      expect(errors?.[0]?.message).toMatch(
+        /Material "CME-MAT-LEGACY" not found/,
+      );
     });
 
-    it('is not picked up as a ship order reference', async () => {
-      const data = await executeOrFail(`
+    it('is not picked up as a ship order reference, and the order is refused', async () => {
+      const { errors } = await execute(`
         mutation {
           createShipInventoryOrder(
             key: "CME-SO-LEGACY"
@@ -555,13 +560,9 @@ describe('custom material entity (integration)', () => {
         }
       `);
 
-      expect(
-        (
-          data['createShipInventoryOrder'] as {
-            readonly references: unknown[];
-          }
-        ).references,
-      ).toHaveLength(0);
+      expect(errors?.[0]?.message).toMatch(
+        /Material "CME-MAT-LEGACY" not found/,
+      );
     });
 
     it('cannot be used as a reclassify target', async () => {
@@ -654,34 +655,66 @@ describe('custom material entity (integration)', () => {
 });
 
 describe('materialEntity configuration errors', () => {
-  const bootWith = (
+  // These boots are meant to fail, and a failure can land in `compile()` (the
+  // provider factory throws) where there is no app to close. The data source is
+  // therefore captured as it is created and destroyed on the way out; left open
+  // it keeps the jest worker alive ("failed to exit gracefully").
+  const bootWith = async (
     materialEntity: new () => MaterialEntityClass,
     register: boolean,
-  ): Promise<unknown> =>
-    Test.createTestingModule({
-      imports: [
-        TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: DB_HOST,
-          port: DB_PORT,
-          username: DB_USER,
-          password: DB_PASS,
-          database: DB_NAME,
-          autoLoadEntities: true,
-          synchronize: true,
-          uuidExtension: 'uuid-ossp',
-        }),
-        ...(register ? [TypeOrmModule.forFeature([materialEntity])] : []),
-        WmsModuleCoreModule.forRootAsync({
-          useFactory: async () => ({ materialEntity }),
-          defaultLoaderSerialId: 'DEFAULT',
-          defaultLoaderTypeKey: 'DEFAULT',
-          defaultLocationKey: 'DEFAULT',
-        }),
-      ],
-    })
-      .compile()
-      .then((moduleRef) => moduleRef.createNestApplication().init());
+  ): Promise<unknown> => {
+    const opened: DataSource[] = [];
+
+    try {
+      const moduleRef = await Test.createTestingModule({
+        imports: [
+          TypeOrmModule.forRootAsync({
+            useFactory: () => ({
+              type: 'postgres' as const,
+              host: DB_HOST,
+              port: DB_PORT,
+              username: DB_USER,
+              password: DB_PASS,
+              database: DB_NAME,
+              autoLoadEntities: true,
+              // The schema is already there (the suite's main app created it).
+              // Syncing again from an unregistered child adds its column a
+              // second time and fails the connection, and TypeOrmModule retries.
+              synchronize: false,
+              uuidExtension: 'uuid-ossp',
+              retryAttempts: 0,
+            }),
+            dataSourceFactory: async (options?: DataSourceOptions) => {
+              const dataSource = await new DataSource(
+                options as DataSourceOptions,
+              ).initialize();
+
+              opened.push(dataSource);
+
+              return dataSource;
+            },
+          }),
+          ...(register ? [TypeOrmModule.forFeature([materialEntity])] : []),
+          WmsModuleCoreModule.forRootAsync({
+            useFactory: async () => ({ materialEntity }),
+            defaultLoaderSerialId: 'DEFAULT',
+            defaultLoaderTypeKey: 'DEFAULT',
+            defaultLocationKey: 'DEFAULT',
+          }),
+        ],
+      }).compile();
+
+      return await moduleRef.createNestApplication().init();
+    } catch (error) {
+      await Promise.all(
+        opened
+          .filter(({ isInitialized }) => isInitialized)
+          .map((d) => d.destroy()),
+      );
+
+      throw error;
+    }
+  };
 
   it('rejects an entity that does not extend MaterialEntityClass', async () => {
     // Structurally assignable to the base contract, so nothing catches it at
