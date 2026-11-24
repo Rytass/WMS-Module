@@ -1,3 +1,23 @@
+## 0.14.0 (2026-11-24)
+
+### 🚀 Features
+
+- **graphql:** material quantities are Float ([#242](https://github.com/Rytass/WMS-Module/pull/242))
+- move a loader together with its reserved stock ([#239](https://github.com/Rytass/WMS-Module/pull/239), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222), [#224](https://github.com/Rytass/WMS-Module/issues/224), [#223](https://github.com/Rytass/WMS-Module/issues/223), [#227](https://github.com/Rytass/WMS-Module/issues/227), [#225](https://github.com/Rytass/WMS-Module/issues/225))
+- inventory counts that do not lock their locations ([#240](https://github.com/Rytass/WMS-Module/pull/240), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222), [#224](https://github.com/Rytass/WMS-Module/issues/224), [#223](https://github.com/Rytass/WMS-Module/issues/223), [#227](https://github.com/Rytass/WMS-Module/issues/227), [#226](https://github.com/Rytass/WMS-Module/issues/226))
+- **core,graphql:** tell cancellations apart from ships and transfers in the ledger ([#232](https://github.com/Rytass/WMS-Module/pull/232), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222))
+
+### 🩹 Fixes
+
+- **react:** accept fractional quantities on receive and ship order lines ([#245](https://github.com/Rytass/WMS-Module/pull/245), [#242](https://github.com/Rytass/WMS-Module/issues/242))
+- **react:** no empty actions column; make the resize reserve opt-in ([#241](https://github.com/Rytass/WMS-Module/pull/241), [#180](https://github.com/Rytass/WMS-Module/issues/180))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+- Claude Sonnet 5.5
+
 ## 0.13.0 (2026-11-20)
 
 ### 🚀 Features
