@@ -830,7 +830,9 @@ describe('moving a loader with its stock (#225)', () => {
       const status = async (
         wanted: ReceiveInventoryOrderStatus,
       ): Promise<number> =>
-        (await receiveService.findMany({ key, statuses: [wanted] }))[1];
+        (
+          await receiveService.findMany({ id: order.id, statuses: [wanted] })
+        )[1];
 
       await receiveService.receive({ itemId: item.id, quantity: 0.4 });
       expect(await status(ReceiveInventoryOrderStatus.PARTIAL_RECEIVED)).toBe(
