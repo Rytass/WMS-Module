@@ -22,7 +22,7 @@ export const formSchema: Yup.ObjectSchema<AddFormValues> = Yup.object({
     name: Yup.string().required('必填'),
   }).nullable(),
   quantity: Yup.number()
-    .min(1, '不可小於 1')
+    .moreThan(0, '必須大於 0')
     .required('必填'),
   unit: Yup.string().required('必填'),
 });
