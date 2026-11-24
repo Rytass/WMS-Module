@@ -1,4 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   ReceiveInventoryOrderEntity,
   ReceiveInventoryOrderEntityClass,
@@ -46,6 +51,7 @@ import {
   assertPositiveQuantity,
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
+import { assertAllFound, assertKeyFound } from '../utils/assert-found';
 import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
@@ -195,45 +201,57 @@ export class ReceiveInventoryOrderService<
       async (accPromise, item) => {
         const acc = await accPromise;
 
-        try {
-          const material = await materialRepository.findOneBy({
-            key: item.materialKey,
-          });
-          if (!material) return acc;
-          const batch = item.batchKey
-            ? await this.batchService.getBatch({
-                manager,
-                materialId: material.id,
-                key: item.batchKey,
-              })
-            : null;
+        const material = assertKeyFound(
+          await materialRepository.findOneBy({ key: item.materialKey }),
+          'Material',
+          item.materialKey,
+        );
+        const location = item.locationKey
+          ? assertKeyFound(
+              await locationRepository.findOneBy({ key: item.locationKey }),
+              'Location',
+              item.locationKey,
+            )
+          : null;
 
-          const location = item.locationKey
-            ? await locationRepository.findOneBy({
-                key: item.locationKey,
-              })
-            : null;
+        const loader = item.loaderKey
+          ? assertKeyFound(
+              await loaderRepository.findOneBy({ serialId: item.loaderKey }),
+              'Loader',
+              item.loaderKey,
+            )
+          : null;
 
-          const loader = item.loaderKey
-            ? await loaderRepository.findOneBy({
-                serialId: item.loaderKey,
-              })
-            : null;
-
-          return [
-            ...acc,
-            {
-              ...item,
-              orderId,
-              materialId: material.id,
-              batchId: batch?.id || null,
-              locationId: this.stockService.resolveLocationId(location?.id),
-              loaderId: loader?.id || null,
-            },
-          ];
-        } catch {
-          return acc;
+        // Stock must land where its loader is (#223). Checked now so a bad
+        // order fails early, and again in `receive()` because the loader can
+        // be moved after the order is created. Nothing is relocated here.
+        if (loader) {
+          await this.stockService.resolveLoaderPlacement(
+            loader.id,
+            this.stockService.resolveLocationId(location?.id),
+            manager,
+          );
         }
+
+        const batch = item.batchKey
+          ? await this.batchService.getBatch({
+              manager,
+              materialId: material.id,
+              key: item.batchKey,
+            })
+          : null;
+
+        return [
+          ...acc,
+          {
+            ...item,
+            orderId,
+            materialId: material.id,
+            batchId: batch?.id || null,
+            locationId: this.stockService.resolveLocationId(location?.id),
+            loaderId: loader?.id || null,
+          },
+        ];
       },
       Promise.resolve(
         [] as DeepPartial<ReceiveInventoryOrderItemEntityClass>[],
@@ -348,6 +366,10 @@ export class ReceiveInventoryOrderService<
               else if (!item.id) newItems.push(item);
               else if (itemSet.has(item.id))
                 existingItems.push(asRemovalMarker(item));
+              else
+                throw new NotFoundException(
+                  `Receive inventory order item ${item.id} not found on order ${id}`,
+                );
             });
           });
 
@@ -547,7 +569,84 @@ export class ReceiveInventoryOrderService<
         where: { id: In(options.map((o) => o.itemId)) },
         relations: { changes: true },
       });
+      assertAllFound(
+        options.map((o) => o.itemId),
+        items,
+        'Receive inventory order item',
+      );
       const itemMap = new Map(items.map((i) => [i.id, i]));
+
+      /*
+       * Where each line will be stocked, resolved before any write. The loader
+       * rows are locked here, in id order, ahead of every batch and stock lock
+       * the loop below takes (see `StockService.lockLoaders`), and a loader
+       * that sits elsewhere is refused or -- empty, with
+       * `relocateEmptyLoaders` -- queued to move (#223).
+       */
+      const placements = new Map<
+        ReceiveInventoryOrderInput,
+        {
+          readonly locationId: string | null;
+          readonly loaderId: string | null;
+        }
+      >();
+      const resolved = await Promise.all(
+        options.map(async (option) => {
+          const item = itemMap.get(option.itemId);
+          if (!item) {
+            throw new NotFoundException(
+              `Receive inventory order item ${option.itemId} not found`,
+            );
+          }
+
+          return {
+            option,
+            locationId:
+              item.locationId ??
+              (option.locationKey
+                ? await locationRepository
+                    .findOneByOrFail({ key: option.locationKey })
+                    .then(({ id }) => id)
+                : null),
+            loaderId:
+              item.loaderId ??
+              (option.loaderKey
+                ? await loaderRepository
+                    .findOneByOrFail({ serialId: option.loaderKey })
+                    .then(({ id }) => id)
+                : null),
+          };
+        }),
+      );
+      await this.stockService.lockLoaders(
+        resolved.flatMap(({ loaderId }) => (loaderId ? [loaderId] : [])),
+        manager,
+      );
+      // One loader cannot be received at two locations in one call: it would
+      // be moved under the first line's stock to serve the second.
+      const targetByLoader = new Map<string, string>();
+      for (const { option, locationId, loaderId } of resolved) {
+        placements.set(option, { locationId, loaderId });
+        if (!loaderId) continue;
+
+        const target = this.stockService.resolveLocationId(locationId);
+        const seen = targetByLoader.get(loaderId);
+
+        if (seen !== undefined && seen !== target) {
+          throw new BadRequestException(
+            `Loader ${loaderId} is received at both location ${seen} and ${target} in one call; a loader sits at one location`,
+          );
+        }
+
+        targetByLoader.set(loaderId, target);
+        // Early refusal before anything is written; the decision that moves
+        // the loader is taken again right before this line's rows land.
+        await this.stockService.resolveLoaderPlacement(
+          loaderId,
+          target,
+          manager,
+        );
+      }
 
       /*
        * Sequential, not `Promise.all`. Two options for one item both reach the
@@ -559,7 +658,11 @@ export class ReceiveInventoryOrderService<
       for (const option of options) {
         await (async () => {
           const item = itemMap.get(option.itemId);
-          if (!item) return;
+          if (!item) {
+            throw new NotFoundException(
+              `Receive inventory order item ${option.itemId} not found`,
+            );
+          }
           if (!item.batchId && option.batchKey) {
             // if batchKey is provided but item doesn't have batchId, attempt to find or create batch and update item with batchId
             item.batchId = await this.batchService
@@ -674,17 +777,25 @@ export class ReceiveInventoryOrderService<
             }
           }
 
-          let locationId = item.locationId;
-          if (option.locationKey && !locationId)
-            locationId = await locationRepository
-              .findOneByOrFail({ key: option.locationKey })
-              .then(({ id }) => id);
+          const placement = placements.get(option);
+          const locationId = placement?.locationId ?? null;
+          const loaderId = placement?.loaderId ?? null;
 
-          let loaderId = item.loaderId;
-          if (option.loaderKey && !loaderId)
-            loaderId = await loaderRepository
-              .findOneByOrFail({ serialId: option.loaderKey })
-              .then(({ id }) => id);
+          // Decided now, after earlier lines of this call have written: a loader
+          // an earlier line stocked is no longer empty, so it is refused here
+          // instead of being moved away from that stock.
+          if (
+            loaderId &&
+            (await this.stockService.resolveLoaderPlacement(
+              loaderId,
+              this.stockService.resolveLocationId(locationId),
+              manager,
+            )) === 'relocate'
+          ) {
+            await loaderRepository.update({ id: loaderId }, {
+              locationId: this.stockService.resolveLocationId(locationId),
+            } as DeepPartial<LoadersEntityClass>);
+          }
 
           await Promise.all([
             changeRepository.save(
