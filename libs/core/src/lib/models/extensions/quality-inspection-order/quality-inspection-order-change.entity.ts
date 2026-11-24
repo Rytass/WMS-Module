@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { QualityInspectionOrderItemEntityClass } from './quality-inspection-order-item.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const QualityInspectionOrderChangeEntity = Symbol(
   'QualityInspectionOrderChangeEntity',
@@ -20,7 +21,7 @@ export class QualityInspectionOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   @Column({ type: 'boolean', nullable: true })

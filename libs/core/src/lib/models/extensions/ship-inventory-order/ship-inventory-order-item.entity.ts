@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { ShipInventoryOrderEntityClass } from './ship-inventory-order.entity';
 import { ShipInventoryOrderChangeEntityClass } from './ship-inventory-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ShipInventoryOrderItemEntity = Symbol(
   'ShipInventoryOrderItemEntity',
@@ -33,7 +34,7 @@ export class ShipInventoryOrderItemEntityClass {
   @Column({ type: 'uuid', nullable: true })
   unitId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetShippedQuantity!: number;
 
   @Column({ type: 'uuid' })

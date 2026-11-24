@@ -211,6 +211,10 @@ after a split.
 (`lockStockSlots` / `validateStockAvailability`) -> batch-group lock (`splitBatch`). Never take an earlier kind
 after a later one.
 
+#### Quantity arithmetic goes through `utils/quantity`, never JS operators
+
+`numeric` columns hold exact decimals; `0.1 * 3 !== 0.3` in a double, so float arithmetic refused valid shipments and made a whole-loader transfer depend on item order (#227). Every sum, difference, product, quotient and comparison of a quantity uses `libs/core/src/lib/utils/quantity.ts` (`sumQuantities`, `subtractQuantity`, `compareQuantity`, `toBaseQuantity`, `fromBaseQuantity`, ...), which accepts the strings a raw query returns. Services never use `+ - * /` or `< > ===` on a quantity, never `Number()`/`parseFloat()` one, and never import `decimal.js` directly. Our entities' `numeric` columns carry `numericColumnTransformer` so the declared `number` is what you get; `getRawMany()` results and the base module's `StockEntity.quantity` are still strings. SQL `SUM` stays in SQL. Guard: `libs/graphql/src/lib/decimal-quantities.integration.spec.ts` and `utils/quantity.spec.ts`.
+
 #### Quantities from a caller must be greater than 0
 
 Public write entry points call `assertPositiveQuantity` (`libs/core/src/lib/utils`) on `quantity`,

@@ -34,6 +34,7 @@ import {
 } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 export type TransferVendorOrderItemInput = {
   materialId: string;
@@ -123,7 +124,10 @@ export class TransferVendorOrderService<
           repos.transferVendorOrderChange.create({
             item,
             order: base,
-            quantityChanged: item.targetTransferredQuantity * conversionFactor,
+            quantityChanged: toBaseQuantity(
+              item.targetTransferredQuantity,
+              conversionFactor,
+            ),
           }),
         );
 
@@ -134,7 +138,10 @@ export class TransferVendorOrderService<
             batchId: item.batchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetTransferredQuantity * conversionFactor,
+            quantity: toBaseQuantity(
+              item.targetTransferredQuantity,
+              conversionFactor,
+            ),
           },
           manager,
         );
@@ -148,7 +155,12 @@ export class TransferVendorOrderService<
               batchId: item.batchId, // original batch
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetTransferredQuantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(
+                  item.targetTransferredQuantity,
+                  conversionFactor,
+                ),
+              ),
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in vendor transfer state
             {
@@ -157,7 +169,10 @@ export class TransferVendorOrderService<
               batchId: splittedBatch.id, // splitted batch marked with vendorId
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetTransferredQuantity * conversionFactor,
+              quantity: toBaseQuantity(
+                item.targetTransferredQuantity,
+                conversionFactor,
+              ),
             } as DeepPartial<StockEntityClass>,
           ]),
         );
@@ -313,7 +328,7 @@ export class TransferVendorOrderService<
               repos.transferVendorOrderItem.create({
                 ...data,
                 vendorId: originalBatch.vendorId as string,
-                targetTransferredQuantity: -1 * data.quantity,
+                targetTransferredQuantity: negateQuantity(data.quantity),
                 orderId: order.id,
               }),
             );
@@ -330,8 +345,12 @@ export class TransferVendorOrderService<
               repos.transferVendorOrderChange.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged:
-                  -1 * item.targetTransferredQuantity * conversionFactor,
+                quantityChanged: negateQuantity(
+                  toBaseQuantity(
+                    item.targetTransferredQuantity,
+                    conversionFactor,
+                  ),
+                ),
               }),
             );
             let targetLocationId: string | undefined;
@@ -371,7 +390,7 @@ export class TransferVendorOrderService<
                     item.locationId,
                   ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * change.quantityChanged,
+                  quantity: negateQuantity(change.quantityChanged),
                 } as DeepPartial<StockEntityClass>,
                 // add to splitted batch in released state
                 {

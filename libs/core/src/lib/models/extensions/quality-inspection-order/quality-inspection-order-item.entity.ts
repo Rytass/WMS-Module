@@ -10,6 +10,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { QualityInspectionOrderEntityClass } from './quality-inspection-order.entity';
 import { QualityInspectionOrderChangeEntityClass } from './quality-inspection-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const QualityInspectionOrderItemEntity = Symbol(
   'QualityInspectionOrderItemEntity',
@@ -40,7 +41,7 @@ export class QualityInspectionOrderItemEntityClass {
   @Index()
   loaderId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetInspectedQuantity!: number;
 
   @Column({ type: 'uuid' })

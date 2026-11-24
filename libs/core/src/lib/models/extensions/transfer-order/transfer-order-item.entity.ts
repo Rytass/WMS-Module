@@ -11,6 +11,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { TransferOrderEntityClass } from './transfer-order.entity';
 import { TransferOrderChangeEntityClass } from './transfer-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const TransferOrderItemEntity = Symbol('TransferOrderItemEntity');
 @Entity('transfer_order_items')
@@ -37,7 +38,7 @@ export class TransferOrderItemEntityClass {
   @Column({ type: 'uuid', nullable: true })
   unitId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetTransferredQuantity!: number;
 
   @Column({ type: 'uuid', nullable: true })

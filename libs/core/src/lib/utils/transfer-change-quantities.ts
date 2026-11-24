@@ -1,4 +1,5 @@
 import { TransferChangeKind } from '../constants/transfer-change-kind';
+import { absQuantity, sumQuantities } from './quantity';
 
 /** What a transfer order item's change rows add up to, in base units. */
 export interface TransferChangeQuantities {
@@ -22,12 +23,10 @@ export const sumTransferChanges = (
   }[],
 ): TransferChangeQuantities => {
   const total = (kind: TransferChangeKind): number =>
-    changes.reduce(
-      (sum, change) =>
-        change.kind === kind
-          ? sum + Math.abs(Number(change.quantityChanged))
-          : sum,
-      0,
+    sumQuantities(
+      changes
+        .filter((change) => change.kind === kind)
+        .map((change) => absQuantity(change.quantityChanged)),
     );
 
   return {

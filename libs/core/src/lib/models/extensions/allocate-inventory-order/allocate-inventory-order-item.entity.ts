@@ -10,6 +10,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { AllocateInventoryOrderEntityClass } from './allocate-inventory-order.entity';
 import { AllocateInventoryOrderChangeEntityClass } from './allocate-inventory-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const AllocateInventoryOrderItemEntity = Symbol(
   'AllocateInventoryOrderItemEntity',
@@ -40,7 +41,7 @@ export class AllocateInventoryOrderItemEntityClass {
   @Index()
   loaderId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetAllocatedQuantity!: number;
 
   @Column({ type: 'uuid' })

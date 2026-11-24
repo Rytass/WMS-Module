@@ -499,6 +499,10 @@ WmsModuleCoreModule.forRootAsync({
 
 `removeShipInventoryOrder` removes a whole order and always cancels what is left on every line, including lines removed earlier.
 
+### 4.10 Decimal quantities
+
+Quantities are exact decimals (`numeric`), and the services add, convert and compare them with `decimal.js` (a runtime dependency of core), so `0.1 x 3` ships against a reservation of `0.3` and a whole-loader transfer does not depend on item order. If your host does its own arithmetic on quantities, use the exported helpers (`sumQuantities`, `addQuantity`, `subtractQuantity`, `compareQuantity`, `toBaseQuantity`, `fromBaseQuantity`, ...) instead of `+`, `*` or `===`. Entity fields come back as numbers; raw query results and `SUM(...)` are still strings, which the helpers accept as they are.
+
 ---
 
 ## 5. Frontend setup (Next.js Pages Router)

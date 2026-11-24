@@ -17,3 +17,4 @@ export * from './lib/utils/run-in-transaction';
 export * from './lib/utils/list-sort';
 export * from './lib/utils/ship-change-quantities';
 export * from './lib/utils/transfer-change-quantities';
+export * from './lib/utils/quantity';

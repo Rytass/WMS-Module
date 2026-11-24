@@ -10,6 +10,7 @@ import {
 import { ShipChangeKind } from '../../../constants/ship-change-kind';
 import { type ShipInventoryOrderItemEntityClass } from './ship-inventory-order-item.entity';
 import { ShipInventoryOrderStatus } from '../../../typings';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ShipInventoryOrderChangeEntity = Symbol(
   'ShipInventoryOrderChangeEntity',
@@ -22,7 +23,7 @@ export class ShipInventoryOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   /**
