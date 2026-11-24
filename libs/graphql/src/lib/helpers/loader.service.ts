@@ -4,7 +4,6 @@
 import { Injectable } from '@nestjs/common';
 import { createHash } from 'crypto';
 import _ from 'lodash';
-import { LRUCache } from 'lru-cache';
 import {
   Brackets,
   DataSource,
@@ -41,16 +40,18 @@ export interface LoaderOptionsWithPagination<K> extends LoaderOptions<K> {
     limit: number;
   };
 }
+/**
+ * DataLoader factories for the GraphQL context.
+ *
+ * Each factory returns a fresh DataLoader with its own default cache, so a
+ * cached row lives exactly as long as the request that loaded it. These used
+ * to share one process-wide LRU (500ms) as `cacheMap`: a field read right after
+ * a mutation -- the refetch Apollo sends straight away -- came back from before
+ * the write, and one user's rows answered another user's request.
+ */
 @Injectable()
 export class LoaderService {
-  private readonly cache: LRUCache<any, any>;
-  constructor(private dataSource: DataSource) {
-    this.cache = new LRUCache({
-      max: 10000,
-      ttlAutopurge: true,
-      ttl: 500,
-    });
-  }
+  constructor(private dataSource: DataSource) {}
 
   /**
    * create hash from `__entity` in loader option, and return option with `__hash` set with hash value.
@@ -234,7 +235,6 @@ export class LoaderService {
         batchScheduleFn: (callback) => setTimeout(callback, 50),
         cacheKeyFn: (option) =>
           this.useIndex(option.__from, this.useHash(option)) as any,
-        cacheMap: this.cache,
       },
     );
   }
@@ -281,7 +281,6 @@ export class LoaderService {
         batchScheduleFn: (callback) => setTimeout(callback, 100),
         cacheKeyFn: (option) =>
           this.useIndex(option.__from, this.useHash(option)) as any,
-        cacheMap: this.cache,
       },
     );
   }
@@ -330,7 +329,6 @@ export class LoaderService {
         batchScheduleFn: (callback) => setTimeout(callback, 100),
         cacheKeyFn: (option) =>
           this.useIndex(option.__from, this.useHash(option)) as any,
-        cacheMap: this.cache,
       },
     );
   }

@@ -13,7 +13,6 @@ const externalPatterns = [
   'dataloader',
   'lodash',
   /^lodash\//,
-  'lru-cache',
   'luxon',
   'tslib',
   ...builtinModules,
