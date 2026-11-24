@@ -60,6 +60,8 @@ const Table = <T extends TableDataSource>({
   pinnedUntilColumnKey,
   pinnedColumnKeys,
   unpaginated = false,
+  fullWidth = true,
+  reserveResizeSpace = false,
   ...props
 }: TableProps<T> & {
   tableKey: string;
@@ -80,6 +82,20 @@ const Table = <T extends TableDataSource>({
    * columns.
    */
   pinnedColumnKeys?: readonly string[];
+  /**
+   * Stretch the table to its container (default). Pass `false` for a table
+   * that should be exactly as wide as its columns.
+   */
+  fullWidth?: boolean;
+  /**
+   * Keep an empty trailing column of `RESIZE_RESERVE_WIDTH` as the room a
+   * resize drag borrows from, so widening an early column pushes the columns
+   * to its right out into the horizontal scroll area instead of squeezing the
+   * neighbour. A stopgap until Mezzanine's Table has a grow-table resize
+   * strategy; off by default, so a table with no row actions has no actions
+   * column. A table that passes `actions` always has one.
+   */
+  reserveResizeSpace?: boolean;
 }) => {
   const [containerRef, containerWidth] = useElementWidth();
   const compact = useCompactLayout();
@@ -135,18 +151,24 @@ const Table = <T extends TableDataSource>({
    * explicit width, which pushes the table past the container.
    */
   const needsReserve =
+    reserveResizeSpace &&
     containerWidth > 0 &&
     containerWidth - leadingControlsWidth - dataColumnsWidth <
       RESIZE_RESERVE_WIDTH;
 
+  const hasActionsColumn = Boolean(props.actions) || reserveResizeSpace;
+
   const actions = useMemo(
-    (): TableActionsWithMinWidth<T> => ({
-      ...props.actions,
-      render: props.actions?.render ?? (() => []),
-      minWidth: COLUMN_MIN_WIDTH,
-      width: needsReserve ? RESIZE_RESERVE_WIDTH : undefined,
-    }),
-    [needsReserve, props.actions],
+    (): TableActionsWithMinWidth<T> | undefined =>
+      hasActionsColumn
+        ? {
+            ...props.actions,
+            render: props.actions?.render ?? (() => []),
+            minWidth: COLUMN_MIN_WIDTH,
+            width: needsReserve ? RESIZE_RESERVE_WIDTH : undefined,
+          }
+        : undefined,
+    [hasActionsColumn, needsReserve, props.actions],
   );
 
   return (
@@ -155,7 +177,7 @@ const Table = <T extends TableDataSource>({
         {...props}
         columns={columns}
         actions={actions}
-        fullWidth
+        fullWidth={fullWidth}
         resizable
         columnWidths={columnWidths}
         onColumnWidthsChange={onColumnWidthsChange}
