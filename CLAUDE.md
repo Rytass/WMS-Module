@@ -250,13 +250,14 @@ refusal), `lockStockSlots`, **re-read the slots** (a reservation does not take t
 `LoaderService.updateLoader`), unknown ids, counted locations.
 
 `followLoader` re-points the lines whose *later operations read `item.locationId`*, and only while unfinished:
-ship (`ship`/`cancelShip`) and transfer (`transfer`/`cancelTransfer`) `locationId`; consumption (`issue`/`return`/
+ship (`ship`/`cancelShip`), transfer (`transfer`/`cancelTransfer`) and receive (`receive`, while target − received > 0) `locationId`; consumption (`issue`/`return`/
 `settle`) `locationId` where the loader is the source and `targetLocationId` where it is the consuming loader.
 Finished lines are history and stay. Hold, allocate, vendor, customer, scrape, inspection, split, merge,
 reclassify and count lines are not touched: they were written in full at creation and a release/return takes its
 location from its own input. **A new item table whose later operations read its stored location must be added to
-`followLoader`.** Known gap: a pending receive line and a transfer line that consolidates *onto* the moved loader
-keep the old location (the latter fails loudly in the placement check and must be cancelled).
+`followLoader`.** Known gap: a transfer line that consolidates *onto* the moved loader keeps its
+target location (it fails loudly in the placement check and must be cancelled). Receive lines follow because
+receive is placement-checked (#233): a stale location would leave the order unreceivable.
 
 #### Removing a ship line that still holds a reservation is refused
 

@@ -514,9 +514,9 @@ await transferOrderService.moveLoader({ loaderId, targetLocationId }, manager);
 
 - Every batch the loader holds keeps its id and its flags; the stock is written out of the old location and into the new one, and `loaders.locationId` follows. Shipping or cancelling an existing reservation afterwards works as before.
 - It is recorded as a transfer order that is executed at once: the change log lists it as `TRANSFERRED` and each slot emits `stock.transferred` (the GraphQL mutation also emits `transfer-order.loader-moved`). The order has nothing left to execute or cancel.
-- Unfinished ship and transfer lines that name the loader get the new `locationId`; open consumption lines get `locationId` (loader is the source) or `targetLocationId` (loader is the consuming loader). Finished lines, and hold, allocate, vendor, customer, scrape and similar lines, keep what they recorded.
+- Unfinished ship, transfer and receive lines (something left to receive) that name the loader get the new `locationId`; open consumption lines get `locationId` (loader is the source) or `targetLocationId` (loader is the consuming loader). Finished lines, and hold, allocate, vendor, customer, scrape and similar lines, keep what they recorded.
 - Refused, with nothing written: the default loader, a loader already at the target, a loader with no stock (use `LoaderService.updateLoader`), an unknown loader or location, and a source or target location that a running inventory count has locked.
-- A pending receive line for the loader and a pending transfer that consolidates onto it are not re-pointed: cancel and recreate them after the move.
+- A pending transfer that consolidates onto the moved loader is not re-pointed (its target location stays): cancel and recreate it after the move.
 - If a reservation lands on the loader while it is being moved, the call throws `ConflictException`; retry it.
 
 If you restrict operations, the new name is `transfer-order:move-loader`.
