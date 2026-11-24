@@ -1,3 +1,33 @@
+## 0.16.0 (2026-11-24)
+
+### 🚀 Features
+
+- **graphql:** material quantities are Float ([#242](https://github.com/Rytass/WMS-Module/pull/242))
+- move a loader together with its reserved stock ([#239](https://github.com/Rytass/WMS-Module/pull/239), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222), [#224](https://github.com/Rytass/WMS-Module/issues/224), [#223](https://github.com/Rytass/WMS-Module/issues/223), [#227](https://github.com/Rytass/WMS-Module/issues/227), [#225](https://github.com/Rytass/WMS-Module/issues/225))
+- inventory counts that do not lock their locations ([#240](https://github.com/Rytass/WMS-Module/pull/240), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222), [#224](https://github.com/Rytass/WMS-Module/issues/224), [#223](https://github.com/Rytass/WMS-Module/issues/223), [#227](https://github.com/Rytass/WMS-Module/issues/227), [#226](https://github.com/Rytass/WMS-Module/issues/226))
+- **core,graphql:** tell cancellations apart from ships and transfers in the ledger ([#232](https://github.com/Rytass/WMS-Module/pull/232), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222))
+
+### 🩹 Fixes
+
+- return stock status from stocks and stock(id) ([#247](https://github.com/Rytass/WMS-Module/pull/247))
+- **core:** refuse editing or removing an order line that has moved stock ([#243](https://github.com/Rytass/WMS-Module/pull/243))
+- **core:** index batches.groupId ([#238](https://github.com/Rytass/WMS-Module/pull/238), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222), [#224](https://github.com/Rytass/WMS-Module/issues/224), [#223](https://github.com/Rytass/WMS-Module/issues/223), [#227](https://github.com/Rytass/WMS-Module/issues/227), [#230](https://github.com/Rytass/WMS-Module/issues/230))
+- **core:** reject non-positive or non-finite unit conversion factors ([#236](https://github.com/Rytass/WMS-Module/pull/236), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222), [#224](https://github.com/Rytass/WMS-Module/issues/224), [#223](https://github.com/Rytass/WMS-Module/issues/223))
+- **core:** do quantity arithmetic in decimal ([#237](https://github.com/Rytass/WMS-Module/pull/237), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222), [#224](https://github.com/Rytass/WMS-Module/issues/224), [#223](https://github.com/Rytass/WMS-Module/issues/223), [#227](https://github.com/Rytass/WMS-Module/issues/227))
+- **core:** unit-aware order status, complete change log, merge identity, ship line removal ([#235](https://github.com/Rytass/WMS-Module/pull/235), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222), [#224](https://github.com/Rytass/WMS-Module/issues/224), [#223](https://github.com/Rytass/WMS-Module/issues/223))
+- **core:** refuse unknown ids and receipts away from their loader ([#233](https://github.com/Rytass/WMS-Module/pull/233), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222), [#224](https://github.com/Rytass/WMS-Module/issues/224), [#223](https://github.com/Rytass/WMS-Module/issues/223))
+- **core:** ledger invariants for ship, quantities and loader placement ([#231](https://github.com/Rytass/WMS-Module/pull/231), [#195](https://github.com/Rytass/WMS-Module/issues/195), [#221](https://github.com/Rytass/WMS-Module/issues/221), [#222](https://github.com/Rytass/WMS-Module/issues/222))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.14.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+- Claude Sonnet 5.5
+
 ## 0.15.0 (2026-11-20)
 
 ### 🚀 Features
