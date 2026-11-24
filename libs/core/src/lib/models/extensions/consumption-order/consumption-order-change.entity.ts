@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { ConsumptionChangeKind } from '../../../constants/consumption-change-kind';
 import { ConsumptionOrderItemEntityClass } from './consumption-order-item.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ConsumptionOrderChangeEntity = Symbol(
   'ConsumptionOrderChangeEntity',
@@ -26,7 +27,7 @@ export class ConsumptionOrderChangeEntityClass {
   itemId!: string;
 
   /** Positive for an issue, negative for a return or a settlement. */
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   /**

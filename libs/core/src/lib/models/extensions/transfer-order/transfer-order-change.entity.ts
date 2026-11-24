@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { TransferChangeKind } from '../../../constants/transfer-change-kind';
 import { TransferOrderItemEntityClass } from './transfer-order-item.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const TransferOrderChangeEntity = Symbol('TransferOrderChangeEntity');
 @Entity('transfer_order_changes')
@@ -19,7 +20,7 @@ export class TransferOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   /**

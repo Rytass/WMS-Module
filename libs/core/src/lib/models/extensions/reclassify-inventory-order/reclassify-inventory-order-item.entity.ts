@@ -10,6 +10,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { ReclassifyInventoryOrderEntityClass } from './reclassify-inventory-order.entity';
 import { ReclassifyInventoryOrderChangeEntityClass } from './reclassify-inventory-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ReclassifyInventoryOrderItemEntity = Symbol(
   'ReclassifyInventoryOrderItemEntity',
@@ -27,7 +28,7 @@ export class ReclassifyInventoryOrderItemEntityClass {
   @Column({ type: 'uuid', nullable: true })
   loaderId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetReclassifiedQuantity!: number;
 
   @Column({ type: 'uuid' })

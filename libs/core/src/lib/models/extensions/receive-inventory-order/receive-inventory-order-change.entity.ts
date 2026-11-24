@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { type ReceiveInventoryOrderItemEntityClass } from './receive-inventory-order-item.entity';
 import { ReceiveInventoryOrderStatus } from '../../../typings';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ReceiveInventoryOrderChangeEntity = Symbol(
   'ReceiveInventoryOrderChangeEntity',
@@ -21,7 +22,7 @@ export class ReceiveInventoryOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   @OneToOne('orders')

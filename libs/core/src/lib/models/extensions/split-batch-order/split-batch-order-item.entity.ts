@@ -10,6 +10,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { SplitBatchOrderEntityClass } from './split-batch-order.entity';
 import { SplitBatchOrderChangeEntityClass } from './split-batch-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const SplitBatchOrderItemEntity = Symbol('SplitBatchOrderItemEntity');
 @Entity('split_batch_order_items')
@@ -25,7 +26,7 @@ export class SplitBatchOrderItemEntityClass {
   @Column({ type: 'uuid', nullable: true })
   loaderId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetSplitQuantity!: number;
 
   @Column({ type: 'uuid' })

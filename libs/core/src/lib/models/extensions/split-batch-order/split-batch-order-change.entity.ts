@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { SplitBatchOrderItemEntityClass } from './split-batch-order-item.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const SplitBatchOrderChangeEntity = Symbol(
   'SplitBatchOrderChangeEntity',
@@ -20,7 +21,7 @@ export class SplitBatchOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   @OneToOne('orders')

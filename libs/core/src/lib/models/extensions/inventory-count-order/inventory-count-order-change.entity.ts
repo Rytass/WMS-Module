@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { InventoryCountOrderItemEntityClass } from './inventory-count-order-item.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const InventoryCountOrderChangeEntity = Symbol(
   'InventoryCountOrderChangeEntity',
@@ -31,7 +32,7 @@ export class InventoryCountOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   @OneToOne('orders')

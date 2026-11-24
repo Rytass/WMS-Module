@@ -11,6 +11,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { ScrapeOrderEntityClass } from './scrape-order.entity';
 import { ScrapeOrderChangeEntityClass } from './scrape-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ScrapeOrderItemEntity = Symbol('ScrapeOrderItemEntity');
 
@@ -40,7 +41,7 @@ export class ScrapeOrderItemEntityClass {
   @Index()
   loaderId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetScrapedQuantity!: number;
 
   @Column({ type: 'uuid' })
