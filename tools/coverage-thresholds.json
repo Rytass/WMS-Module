@@ -1,0 +1,43 @@
+{
+  "phase": "phase 1: floors at the measured baseline (rounded down); raised in phase 4",
+  "groups": [
+    {
+      "name": "pure functions: utils",
+      "include": ["libs/core/src/lib/utils/**"],
+      "exclude": ["**/*.spec.ts"],
+      "perFile": true,
+      "lines": 100,
+      "branches": 100
+    },
+    {
+      "name": "pure functions: extracted helpers",
+      "include": [
+        "libs/core/src/lib/custom-change-tables.ts",
+        "libs/core/src/lib/events/collect-location-ids.ts",
+        "libs/core/src/lib/events/dispatch-scope.ts",
+        "libs/core/src/lib/events/wms-event.dispatcher.ts",
+        "libs/core/src/lib/table-prefix/logical-table-name.ts"
+      ],
+      "perFile": true,
+      "lines": 100,
+      "branches": 100
+    },
+    {
+      "name": "core overall (unit + integration)",
+      "include": ["libs/core/src/**"],
+      "lines": 80,
+      "branches": 67
+    },
+    {
+      "name": "core services",
+      "include": ["libs/core/src/lib/services/**"],
+      "lines": 75,
+      "branches": 63
+    },
+    {
+      "name": "graphql resolvers",
+      "include": ["libs/graphql/src/lib/resolvers/**"],
+      "lines": 72
+    }
+  ]
+}
