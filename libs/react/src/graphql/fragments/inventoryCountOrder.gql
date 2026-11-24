@@ -41,6 +41,7 @@ fragment InventoryCountOrderListItem on InventoryCountOrderDto {
   name
   countDate
   status
+  lockLocations
   createdBy
   createdAt
   locations {
