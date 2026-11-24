@@ -764,4 +764,23 @@ describe('order references and batch genealogy (integration)', () => {
       expect(items.length).toBe(total);
     });
   });
+
+  describe('batches.groupId index', () => {
+    /*
+     * splitBatch finds sibling batches through groupId, and PostgreSQL does not
+     * index a column just because a foreign key points at it (#230).
+     */
+    it('has an index covering groupId, named without a prefix', async () => {
+      const rows: { indexname: string; indexdef: string }[] =
+        await dataSource.query(
+          `SELECT indexname, indexdef FROM pg_indexes
+            WHERE schemaname = 'public' AND tablename = 'batches'
+              AND indexdef LIKE '%("groupId")%'`,
+        );
+
+      expect(rows.map(({ indexname }) => indexname)).toEqual([
+        'IDX_batches_groupId',
+      ]);
+    });
+  });
 });

@@ -223,6 +223,11 @@ anything is written (#221). Do **not** put it in the shared `process*Items` help
 and `return*` write negative targets on purpose. On `update*` paths the check and the persistence loop must
 share one predicate (a new line carrying `removedAt` is skipped, not created).
 
+Unit `conversionFactor` follows the same rule: `assertPositiveConversionFactor` guards `createMaterial` /
+`updateMaterial` before any write, and `MaterialService.getConversionFactor` re-checks what it reads (the
+column is unconstrained `numeric`, so a stored `0`, negative, `NaN` or `Infinity` throws instead of being
+multiplied in).
+
 #### A transfer never moves a loader away from its stock
 
 Only a whole-loader item (`item.loaderId === item.targetLoaderId`) relocates its loader on `transfer()`.

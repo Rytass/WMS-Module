@@ -4262,6 +4262,139 @@ describe('host service layer (integration, no GraphQL)', () => {
     });
   });
 
+  describe('conversion factors must be finite and greater than 0', () => {
+    const service = (): MaterialService => app.get(MaterialService);
+    const badFactors: readonly number[] = [
+      0,
+      -3,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+    ];
+    const unitCount = async (key: string): Promise<number> => {
+      const material = await dataSource
+        .getRepository(MaterialEntityClass)
+        .findOneBy({ key });
+
+      return material
+        ? dataSource
+            .getRepository(MaterialUnitEntityClass)
+            .countBy({ materialId: material.id })
+        : 0;
+    };
+
+    it.each(badFactors)('createMaterial refuses %p', async (factor) => {
+      const key = unique('HSL-CF-C');
+
+      await expect(
+        service().createMaterial({
+          key,
+          description: 'bad factor',
+          baseUnit: 'PCS',
+          units: [{ unit: 'BOX', conversionFactor: factor }],
+        }),
+      ).rejects.toThrow(/BOX.*conversionFactor|conversionFactor.*BOX/);
+      expect(await unitCount(key)).toBe(0);
+    });
+
+    it.each(badFactors)(
+      'updateMaterial refuses %p on a new and on an existing unit',
+      async (factor) => {
+        const material = await service().createMaterial({
+          key: unique('HSL-CF-U'),
+          description: 'good',
+          baseUnit: 'PCS',
+          units: [{ unit: 'BOX', conversionFactor: 12 }],
+        });
+
+        await expect(
+          service().updateMaterial({
+            id: material.id,
+            units: [{ unit: 'CASE', conversionFactor: factor }],
+          }),
+        ).rejects.toThrow(/CASE/);
+        await expect(
+          service().updateMaterial({
+            id: material.id,
+            units: [{ unit: 'BOX', conversionFactor: factor }],
+          }),
+        ).rejects.toThrow(/BOX/);
+
+        const [box] = await dataSource
+          .getRepository(MaterialUnitEntityClass)
+          .findBy({ materialId: material.id, unit: 'BOX' });
+
+        expect(Number(box.conversionFactor)).toBe(12);
+        expect(await unitCount(material.key)).toBe(1);
+      },
+    );
+
+    it('a positive factor, fractional included, still works', async () => {
+      const material = await service().createMaterial({
+        key: unique('HSL-CF-OK'),
+        description: 'good',
+        baseUnit: 'PCS',
+        units: [{ unit: 'BOX', conversionFactor: 12 }],
+      });
+      await service().updateMaterial({
+        id: material.id,
+        units: [
+          { unit: 'BOX', conversionFactor: 24 },
+          { unit: 'HALF', conversionFactor: 0.5 },
+        ],
+      });
+      const units = await dataSource
+        .getRepository(MaterialUnitEntityClass)
+        .findBy({ materialId: material.id });
+      const byUnit = new Map(
+        units.map((u) => [u.unit, Number(u.conversionFactor)]),
+      );
+
+      expect(byUnit.get('BOX')).toBe(24);
+      expect(byUnit.get('HALF')).toBe(0.5);
+      expect(
+        await service().getConversionFactor(
+          material.id,
+          units.find((u) => u.unit === 'BOX')?.id,
+        ),
+      ).toBe(24);
+    });
+
+    it.each(['0', '-2', "'NaN'", "'Infinity'"])(
+      'a stored value of %s makes a converting operation throw',
+      async (stored) => {
+        const material = await service().createMaterial({
+          key: unique('HSL-CF-R'),
+          description: 'poisoned',
+          baseUnit: 'PCS',
+          units: [{ unit: 'BOX', conversionFactor: 12 }],
+        });
+        const unit = await dataSource
+          .getRepository(MaterialUnitEntityClass)
+          .findOneByOrFail({ materialId: material.id, unit: 'BOX' });
+        await dataSource.query(
+          `UPDATE "${dataSource.getMetadata(MaterialUnitEntityClass).tableName}" SET "conversionFactor" = ${stored} WHERE id = $1`,
+          [unit.id],
+        );
+        const { batchId } = await seedStock(material.id, 24);
+
+        await expect(
+          scrapeService.scrape([
+            {
+              materialId: material.id,
+              batchId,
+              locationId: shelfId,
+              unitId: unit.id,
+              quantity: 1,
+            },
+          ]),
+        ).rejects.toThrow(/conversionFactor/);
+        await expect(
+          service().getConversionFactor(material.id, unit.id),
+        ).rejects.toThrow(/conversionFactor/);
+      },
+    );
+  });
+
   describe('#224: an id or key the caller names must exist', () => {
     const missing = '00000000-0000-4000-8000-000000000000';
 
