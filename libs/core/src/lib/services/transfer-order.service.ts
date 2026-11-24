@@ -1,11 +1,16 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
+  ConsumptionOrderItemEntityClass,
   LoadersEntityClass,
+  LocationEntityClass,
+  ReceiveInventoryOrderItemEntityClass,
+  ShipInventoryOrderItemEntityClass,
   StockEntity,
   StockEntityClass,
   TransferOrderChangeEntityClass,
@@ -20,6 +25,7 @@ import {
   EntityManager,
   EntityTarget,
   In,
+  IsNull,
   Repository,
 } from 'typeorm';
 import { StockStatus } from '../constants/stock-status';
@@ -41,6 +47,11 @@ import { CancelTransferOrderInput } from '../typings/cancel-transfer-order.input
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import { ConsumptionOrderService } from './consumption-order.service';
+import { assertLocationsNotCounting } from '../events/inventory-count-lock.subscriber';
+import { MoveLoaderInput } from '../typings/move-loader.input';
+import type { LoaderSlot } from '../typings/aggregated-stock';
+import { sumShipChanges } from '../utils/ship-change-quantities';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf } from '../utils/table-path';
 import {
@@ -124,6 +135,7 @@ export class TransferOrderService<
     private readonly materialService: MaterialService,
     private readonly batchService: BatchService,
     private readonly stockService: StockService,
+    private readonly consumptionOrderService: ConsumptionOrderService,
     @Inject(TransferOrderEntity) readonly transferOrderEntity: EntityTarget<T>,
     @Inject(TransferOrderItemEntity)
     readonly transferOrderItemEntity: EntityTarget<K>,
@@ -609,6 +621,376 @@ export class TransferOrderService<
     }
 
     return order as T;
+  }
+
+  /**
+   * Move a loader, and everything on it, to another location (#225).
+   *
+   * Not a transfer in the reserve-then-execute sense. A whole-loader transfer
+   * splits every batch into a `transferId` child, which drops the flags the
+   * stock carries -- an `inShipment`, `held` or allocated batch cannot survive
+   * it, and a shipment's source is found by the item's location and the batch's
+   * flags, so shipping after such a move finds nothing. Here every batch keeps
+   * its id and its flags: each slot the loader holds is written out of the old
+   * location and into the new one, as a pair of stock rows under one change row.
+   *
+   * It is recorded as what it is -- a whole-loader transfer order, created and
+   * executed in one go -- so the three things that key off a change row work
+   * unchanged: the inventory count lock, the `stock.transferred` event and the
+   * change log's `TRANSFERRED`. There is no RESERVE row, so nothing is left
+   * pending on the order.
+   *
+   * Lines that still have work to do and name this loader are re-pointed at the
+   * new location in the same transaction, because the operations that finish
+   * them read the location off the line:
+   *
+   * - ship (`ship`, `cancelShip`) and transfer (`transfer`, `cancelTransfer`):
+   *   `locationId`;
+   * - receive (`receive`): `locationId`, while something is left to receive;
+   * - consumption (`issue`, `return`, `settle`): `locationId` where the loader
+   *   is the source, `targetLocationId` where it is the consuming loader.
+   *
+   * Lines already finished are history and stay as they were. Hold, allocate,
+   * vendor, customer, scrape, quality inspection, split, merge, reclassify and
+   * count lines are records of a movement that was written in full when they
+   * were created; nothing reads their location afterwards (a release or return
+   * takes its location from its own input), so they are left alone.
+   *
+   * Refused, before anything is written: the default loader (it stands for
+   * "no loader" and holds the warehouse's unloadered stock), a loader already at
+   * the target, a loader with no stock (relocate it with
+   * `LoaderService.updateLoader`), an unknown loader or location, and any source
+   * or target location a running count has locked.
+   */
+  async moveLoader(
+    options: MoveLoaderInput,
+    outerManager?: EntityManager,
+  ): Promise<T> {
+    return runInTransaction(this.dataSource, outerManager, (manager) =>
+      this.moveLoaderInternal(options, manager),
+    );
+  }
+
+  private async moveLoaderInternal(
+    { loaderId, targetLocationId, description, createdBy }: MoveLoaderInput,
+    manager: EntityManager,
+  ): Promise<T> {
+    if (loaderId === this.stockService.defaultLoaderId) {
+      throw new Error(
+        'The default loader stands for stock without a loader and cannot be moved',
+      );
+    }
+
+    // Loader row first: where a loader sits is read and then acted on, and the
+    // lock order is loader rows -> stock slots -> batch group.
+    await this.stockService.lockLoaders([loaderId], manager);
+
+    const loader = await manager
+      .getRepository(LoadersEntityClass)
+      .findOneBy({ id: loaderId });
+
+    if (!loader) {
+      throw new Error(`Loader ${loaderId} does not exist`);
+    }
+
+    const target = await manager
+      .getRepository<LocationEntityClass>(this.entities.location)
+      .findOneBy({ id: targetLocationId });
+
+    if (!target) {
+      throw new Error(`Location ${targetLocationId} does not exist`);
+    }
+
+    if (loader.locationId === targetLocationId) {
+      throw new Error(
+        `Loader ${loaderId} is already at location ${targetLocationId}`,
+      );
+    }
+
+    const firstRead = await this.stockService.findLoaderSlots(
+      loaderId,
+      manager,
+    );
+
+    if (firstRead.length === 0) {
+      throw new Error(
+        `Loader ${loaderId} holds no stock, so there is nothing to move; relocate an empty loader with LoaderService.updateLoader`,
+      );
+    }
+
+    // Refused up front rather than at the first change row: a host may catch
+    // the refusal and carry on in its transaction, and by then the order and
+    // item rows written ahead of that row would be sitting in it.
+    await assertLocationsNotCounting(manager, this.dataSource, [
+      ...new Set([
+        ...firstRead.map((slot) => slot.locationId),
+        targetLocationId,
+      ]),
+    ]);
+
+    await this.stockService.lockStockSlots(firstRead, manager);
+
+    // What the loader holds is read again now that its slots are locked: a
+    // reservation does not take the loader's row, so the first read can already
+    // be stale. A slot that appeared meanwhile is not locked, and locking it now
+    // would take stock locks out of order; the caller retries instead.
+    const slots = await this.stockService.findLoaderSlots(loaderId, manager);
+    const locked = new Set(
+      firstRead.map((slot) => `${slot.materialId}:${slot.batchId}`),
+    );
+
+    if (
+      slots.length === 0 ||
+      slots.some((slot) => !locked.has(`${slot.materialId}:${slot.batchId}`))
+    ) {
+      throw new ConflictException(
+        `Loader ${loaderId} changed while it was being moved; retry`,
+      );
+    }
+
+    slots.forEach((slot) => {
+      if (!isPositiveQuantity(slot.quantity)) {
+        throw new Error(
+          `Loader ${loaderId} holds ${slot.quantity} of batch ${slot.batchId} at ${slot.locationId}; a negative slot cannot be moved`,
+        );
+      }
+    });
+
+    const repos = this.getRepositories(manager);
+    const key = await this.helperService.getSeq(this.seqPrefix, manager);
+    const order = await repos.transferOrder.save(
+      repos.transferOrder.create({
+        key,
+        description: description ?? null,
+        createdBy: createdBy ?? null,
+      } as DeepPartial<TransferOrderEntityClass>),
+    );
+
+    for (const slot of slots) {
+      await this.writeLoaderMove(
+        order.id,
+        loaderId,
+        targetLocationId,
+        slot,
+        repos,
+      );
+    }
+
+    await this.followLoader(loaderId, targetLocationId, order.id, manager);
+
+    await repos.loader.update({ id: loaderId }, {
+      locationId: targetLocationId,
+    } as DeepPartial<LoadersEntityClass>);
+
+    return order as T;
+  }
+
+  /**
+   * One slot of the move: its item, one change row (kind TRANSFER, negative like
+   * every executed transfer) and the stock pair, out of the slot's location and
+   * into the target on the same loader and the same batch.
+   */
+  private async writeLoaderMove(
+    orderId: string,
+    loaderId: string,
+    targetLocationId: string,
+    slot: LoaderSlot,
+    repos: ReturnType<typeof this.getRepositories>,
+  ): Promise<void> {
+    // Both ends on the item: the count lock reads `locationId` and
+    // `targetLocationId` off it.
+    const item = await repos.transferOrderItem.save(
+      repos.transferOrderItem.create({
+        orderId,
+        materialId: slot.materialId,
+        batchId: slot.batchId,
+        locationId: slot.locationId,
+        loaderId,
+        unitId: null,
+        targetTransferredQuantity: slot.quantity,
+        targetLocationId,
+        targetLoaderId: loaderId,
+      } as DeepPartial<TransferOrderItemEntityClass>),
+    );
+    const base = await repos.order.save({});
+
+    await repos.transferOrderChange.save(
+      repos.transferOrderChange.create({
+        itemId: item.id,
+        id: base.id,
+        quantityChanged: negateQuantity(slot.quantity),
+        kind: TransferChangeKind.TRANSFER,
+      }),
+    );
+
+    await repos.stock.save(
+      repos.stock.create([
+        {
+          orderId: base.id,
+          materialId: slot.materialId,
+          batchId: slot.batchId,
+          locationId: slot.locationId,
+          loaderId,
+          quantity: negateQuantity(slot.quantity),
+        } as DeepPartial<StockEntityClass>,
+        {
+          orderId: base.id,
+          materialId: slot.materialId,
+          batchId: slot.batchId,
+          locationId: targetLocationId,
+          loaderId,
+          quantity: slot.quantity,
+        } as DeepPartial<StockEntityClass>,
+      ]),
+    );
+  }
+
+  /**
+   * Re-point the unfinished lines that name `loaderId` at `locationId`. See
+   * `moveLoader` for which tables, and why not the others.
+   */
+  private async followLoader(
+    loaderId: string,
+    locationId: string,
+    exceptOrderId: string,
+    manager: EntityManager,
+  ): Promise<void> {
+    const shipRepository =
+      manager.getRepository<ShipInventoryOrderItemEntityClass>(
+        ShipInventoryOrderItemEntityClass,
+      );
+    const pendingShipIds = (
+      await shipRepository.find({
+        where: { loaderId, removedAt: IsNull() },
+        relations: { changes: true },
+      })
+    )
+      .filter((item) => {
+        assertChangesHaveKind(item.id, item.changes);
+        const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
+
+        return isPositiveQuantity(
+          subtractQuantity(subtractQuantity(reserved, shipped), cancelled),
+        );
+      })
+      .map(({ id }) => id);
+
+    if (pendingShipIds.length) {
+      await shipRepository.update({ id: In(pendingShipIds) }, {
+        locationId,
+      } as DeepPartial<ShipInventoryOrderItemEntityClass>);
+    }
+
+    const transferRepository =
+      manager.getRepository<TransferOrderItemEntityClass>(
+        this.transferOrderItemEntity,
+      );
+    const transferItems = await transferRepository.find({
+      where: { loaderId, removedAt: IsNull() },
+      relations: { changes: true },
+    });
+    const pendingTransferIds: string[] = [];
+
+    for (const item of transferItems) {
+      if (item.orderId === exceptOrderId) continue;
+
+      const factor = await this.materialService.getConversionFactor(
+        item.materialId,
+        item.unitId || undefined,
+        manager,
+      );
+
+      if (isPositiveQuantity(pendingBaseQuantity(item, factor))) {
+        pendingTransferIds.push(item.id);
+      }
+    }
+
+    if (pendingTransferIds.length) {
+      await transferRepository.update({ id: In(pendingTransferIds) }, {
+        locationId,
+      } as DeepPartial<TransferOrderItemEntityClass>);
+    }
+
+    const receiveRepository =
+      manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
+        ReceiveInventoryOrderItemEntityClass,
+      );
+    const receiveItems = await receiveRepository.find({
+      where: { loaderId, removedAt: IsNull() },
+      relations: { changes: true },
+    });
+    const pendingReceiveIds: string[] = [];
+
+    for (const item of receiveItems) {
+      const factor = await this.materialService.getConversionFactor(
+        item.materialId,
+        item.unitId || undefined,
+        manager,
+      );
+      const received = sumQuantities(
+        item.changes.map((change) => change.quantityChanged),
+      );
+
+      if (
+        isPositiveQuantity(
+          subtractQuantity(
+            toBaseQuantity(item.targetReceivedQuantity, factor),
+            received,
+          ),
+        )
+      ) {
+        pendingReceiveIds.push(item.id);
+      }
+    }
+
+    if (pendingReceiveIds.length) {
+      await receiveRepository.update({ id: In(pendingReceiveIds) }, {
+        locationId,
+      } as DeepPartial<ReceiveInventoryOrderItemEntityClass>);
+    }
+
+    const consumptionRepository =
+      manager.getRepository<ConsumptionOrderItemEntityClass>(
+        ConsumptionOrderItemEntityClass,
+      );
+    const consumptionItems = await consumptionRepository.find({
+      where: [
+        { loaderId, removedAt: IsNull() },
+        { targetLoaderId: loaderId, removedAt: IsNull() },
+      ],
+    });
+    const progress = new Map(
+      (
+        await Promise.all(
+          [...new Set(consumptionItems.map(({ orderId }) => orderId))].map(
+            (orderId) =>
+              this.consumptionOrderService.getProgress(orderId, manager),
+          ),
+        )
+      )
+        .flat()
+        .map((entry) => [entry.itemId, entry] as const),
+    );
+
+    for (const item of consumptionItems) {
+      const state = progress.get(item.id);
+
+      // Open: something left to issue, or something out that has not come back
+      // or been used up.
+      const open =
+        !!state &&
+        (isPositiveQuantity(subtractQuantity(state.target, state.issued)) ||
+          isPositiveQuantity(state.outstanding));
+
+      if (!open) continue;
+
+      await consumptionRepository.update({ id: item.id }, {
+        ...(item.loaderId === loaderId ? { locationId } : {}),
+        ...(item.targetLoaderId === loaderId
+          ? { targetLocationId: locationId }
+          : {}),
+      } as DeepPartial<ConsumptionOrderItemEntityClass>);
+    }
   }
 
   async updateTransferOrder({

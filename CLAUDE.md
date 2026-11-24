@@ -255,6 +255,30 @@ locks. A header loader that is the whole-loader source of an item in the same or
 check: whole-loader items run first (the priority rule, and first within one `transfer()` call), after which the
 loader is at the target and the consolidating items pass the execution-time check.
 
+#### `moveLoader` moves a loader in place; it is not a transfer
+
+`TransferOrderService.moveLoader` (#225) is the only way to move a loader that holds reserved, held or allocated
+stock. It never splits: every slot the loader holds (`StockService.findLoaderSlots`: material, batch, location)
+is written out of its location and into the target under the **same batch id**, so flags survive. It is recorded
+as a whole-loader transfer order executed at once -- one item and one `TRANSFER` change per slot, **no RESERVE
+row** -- so the count lock, `stock.transferred` and the change log's `TRANSFERRED` apply with no new table; the
+order has nothing pending, so `transfer`/`cancelTransfer` on it are no-ops by design. Order of work: loader row
+lock, read slots, `assertLocationsNotCounting` on source and target (before any write: a host may swallow the
+refusal), `lockStockSlots`, **re-read the slots** (a reservation does not take the loader row) and throw
+`ConflictException` if a slot appeared -- never lock it late, that inverts the lock order -- then write, then
+`followLoader`, then `loaders.locationId`. Refused: default loader, same location, empty loader (use
+`LoaderService.updateLoader`), unknown ids, counted locations.
+
+`followLoader` re-points the lines whose *later operations read `item.locationId`*, and only while unfinished:
+ship (`ship`/`cancelShip`), transfer (`transfer`/`cancelTransfer`) and receive (`receive`, while target − received > 0) `locationId`; consumption (`issue`/`return`/
+`settle`) `locationId` where the loader is the source and `targetLocationId` where it is the consuming loader.
+Finished lines are history and stay. Hold, allocate, vendor, customer, scrape, inspection, split, merge,
+reclassify and count lines are not touched: they were written in full at creation and a release/return takes its
+location from its own input. **A new item table whose later operations read its stored location must be added to
+`followLoader`.** Known gap: a transfer line that consolidates *onto* the moved loader keeps its
+target location (it fails loudly in the placement check and must be cancelled). Receive lines follow because
+receive is placement-checked (#233): a stale location would leave the order unreceivable.
+
 #### Removing a ship line that still holds a reservation is refused
 
 `updateShipInventoryOrder` with `removedAt` on a line whose `reserved - shipped - cancelled` (from the change rows' `kind`, via `sumShipChanges`) is above 0 throws `BadRequestException` before anything is written; the caller `cancelShip`s first. Removing only stamped `removedAt`, so the stock stayed on the in-shipment child with no line left to ship or cancel it. The `cancelReservationOnShipLineRemoval` module option (default `false`, beside `relocateEmptyLoaders`) instead cancels the remainder through `cancelShipInternal` ahead of the removal, in the same transaction. `removeShipInventoryOrder` always cancels everything left on every line, removed or not. Tests that remove lines with reservations in `host-service-layer.integration.spec.ts` toggle the option on the injected `WMS_CORE_MODULE_OPTIONS` object.

@@ -21,6 +21,14 @@ export type AggregatedStock = Pick<
   attributes?: Record<string, unknown> | null;
 };
 
+/** One (material, batch, location) a loader holds, with its net quantity. */
+export interface LoaderSlot {
+  materialId: string;
+  batchId: string;
+  locationId: string;
+  quantity: number;
+}
+
 export interface ValidateStockDeductionParams {
   materialId: string;
   batchId: string;

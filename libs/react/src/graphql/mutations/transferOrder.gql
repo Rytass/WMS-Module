@@ -95,3 +95,9 @@ mutation Transfer($items: [TransferOrderArgs!]!) {
 mutation CancelTransfer($items: [CancelTransferOrderArgs!]!) {
   cancelTransfer(items: $items)
 }
+
+mutation MoveLoader($loaderId: ID!, $targetLocationId: ID!) {
+  moveLoader(loaderId: $loaderId, targetLocationId: $targetLocationId) {
+    ...TransferOrder
+  }
+}

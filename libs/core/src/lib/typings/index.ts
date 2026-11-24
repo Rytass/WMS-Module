@@ -45,5 +45,6 @@ export * from './scrape.input';
 export * from './ship-inventory-order.input';
 export * from './split-batch.input';
 export * from './transfer-order.input';
+export * from './move-loader.input';
 export * from './list-sort';
 export * from './find-stock-sort.input';

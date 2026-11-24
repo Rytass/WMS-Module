@@ -142,6 +142,8 @@ export interface WmsOperationResultMap
   'transfer-order.updated': TransferOrderDto;
   /** Action mutation — result is a success flag; use args + stock.transferred. */
   'transfer-order.transferred': boolean;
+  /** Result is the executed whole-loader order; its items are the moved slots. */
+  'transfer-order.loader-moved': TransferOrderDto;
   /** Action mutation — result is a success flag; use args + stock.in-transfer reversal. */
   'transfer-order.transfer-cancelled': boolean;
 
