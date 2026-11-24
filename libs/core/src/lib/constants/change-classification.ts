@@ -2,6 +2,7 @@ import { ConsumptionChangeKind } from './consumption-change-kind';
 import { ShipChangeKind } from './ship-change-kind';
 import { ChangeType } from './stock-status';
 import { TransferChangeKind } from './transfer-change-kind';
+import { isPositiveQuantity } from '../utils/quantity';
 
 /** The two directions a change row can take. */
 interface SignedChangeTypes {
@@ -154,7 +155,9 @@ export const classifyChange = (
     case 'fixed':
       return rule.changeType;
     case 'sign':
-      return Number(quantityChanged) > 0 ? rule.positive : rule.negative;
+      return isPositiveQuantity(quantityChanged)
+        ? rule.positive
+        : rule.negative;
     case 'kind':
       return kind ? (rule.byKind[kind] ?? null) : null;
   }

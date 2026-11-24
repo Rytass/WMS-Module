@@ -22,6 +22,7 @@ import { wmsOwnedLogicalTableName } from '../table-prefix/table-prefix';
 import { WMS_CUSTOM_CHANGE_TABLES, WMS_STOCK_ENRICH } from './wms-event.tokens';
 import type { WmsStockEventPayload } from './wms-event.types';
 import type { WmsStockEventName } from './wms-event.types';
+import { toQuantityNumber } from '../utils/quantity';
 
 /** A `*_order_change` row as seen in `afterInsert` (relations not loaded). */
 interface ChangeRowLike {
@@ -167,7 +168,12 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
       return;
     }
 
-    const quantityDelta = Number(entity.quantityChanged);
+    // A row without `quantityChanged` (a table probe, a host's own change
+    // table) has no delta; `NaN` is what it always carried.
+    const quantityDelta =
+      entity.quantityChanged === undefined || entity.quantityChanged === null
+        ? Number.NaN
+        : toQuantityNumber(entity.quantityChanged);
 
     if (ownedTableName === QUALITY_INSPECTION_TABLE) {
       const enrichment = this.enrich
