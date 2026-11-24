@@ -25,6 +25,7 @@ import { StockStatus, ChangeType } from '../constants/stock-status';
 import {
   AggregatedStock,
   ChangeLog,
+  LoaderSlot,
   ValidateStockDeductionParams,
 } from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
@@ -402,6 +403,49 @@ export class StockService<
       .getRawMany();
 
     return rows.length === 0;
+  }
+
+  /**
+   * What a loader holds, one entry per (material, batch, location) whose net
+   * quantity is not zero, in a fixed order. Read through `manager`, so it sees
+   * the caller's own uncommitted writes.
+   *
+   * A slot is a batch -- status is a flag on the batch, so a held, allocated
+   * or in-shipment child is a slot of its own -- and `quantity` is exact (the
+   * database's own `numeric` sum, never re-added in floats).
+   */
+  async findLoaderSlots(
+    loaderId: string,
+    manager: EntityManager,
+  ): Promise<LoaderSlot[]> {
+    const rows = await manager
+      .getRepository<T>(this.stockEntity)
+      .createQueryBuilder('stock')
+      .select('stock."materialId"', 'materialId')
+      .addSelect('stock."batchId"', 'batchId')
+      .addSelect('stock."locationId"', 'locationId')
+      .addSelect('SUM(stock.quantity)', 'quantity')
+      .where('stock."loaderId" = :loaderId', { loaderId })
+      .groupBy('stock."materialId"')
+      .addGroupBy('stock."batchId"')
+      .addGroupBy('stock."locationId"')
+      .having('SUM(stock.quantity) <> 0')
+      .orderBy('stock."materialId"')
+      .addOrderBy('stock."batchId"')
+      .addOrderBy('stock."locationId"')
+      .getRawMany<{
+        materialId: string;
+        batchId: string;
+        locationId: string;
+        quantity: string;
+      }>();
+
+    return rows.map((row) => ({
+      materialId: row.materialId,
+      batchId: row.batchId,
+      locationId: row.locationId,
+      quantity: toQuantityNumber(row.quantity),
+    }));
   }
 
   /**

@@ -30,6 +30,7 @@ export type WmsOperationEventName =
   | 'transfer-order.created'
   | 'transfer-order.updated'
   | 'transfer-order.transferred'
+  | 'transfer-order.loader-moved'
   | 'transfer-order.transfer-cancelled'
   | 'hold-inventory-order.created'
   | 'hold-inventory-order.updated'

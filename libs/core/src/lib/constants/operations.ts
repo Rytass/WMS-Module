@@ -104,6 +104,7 @@ export type WmsOperationName =
   // ── Transfer order ──────────────────────────────────────────────────────── //
   | 'transfer-order:cancel'
   | 'transfer-order:create'
+  | 'transfer-order:move-loader'
   | 'transfer-order:read'
   | 'transfer-order:transfer'
   | 'transfer-order:update'
@@ -181,6 +182,7 @@ export const WMS_OPERATION_NAMES: readonly WmsOperationName[] = [
   'transfer-customer-order:update',
   'transfer-order:cancel',
   'transfer-order:create',
+  'transfer-order:move-loader',
   'transfer-order:read',
   'transfer-order:transfer',
   'transfer-order:update',
