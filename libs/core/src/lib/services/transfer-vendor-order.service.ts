@@ -41,7 +41,7 @@ export type TransferVendorOrderItemInput = {
   locationId?: string;
   loaderId?: string;
   quantity: number;
-  locationKey: string;
+  locationKey?: string;
   loaderKey?: string;
 };
 
