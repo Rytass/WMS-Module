@@ -323,6 +323,109 @@ export class StockService<
     return locationId || this.defaultLocationId;
   }
 
+  /** The `relocateEmptyLoaders` module option; `false` unless set. */
+  get relocateEmptyLoaders(): boolean {
+    return this.coreOptions.relocateEmptyLoaders ?? false;
+  }
+
+  /**
+   * Take a row lock on each loader, in id order, through `manager`.
+   *
+   * Where a loader sits is decided by reading its row (`resolveLoaderPlacement`,
+   * the whole-loader gates) and then acting on that answer; without the lock a
+   * whole-loader move and a consolidation onto the same loader both read the old
+   * location, both pass, and the loader ends up away from half of its stock.
+   *
+   * LOCK ORDER (project-wide): loader row locks first, then the advisory stock
+   * locks (`lockStockSlots` / `validateStockAvailability`), then the
+   * batch-group lock (`splitBatch`). Never take a loader lock after either of
+   * the others. Loaders among themselves are taken sorted by id.
+   */
+  async lockLoaders(
+    loaderIds: readonly string[],
+    manager: EntityManager,
+  ): Promise<void> {
+    const repository = manager.getRepository(LoadersEntityClass);
+
+    for (const id of [...new Set(loaderIds)].sort()) {
+      await repository.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+        loadEagerRelations: false,
+        relationLoadStrategy: 'query',
+      });
+    }
+  }
+
+  /**
+   * Whether a loader carries no stock at all: no (material, batch, location)
+   * slot on it holds a non-zero quantity. Slots are judged one by one, so a
+   * +5 and a -5 in different slots (stock that is out of step with itself) do
+   * not cancel into "empty". Read through `manager` so it sees the caller's own
+   * uncommitted writes.
+   */
+  async isLoaderEmpty(
+    loaderId: string,
+    manager: EntityManager,
+  ): Promise<boolean> {
+    const rows = await manager
+      .getRepository<T>(this.stockEntity)
+      .createQueryBuilder('stock')
+      .select('stock."materialId"', 'materialId')
+      .addSelect('stock."batchId"', 'batchId')
+      .addSelect('stock."locationId"', 'locationId')
+      .where('stock."loaderId" = :loaderId', { loaderId })
+      .groupBy('stock."materialId"')
+      .addGroupBy('stock."batchId"')
+      .addGroupBy('stock."locationId"')
+      .having('SUM(stock.quantity) <> 0')
+      .limit(1)
+      .getRawMany();
+
+    return rows.length === 0;
+  }
+
+  /**
+   * Decide whether stock may be placed on `loaderId` at `locationId`.
+   *
+   * Returns `'in-place'` when the loader already sits there, `'relocate'` when
+   * it sits elsewhere but is empty and `relocateEmptyLoaders` is on (the caller
+   * then moves the loader), and throws otherwise -- a loader with stock at
+   * another location must never be pulled away from that stock.
+   *
+   * Takes the loader's row lock first (held to the end of the caller's
+   * transaction), so the answer cannot be overtaken by a concurrent move of the
+   * same loader. Call it before any stock lock; see `lockLoaders`.
+   */
+  async resolveLoaderPlacement(
+    loaderId: string,
+    locationId: string,
+    manager: EntityManager,
+  ): Promise<'in-place' | 'relocate'> {
+    await this.lockLoaders([loaderId], manager);
+
+    const loader = await manager
+      .getRepository(LoadersEntityClass)
+      .findOneByOrFail({ id: loaderId });
+
+    if (loader.locationId === locationId) return 'in-place';
+
+    if (
+      this.relocateEmptyLoaders &&
+      (await this.isLoaderEmpty(loaderId, manager))
+    ) {
+      return 'relocate';
+    }
+
+    throw new Error(
+      `Loader ${loaderId} is at location ${loader.locationId}, not ${locationId}, so stock cannot be placed on it there${
+        this.relocateEmptyLoaders
+          ? ' (the loader still holds stock)'
+          : ' (enable relocateEmptyLoaders to move an empty loader)'
+      }`,
+    );
+  }
+
   /**
    * Narrows to the stock a scanned label names, matching keys exactly with
    * material → batch → location precedence (see `FindStockInput.scanCode`).

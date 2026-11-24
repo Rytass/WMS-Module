@@ -13,6 +13,9 @@ import { ScrapeInput } from '../typings/scrape.input';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+} from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
@@ -49,6 +52,10 @@ export class ScrapeService<
 
   async scrape(items: ScrapeInput[], outerManager?: EntityManager): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      items.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       const repos = this.getRepositories(manager);
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
 

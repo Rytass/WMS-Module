@@ -28,6 +28,11 @@ import { MaterialService } from './material.service';
 import { FindAllocateInventoryOrderInput } from '../typings/find-allocate-inventory-order.input';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
+import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
@@ -156,6 +161,14 @@ export class AllocateInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item, index) =>
+        assertPositiveQuantity(
+          item.targetAllocatedQuantity,
+          'targetAllocatedQuantity',
+          `item #${index}`,
+        ),
+      );
+
       const repos = this.getRepositories(manager);
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
       const { items, ...orderOptions } = options;
@@ -186,6 +199,16 @@ export class AllocateInventoryOrderService<
     manager?: EntityManager;
   }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items
+        ?.filter((item) => !item.removedAt)
+        .forEach((item, index) =>
+          assertPositiveQuantityIfPresent(
+            item.targetAllocatedQuantity,
+            'targetAllocatedQuantity',
+            `item #${index}`,
+          ),
+        );
+
       const repos = this.getRepositories(manager);
       const { items, ...orderOptions } = options;
 
@@ -210,9 +233,10 @@ export class AllocateInventoryOrderService<
           [];
 
         items.forEach((item) => {
-          if (!item.id) newItems.push({ ...item, orderId: id });
+          if (!item.id && item.removedAt) return;
+          else if (!item.id) newItems.push({ ...item, orderId: id });
           else if (existingItemIds.has(item.id))
-            existingItems.push({ ...item, orderId: id });
+            existingItems.push(asRemovalMarker({ ...item, orderId: id }));
         });
 
         if (newItems.length)
@@ -238,6 +262,11 @@ export class AllocateInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const list = Array.isArray(options) ? options : [options];
+      list.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       if (!Array.isArray(options)) options = [options];
       const repos = this.getRepositories(manager);
 

@@ -15,6 +15,9 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+} from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 
@@ -39,6 +42,10 @@ export class SplitBatchOrderService<
 
   split(options: SplitBatchInput, outerManager?: EntityManager): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       const splitBatchOrderRepository =
         manager.getRepository<SplitBatchOrderEntityClass>(
           this.splitBatchOrderEntity,

@@ -13,7 +13,9 @@ import {
   EntityManager,
   In,
   IsNull,
+  MoreThan,
   SelectQueryBuilder,
+  type FindOptionsWhere,
   type EntityTarget,
 } from 'typeorm';
 import {
@@ -33,6 +35,7 @@ import { OrderEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
   ShipInventoryOrderChangeEntityClass,
   LoadersEntityClass,
+  BatchEntityClass,
   ShipInventoryOrderReferenceEntity,
   ShipInventoryOrderReferenceEntityClass,
   MaterialEntityClass,
@@ -46,6 +49,11 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
+import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
@@ -322,6 +330,14 @@ export class ShipInventoryOrderService<
     ...options
   }: CreateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.references?.forEach((reference) =>
+        assertPositiveQuantity(
+          reference.targetShippedQuantity,
+          'targetShippedQuantity',
+          `reference ${reference.serialId}`,
+        ),
+      );
+
       const orderRepository = manager.getRepository<OrderEntity>(
         this.entities.order,
       );
@@ -374,6 +390,16 @@ export class ShipInventoryOrderService<
     ...options
   }: UpdateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      [...(options.references ?? []), ...(options.items ?? [])]
+        .filter((line) => !line.removedAt)
+        .forEach((line) =>
+          assertPositiveQuantityIfPresent(
+            line.targetShippedQuantity,
+            'targetShippedQuantity',
+            line.id ? `line ${line.id}` : `line ${line.serialId}`,
+          ),
+        );
+
       const shipInventoryOrderRepository =
         manager.getRepository<ShipInventoryOrderEntityClass>(
           this.shipInventoryOrderEntity,
@@ -438,9 +464,13 @@ export class ShipInventoryOrderService<
         results.forEach((result) => {
           if (!result) return;
           const { item, batch } = result;
-          if (!item.id) newItems.push({ ...item, batchId: batch?.id || null });
+          if (!item.id && item.removedAt) return;
+          else if (!item.id)
+            newItems.push({ ...item, batchId: batch?.id || null });
           else if (itemSet.has(item.id))
-            existingItems.push({ ...item, batchId: batch?.id || null });
+            existingItems.push(
+              asRemovalMarker({ ...item, batchId: batch?.id || null }),
+            );
         });
 
         if (newItems.length) {
@@ -474,8 +504,10 @@ export class ShipInventoryOrderService<
           .then((dbItems) => {
             const itemSet = new Set(dbItems.map((i) => i.id));
             items?.forEach((item) => {
-              if (!item.id) newItems.push({ ...item, orderId: id });
-              else if (itemSet.has(item.id)) existingItems.push(item);
+              if (!item.id && item.removedAt) return;
+              else if (!item.id) newItems.push({ ...item, orderId: id });
+              else if (itemSet.has(item.id))
+                existingItems.push(asRemovalMarker(item));
             });
           });
 
@@ -571,6 +603,84 @@ export class ShipInventoryOrderService<
   }
 
   /**
+   * Name the in-shipment child of every item from the ledger, and take the
+   * stock locks of both the source batch and that child in one sorted pass.
+   *
+   * The child is read off the reservation itself, never re-derived from the
+   * source batch's current attributes: a prepare writes a change row whose `id`
+   * is the `orderId` of the stock rows it moved, and the positive stock row of
+   * that order sits on the child. A lookup by batch state would stop matching
+   * as soon as the source batch changed afterwards -- a later receipt flagging
+   * the emptied batch `requiresInspection`, say -- and strand the order.
+   *
+   * Reservations are the change rows with a positive `quantityChanged`
+   * (cancels and shipments are negative). One item is reserved exactly once,
+   * by `processShipInventoryOrderItems`, so they all name one child; if the
+   * ledger ever names two, that is a corrupted order and is refused rather than
+   * guessed at. An item with no reservation is absent from the returned map and
+   * the caller decides what that means.
+   *
+   * No batch-group lock is taken here, and one must never be taken before the
+   * stock locks: `splitBatch` takes the group lock, so stock locks come first.
+   * Loader-row locks (loader placement) come before both.
+   */
+  private async lockWithInShipmentBatches(
+    items: readonly ShipInventoryOrderItemEntityClass[],
+    manager: EntityManager,
+  ): Promise<Map<string, string>> {
+    const stockRepository = manager.getRepository<StockEntityClass>(
+      this.entities.stock,
+    );
+    const reservationIds = (
+      item: ShipInventoryOrderItemEntityClass,
+    ): string[] =>
+      item.changes
+        .filter((change) => Number(change.quantityChanged) > 0)
+        .map((change) => change.id);
+
+    const allIds = items.flatMap(reservationIds);
+    const rows = allIds.length
+      ? await stockRepository.find({
+          where: {
+            orderId: In(allIds),
+            quantity: MoreThan(0),
+          } as FindOptionsWhere<StockEntityClass>,
+        })
+      : [];
+    const batchByOrder = new Map(rows.map((row) => [row.orderId, row.batchId]));
+
+    const found = new Map<string, string>();
+    for (const item of items) {
+      const batchIds = [
+        ...new Set(
+          reservationIds(item).flatMap((id) => batchByOrder.get(id) ?? []),
+        ),
+      ];
+
+      if (batchIds.length > 1) {
+        throw new Error(
+          `Ship item ${item.id} was reserved onto more than one in-shipment batch (${batchIds.join(', ')})`,
+        );
+      }
+
+      if (batchIds.length === 1) found.set(item.id, batchIds[0]);
+    }
+
+    await this.stockService.lockStockSlots(
+      [
+        ...items,
+        ...items.flatMap((item) => {
+          const batchId = found.get(item.id);
+          return batchId ? [{ materialId: item.materialId, batchId }] : [];
+        }),
+      ],
+      manager,
+    );
+
+    return found;
+  }
+
+  /**
    * Internal cancel method that accepts a manager for transaction support
    */
   private async cancelShipInternal(
@@ -597,9 +707,19 @@ export class ShipInventoryOrderService<
       relations: { changes: true },
     });
     const itemMap = new Map(items.map((item) => [item.id, item]));
-    // Source (material, batch) locks first, in a fixed order, before any
-    // batch-group lock a split takes -- the same order every path uses.
-    await this.stockService.lockStockSlots(items, manager);
+    // Source and in-shipment (material, batch) locks first, in a fixed order,
+    // before any batch-group lock -- the same order every path uses.
+    // An item with nothing left to cancel needs no child and no lock.
+    const inShipmentBatches = await this.lockWithInShipmentBatches(
+      items.filter(
+        (item) =>
+          item.changes.reduce(
+            (sum, change) => sum + Number(change.quantityChanged),
+            0,
+          ) > 0,
+      ),
+      manager,
+    );
 
     for (const option of options) {
       await (async () => {
@@ -637,11 +757,12 @@ export class ShipInventoryOrderService<
 
         if (cancelQuantity <= 0) return;
 
-        const inShipmentBatch = await this.batchService.splitBatch({
-          id: item.batchId,
-          inShipment: true,
-          manager,
-        });
+        const inShipmentBatchId = inShipmentBatches.get(item.id);
+        if (!inShipmentBatchId) {
+          throw new Error(
+            `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${cancelQuantity}`,
+          );
+        }
 
         const reverseOrder = await orderRepository.save(
           orderRepository.create(),
@@ -650,7 +771,7 @@ export class ShipInventoryOrderService<
         await this.stockService.validateStockAvailability(
           {
             materialId: item.materialId,
-            batchId: inShipmentBatch.id,
+            batchId: inShipmentBatchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: cancelQuantity,
@@ -681,7 +802,7 @@ export class ShipInventoryOrderService<
               {
                 orderId: reverseOrder.id,
                 materialId: item.materialId,
-                batchId: inShipmentBatch.id,
+                batchId: inShipmentBatchId,
                 locationId: this.stockService.resolveLocationId(
                   item.locationId,
                 ),
@@ -814,6 +935,14 @@ export class ShipInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item) =>
+        assertPositiveQuantity(
+          item.targetShippedQuantity,
+          'targetShippedQuantity',
+          `item ${item.serialId}`,
+        ),
+      );
+
       const shipInventoryOrderRepository =
         manager.getRepository<ShipInventoryOrderEntityClass>(
           this.shipInventoryOrderEntity,
@@ -842,6 +971,14 @@ export class ShipInventoryOrderService<
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.forEach((option) =>
+        assertPositiveQuantity(
+          option.quantity,
+          'quantity',
+          `item ${option.itemId}`,
+        ),
+      );
+
       const changeRepository =
         manager.getRepository<ShipInventoryOrderChangeEntityClass>(
           ShipInventoryOrderChangeEntityClass,
@@ -863,9 +1000,15 @@ export class ShipInventoryOrderService<
         relations: { changes: true },
       });
       const itemMap = new Map(items.map((item) => [item.id, item]));
-      // Source (material, batch) locks first, in a fixed order, before any
-      // batch-group lock a split takes -- the same order every path uses.
-      await this.stockService.lockStockSlots(items, manager);
+      // Stock is taken off the in-shipment child, so that is the slot to
+      // validate -- and to lock, together with the source slot, before any
+      // batch-group lock is taken (stock locks first, never after).
+      const shippedBatches = await this.lockWithInShipmentBatches(
+        items.filter((item) =>
+          options.some((option) => option.itemId === item.id),
+        ),
+        manager,
+      );
       for (const option of options) {
         await (async () => {
           const item = itemMap.get(option.itemId);
@@ -892,19 +1035,19 @@ export class ShipInventoryOrderService<
             );
           }
 
-          // Create splitted batch for ship completion
-          const shippedBatch = await this.batchService.splitBatch({
-            id: item.batchId,
-            inShipment: true,
-            manager,
-          });
+          const shippedBatchId = shippedBatches.get(item.id);
+          if (!shippedBatchId) {
+            throw new Error(
+              `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${option.quantity * conversionFactor}`,
+            );
+          }
 
           const newOrder = await orderRepository.save(orderRepository.create());
 
           await this.stockService.validateStockAvailability(
             {
               materialId: item.materialId,
-              batchId: item.batchId,
+              batchId: shippedBatchId,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
               quantity: option.quantity * conversionFactor,
@@ -923,7 +1066,7 @@ export class ShipInventoryOrderService<
             stockRepository.save(
               stockRepository.create([
                 {
-                  batchId: shippedBatch.id,
+                  batchId: shippedBatchId,
                   materialId: item.materialId,
                   locationId: this.stockService.resolveLocationId(
                     item.locationId,
@@ -955,6 +1098,19 @@ export class ShipInventoryOrderService<
     if (!Array.isArray(options)) options = [options];
 
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      // An absent quantity means "cancel everything cancellable"; a given one
+      // must be positive. A zero or negative one used to return `true` and do
+      // nothing.
+      options.forEach((option) =>
+        option.quantity === undefined || option.quantity === null
+          ? undefined
+          : assertPositiveQuantity(
+              option.quantity,
+              'quantity',
+              `item ${option.itemId}`,
+            ),
+      );
+
       await this.cancelShipInternal(options, manager);
       return true;
     });

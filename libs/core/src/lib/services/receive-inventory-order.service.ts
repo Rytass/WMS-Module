@@ -41,6 +41,11 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
+import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
@@ -238,6 +243,14 @@ export class ReceiveInventoryOrderService<
     manager?: EntityManager;
   }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items?.forEach((item) =>
+        assertPositiveQuantity(
+          item.targetReceivedQuantity,
+          'targetReceivedQuantity',
+          `item ${item.serialId}`,
+        ),
+      );
+
       const orderRepository = manager.getRepository<OrderEntity>(
         this.entities.order,
       );
@@ -284,6 +297,16 @@ export class ReceiveInventoryOrderService<
     manager?: EntityManager;
   }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items
+        ?.filter((item) => !item.removedAt)
+        .forEach((item) =>
+          assertPositiveQuantityIfPresent(
+            item.targetReceivedQuantity,
+            'targetReceivedQuantity',
+            item.id ? `item ${item.id}` : `item ${item.serialId}`,
+          ),
+        );
+
       const receiveInventoryOrderRepository =
         manager.getRepository<ReceiveInventoryOrderEntityClass>(
           this.receiveInventoryOrderEntity,
@@ -316,8 +339,10 @@ export class ReceiveInventoryOrderService<
           .then((items) => {
             const itemSet = new Set(items.map((i) => i.id));
             options.items?.forEach((item) => {
-              if (!item.id) newItems.push(item);
-              else if (itemSet.has(item.id)) existingItems.push(item);
+              if (!item.id && item.removedAt) return;
+              else if (!item.id) newItems.push(item);
+              else if (itemSet.has(item.id))
+                existingItems.push(asRemovalMarker(item));
             });
           });
 
@@ -484,6 +509,14 @@ export class ReceiveInventoryOrderService<
     if (!Array.isArray(options)) options = [options];
 
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.forEach((option) =>
+        assertPositiveQuantity(
+          option.quantity,
+          'quantity',
+          `item ${option.itemId}`,
+        ),
+      );
+
       const changeRepository =
         manager.getRepository<ReceiveInventoryOrderChangeEntityClass>(
           ReceiveInventoryOrderChangeEntityClass,

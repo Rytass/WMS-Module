@@ -11,11 +11,18 @@ import {
 } from 'typeorm';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
+  AllocateInventoryOrderItemEntityClass,
   AllocateInventoryOrderService,
   BatchEntityClass,
   BatchService,
   ConsumptionOrderService,
   HoldInventoryOrderService,
+  MergeBatchOrderService,
+  QualityInspectionOrderService,
+  ReclassifyInventoryOrderService,
+  SplitBatchOrderService,
+  TransferCustomerOrderService,
+  TransferVendorOrderService,
   LoaderService,
   LoaderTypeEntityClass,
   LoadersEntityClass,
@@ -66,7 +73,11 @@ const DB_USER =
 const DB_PASS = process.env['WMS_TEST_DB_PASS'];
 const DB_NAME = process.env['WMS_TEST_HOST_DB_NAME'] ?? 'wms_module_host_test';
 
-const resetDatabase = async (): Promise<void> => {
+/** Drop `name` and, unless `recreate` is false, create it empty again. */
+const resetDatabase = async (
+  name: string = DB_NAME,
+  recreate = true,
+): Promise<void> => {
   const client = new Client({
     host: DB_HOST,
     port: DB_PORT,
@@ -78,8 +89,8 @@ const resetDatabase = async (): Promise<void> => {
   await client.connect();
 
   try {
-    await client.query(`DROP DATABASE IF EXISTS "${DB_NAME}" WITH (FORCE)`);
-    await client.query(`CREATE DATABASE "${DB_NAME}"`);
+    await client.query(`DROP DATABASE IF EXISTS "${name}" WITH (FORCE)`);
+    if (recreate) await client.query(`CREATE DATABASE "${name}"`);
   } finally {
     await client.end();
   }
@@ -1454,6 +1465,1360 @@ describe('host service layer (integration, no GraphQL)', () => {
         sequences.reserve(name, 6, undefined, bound),
       ).rejects.toThrow(/SEQUENCE_OUT_OF_RANGE/);
       expect(await sequences.reserve(name, 2, undefined, bound)).toBe(4);
+    });
+  });
+
+  describe('#195: ship() validates and locks the in-shipment batch it takes stock from', () => {
+    const batchQuantity = async (batchId: string): Promise<number> => {
+      const [{ total }] = await dataSource.query<[{ total: string }]>(
+        `SELECT COALESCE(SUM(quantity), 0) AS total FROM "${dataSource.getMetadata(entities.stock).tablePath}" WHERE "batchId" = $1`,
+        [batchId],
+      );
+
+      return Number(total);
+    };
+
+    const inShipmentChild = async (batchId: string): Promise<string> => {
+      const child = await dataSource
+        .getRepository<BatchEntityClass>(entities.batch)
+        .findOneByOrFail({ parentBatchId: batchId, inShipment: true });
+
+      return child.id;
+    };
+
+    it("ships a line prepared in full, which the item's own batch can no longer cover", async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 100);
+      const childId = await inShipmentChild(batchId);
+
+      expect(await batchQuantity(batchId)).toBe(0);
+      expect(await batchQuantity(childId)).toBe(100);
+
+      await expect(
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 100 }, manager),
+        ),
+      ).resolves.toBe(true);
+
+      expect(await batchQuantity(childId)).toBe(0);
+      expect(await batchQuantity(batchId)).toBe(0);
+    });
+
+    it('ships a partly prepared line off the in-shipment batch and leaves the original alone', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 60);
+      const childId = await inShipmentChild(batchId);
+
+      await dataSource.transaction((manager) =>
+        shipService.ship({ itemId, quantity: 60 }, manager),
+      );
+
+      expect(await batchQuantity(childId)).toBe(0);
+      expect(await batchQuantity(batchId)).toBe(40);
+    });
+
+    it('refuses to ship more than the in-shipment batch still holds', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 10);
+      const childId = await inShipmentChild(batchId);
+
+      // Someone else drained the shared in-shipment batch down to 2.
+      const orderRepository = dataSource.getRepository<OrderEntity>(
+        entities.order,
+      );
+      const drain = await orderRepository.save(orderRepository.create({}));
+      await dataSource.getRepository<StockEntityClass>(entities.stock).save({
+        orderId: drain.id,
+        materialId: material.id,
+        batchId: childId,
+        locationId: shelfId,
+        loaderId: stockService.resolveLoaderId(undefined),
+        quantity: -8,
+      } as DeepPartial<StockEntityClass>);
+
+      await expect(
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 5 }, manager),
+        ),
+      ).rejects.toThrow(/Insufficient stock: available 2, requested 5/);
+      expect(await batchQuantity(childId)).toBe(2);
+    });
+
+    it('still refuses to ship over the item target', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 10);
+
+      await expect(
+        dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 11 }, manager),
+        ),
+      ).rejects.toThrow(/Shipping quantity exceeds target/);
+    });
+
+    it('cancels a prepared quantity back to the original batch', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 30);
+      const childId = await inShipmentChild(batchId);
+
+      await dataSource.transaction((manager) =>
+        shipService.cancelShip({ itemId, quantity: 30 }, manager),
+      );
+
+      expect(await batchQuantity(childId)).toBe(0);
+      expect(await batchQuantity(batchId)).toBe(100);
+    });
+
+    /**
+     * The in-shipment child is named by the ledger, not re-derived from the
+     * source batch's current attributes. Here a later default receipt lands on a
+     * batch that is empty because it was fully prepared, flags it in place
+     * (`requiresInspection`), and a sibling lookup by batch state would no
+     * longer match the child the reservation created.
+     */
+    describe('the child survives a later change to the source batch', () => {
+      const prepareThenReceiveOntoSource = async (): Promise<{
+        materialId: string;
+        batchId: string;
+        childId: string;
+        itemId: string;
+        orderId: string;
+      }> => {
+        const material = await newMaterial();
+        const { batchId, batchKey } = await seedStock(material.id, 100);
+        const { itemId, orderId } = await createShip(material.id, batchId, 100);
+        const childId = await inShipmentChild(batchId);
+
+        const receive = await receiveService.createReceiveInventoryOrder({
+          key: unique('HSL-RCV'),
+          description: 'late receipt',
+          items: [
+            {
+              serialId: unique('HSL-RCV-LINE'),
+              materialKey: material.key,
+              batchKey,
+              locationKey: 'HSL-SHELF',
+              targetReceivedQuantity: 5,
+            },
+          ],
+        });
+        const [receiveItem] = await dataSource
+          .getRepository<ReceiveInventoryOrderItemEntityClass>(
+            receiveService.receiveInventoryOrderItemEntity,
+          )
+          .find({ where: { orderId: receive.id } });
+        await receiveService.receive({ itemId: receiveItem.id, quantity: 5 });
+
+        const source = await dataSource
+          .getRepository<BatchEntityClass>(entities.batch)
+          .findOneByOrFail({ id: batchId });
+        expect(source.requiresInspection).toBe(true);
+
+        return { materialId: material.id, batchId, childId, itemId, orderId };
+      };
+
+      it('ship() still finds the prepared child', async () => {
+        const { itemId, childId } = await prepareThenReceiveOntoSource();
+
+        await dataSource.transaction((manager) =>
+          shipService.ship({ itemId, quantity: 100 }, manager),
+        );
+
+        expect(await batchQuantity(childId)).toBe(0);
+      });
+
+      it('cancelShip() still finds the prepared child', async () => {
+        const { itemId, childId, batchId } =
+          await prepareThenReceiveOntoSource();
+
+        await dataSource.transaction((manager) =>
+          shipService.cancelShip({ itemId, quantity: 100 }, manager),
+        );
+
+        expect(await batchQuantity(childId)).toBe(0);
+        expect(await batchQuantity(batchId)).toBe(105);
+      });
+
+      it('removeShipInventoryOrder still releases the reservation', async () => {
+        const { orderId, childId } = await prepareThenReceiveOntoSource();
+
+        await dataSource.transaction((manager) =>
+          shipService.removeShipInventoryOrder(orderId, manager),
+        );
+
+        expect(await batchQuantity(childId)).toBe(0);
+      });
+    });
+
+    /**
+     * The collision the lock order exists for: a path that holds the stock lock
+     * of the in-shipment child and then wants the batch-group lock (every split
+     * does, in that order) against a ship() that would take the group lock first
+     * and the child's stock lock second. ship() must queue behind the first.
+     */
+    it('ship() queues behind a path holding the child stock lock and then splitting the group', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 100);
+      const { itemId } = await createShip(material.id, batchId, 50);
+      const childId = await inShipmentChild(batchId);
+
+      let locked!: () => void;
+      const childLocked = new Promise<void>((resolve) => (locked = resolve));
+
+      const splitter = dataSource.transaction(async (manager) => {
+        await stockService.lockStockSlots(
+          [{ materialId: material.id, batchId: childId }],
+          manager,
+        );
+        locked();
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        await batchService.splitBatch({ id: batchId, held: true, manager });
+      });
+      await childLocked;
+      const shipper = dataSource.transaction((manager) =>
+        shipService.ship({ itemId, quantity: 10 }, manager),
+      );
+
+      const results = await Promise.allSettled([splitter, shipper]);
+
+      expect(
+        results.map((result) =>
+          result.status === 'fulfilled'
+            ? 'ok'
+            : (result.reason as Error).message,
+        ),
+      ).toEqual(['ok', 'ok']);
+    });
+
+    /**
+     * ship() and cancelShip() take the stock locks of the source batch *and* the
+     * in-shipment child up front, before `splitBatch` would take a batch-group
+     * lock. Two transactions reaching the same two batches in opposite order
+     * therefore queue instead of each holding one lock and waiting on the other.
+     */
+    it('two ship calls on the same two batches in opposite order both complete', async () => {
+      const material = await newMaterial();
+      const x = await seedStock(material.id, 100);
+      const y = await seedStock(material.id, 100);
+
+      for (let round = 0; round < 5; round += 1) {
+        const [xFirst, yFirst, xSecond, ySecond] = await Promise.all([
+          createShip(material.id, x.batchId, 5),
+          createShip(material.id, y.batchId, 5),
+          createShip(material.id, x.batchId, 5),
+          createShip(material.id, y.batchId, 5),
+        ]);
+
+        const results = await Promise.allSettled([
+          dataSource.transaction((manager) =>
+            shipService.ship(
+              [
+                { itemId: xFirst.itemId, quantity: 1 },
+                { itemId: yFirst.itemId, quantity: 1 },
+              ],
+              manager,
+            ),
+          ),
+          dataSource.transaction((manager) =>
+            shipService.ship(
+              [
+                { itemId: ySecond.itemId, quantity: 1 },
+                { itemId: xSecond.itemId, quantity: 1 },
+              ],
+              manager,
+            ),
+          ),
+          dataSource.transaction((manager) =>
+            shipService.cancelShip(
+              [
+                { itemId: ySecond.itemId, quantity: 1 },
+                { itemId: xFirst.itemId, quantity: 1 },
+              ],
+              manager,
+            ),
+          ),
+        ]);
+
+        expect(
+          results.map((result) =>
+            result.status === 'fulfilled'
+              ? 'ok'
+              : (result.reason as Error).message,
+          ),
+        ).toEqual(['ok', 'ok', 'ok']);
+      }
+    });
+  });
+
+  describe('#221: quantities must be greater than 0', () => {
+    interface Entry {
+      readonly name: string;
+      readonly call: (
+        quantity: number,
+        ids: { materialId: string; batchId: string; itemId: string },
+        manager: EntityManager,
+      ) => Promise<unknown>;
+    }
+
+    const stockLine = (
+      ids: { materialId: string; batchId: string },
+      quantity: number,
+    ): {
+      materialId: string;
+      batchId: string;
+      locationId: string;
+      quantity: number;
+    } => ({
+      materialId: ids.materialId,
+      batchId: ids.batchId,
+      locationId: shelfId,
+      quantity,
+    });
+
+    const entries: readonly Entry[] = [
+      {
+        name: 'ship',
+        call: (q, i, m) =>
+          shipService.ship({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'cancelShip',
+        call: (q, i, m) =>
+          shipService.cancelShip({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'addShipInventoryOrderItems',
+        call: (q, i, m) =>
+          shipService.addShipInventoryOrderItems(
+            {
+              orderId: i.itemId,
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  locationId: shelfId,
+                  targetShippedQuantity: q,
+                  status: StockStatus.FREE,
+                  serialId: '1',
+                  orderId: i.itemId,
+                },
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'createShipInventoryOrder',
+        call: (q, _i, m) =>
+          shipService.createShipInventoryOrder({
+            key: unique('HSL-NEG'),
+            description: 'x',
+            references: [
+              { materialKey: 'x', targetShippedQuantity: q, serialId: '1' },
+            ],
+            manager: m,
+          }),
+      },
+      {
+        name: 'receive',
+        call: (q, i, m) =>
+          receiveService.receive({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'createReceiveInventoryOrder',
+        call: (q, _i, m) =>
+          receiveService.createReceiveInventoryOrder({
+            key: unique('HSL-NEG'),
+            description: 'x',
+            items: [
+              {
+                serialId: '1',
+                materialKey: 'x',
+                batchKey: 'x',
+                targetReceivedQuantity: q,
+              },
+            ],
+            manager: m,
+          }),
+      },
+      {
+        name: 'createTransferOrder',
+        call: (q, i, m) =>
+          transferService.createTransferOrder(
+            {
+              locationId: dockId,
+              items: [
+                {
+                  locationId: shelfId,
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetTransferredQuantity: q,
+                } as CreateTransferOrderItemInput,
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'updateTransferOrder (new line)',
+        call: async (q, i, m) => {
+          const order = await transferService.createTransferOrder(
+            { locationId: dockId, items: [] },
+            m,
+          );
+
+          return transferService.updateTransferOrder({
+            id: order.id,
+            manager: m,
+            items: [
+              {
+                locationId: shelfId,
+                materialId: i.materialId,
+                batchId: i.batchId,
+                targetTransferredQuantity: q,
+              } as CreateTransferOrderItemInput,
+            ],
+          });
+        },
+      },
+      {
+        name: 'updateTransferOrder (existing line)',
+        call: async (q, i, m) => {
+          const order = await transferService.createTransferOrder(
+            {
+              locationId: dockId,
+              items: [
+                {
+                  locationId: shelfId,
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetTransferredQuantity: 1,
+                } as CreateTransferOrderItemInput,
+              ],
+            },
+            m,
+          );
+          const [line] = await m
+            .getRepository<TransferOrderItemEntityClass>(
+              transferService.transferOrderItemEntity,
+            )
+            .find({ where: { orderId: order.id } });
+
+          return transferService.updateTransferOrder({
+            id: order.id,
+            manager: m,
+            items: [{ id: line.id, targetTransferredQuantity: q }],
+          } as Parameters<TransferOrderService['updateTransferOrder']>[0]);
+        },
+      },
+      {
+        name: 'updateConsumptionOrder',
+        call: async (q, i, m) => {
+          const order = await consumptionService.createConsumptionOrder(
+            {
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  quantity: 1,
+                  targetLocationId: benchId,
+                },
+              ],
+            },
+            m,
+          );
+
+          return consumptionService.updateConsumptionOrder(
+            {
+              id: order.id,
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  quantity: q,
+                  targetLocationId: benchId,
+                },
+              ],
+            },
+            m,
+          );
+        },
+      },
+      {
+        name: 'transfer',
+        call: (q, i, m) =>
+          transferService.transfer({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'cancelTransfer',
+        call: (q, i, m) =>
+          transferService.cancelTransfer({ itemId: i.itemId, quantity: q }, m),
+      },
+      {
+        name: 'createHoldInventoryOrder',
+        call: (q, i, m) =>
+          holdService.createHoldInventoryOrder(
+            {
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetHeldQuantity: q,
+                },
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'release',
+        call: (q, i, m) => holdService.release(stockLine(i, q), m),
+      },
+      {
+        name: 'createAllocateInventoryOrder',
+        call: (q, i, m) =>
+          allocateService.createAllocateInventoryOrder(
+            {
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetAllocatedQuantity: q,
+                  saleId: 'S',
+                  saleSerialId: '1',
+                },
+              ],
+            } as Parameters<
+              AllocateInventoryOrderService['createAllocateInventoryOrder']
+            >[0],
+            m,
+          ),
+      },
+      {
+        name: 'deallocate',
+        call: (q, i, m) => allocateService.deallocate(stockLine(i, q), m),
+      },
+      {
+        name: 'split',
+        call: (q, i, m) =>
+          app.get(SplitBatchOrderService).split(
+            {
+              batchId: i.batchId,
+              items: [{ batchKey: unique('HSL-SPLIT'), quantity: q }],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'merge',
+        call: (q, i, m) =>
+          app.get(MergeBatchOrderService).merge(
+            {
+              batchKey: unique('HSL-MERGE'),
+              materialId: i.materialId,
+              items: [{ batchId: i.batchId, quantity: q }],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'reclassify',
+        call: (q, i, m) =>
+          app.get(ReclassifyInventoryOrderService).reclassify(
+            {
+              materialKey: 'x',
+              items: [
+                { materialId: i.materialId, batchId: i.batchId, quantity: q },
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'scrape',
+        call: (q, i, m) =>
+          scrapeService.scrape(
+            [stockLine(i, q)] as Parameters<ScrapeService['scrape']>[0],
+            m,
+          ),
+      },
+      {
+        name: 'inspect',
+        call: (q, i, m) =>
+          app.get(QualityInspectionOrderService).inspect({
+            manager: m,
+            options: {
+              key: unique('HSL-QI'),
+              items: [{ ...stockLine(i, q), inspectionResult: true }],
+            },
+          }),
+      },
+      {
+        name: 'createTransferCustomerOrder',
+        call: (q, i, m) =>
+          app.get(TransferCustomerOrderService).createTransferCustomerOrder(
+            {
+              customerId: 'C',
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetTransferredQuantity: q,
+                },
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'returnTransferCustomerOrder',
+        call: (q, i, m) =>
+          app
+            .get(TransferCustomerOrderService)
+            .returnTransferCustomerOrder(stockLine(i, q), m),
+      },
+      {
+        name: 'createTransferVendorOrder',
+        call: (q, i, m) =>
+          app.get(TransferVendorOrderService).createTransferVendorOrder(
+            {
+              vendorId: 'V',
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  targetTransferredQuantity: q,
+                },
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'returnTransferVendorOrder',
+        call: (q, i, m) =>
+          app
+            .get(TransferVendorOrderService)
+            .returnTransferVendorOrder(stockLine(i, q), m),
+      },
+      {
+        name: 'createConsumptionOrder',
+        call: (q, i, m) =>
+          consumptionService.createConsumptionOrder(
+            {
+              items: [
+                {
+                  materialId: i.materialId,
+                  batchId: i.batchId,
+                  quantity: q,
+                  targetLocationId: benchId,
+                },
+              ],
+            },
+            m,
+          ),
+      },
+      {
+        name: 'consumption issue',
+        call: (q, i, m) =>
+          consumptionService.issue(
+            { orderId: i.itemId, items: [{ itemId: i.itemId, quantity: q }] },
+            m,
+          ),
+      },
+    ];
+
+    const cases = entries.flatMap((entry) =>
+      [-5, 0, Number.NaN].map(
+        (quantity) => [entry.name, quantity, entry] as const,
+      ),
+    );
+
+    it.each(cases)(
+      '%s refuses %p and writes nothing',
+      async (_name, quantity, entry) => {
+        const material = await newMaterial();
+        const { batchId } = await seedStock(material.id, 10);
+        const ids = { materialId: material.id, batchId, itemId: randomUUID() };
+        const before = await dataSource.transaction((m) => ledgerCounts(m));
+        const total = async (): Promise<number> =>
+          (await byStatus(material.id)).FREE ?? 0;
+
+        await expect(
+          dataSource.transaction((manager) =>
+            entry.call(quantity, ids, manager),
+          ),
+        ).rejects.toThrow(/must be a (number greater than 0)|greater than 0/);
+
+        expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+          before,
+        );
+        expect(await total()).toBe(10);
+      },
+    );
+  });
+
+  describe('#222: consolidating onto a loader at another location', () => {
+    const loaderLocation = async (loaderId: string): Promise<string> =>
+      (
+        await dataSource
+          .getRepository(LoadersEntityClass)
+          .findOneByOrFail({ id: loaderId })
+      ).locationId;
+
+    const consolidate = async (
+      materialId: string,
+      batchId: string,
+      sourceLoaderId: string,
+      targetLoaderId: string,
+      targetLocationId: string,
+      manager?: EntityManager,
+    ): Promise<{ id: string }> =>
+      transferService.createTransferOrder(
+        {
+          locationId: targetLocationId,
+          loaderId: targetLoaderId,
+          items: [
+            {
+              locationId: shelfId,
+              loaderId: sourceLoaderId,
+              materialId,
+              batchId,
+              targetTransferredQuantity: 5,
+            } as CreateTransferOrderItemInput,
+          ],
+        },
+        manager,
+      );
+
+    it('refuses a target loader that holds stock elsewhere and writes nothing', async () => {
+      const material = await newMaterial();
+      const target = await newLoader(shelfId);
+      const source = await newLoader(shelfId);
+      await seedStock(material.id, 10, { loaderId: target });
+      const { batchId } = await seedStock(material.id, 5, {
+        loaderId: source,
+      });
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        dataSource.transaction((m) =>
+          consolidate(material.id, batchId, source, target, dockId, m),
+        ),
+      ).rejects.toThrow(/stock cannot be placed on it there/);
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect(await loaderLocation(target)).toBe(shelfId);
+    });
+
+    it('refuses an empty loader elsewhere by default', async () => {
+      const material = await newMaterial();
+      const target = await newLoader(shelfId);
+      const source = await newLoader(shelfId);
+      const { batchId } = await seedStock(material.id, 5, {
+        loaderId: source,
+      });
+
+      await expect(
+        consolidate(material.id, batchId, source, target, dockId),
+      ).rejects.toThrow(/enable relocateEmptyLoaders/);
+      expect(await loaderLocation(target)).toBe(shelfId);
+    });
+
+    it('still consolidates onto a loader already at the target location', async () => {
+      const material = await newMaterial();
+      const target = await newLoader(dockId);
+      const source = await newLoader(shelfId);
+      await seedStock(material.id, 10, {
+        loaderId: target,
+        locationId: dockId,
+      });
+      const { batchId } = await seedStock(material.id, 5, {
+        loaderId: source,
+      });
+
+      const order = await consolidate(
+        material.id,
+        batchId,
+        source,
+        target,
+        dockId,
+      );
+      const [item] = await transferItems(order.id);
+      await transferService.transfer({ itemId: item.id, quantity: 5 });
+
+      expect(await loaderLocation(target)).toBe(dockId);
+    });
+
+    it('still moves a whole loader to its target location', async () => {
+      const material = await newMaterial();
+      const loader = await newLoader(shelfId);
+      const { batchId } = await seedStock(material.id, 5, { loaderId: loader });
+
+      const order = await transferService.createTransferOrder({
+        locationId: dockId,
+        loaderId: loader,
+        items: [
+          {
+            locationId: shelfId,
+            loaderId: loader,
+            materialId: material.id,
+            batchId,
+            targetTransferredQuantity: 5,
+          } as CreateTransferOrderItemInput,
+        ],
+      });
+      const [item] = await transferItems(order.id);
+      await transferService.transfer({ itemId: item.id, quantity: 5 });
+
+      expect(await loaderLocation(loader)).toBe(dockId);
+    });
+
+    /** Non-zero stock rows of one loader, as `locationId -> quantity`. */
+    const loaderStockLocations = async (
+      loaderId: string,
+    ): Promise<Record<string, number>> => {
+      const rows = await dataSource.query<
+        { locationId: string; total: string }[]
+      >(
+        `SELECT "locationId", SUM(quantity) AS total FROM "${dataSource.getMetadata(entities.stock).tablePath}" WHERE "loaderId" = $1 GROUP BY "locationId" HAVING SUM(quantity) <> 0`,
+        [loaderId],
+      );
+
+      return Object.fromEntries(
+        rows.map((row) => [row.locationId, Number(row.total)]),
+      );
+    };
+
+    it('refuses at execution when the loader moved away after the order was created', async () => {
+      const material = await newMaterial();
+      const target = await newLoader(shelfId);
+      const source = await newLoader(shelfId);
+      const { batchId } = await seedStock(material.id, 5, {
+        loaderId: source,
+      });
+      // Passes at creation: the empty target loader is already at the shelf.
+      const order = await consolidate(
+        material.id,
+        batchId,
+        source,
+        target,
+        shelfId,
+      );
+      const [item] = await transferItems(order.id);
+
+      // Afterwards it goes elsewhere and picks up stock there.
+      await dataSource
+        .getRepository(LoadersEntityClass)
+        .update({ id: target }, { locationId: dockId });
+      await seedStock(material.id, 10, {
+        loaderId: target,
+        locationId: dockId,
+      });
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        transferService.transfer({ itemId: item.id, quantity: 5 }),
+      ).rejects.toThrow(/stock cannot be placed on it there/);
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+    });
+
+    it('a whole-loader move and a consolidation onto that loader never leave it apart from its stock', async () => {
+      const wholeMaterial = await newMaterial();
+      const otherMaterial = await newMaterial();
+      const pallet = await newLoader(shelfId);
+      const feeder = await newLoader(dockId);
+      const whole = await seedStock(wholeMaterial.id, 10, { loaderId: pallet });
+      const other = await seedStock(otherMaterial.id, 5, {
+        loaderId: feeder,
+        locationId: dockId,
+      });
+
+      const wholeOrder = await transferService.createTransferOrder({
+        locationId: dockId,
+        loaderId: pallet,
+        items: [
+          {
+            locationId: shelfId,
+            loaderId: pallet,
+            materialId: wholeMaterial.id,
+            batchId: whole.batchId,
+            targetTransferredQuantity: 10,
+          } as CreateTransferOrderItemInput,
+        ],
+      });
+      // Created while the pallet is still on the shelf, so it passes.
+      const mergeOrder = await transferService.createTransferOrder({
+        locationId: shelfId,
+        loaderId: pallet,
+        items: [
+          {
+            locationId: dockId,
+            loaderId: feeder,
+            materialId: otherMaterial.id,
+            batchId: other.batchId,
+            targetTransferredQuantity: 5,
+          } as CreateTransferOrderItemInput,
+        ],
+      });
+      const [wholeItem] = await transferItems(wholeOrder.id);
+      const [mergeItem] = await transferItems(mergeOrder.id);
+
+      let release!: () => void;
+      const hold = new Promise<void>((resolve) => (release = resolve));
+      let moved!: () => void;
+      const movedFirst = new Promise<void>((resolve) => (moved = resolve));
+
+      const first = dataSource.transaction(async (manager) => {
+        await transferService.transfer(
+          { itemId: wholeItem.id, quantity: 10 },
+          manager,
+        );
+        moved();
+        await hold;
+      });
+      await movedFirst;
+      const second = dataSource.transaction((manager) =>
+        transferService.transfer(
+          { itemId: mergeItem.id, quantity: 5 },
+          manager,
+        ),
+      );
+      // Give the second one the chance to run all its checks while the first
+      // still has the pallet's move uncommitted.
+      await Promise.race([
+        second.catch(() => undefined),
+        new Promise((resolve) => setTimeout(resolve, 500)),
+      ]);
+      release();
+      await Promise.allSettled([first, second]);
+
+      const location = await loaderLocation(pallet);
+      expect(Object.keys(await loaderStockLocations(pallet))).toEqual([
+        location,
+      ]);
+    });
+
+    describe('a whole-loader item and a consolidation in one order', () => {
+      const mixedOrder = async (): Promise<{
+        pallet: string;
+        wholeItemId: string;
+        mergeItemId: string;
+      }> => {
+        const wholeMaterial = await newMaterial();
+        const otherMaterial = await newMaterial();
+        const pallet = await newLoader(shelfId);
+        const whole = await seedStock(wholeMaterial.id, 10, {
+          loaderId: pallet,
+        });
+        const other = await seedStock(otherMaterial.id, 5);
+        const order = await transferService.createTransferOrder({
+          locationId: dockId,
+          loaderId: pallet,
+          items: [
+            {
+              locationId: shelfId,
+              loaderId: pallet,
+              materialId: wholeMaterial.id,
+              batchId: whole.batchId,
+              targetTransferredQuantity: 10,
+            } as CreateTransferOrderItemInput,
+            {
+              locationId: shelfId,
+              materialId: otherMaterial.id,
+              batchId: other.batchId,
+              targetTransferredQuantity: 5,
+            } as CreateTransferOrderItemInput,
+          ],
+        });
+        const items = await transferItems(order.id);
+
+        return {
+          pallet,
+          wholeItemId: items.find(
+            ({ materialId }) => materialId === wholeMaterial.id,
+          )!.id,
+          mergeItemId: items.find(
+            ({ materialId }) => materialId === otherMaterial.id,
+          )!.id,
+        };
+      };
+
+      it('can be created, and the whole-loader item must go first', async () => {
+        const { wholeItemId, mergeItemId } = await mixedOrder();
+
+        await expect(
+          transferService.transfer({ itemId: mergeItemId, quantity: 5 }),
+        ).rejects.toThrow(/Whole-loader item must be fully transferred first/);
+
+        await transferService.transfer({ itemId: wholeItemId, quantity: 10 });
+        await transferService.transfer({ itemId: mergeItemId, quantity: 5 });
+      });
+
+      it('ends with the loader and every row of its stock at the target', async () => {
+        const { pallet, wholeItemId, mergeItemId } = await mixedOrder();
+
+        await transferService.transfer({ itemId: wholeItemId, quantity: 10 });
+        await transferService.transfer({ itemId: mergeItemId, quantity: 5 });
+
+        expect(await loaderLocation(pallet)).toBe(dockId);
+        expect(await loaderStockLocations(pallet)).toEqual({ [dockId]: 15 });
+      });
+    });
+
+    describe('with relocateEmptyLoaders', () => {
+      const relocDb = `${DB_NAME}_reloc`;
+      let relocApp: INestApplication;
+
+      beforeAll(async () => {
+        await resetDatabase(relocDb);
+
+        relocApp = await Test.createTestingModule({
+          imports: [
+            TypeOrmModule.forRoot({
+              type: 'postgres',
+              host: DB_HOST,
+              port: DB_PORT,
+              username: DB_USER,
+              password: DB_PASS,
+              database: relocDb,
+              autoLoadEntities: true,
+              synchronize: true,
+              uuidExtension: 'uuid-ossp',
+            }),
+            WmsModuleCoreModule.forRootAsync({
+              useFactory: async () => ({}),
+              defaultLoaderSerialId: 'DEFAULT',
+              defaultLoaderTypeKey: 'DEFAULT',
+              defaultLocationKey: 'DEFAULT',
+              relocateEmptyLoaders: true,
+            }),
+          ],
+        })
+          .compile()
+          .then((moduleRef) => moduleRef.createNestApplication());
+        await relocApp.init();
+      });
+
+      afterAll(async () => {
+        await relocApp?.close();
+        await resetDatabase(relocDb, false);
+      });
+
+      it('moves an empty loader but still refuses one holding stock', async () => {
+        const ds = relocApp.get(DataSource);
+        const ents = relocApp.get(WmsEntities);
+        const loaders = relocApp.get(LoaderService);
+        const batches = relocApp.get(BatchService);
+        const stocks = relocApp.get(StockService);
+        const transfers = relocApp.get(TransferOrderService);
+        const locationRepository = ds.getRepository<LocationEntityClass>(
+          ents.location,
+        );
+        const [a, c] = await Promise.all(
+          ['RA', 'RC'].map(
+            async (key) =>
+              (
+                await locationRepository.save(
+                  locationRepository.create({
+                    key,
+                    description: key,
+                    isActive: true,
+                  } as DeepPartial<LocationEntityClass>),
+                )
+              ).id,
+          ),
+        );
+        const type = await loaders.createLoaderType({
+          key: 'RP',
+          description: 'p',
+        });
+        const [empty, full, source] = await loaders.createLoader({
+          typeId: type.id,
+          locationId: a,
+          quantity: 3,
+        });
+        const materialRepository = ds.getRepository<MaterialEntityClass>(
+          ents.material,
+        );
+        const material = await materialRepository.save(
+          materialRepository.create({
+            key: 'RM',
+          } as DeepPartial<MaterialEntityClass>),
+        );
+        const batch = await batches.getBatch({
+          key: 'RB',
+          materialId: material.id,
+        });
+        const orders = ds.getRepository<OrderEntity>(ents.order);
+        const put = async (
+          loaderId: string,
+          quantity: number,
+        ): Promise<void> => {
+          const base = await orders.save(orders.create({}));
+          await ds.getRepository<StockEntityClass>(ents.stock).save({
+            orderId: base.id,
+            materialId: material.id,
+            batchId: batch.id,
+            locationId: a,
+            loaderId,
+            quantity,
+          } as DeepPartial<StockEntityClass>);
+        };
+        await put(source.id, 20);
+        await put(full.id, 3);
+
+        const make = (targetLoaderId: string): Promise<{ id: string }> =>
+          transfers.createTransferOrder({
+            locationId: c,
+            loaderId: targetLoaderId,
+            items: [
+              {
+                locationId: a,
+                loaderId: source.id,
+                materialId: material.id,
+                batchId: batch.id,
+                targetTransferredQuantity: 5,
+              } as CreateTransferOrderItemInput,
+            ],
+          });
+
+        await expect(make(full.id)).rejects.toThrow(/still holds stock/);
+
+        const order = await make(empty.id);
+        const items = await ds
+          .getRepository<TransferOrderItemEntityClass>(
+            transfers.transferOrderItemEntity,
+          )
+          .find({ where: { orderId: order.id } });
+        await transfers.transfer({ itemId: items[0].id, quantity: 5 });
+
+        expect(
+          (
+            await ds
+              .getRepository(LoadersEntityClass)
+              .findOneByOrFail({ id: empty.id })
+          ).locationId,
+        ).toBe(c);
+        expect(await stocks.isLoaderEmpty(empty.id, ds.manager)).toBe(false);
+      });
+    });
+  });
+
+  describe('#221: an update cannot smuggle in a line the check skipped', () => {
+    const removed = new Date();
+
+    it('ignores a new ship line that carries removedAt with a negative quantity', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const order = await shipService.createShipInventoryOrder({
+        key: unique('HSL-UPD'),
+        description: 'x',
+        references: [],
+      });
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await shipService.updateShipInventoryOrder({
+        id: order.id,
+        items: [
+          {
+            materialId: material.id,
+            batchId,
+            locationId: shelfId,
+            targetShippedQuantity: -5,
+            status: StockStatus.FREE,
+            serialId: '1',
+            removedAt: removed,
+          },
+        ],
+      });
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect((await byStatus(material.id)).FREE).toBe(10);
+    });
+
+    it('ignores a new receive line that carries removedAt with a negative quantity', async () => {
+      const material = await newMaterial();
+      const order = await receiveService.createReceiveInventoryOrder({
+        key: unique('HSL-UPD'),
+        description: 'x',
+        items: [],
+      });
+
+      await receiveService.updateReceiveInventoryOrder({
+        id: order.id,
+        items: [
+          {
+            serialId: '1',
+            materialKey: material.key,
+            batchKey: unique('HSL-B'),
+            targetReceivedQuantity: -5,
+            removedAt: removed,
+          },
+        ],
+      });
+
+      const rows = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId: order.id } });
+      expect(rows).toHaveLength(0);
+    });
+
+    it('ignores a new allocate line that carries removedAt with a negative quantity', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const order = await allocateService.createAllocateInventoryOrder({
+        items: [],
+      } as Parameters<
+        AllocateInventoryOrderService['createAllocateInventoryOrder']
+      >[0]);
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await allocateService.updateAllocateInventoryOrder({
+        id: order.id,
+        items: [
+          {
+            materialId: material.id,
+            batchId,
+            targetAllocatedQuantity: -5,
+            saleId: 'S',
+            saleSerialId: '1',
+            removedAt: removed,
+          },
+        ],
+      } as Parameters<
+        AllocateInventoryOrderService['updateAllocateInventoryOrder']
+      >[0]);
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect((await byStatus(material.id)).FREE).toBe(10);
+    });
+
+    it('stores only the removal of an existing ship line that also carries a negative quantity', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const { orderId, itemId } = await createShip(material.id, batchId, 4);
+
+      await shipService.updateShipInventoryOrder({
+        id: orderId,
+        items: [
+          { id: itemId, removedAt: removed, targetShippedQuantity: -100 },
+        ],
+      } as Parameters<
+        ShipInventoryOrderService['updateShipInventoryOrder']
+      >[0]);
+
+      const row = await dataSource
+        .getRepository<ShipInventoryOrderItemEntityClass>(
+          shipService.shipInventoryOrderItemEntity,
+        )
+        .findOneByOrFail({ id: itemId });
+      expect(Number(row.targetShippedQuantity)).toBe(4);
+      expect(row.removedAt).not.toBeNull();
+    });
+
+    it('stores only the removal of an existing receive line that also carries a negative quantity', async () => {
+      const material = await newMaterial();
+      const { orderId, itemId } = await createReceive(
+        material.key,
+        unique('HSL-B'),
+        4,
+      );
+
+      await receiveService.updateReceiveInventoryOrder({
+        id: orderId,
+        items: [
+          { id: itemId, removedAt: removed, targetReceivedQuantity: -100 },
+        ],
+      } as Parameters<
+        ReceiveInventoryOrderService['updateReceiveInventoryOrder']
+      >[0]);
+
+      const row = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .findOneByOrFail({ id: itemId });
+      expect(Number(row.targetReceivedQuantity)).toBe(4);
+      expect(row.removedAt).not.toBeNull();
+    });
+
+    it('stores only the removal of an existing allocate line that also carries a negative quantity', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const order = await allocateService.createAllocateInventoryOrder({
+        items: [
+          {
+            materialId: material.id,
+            batchId,
+            locationId: shelfId,
+            targetAllocatedQuantity: 4,
+            saleId: 'S',
+            saleSerialId: '1',
+          },
+        ],
+      } as Parameters<
+        AllocateInventoryOrderService['createAllocateInventoryOrder']
+      >[0]);
+      const repository =
+        dataSource.getRepository<AllocateInventoryOrderItemEntityClass>(
+          allocateService.allocateInventoryOrderItemEntity,
+        );
+      const [line] = await repository.find({ where: { orderId: order.id } });
+
+      await allocateService.updateAllocateInventoryOrder({
+        id: order.id,
+        items: [
+          { id: line.id, removedAt: removed, targetAllocatedQuantity: -100 },
+        ],
+      } as Parameters<
+        AllocateInventoryOrderService['updateAllocateInventoryOrder']
+      >[0]);
+
+      const row = await repository.findOneByOrFail({ id: line.id });
+      // allocate_inventory_order_items has no removedAt column, so only the
+      // quantity guard is observable here: the -100 must not be written.
+      expect(Number(row.targetAllocatedQuantity)).toBe(4);
+    });
+
+    it('refuses a live new line with a negative quantity on update', async () => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const order = await shipService.createShipInventoryOrder({
+        key: unique('HSL-UPD'),
+        description: 'x',
+        references: [],
+      });
+
+      await expect(
+        shipService.updateShipInventoryOrder({
+          id: order.id,
+          items: [
+            {
+              materialId: material.id,
+              batchId,
+              targetShippedQuantity: -5,
+              status: StockStatus.FREE,
+              serialId: '1',
+            },
+          ],
+        }),
+      ).rejects.toThrow(/greater than 0/);
     });
   });
 
