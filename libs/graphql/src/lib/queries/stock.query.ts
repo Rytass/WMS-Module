@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Args, ID, Query } from '@nestjs/graphql';
-import { StockService } from '@rytass/wms-module-core';
+import { StockService, absQuantity } from '@rytass/wms-module-core';
 import {
   AggregatedStocks,
   ChangeLogs,
@@ -62,7 +62,7 @@ export class StockQuery {
     return {
       items: items.map((item) => ({
         ...item,
-        quantity: Math.abs(item.quantity),
+        quantity: absQuantity(item.quantity),
       })),
       total,
     };

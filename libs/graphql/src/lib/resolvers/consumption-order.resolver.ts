@@ -15,6 +15,8 @@ import {
   LocationEntityClass,
   MaterialEntityClass,
   WmsEntities,
+  absQuantity,
+  sumQuantities,
 } from '@rytass/wms-module-core';
 import { ConsumptionOrderDto } from '../dto/consumption-order.dto';
 import { ConsumptionOrderItemDto } from '../dto/consumption-order-item.dto';
@@ -65,13 +67,11 @@ export class ConsumptionOrderItemResolver {
       __from: { itemId },
     });
 
-    return changes
-      .filter((change) => change.kind === kind)
-      .reduce(
-        (total, { quantityChanged }) =>
-          total + Math.abs(Number(quantityChanged)),
-        0,
-      );
+    return sumQuantities(
+      changes
+        .filter((change) => change.kind === kind)
+        .map(({ quantityChanged }) => absQuantity(quantityChanged)),
+    );
   }
 
   @ResolveField(() => MaterialDto)
@@ -193,9 +193,6 @@ export class ConsumptionOrderItemResolver {
     // The sign already carries the direction here — an issue is positive, a
     // return and a settlement negative — so the outstanding amount is just the
     // sum, no filtering by kind needed.
-    return changes.reduce(
-      (total, { quantityChanged }) => total + Number(quantityChanged),
-      0,
-    );
+    return sumQuantities(changes.map(({ quantityChanged }) => quantityChanged));
   }
 }
