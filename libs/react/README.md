@@ -386,6 +386,8 @@ import {
 } from '@rytass/wms-module-react';
 ```
 
+Material quantities are `Float` in the schema and the generated types, and the quantity forms accept fractional input (`0.1`). The loader count on the loader forms is still an integer.
+
 ## Known issues for standalone consumers
 
 `@mezzanine-ui/react` (a peer dependency) ships JavaScript files written in ESM syntax but does **not** set `"type": "module"` in its `package.json`, and its files import lodash subpaths without explicit `.js` extensions (e.g. `import compact from 'lodash/compact'`). This combination fails Node's ESM resolver when this lib (which is `"type": "module"`) imports Mezzanine UI at SSR time on a fresh npm-installed Next.js app.

@@ -1,7 +1,7 @@
 import {
   Context,
   ID,
-  Int,
+  Float,
   Parent,
   ResolveField,
   Resolver,
@@ -158,7 +158,7 @@ export class ShipInventoryOrderItemResolver {
     });
   }
 
-  @ResolveField(() => Int)
+  @ResolveField(() => Float)
   async shippedQuantity(
     @Parent() { id }: ShipInventoryOrderItemEntityClass,
     @Context() { loaders }: LoaderType<ShipInventoryOrderChangeEntityClass>,
@@ -183,7 +183,7 @@ export class ShipInventoryOrderReferenceResolver {
    */
   constructor(private readonly entities: WmsEntities) {}
 
-  @ResolveField(() => Int)
+  @ResolveField(() => Float)
   async shippedQuantity(
     @Parent() { orderId, serialId }: ShipInventoryOrderReferenceEntityClass,
     @Context() { loaders }: LoaderType<ShipInventoryOrderItemEntityClass>,

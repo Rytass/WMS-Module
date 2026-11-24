@@ -32,7 +32,7 @@ export type AggregatedStockDto = {
   location: LocationDto;
   material: MaterialDto;
   parentBatchId?: Maybe<Scalars['ID']['output']>;
-  quantity: Scalars['Int']['output'];
+  quantity: Scalars['Float']['output'];
   requiresInspection?: Maybe<Scalars['Boolean']['output']>;
   saleId?: Maybe<Scalars['ID']['output']>;
   saleSerialId?: Maybe<Scalars['ID']['output']>;
@@ -81,7 +81,7 @@ export type AllocateInventoryOrderItemDto = {
   id: Scalars['ID']['output'];
   saleId: Scalars['String']['output'];
   saleSerialId: Scalars['String']['output'];
-  targetAllocatedQuantity: Scalars['Int']['output'];
+  targetAllocatedQuantity: Scalars['Float']['output'];
 };
 
 export type AllocateInventoryOrders = {
@@ -106,14 +106,14 @@ export type Batches = {
 
 export type CancelShipOrderArgs = {
   itemId: Scalars['ID']['input'];
-  quantity?: InputMaybe<Scalars['Int']['input']>;
+  quantity?: InputMaybe<Scalars['Float']['input']>;
 };
 
 export type CancelTransferOrderArgs = {
   /** The ID of transfer order item */
   itemId: Scalars['ID']['input'];
   /** The quantity to cancel. If not provided, cancels all remaining cancellable quantity. */
-  quantity?: InputMaybe<Scalars['Int']['input']>;
+  quantity?: InputMaybe<Scalars['Float']['input']>;
 };
 
 export type ChangeLogDto = {
@@ -123,7 +123,7 @@ export type ChangeLogDto = {
   id: Scalars['ID']['output'];
   location: LocationDto;
   material: MaterialDto;
-  quantity: Scalars['Int']['output'];
+  quantity: Scalars['Float']['output'];
 };
 
 export enum ChangeLogSortField {
@@ -282,7 +282,7 @@ export type CreateMaterialUnitArgs = {
 export type CreateQualityInspectionOrderItemArgs = {
   aggregateKey: Scalars['String']['input'];
   inspectionResult: Scalars['Boolean']['input'];
-  quantity: Scalars['Int']['input'];
+  quantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -305,25 +305,25 @@ export type CreateShipInventoryOrderReferenceArgs = {
   saleId?: InputMaybe<Scalars['String']['input']>;
   saleSerialId?: InputMaybe<Scalars['String']['input']>;
   serialId: Scalars['String']['input'];
-  targetShippedQuantity: Scalars['Int']['input'];
+  targetShippedQuantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type CreateTransferCustomerOrderItemArgs = {
   aggregatedKey: Scalars['ID']['input'];
-  targetTransferredQuantity: Scalars['Int']['input'];
+  targetTransferredQuantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type CreateTransferOrderItemArgs = {
   aggregatedKey: Scalars['ID']['input'];
-  targetTransferredQuantity: Scalars['Int']['input'];
+  targetTransferredQuantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type CreateTransferVendorOrderItemArgs = {
   aggregatedKey: Scalars['ID']['input'];
-  targetTransferredQuantity: Scalars['Int']['input'];
+  targetTransferredQuantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -334,7 +334,7 @@ export type DateRangeArgs = {
 
 export type DeallocateOrderArgs = {
   aggregatedKey: Scalars['ID']['input'];
-  quantity: Scalars['Int']['input'];
+  quantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -352,7 +352,7 @@ export type HoldInventoryOrderItemDto = {
   __typename?: 'HoldInventoryOrderItemDto';
   id: Scalars['ID']['output'];
   removedAt?: Maybe<Scalars['DateTime']['output']>;
-  targetHeldQuantity: Scalars['Int']['output'];
+  targetHeldQuantity: Scalars['Float']['output'];
 };
 
 export type HoldInventoryOrders = {
@@ -474,7 +474,7 @@ export type LoaderDto = {
   /** 編碼 */
   serialId: Scalars['String']['output'];
   sizeUnit?: Maybe<Scalars['String']['output']>;
-  totalQuantity: Scalars['Int']['output'];
+  totalQuantity: Scalars['Float']['output'];
   type: LoaderTypeDto;
   volume?: Maybe<Scalars['Float']['output']>;
   volumeUnit?: Maybe<Scalars['String']['output']>;
@@ -1226,7 +1226,7 @@ export type QualityInspectionOrderItemDto = {
   locationId?: Maybe<Scalars['ID']['output']>;
   materialId: Scalars['ID']['output'];
   orderId: Scalars['ID']['output'];
-  targetInspectedQuantity: Scalars['Int']['output'];
+  targetInspectedQuantity: Scalars['Float']['output'];
   unitId?: Maybe<Scalars['ID']['output']>;
 };
 
@@ -1668,7 +1668,7 @@ export type ReceiveInventoryOrderItemDto = {
   location?: Maybe<LocationDto>;
   material: MaterialDto;
   orderId: Scalars['ID']['output'];
-  receivedQuantity: Scalars['Int']['output'];
+  receivedQuantity: Scalars['Float']['output'];
   removedAt?: Maybe<Scalars['DateTime']['output']>;
   requireInspection: Scalars['Boolean']['output'];
   serialId: Scalars['String']['output'];
@@ -1709,7 +1709,7 @@ export type ReceiveOrderArgs = {
   itemId: Scalars['String']['input'];
   loaderKey?: InputMaybe<Scalars['String']['input']>;
   locationKey?: InputMaybe<Scalars['String']['input']>;
-  quantity: Scalars['Int']['input'];
+  quantity: Scalars['Float']['input'];
 };
 
 export type ReclassifyInventoryOrderDto = {
@@ -1736,7 +1736,7 @@ export type ReclassifyInventoryOrderItemInput = {
 
 export type ReleaseOrderArgs = {
   aggregatedKey: Scalars['ID']['input'];
-  quantity: Scalars['Int']['input'];
+  quantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -1744,7 +1744,7 @@ export type ReturnTransferCustomerOrderArgs = {
   aggregatedKey: Scalars['ID']['input'];
   loaderKey?: InputMaybe<Scalars['ID']['input']>;
   locationKey: Scalars['ID']['input'];
-  quantity: Scalars['Int']['input'];
+  quantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -1752,7 +1752,7 @@ export type ReturnTransferVendorOrderArgs = {
   aggregatedKey: Scalars['ID']['input'];
   loaderKey?: InputMaybe<Scalars['ID']['input']>;
   locationKey: Scalars['ID']['input'];
-  quantity: Scalars['Int']['input'];
+  quantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -1772,13 +1772,13 @@ export type ScrapeOrderItemDto = {
   locationId?: Maybe<Scalars['ID']['output']>;
   materialId: Scalars['ID']['output'];
   orderId: Scalars['ID']['output'];
-  targetScrapedQuantity: Scalars['Int']['output'];
+  targetScrapedQuantity: Scalars['Float']['output'];
   unitId?: Maybe<Scalars['ID']['output']>;
 };
 
 export type ScrapeOrderItemInput = {
   aggregateKey: Scalars['String']['input'];
-  quantity: Scalars['Int']['input'];
+  quantity: Scalars['Float']['input'];
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -1809,7 +1809,7 @@ export type ShipInventoryOrderItemDto = {
   saleId?: Maybe<Scalars['ID']['output']>;
   saleSerialId?: Maybe<Scalars['ID']['output']>;
   serialId: Scalars['String']['output'];
-  shippedQuantity: Scalars['Int']['output'];
+  shippedQuantity: Scalars['Float']['output'];
   targetShippedQuantity: Scalars['Float']['output'];
   unitId?: Maybe<Scalars['ID']['output']>;
 };
@@ -1824,8 +1824,8 @@ export type ShipInventoryOrderReferenceDto = {
   saleId?: Maybe<Scalars['String']['output']>;
   saleSerialId?: Maybe<Scalars['String']['output']>;
   serialId: Scalars['String']['output'];
-  shippedQuantity: Scalars['Int']['output'];
-  targetShippedQuantity: Scalars['Int']['output'];
+  shippedQuantity: Scalars['Float']['output'];
+  targetShippedQuantity: Scalars['Float']['output'];
   unitId?: Maybe<Scalars['ID']['output']>;
 };
 
@@ -1858,7 +1858,7 @@ export type ShipInventoryOrders = {
 
 export type ShipOrderArgs = {
   itemId: Scalars['ID']['input'];
-  quantity: Scalars['Int']['input'];
+  quantity: Scalars['Float']['input'];
 };
 
 /** Direction of a list sort. NULLs always sort last. */
@@ -1896,7 +1896,7 @@ export type StockDto = {
   loaderId: Scalars['ID']['output'];
   location: LocationDto;
   material: MaterialDto;
-  quantity: Scalars['Int']['output'];
+  quantity: Scalars['Float']['output'];
   status: StockStatus;
 };
 
@@ -1949,7 +1949,7 @@ export type TransferCustomerOrderItemDto = {
   locationId?: Maybe<Scalars['ID']['output']>;
   materialId: Scalars['ID']['output'];
   orderId: Scalars['ID']['output'];
-  targetTransferredQuantity: Scalars['Int']['output'];
+  targetTransferredQuantity: Scalars['Float']['output'];
   unitId?: Maybe<Scalars['ID']['output']>;
 };
 
@@ -1957,7 +1957,7 @@ export type TransferOrderArgs = {
   /** The ID of transfer order item */
   itemId: Scalars['ID']['input'];
   /** The quantity to transfer */
-  quantity: Scalars['Int']['input'];
+  quantity: Scalars['Float']['input'];
 };
 
 export type TransferOrderDto = {
@@ -1984,8 +1984,8 @@ export type TransferOrderItemDto = {
   removedAt?: Maybe<Scalars['DateTime']['output']>;
   saleId?: Maybe<Scalars['ID']['output']>;
   saleSerialId?: Maybe<Scalars['ID']['output']>;
-  targetTransferredQuantity: Scalars['Int']['output'];
-  transferredQuantity: Scalars['Int']['output'];
+  targetTransferredQuantity: Scalars['Float']['output'];
+  transferredQuantity: Scalars['Float']['output'];
   unitId?: Maybe<Scalars['String']['output']>;
 };
 
@@ -2025,7 +2025,7 @@ export type TransferVendorOrderItemDto = {
   locationId?: Maybe<Scalars['ID']['output']>;
   materialId: Scalars['ID']['output'];
   orderId: Scalars['ID']['output'];
-  targetTransferredQuantity: Scalars['Int']['output'];
+  targetTransferredQuantity: Scalars['Float']['output'];
   unitId?: Maybe<Scalars['ID']['output']>;
   vendorId: Scalars['String']['output'];
 };
@@ -2086,7 +2086,7 @@ export type UpdateShipInventoryOrderReferenceArgs = {
   saleId?: InputMaybe<Scalars['String']['input']>;
   saleSerialId?: InputMaybe<Scalars['String']['input']>;
   serialId?: InputMaybe<Scalars['String']['input']>;
-  targetShippedQuantity?: InputMaybe<Scalars['Int']['input']>;
+  targetShippedQuantity?: InputMaybe<Scalars['Float']['input']>;
   unitId?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2094,7 +2094,7 @@ export type UpdateTransferCustomerOrderItemArgs = {
   aggregatedKey?: InputMaybe<Scalars['ID']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
   removedAt?: InputMaybe<Scalars['DateTime']['input']>;
-  targetTransferredQuantity?: InputMaybe<Scalars['Int']['input']>;
+  targetTransferredQuantity?: InputMaybe<Scalars['Float']['input']>;
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -2102,7 +2102,7 @@ export type UpdateTransferOrderItemArgs = {
   aggregatedKey?: InputMaybe<Scalars['ID']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
   removedAt?: InputMaybe<Scalars['DateTime']['input']>;
-  targetTransferredQuantity?: InputMaybe<Scalars['Int']['input']>;
+  targetTransferredQuantity?: InputMaybe<Scalars['Float']['input']>;
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 
@@ -2110,7 +2110,7 @@ export type UpdateTransferVendorOrderItemArgs = {
   aggregatedKey?: InputMaybe<Scalars['ID']['input']>;
   id?: InputMaybe<Scalars['ID']['input']>;
   removedAt?: InputMaybe<Scalars['DateTime']['input']>;
-  targetTransferredQuantity?: InputMaybe<Scalars['Int']['input']>;
+  targetTransferredQuantity?: InputMaybe<Scalars['Float']['input']>;
   unitId?: InputMaybe<Scalars['ID']['input']>;
 };
 

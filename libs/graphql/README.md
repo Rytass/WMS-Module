@@ -292,6 +292,10 @@ context: ({ req }) => ({
 
 Per-request is non-negotiable — DataLoader caches results inside the instance, so reusing one across requests leaks data between callers. `createWmsLoaders` is a thin factory you call from inside `context`, never at module scope.
 
+## Quantity types
+
+Every material quantity in the schema is `Float`, in both arguments and fields (`quantity`, `target*Quantity`, `*Quantity` read-backs, `totalQuantity`, and so on), so fractional quantities such as `0.1` round-trip. Counts that are not material quantities stay `Int`: pagination (`offset`, `limit`, `total`), `createLoader` / `createBatchLoader` `quantity` (the number of loaders to create) and `LoaderType.referencedQuantity`. A client that generated types from an earlier `Int` schema should regenerate; `number` stays `number` in TypeScript.
+
 ## Schema artefacts
 
 The schema is generated at boot via `autoSchemaFile` (above). Commit the resulting `schema.gql` to your repo if you want downstream codegen (e.g. for `@rytass/wms-module-react`) to consume a stable schema snapshot.

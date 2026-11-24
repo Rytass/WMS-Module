@@ -1,7 +1,7 @@
 import {
   Context,
   ID,
-  Int,
+  Float,
   Parent,
   ResolveField,
   Resolver,
@@ -175,7 +175,7 @@ export class TransferOrderItemResolver {
       .then((batch) => batch.saleSerialId);
   }
 
-  @ResolveField(() => Int)
+  @ResolveField(() => Float)
   async transferredQuantity(
     @Parent() { id }: TransferOrderItemEntityClass,
     @Context() { loaders }: LoaderType<TransferOrderChangeEntityClass>,

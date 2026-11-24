@@ -1,6 +1,13 @@
-import { Context, Int, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import {
+  Context,
+  Float,
+  Parent,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import { LoaderDto, LoaderTypeDto } from '../dto';
 import {
+  addQuantity,
   LoaderTypeEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
@@ -9,7 +16,6 @@ import {
 } from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 import { LocationDto } from '../dto/location.dto';
-import _ from 'lodash';
 
 @Resolver(() => LoaderDto)
 export class LoaderResolver {
@@ -47,14 +53,14 @@ export class LoaderResolver {
     });
   }
 
-  @ResolveField(() => Int)
+  @ResolveField(() => Float)
   async totalQuantity(@Parent() { id }: LoadersEntityClass) {
     const [aggregatedStocks] = await this.stockService.findAggregatedStocks({
       loaderId: id,
     });
     if (!aggregatedStocks.length) return 0;
     return aggregatedStocks.reduce(
-      (total, { quantity }) => total + _.toInteger(quantity),
+      (total, { quantity }) => addQuantity(total, quantity),
       0,
     );
   }

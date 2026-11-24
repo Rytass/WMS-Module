@@ -45,7 +45,7 @@ type LoaderDto {
   createdAt: DateTime!
   type: LoaderTypeDto!
   location: LocationDto!
-  totalQuantity: Int!
+  totalQuantity: Float!
 }
 
 type Loaders {
@@ -82,7 +82,7 @@ type MaterialUnitDto {
 type StockDto {
   id: ID!
   loaderId: ID!
-  quantity: Int!
+  quantity: Float!
   status: StockStatus!
   material: MaterialDto!
   location: LocationDto!
@@ -109,7 +109,7 @@ type Stocks {
 }
 
 type AggregatedStockDto {
-  quantity: Int!
+  quantity: Float!
   status: StockStatus!
   transferId: ID
   held: Boolean
@@ -141,7 +141,7 @@ type AggregatedStocks {
 }
 
 type ChangeLogDto {
-  quantity: Int!
+  quantity: Float!
   changeType: ChangeType!
   id: ID!
   material: MaterialDto!
@@ -196,7 +196,7 @@ type ReceiveInventoryOrderItemDto {
   batch: BatchDto
   location: LocationDto
   loader: LoaderDto
-  receivedQuantity: Int!
+  receivedQuantity: Float!
 }
 
 type ReceiveInventoryOrderDto {
@@ -238,7 +238,7 @@ type ShipInventoryOrderItemDto {
   saleSerialId: ID
   location: LocationDto
   loader: LoaderDto
-  shippedQuantity: Int!
+  shippedQuantity: Float!
 }
 
 type ShipInventoryOrderDto {
@@ -268,7 +268,7 @@ type ShipInventoryOrders {
 
 type HoldInventoryOrderItemDto {
   id: ID!
-  targetHeldQuantity: Int!
+  targetHeldQuantity: Float!
   removedAt: DateTime
 }
 
@@ -302,7 +302,7 @@ type AllocateInventoryOrders {
 
 type AllocateInventoryOrderItemDto {
   id: ID!
-  targetAllocatedQuantity: Int!
+  targetAllocatedQuantity: Float!
   saleId: String!
   saleSerialId: String!
 }
@@ -310,7 +310,7 @@ type AllocateInventoryOrderItemDto {
 type TransferOrderItemDto {
   id: ID!
   unitId: String
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
   removedAt: DateTime
   material: MaterialDto!
   batch: BatchDto
@@ -318,7 +318,7 @@ type TransferOrderItemDto {
   loader: LoaderDto
   saleId: ID
   saleSerialId: ID
-  transferredQuantity: Int!
+  transferredQuantity: Float!
 }
 
 type TransferOrderDto {
@@ -349,7 +349,7 @@ type TransferCustomerOrderItemDto {
   customerId: String!
   orderId: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 type TransferCustomerOrderDto {
@@ -368,7 +368,7 @@ type TransferVendorOrderItemDto {
   vendorId: String!
   orderId: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 type TransferVendorOrderDto {
@@ -386,7 +386,7 @@ type ScrapeOrderItemDto {
   loaderId: ID
   orderId: ID!
   unitId: ID
-  targetScrapedQuantity: Int!
+  targetScrapedQuantity: Float!
 }
 
 type ScrapeOrderDto {
@@ -404,7 +404,7 @@ type QualityInspectionOrderItemDto {
   loaderId: ID
   orderId: ID!
   unitId: ID
-  targetInspectedQuantity: Int!
+  targetInspectedQuantity: Float!
 }
 
 type QualityInspectionOrderDto {
@@ -650,9 +650,9 @@ type ShipInventoryOrderReferenceDto {
   saleId: String
   saleSerialId: String
   unitId: ID
-  targetShippedQuantity: Int!
+  targetShippedQuantity: Float!
   removedAt: DateTime
-  shippedQuantity: Int!
+  shippedQuantity: Float!
   material: MaterialDto!
   batch: BatchDto
   items: [ShipInventoryOrderItemDto!]!
@@ -1331,7 +1331,7 @@ input ReceiveOrderArgs {
   batchKey: String
   locationKey: String
   loaderKey: String
-  quantity: Int!
+  quantity: Float!
   inspectionResult: Boolean
 }
 
@@ -1340,7 +1340,7 @@ input CreateShipInventoryOrderReferenceArgs {
   unitId: String
   batchKey: String
   materialKey: String!
-  targetShippedQuantity: Int!
+  targetShippedQuantity: Float!
   serialId: String!
   saleId: String
   saleSerialId: String
@@ -1351,7 +1351,7 @@ input UpdateShipInventoryOrderReferenceArgs {
   unitId: String
   batchKey: String
   materialKey: String
-  targetShippedQuantity: Int
+  targetShippedQuantity: Float
   serialId: String
   saleId: String
   saleSerialId: String
@@ -1370,24 +1370,24 @@ input UpdateShipInventoryOrderItemArgs {
 
 input ShipOrderArgs {
   itemId: ID!
-  quantity: Int!
+  quantity: Float!
 }
 
 input CancelShipOrderArgs {
   itemId: ID!
-  quantity: Int
+  quantity: Float
 }
 
 input CreateTransferOrderItemArgs {
   aggregatedKey: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 input UpdateTransferOrderItemArgs {
   aggregatedKey: ID
   unitId: ID
-  targetTransferredQuantity: Int
+  targetTransferredQuantity: Float
   id: ID
   removedAt: DateTime
 }
@@ -1397,7 +1397,7 @@ input TransferOrderArgs {
   itemId: ID!
 
   """The quantity to transfer"""
-  quantity: Int!
+  quantity: Float!
 }
 
 input CancelTransferOrderArgs {
@@ -1407,7 +1407,7 @@ input CancelTransferOrderArgs {
   """
   The quantity to cancel. If not provided, cancels all remaining cancellable quantity.
   """
-  quantity: Int
+  quantity: Float
 }
 
 input CreateHoldInventoryOrderItemArgs {
@@ -1426,7 +1426,7 @@ input UpdateHoldInventoryOrderItemArgs {
 
 input ReleaseOrderArgs {
   aggregatedKey: ID!
-  quantity: Int!
+  quantity: Float!
   unitId: ID
 }
 
@@ -1475,27 +1475,27 @@ input UpdateAllocateInventoryOrderItemArgs {
 
 input DeallocateOrderArgs {
   aggregatedKey: ID!
-  quantity: Int!
+  quantity: Float!
   unitId: ID
 }
 
 input CreateTransferCustomerOrderItemArgs {
   aggregatedKey: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 input UpdateTransferCustomerOrderItemArgs {
   aggregatedKey: ID
   unitId: ID
-  targetTransferredQuantity: Int
+  targetTransferredQuantity: Float
   id: ID
   removedAt: DateTime
 }
 
 input ReturnTransferCustomerOrderArgs {
   aggregatedKey: ID!
-  quantity: Int!
+  quantity: Float!
   unitId: ID
   locationKey: ID!
   loaderKey: ID
@@ -1504,20 +1504,20 @@ input ReturnTransferCustomerOrderArgs {
 input CreateTransferVendorOrderItemArgs {
   aggregatedKey: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 input UpdateTransferVendorOrderItemArgs {
   aggregatedKey: ID
   unitId: ID
-  targetTransferredQuantity: Int
+  targetTransferredQuantity: Float
   id: ID
   removedAt: DateTime
 }
 
 input ReturnTransferVendorOrderArgs {
   aggregatedKey: ID!
-  quantity: Int!
+  quantity: Float!
   unitId: ID
   locationKey: ID!
   loaderKey: ID
@@ -1543,13 +1543,13 @@ input ReclassifyInventoryOrderItemInput {
 input ScrapeOrderItemInput {
   aggregateKey: String!
   unitId: ID
-  quantity: Int!
+  quantity: Float!
 }
 
 input CreateQualityInspectionOrderItemArgs {
   aggregateKey: String!
   unitId: ID
-  quantity: Int!
+  quantity: Float!
   inspectionResult: Boolean!
 }
 

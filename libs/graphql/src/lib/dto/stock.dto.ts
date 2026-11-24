@@ -1,4 +1,10 @@
-import { Field, ID, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
+import {
+  Field,
+  ID,
+  Float,
+  ObjectType,
+  registerEnumType,
+} from '@nestjs/graphql';
 import { PaginatedResponse } from './pagination.dto';
 import { ChangeType, StockStatus } from '@rytass/wms-module-core';
 import { GraphQLJSONObject } from '../scalars';
@@ -11,7 +17,7 @@ export class StockDto {
   @Field(() => ID)
   loaderId!: string;
 
-  @Field(() => Int)
+  @Field(() => Float)
   quantity!: number;
 
   @Field(() => StockStatus)
@@ -23,7 +29,7 @@ export class Stocks extends PaginatedResponse(StockDto) {}
 
 @ObjectType()
 export class AggregatedStockDto {
-  @Field(() => Int)
+  @Field(() => Float)
   quantity!: number;
 
   @Field(() => StockStatus)
@@ -90,7 +96,7 @@ export class AggregatedStocks extends PaginatedResponse(AggregatedStockDto) {}
 
 @ObjectType()
 export class ChangeLogDto {
-  @Field(() => Int)
+  @Field(() => Float)
   quantity!: number;
 
   @Field(() => ChangeType)

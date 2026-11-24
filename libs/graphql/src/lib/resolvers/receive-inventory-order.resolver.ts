@@ -1,4 +1,10 @@
-import { Context, Int, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import {
+  Context,
+  Float,
+  Parent,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import {
   LoaderDto,
   MaterialDto,
@@ -99,7 +105,7 @@ export class ReceiveInventoryOrderItemResolver {
     });
   }
 
-  @ResolveField(() => Int)
+  @ResolveField(() => Float)
   async receivedQuantity(
     @Parent() { id }: ReceiveInventoryOrderItemEntityClass,
     @Context() { loaders }: LoaderType<ReceiveInventoryOrderChangeEntityClass>,

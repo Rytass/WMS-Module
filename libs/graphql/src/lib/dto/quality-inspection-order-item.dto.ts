@@ -1,4 +1,4 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Float, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class QualityInspectionOrderItemDto {
@@ -23,6 +23,6 @@ export class QualityInspectionOrderItemDto {
   @Field(() => ID, { nullable: true })
   unitId!: string | null;
 
-  @Field(() => Int)
+  @Field(() => Float)
   targetInspectedQuantity!: number;
 }

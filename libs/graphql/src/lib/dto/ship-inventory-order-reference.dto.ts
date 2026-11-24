@@ -1,4 +1,4 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Float, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class ShipInventoryOrderReferenceDto {
@@ -17,7 +17,7 @@ export class ShipInventoryOrderReferenceDto {
   @Field(() => ID, { nullable: true })
   unitId!: string | null;
 
-  @Field(() => Int)
+  @Field(() => Float)
   targetShippedQuantity!: number;
 
   @Field(() => Date, { nullable: true })
