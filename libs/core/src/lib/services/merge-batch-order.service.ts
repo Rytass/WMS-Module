@@ -47,6 +47,27 @@ const sameAttributes = (
   JSON.stringify(canonical(left ?? null)) ===
   JSON.stringify(canonical(right ?? null));
 
+/** Attribute documents are equal when their JSON content is, whatever the key order. */
+const canonical = (value: unknown): unknown =>
+  Array.isArray(value)
+    ? value.map(canonical)
+    : value !== null && typeof value === 'object'
+      ? Object.fromEntries(
+          Object.entries(value)
+            .sort(([left], [right]) =>
+              left < right ? -1 : left > right ? 1 : 0,
+            )
+            .map(([key, inner]) => [key, canonical(inner)]),
+        )
+      : value;
+
+const sameAttributes = (
+  left: Record<string, unknown> | null | undefined,
+  right: Record<string, unknown> | null | undefined,
+): boolean =>
+  JSON.stringify(canonical(left ?? null)) ===
+  JSON.stringify(canonical(right ?? null));
+
 @Injectable()
 export class MergeBatchOrderService<
   T extends MergeBatchOrderEntityClass = MergeBatchOrderEntityClass,
