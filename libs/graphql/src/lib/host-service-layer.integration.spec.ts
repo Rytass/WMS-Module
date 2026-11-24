@@ -4171,7 +4171,7 @@ describe('host service layer (integration, no GraphQL)', () => {
 
       const [changes] = await dataSource
         .query<
-          { kind: string; quantityChanged: string }[][]
+          { kind: string; quantityChanged: string }[]
         >(`SELECT c.kind, c."quantityChanged" FROM "${dataSource.getMetadata(getWmsTablePrefix() + 'ship_inventory_order_changes').tablePath}" c WHERE c."itemId" = $1 AND c.kind = 'CANCEL'`, [itemId])
         .then((rows) => [rows]);
 
