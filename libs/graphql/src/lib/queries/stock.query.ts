@@ -23,7 +23,7 @@ export class StockQuery {
   @Query(() => StockDto)
   @WmsOperation({ resource: 'stock', action: 'read' })
   stock(@Args('id', { type: () => ID }) id: string): Promise<StockDto> {
-    return this.stockService.stockRepository.findOneByOrFail({ id });
+    return this.stockService.findById(id);
   }
 
   @Query(() => Stocks)

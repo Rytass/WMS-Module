@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { GraphQLModule, GraphQLSchemaHost } from '@nestjs/graphql';
 import { ApolloDriver } from '@nestjs/apollo';
@@ -14,6 +14,7 @@ import {
   MaterialEntityClass,
   StockEntityClass,
   StockService,
+  StockStatus,
   WmsEntities,
 } from '@rytass/wms-module-core';
 import { WmsModuleGraphqlModule } from './graphql.module';
@@ -331,6 +332,120 @@ describe('stock batch-attribute filters (integration)', () => {
         'V-1',
         'V-2',
       ]);
+    });
+  });
+
+  /*
+   * `status` is not a column: `selectQueryBuilder` derives it from the batch
+   * flags as a raw select, and `getMany()` drops raw selects while hydrating.
+   * `stocks` and `stock` therefore returned every row without one, and the
+   * non-null `StockDto.status` failed the whole query for anyone who asked for
+   * it. The frontend never selected it, which is how it survived. BATCH-B is
+   * held for these tests so a derived status is told apart from a default.
+   */
+  describe('stock status on the plain stock queries', () => {
+    const batchIdOf = async (key: string): Promise<string> =>
+      (
+        await dataSource
+          .getRepository<BatchEntityClass>(entities.batch)
+          .findOneByOrFail({ key })
+      ).id;
+
+    const setHeld = async (held: boolean): Promise<void> => {
+      await dataSource
+        .getRepository<BatchEntityClass>(entities.batch)
+        .update(await batchIdOf('BATCH-B'), { held } as never);
+    };
+
+    beforeAll(() => setHeld(true));
+    afterAll(() => setHeld(false));
+
+    const statusByBatch = (
+      rows: readonly { batchId: string; status: StockStatus }[],
+      ids: Readonly<Record<string, string>>,
+    ): Record<string, StockStatus> =>
+      Object.fromEntries(
+        rows.map((row) => [
+          Object.keys(ids).find((key) => ids[key] === row.batchId) ?? '',
+          row.status,
+        ]),
+      );
+
+    it('returns status through `stocks`, paged or not', async () => {
+      const query = (
+        args: string,
+      ): Promise<ExecutionResult<Record<string, unknown>>> =>
+        execute(`{ stocks(${args}) { total items { status batch { key } } } }`);
+
+      const all = await query(`materialId: "${materialId}"`);
+      const paged = await query(
+        `materialId: "${materialId}", offset: 1, limit: 1`,
+      );
+
+      expect(all.errors).toBeUndefined();
+      expect(paged.errors).toBeUndefined();
+
+      const rows = (
+        all.data?.['stocks'] as {
+          items: { status: string; batch: { key: string } }[];
+        }
+      ).items;
+
+      expect(
+        Object.fromEntries(rows.map((row) => [row.batch.key, row.status])),
+      ).toEqual({
+        'BATCH-A': StockStatus.FREE,
+        'BATCH-B': StockStatus.HELD,
+        'BATCH-C': StockStatus.FREE,
+      });
+
+      const page = paged.data?.['stocks'] as {
+        total: number;
+        items: { status: string | null }[];
+      };
+
+      expect(page.total).toBe(3);
+      expect(page.items).toHaveLength(1);
+      expect(page.items[0].status).not.toBeNull();
+    });
+
+    it('returns status through `stock(id)`', async () => {
+      const [rows] = await stockService.findMany({
+        batchId: await batchIdOf('BATCH-B'),
+      });
+      const result = await execute(`{ stock(id: "${rows[0].id}") { status } }`);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.['stock']).toEqual({ status: StockStatus.HELD });
+    });
+
+    it('fills status when the service is called with no options', async () => {
+      const ids = {
+        'BATCH-A': await batchIdOf('BATCH-A'),
+        'BATCH-B': await batchIdOf('BATCH-B'),
+        'BATCH-C': await batchIdOf('BATCH-C'),
+      };
+      const [rows, total] = await stockService.findMany({});
+
+      expect(total).toBe(3);
+      expect(statusByBatch(rows, ids)).toEqual({
+        'BATCH-A': StockStatus.FREE,
+        'BATCH-B': StockStatus.HELD,
+        'BATCH-C': StockStatus.FREE,
+      });
+    });
+
+    it('findById fills status and refuses an unknown id', async () => {
+      const [rows] = await stockService.findMany({
+        batchId: await batchIdOf('BATCH-B'),
+      });
+
+      expect((await stockService.findById(rows[0].id)).status).toBe(
+        StockStatus.HELD,
+      );
+      await expect(
+        stockService.findById('00000000-0000-0000-0000-000000000000'),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
   });
 });
