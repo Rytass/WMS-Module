@@ -86,7 +86,7 @@ const TRANSFER_KIND_TO_CHANGE_TYPE: Readonly<Record<string, ChangeType>> = {
  * handed the whole row rather than just the quantity because the sign is not
  * always enough — see `consumption_order_changes`.
  */
-const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
+export const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   string,
   (change: ChangeRowLike) => ChangeType | null
 > = new Map<string, (change: ChangeRowLike) => ChangeType | null>([
@@ -137,7 +137,9 @@ const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   ],
 ]);
 
-const CHANGE_TYPE_TO_EVENT: Readonly<Record<ChangeType, WmsStockEventName>> = {
+export const CHANGE_TYPE_TO_EVENT: Readonly<
+  Record<ChangeType, WmsStockEventName>
+> = {
   [ChangeType.RECEIVED]: 'stock.received',
   [ChangeType.IN_SHIPMENT]: 'stock.in-shipment',
   [ChangeType.SHIPPED]: 'stock.shipped',

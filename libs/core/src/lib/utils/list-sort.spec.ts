@@ -5,16 +5,11 @@ import {
   PrimaryColumn,
   type SelectQueryBuilder,
 } from 'typeorm';
-import {
-  LIST_SORT_NULLS,
-  SortOrder,
-  applyListSort,
-  resolveListSort,
-} from '@rytass/wms-module-core';
+import { LIST_SORT_NULLS, applyListSort, resolveListSort } from './list-sort';
+import { SortOrder } from '../typings/list-sort';
 
 /**
- * Unit coverage for the list-sort helper in core (core has no jest target, so
- * its pure helpers are tested here, like the other core utilities).
+ * Unit coverage for the list-sort helper.
  *
  * `applyListSort` is driven against a DataSource whose metadata is built but
  * which never connects — enough to inspect the generated ORDER BY. The DISTINCT
