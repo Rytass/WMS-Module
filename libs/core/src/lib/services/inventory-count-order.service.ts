@@ -36,6 +36,7 @@ import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
+import { positionKey } from '../utils/position-key';
 
 const INVENTORY_COUNT_ORDER_SORT_FIELDS: Readonly<
   Record<InventoryCountOrderSortField, string>
@@ -365,20 +366,6 @@ export class InventoryCountOrderService<
     }));
   }
 
-  private positionKey(position: {
-    materialId: string;
-    batchId: string;
-    locationId: string | null;
-    loaderId: string | null;
-  }): string {
-    return [
-      position.materialId,
-      position.batchId,
-      position.locationId ?? '',
-      position.loaderId ?? '',
-    ].join('|');
-  }
-
   private async scopedLocationIds(
     orderId: string,
     manager: EntityManager,
@@ -434,12 +421,12 @@ export class InventoryCountOrderService<
     });
 
     const byKey = new Map(
-      existing.map((item) => [this.positionKey(item), item] as const),
+      existing.map((item) => [positionKey(item), item] as const),
     );
     const seen = new Set<string>();
 
     for (const position of positions) {
-      const key = this.positionKey(position);
+      const key = positionKey(position);
 
       seen.add(key);
 
@@ -471,7 +458,7 @@ export class InventoryCountOrderService<
 
     // A position that emptied out between two rebuilds is no longer on the
     // sheet; it cannot be counted and would settle to a meaningless zero.
-    const stale = existing.filter((item) => !seen.has(this.positionKey(item)));
+    const stale = existing.filter((item) => !seen.has(positionKey(item)));
 
     if (stale.length) {
       await repos.item.delete({ id: In(stale.map(({ id }) => id)) });
@@ -1114,7 +1101,7 @@ export class InventoryCountOrderService<
     const scoped = await this.scopedLocationIds(order.id, manager);
     const live = new Map(
       (await this.readPositions(scoped, manager)).map(
-        (position) => [this.positionKey(position), position.quantity] as const,
+        (position) => [positionKey(position), position.quantity] as const,
       ),
     );
 
@@ -1123,7 +1110,7 @@ export class InventoryCountOrderService<
         continue;
       }
 
-      const current = live.get(this.positionKey(item)) ?? 0;
+      const current = live.get(positionKey(item)) ?? 0;
 
       if (current !== Number(item.bookQuantity)) {
         throw new ConflictException(
