@@ -3,6 +3,7 @@ import {
   ConsumptionOrderItemEntityClass,
   LoadersEntityClass,
   LocationEntityClass,
+  ReceiveInventoryOrderItemEntityClass,
   ShipInventoryOrderItemEntityClass,
   StockEntity,
   StockEntityClass,
@@ -625,6 +626,7 @@ export class TransferOrderService<
    *
    * - ship (`ship`, `cancelShip`) and transfer (`transfer`, `cancelTransfer`):
    *   `locationId`;
+   * - receive (`receive`): `locationId`, while something is left to receive;
    * - consumption (`issue`, `return`, `settle`): `locationId` where the loader
    *   is the source, `targetLocationId` where it is the consuming loader.
    *
@@ -887,6 +889,44 @@ export class TransferOrderService<
       await transferRepository.update({ id: In(pendingTransferIds) }, {
         locationId,
       } as DeepPartial<TransferOrderItemEntityClass>);
+    }
+
+    const receiveRepository =
+      manager.getRepository<ReceiveInventoryOrderItemEntityClass>(
+        ReceiveInventoryOrderItemEntityClass,
+      );
+    const receiveItems = await receiveRepository.find({
+      where: { loaderId, removedAt: IsNull() },
+      relations: { changes: true },
+    });
+    const pendingReceiveIds: string[] = [];
+
+    for (const item of receiveItems) {
+      const factor = await this.materialService.getConversionFactor(
+        item.materialId,
+        item.unitId || undefined,
+        manager,
+      );
+      const received = sumQuantities(
+        item.changes.map((change) => change.quantityChanged),
+      );
+
+      if (
+        isPositiveQuantity(
+          subtractQuantity(
+            toBaseQuantity(item.targetReceivedQuantity, factor),
+            received,
+          ),
+        )
+      ) {
+        pendingReceiveIds.push(item.id);
+      }
+    }
+
+    if (pendingReceiveIds.length) {
+      await receiveRepository.update({ id: In(pendingReceiveIds) }, {
+        locationId,
+      } as DeepPartial<ReceiveInventoryOrderItemEntityClass>);
     }
 
     const consumptionRepository =
