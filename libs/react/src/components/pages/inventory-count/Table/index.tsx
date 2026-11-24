@@ -47,6 +47,7 @@ const InventoryCountTable: FC<InventoryCountTableProps> = ({
           name: values.name,
           countDate: dayjs(values.countDate).format('YYYY-MM-DD'),
           locationIds: values.locations.map(({ id }) => id),
+          lockLocations: values.lockLocations,
         },
       });
 

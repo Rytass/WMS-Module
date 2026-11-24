@@ -18,6 +18,8 @@ Target audience: engineers integrating WMS into a new product who want a working
    - [4.9 Removing a ship order line](#49-removing-a-ship-order-line)
    - [4.10 Decimal quantities](#410-decimal-quantities)
    - [4.11 Upgrading: `batches.groupId` index](#411-upgrading-batchesgroupid-index)
+   - [4.12 Counting without locking the locations](#412-counting-without-locking-the-locations)
+   - [4.13 Moving a loader that holds reserved stock](#413-moving-a-loader-that-holds-reserved-stock)
 5. [Frontend setup (Next.js Pages Router)](#5-frontend-setup-nextjs-pages-router)
 6. [Pages Router shell pattern (the 19 thin shells)](#6-pages-router-shell-pattern-the-19-thin-shells)
 7. [Apollo client wiring](#7-apollo-client-wiring)
@@ -514,6 +516,40 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS "<prefix>IDX_batches_groupId" ON "<prefi
 ```
 
 `<prefix>` is your `withWmsTablePrefix` prefix, applied to both the index and the table (empty by default). With `withWmsTablePrefix(options, 'wms_')` that is `"wms_IDX_batches_groupId"` on `"wms_batches"`. `CONCURRENTLY` cannot run inside a transaction, so keep it out of a transactional migration. Keep this exact name: `synchronize` matches the index by name, and would drop an index named otherwise and build its own.
+
+### 4.12 Counting without locking the locations
+
+`InventoryCountOrderService.create` takes `lockLocations` (GraphQL: `createInventoryCountOrder(lockLocations: ...)`; the order and its DTO expose it too). The default is `true`: `start()` refuses every stock movement in the scope until the count is settled or cancelled. With `false` the warehouse keeps shipping, receiving and transferring during the count.
+
+- The flag is chosen at creation (it may still be changed with `update` while the order is `PENDING`) and is **fixed from `start()` on**.
+- `settle` skips the "ledger still equals the snapshot" check and posts `counted - snapshot` for each counted line, on top of whatever moved meanwhile. Example: snapshot 10, 3 shipped during the count, counted 9 -> the line posts -1 and the ledger goes 7 -> 6. It does not set the ledger to the counted figure.
+- `settle` takes the stock slot locks of the counted lines first (in both modes), so it queues behind a shipment that is already deducting the same (material, batch).
+- The snapshot (`bookQuantity`) and the count (`countedQuantity`) stay on `inventory_count_order_items` and can be read through `inventoryCountOrderItems`, for the ERP to reconcile.
+- **Known limitation:** a location that moved during the count ends up with a book quantity that is not what is physically on the shelf; the module records no per-line count time, so the timing difference is the host's to reconcile.
+
+The new column is `NOT NULL DEFAULT true`, so every existing order keeps locking. `synchronize: true` adds it; with migrations:
+
+```sql
+ALTER TABLE <prefix>inventory_count_orders
+  ADD COLUMN IF NOT EXISTS "lockLocations" boolean NOT NULL DEFAULT true;
+```
+
+### 4.13 Moving a loader that holds reserved stock
+
+A whole-loader transfer refuses a loader whose stock is not `FREE` (reserved, held), because a transfer splits every batch into a `transferId` child and the flags do not survive the split. To carry a pallet to another location with its reservations intact, call `TransferOrderService.moveLoader` (GraphQL: `moveLoader(loaderId, targetLocationId)`):
+
+```ts
+await transferOrderService.moveLoader({ loaderId, targetLocationId }, manager);
+```
+
+- Every batch the loader holds keeps its id and its flags; the stock is written out of the old location and into the new one, and `loaders.locationId` follows. Shipping or cancelling an existing reservation afterwards works as before.
+- It is recorded as a transfer order that is executed at once: the change log lists it as `TRANSFERRED` and each slot emits `stock.transferred` (the GraphQL mutation also emits `transfer-order.loader-moved`). The order has nothing left to execute or cancel.
+- Unfinished ship, transfer and receive lines (something left to receive) that name the loader get the new `locationId`; open consumption lines get `locationId` (loader is the source) or `targetLocationId` (loader is the consuming loader). Finished lines, and hold, allocate, vendor, customer, scrape and similar lines, keep what they recorded.
+- Refused, with nothing written: the default loader, a loader already at the target, a loader with no stock (use `LoaderService.updateLoader`), an unknown loader or location, and a source or target location that a running inventory count has locked.
+- A pending transfer that consolidates onto the moved loader is not re-pointed (its target location stays): cancel and recreate it after the move.
+- If a reservation lands on the loader while it is being moved, the call throws `ConflictException`; retry it.
+
+If you restrict operations, the new name is `transfer-order:move-loader`.
 
 ---
 

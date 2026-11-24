@@ -447,6 +447,7 @@ type InventoryCountOrderDto {
   name: String!
   countDate: String!
   status: InventoryCountStatus!
+  lockLocations: Boolean!
   createdBy: String
   startedAt: DateTime
   settledAt: DateTime
@@ -1221,6 +1222,11 @@ type Mutation {
   updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
   transfer(items: [TransferOrderArgs!]!): Boolean!
   cancelTransfer(items: [CancelTransferOrderArgs!]!): Boolean!
+
+  """
+  Move a loader and everything on it to another location, keeping batch ids and flags (held, in-shipment, allocated). Unfinished ship, transfer and consumption lines that name the loader follow it. Recorded as an executed whole-loader transfer order; refused for a loader with no stock or a location a running count has locked.
+  """
+  moveLoader(loaderId: ID!, targetLocationId: ID!): TransferOrderDto!
   createHoldInventoryOrder(createdBy: String, items: [CreateHoldInventoryOrderItemArgs!]!): HoldInventoryOrderDto!
   updateHoldInventoryOrder(createdBy: String, id: String!, removedAt: DateTime, items: [UpdateHoldInventoryOrderItemArgs!]): HoldInventoryOrderDto!
   release(items: [ReleaseOrderArgs!]!): Boolean!
@@ -1241,8 +1247,24 @@ type Mutation {
   reclassifyInventoryOrder(materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
   scrapeMaterials(items: [ScrapeOrderItemInput!]!): ScrapeOrderDto!
   inspectMaterials(key: String!, note: String, items: [CreateQualityInspectionOrderItemArgs!]!): QualityInspectionOrderDto!
-  createInventoryCountOrder(name: String!, countDate: String!, locationIds: [ID!]!, createdBy: String): InventoryCountOrderDto!
-  updateInventoryCountOrder(id: ID!, name: String, countDate: String, locationIds: [ID!]): InventoryCountOrderDto!
+  createInventoryCountOrder(
+    name: String!
+    countDate: String!
+    locationIds: [ID!]!
+    createdBy: String
+
+    """Default true: once counting starts, stock movements in the scope are refused. false lets the warehouse keep moving; settlement posts counted minus the snapshot, and the timing difference is left to the host. Fixed once the count starts."""
+    lockLocations: Boolean
+  ): InventoryCountOrderDto!
+  updateInventoryCountOrder(
+    id: ID!
+    name: String
+    countDate: String
+    locationIds: [ID!]
+
+    """Only while the order is still PENDING."""
+    lockLocations: Boolean
+  ): InventoryCountOrderDto!
   startInventoryCount(id: ID!): InventoryCountOrderDto!
   countInventory(id: ID!, items: [CountInventoryItemInput!]!): InventoryCountOrderDto!
   addInventoryCountItem(id: ID!, materialId: ID!, batchKey: String!, locationId: ID!, loaderId: ID, countedQuantity: Float!, unitId: ID): InventoryCountOrderItemDto!

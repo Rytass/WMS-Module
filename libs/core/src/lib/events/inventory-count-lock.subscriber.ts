@@ -2,6 +2,7 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import {
   DataSource,
+  type EntityManager,
   type EntitySubscriberInterface,
   type InsertEvent,
 } from 'typeorm';
@@ -29,6 +30,47 @@ interface LockRow {
   readonly key: string;
   readonly locationId: string;
 }
+
+/**
+ * Refuse when any of `locationIds` is in the scope of a count that is still
+ * `COUNTING`.
+ *
+ * The subscriber below calls this for every change row it sees. A service that
+ * must refuse *before* it writes anything -- a host may catch the error and
+ * carry on in the same transaction, and a refusal that fires on the first
+ * change row would leave the order and item rows written ahead of it -- calls
+ * it up front as well, so both ends say the same thing in the same words.
+ */
+export const assertLocationsNotCounting = async (
+  manager: EntityManager,
+  connection: DataSource,
+  locationIds: readonly string[],
+): Promise<void> => {
+  if (!locationIds.length) {
+    return;
+  }
+
+  const locks: LockRow[] = await manager.query(
+    `SELECT o."key", l."locationId"
+       FROM ${quotedTablePathOf(connection, InventoryCountOrderLocationEntityClass)} l
+       JOIN ${quotedTablePathOf(connection, InventoryCountOrderEntityClass)} o ON o.id = l."orderId"
+      WHERE l."locationId" = ANY($1)
+        AND o.status = 'COUNTING'
+        AND o."lockLocations" = true
+      LIMIT 1`,
+    [locationIds],
+  );
+
+  if (!locks.length) {
+    return;
+  }
+
+  // Naming the order is the difference between an operator who can go and
+  // settle the count and one who just sees "denied".
+  throw new ConflictException(
+    `Location ${locks[0].locationId} is locked by inventory count order ${locks[0].key}; finish or cancel that count before moving this stock.`,
+  );
+};
 
 /**
  * Refuse stock movements in locations a running inventory count has locked.
@@ -62,6 +104,9 @@ interface LockRow {
  * location cannot be reserved or cancelled either while the count runs. That is
  * the conservative side to err on: stock arriving on a counted shelf is exactly
  * the movement the snapshot cannot absorb.
+ *
+ * A count created with `lockLocations: false` is not in this set at all: it
+ * trades the frozen snapshot for a warehouse that keeps moving.
  *
  * The check costs one indexed lookup per change row. That is deliberate: caching
  * the locked set would open a window right after `start()` in which a movement
@@ -97,24 +142,10 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
       return;
     }
 
-    const locks: LockRow[] = await event.manager.query(
-      `SELECT o."key", l."locationId"
-         FROM ${quotedTablePathOf(event.connection, InventoryCountOrderLocationEntityClass)} l
-         JOIN ${quotedTablePathOf(event.connection, InventoryCountOrderEntityClass)} o ON o.id = l."orderId"
-        WHERE l."locationId" = ANY($1)
-          AND o.status = 'COUNTING'
-        LIMIT 1`,
-      [locationIds],
-    );
-
-    if (!locks.length) {
-      return;
-    }
-
-    // Naming the order is the difference between an operator who can go and
-    // settle the count and one who just sees "denied".
-    throw new ConflictException(
-      `Location ${locks[0].locationId} is locked by inventory count order ${locks[0].key}; finish or cancel that count before moving this stock.`,
+    await assertLocationsNotCounting(
+      event.manager,
+      event.connection,
+      locationIds,
     );
   }
 

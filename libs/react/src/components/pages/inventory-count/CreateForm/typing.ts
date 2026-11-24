@@ -5,4 +5,6 @@ export type FormValues = {
   countDate: string;
   /** Root locations; the backend expands each into its whole subtree. */
   locations: SelectValue<string>[];
+  /** `false` lets the warehouse keep moving while counting. */
+  lockLocations: boolean;
 };

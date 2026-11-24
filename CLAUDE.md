@@ -145,6 +145,21 @@ add it to `resolveLocationIds` or the lock has a hole. `settle()` additionally r
 the ledger and refuses on any mismatch with the snapshot, which catches writes that
 bypass change rows entirely.
 
+**`lockLocations: false` is the opt-out, chosen at `create` and fixed from `start()` on**
+(`update` refuses it once the order leaves `PENDING`; the default and every pre-existing row is
+`true`). The subscriber's query joins on `o."lockLocations" = true`, so movements pass; `settle()`
+skips `assertSnapshotHolds` because the ledger is *expected* to have moved. The posted delta is
+still `counted - bookQuantity` (the snapshot), **never** "set the shelf to counted": what moved
+during the count is already in the ledger, so only the counter's disagreement with the sheet is
+booked (snapshot 10, 3 shipped meanwhile, counted 9: post -1, ledger 7 -> 6). `settle()` takes
+`lockStockSlots` on every counted line first in **both** modes, so it queues behind a shipment
+already deducting the same (material, batch). **Known limitation:** a location that moved while
+it was being counted ends up with a book quantity that is not what is on the shelf (counted 9
+says nothing about the 3 that were still on the shelf when the counter passed); that timing
+difference is the host's (ERP's) to reconcile. The snapshot and the count stay on
+`inventory_count_order_items` (`inventoryCountOrderItems`) for that purpose. Upgrade SQL is in
+`libs/core/docs/integration-guide.md` §4.12.
+
 
 The count's own entities (order, scope, item, change) are **not** in `WmsEntities` — they
 are owned outright by this package, so reference them by class per the asymmetry rule above.
@@ -243,6 +258,30 @@ loader's location and then act on it, so they take a `pessimistic_write` lock on
 locks. A header loader that is the whole-loader source of an item in the same order skips the creation-time
 check: whole-loader items run first (the priority rule, and first within one `transfer()` call), after which the
 loader is at the target and the consolidating items pass the execution-time check.
+
+#### `moveLoader` moves a loader in place; it is not a transfer
+
+`TransferOrderService.moveLoader` (#225) is the only way to move a loader that holds reserved, held or allocated
+stock. It never splits: every slot the loader holds (`StockService.findLoaderSlots`: material, batch, location)
+is written out of its location and into the target under the **same batch id**, so flags survive. It is recorded
+as a whole-loader transfer order executed at once -- one item and one `TRANSFER` change per slot, **no RESERVE
+row** -- so the count lock, `stock.transferred` and the change log's `TRANSFERRED` apply with no new table; the
+order has nothing pending, so `transfer`/`cancelTransfer` on it are no-ops by design. Order of work: loader row
+lock, read slots, `assertLocationsNotCounting` on source and target (before any write: a host may swallow the
+refusal), `lockStockSlots`, **re-read the slots** (a reservation does not take the loader row) and throw
+`ConflictException` if a slot appeared -- never lock it late, that inverts the lock order -- then write, then
+`followLoader`, then `loaders.locationId`. Refused: default loader, same location, empty loader (use
+`LoaderService.updateLoader`), unknown ids, counted locations.
+
+`followLoader` re-points the lines whose *later operations read `item.locationId`*, and only while unfinished:
+ship (`ship`/`cancelShip`), transfer (`transfer`/`cancelTransfer`) and receive (`receive`, while target − received > 0) `locationId`; consumption (`issue`/`return`/
+`settle`) `locationId` where the loader is the source and `targetLocationId` where it is the consuming loader.
+Finished lines are history and stay. Hold, allocate, vendor, customer, scrape, inspection, split, merge,
+reclassify and count lines are not touched: they were written in full at creation and a release/return takes its
+location from its own input. **A new item table whose later operations read its stored location must be added to
+`followLoader`.** Known gap: a transfer line that consolidates *onto* the moved loader keeps its
+target location (it fails loudly in the placement check and must be cancelled). Receive lines follow because
+receive is placement-checked (#233): a stale location would leave the order unreceivable.
 
 #### Removing a ship line that still holds a reservation is refused
 

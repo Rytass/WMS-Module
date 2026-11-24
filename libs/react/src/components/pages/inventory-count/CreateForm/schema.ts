@@ -13,4 +13,5 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
     )
     .min(1, '必填')
     .required('必填'),
+  lockLocations: Yup.boolean().required(),
 }) as Yup.ObjectSchema<FormValues>;
