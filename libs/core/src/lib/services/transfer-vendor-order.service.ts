@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   TransferVendorOrderEntity,
   TransferVendorOrderEntityClass,
@@ -33,6 +38,8 @@ import {
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
+import { assertLineNotEdited } from '../utils/assert-line-not-edited';
+import { resolveOrderParty } from '../utils/resolve-order-party';
 import { WmsEntities } from '../models/wms-entities';
 import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
@@ -225,7 +232,7 @@ export class TransferVendorOrderService<
   }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
       options.items
-        ?.filter((item) => !item.removedAt)
+        ?.filter((item) => !item.id && !item.removedAt)
         .forEach((item, index) =>
           assertPositiveQuantityIfPresent(
             item.targetTransferredQuantity,
@@ -246,39 +253,43 @@ export class TransferVendorOrderService<
       });
 
       if (items?.length) {
-        const existingItemIds = new Set(
-          (
-            await repos.transferVendorOrderItem.find({
-              where: { orderId: id },
-              relations: { changes: true },
-            })
-          ).map((item) => item.id),
+        const existingLines = await repos.transferVendorOrderItem.find({
+          where: { orderId: id },
+        });
+        const existingItemIds = new Set(existingLines.map((item) => item.id));
+        const vendorId = resolveOrderParty(
+          'vendorId',
+          options.vendorId,
+          existingLines.map((item) => item.vendorId),
+          id,
         );
 
         const newItems: Partial<TransferVendorOrderItemEntityClass>[] = [];
-        const existingItems: Partial<TransferVendorOrderItemEntityClass>[] = [];
 
         items.forEach((item) => {
-          if (item.removedAt) return;
-          if (!item.id) newItems.push({ ...item, orderId: id });
-          else if (existingItemIds.has(item.id))
-            existingItems.push({ ...item, orderId: id });
-          else
-            throw new NotFoundException(
-              `Transfer vendor order item ${item.id} not found on order ${id}`,
+          if (item.id) {
+            if (!existingItemIds.has(item.id))
+              throw new NotFoundException(
+                `Transfer vendor order item ${item.id} not found on order ${id}`,
+              );
+            // An existing line has already moved stock; it is reversed by its
+            // own operation, never edited or removed in place.
+            assertLineNotEdited(
+              item,
+              'Transfer vendor order',
+              'returnTransferVendorOrder()',
             );
+          } else if (!item.removedAt) {
+            if (!vendorId)
+              throw new BadRequestException(
+                `Transfer vendor order ${id} has no vendorId to add a line under; pass vendorId`,
+              );
+            newItems.push({ ...item, orderId: id, vendorId });
+          }
         });
 
         if (newItems.length)
           await this.processTransferVendorOrderItems(newItems, manager);
-        if (existingItems.length)
-          await repos.transferVendorOrderItem.save(
-            await Promise.all(
-              existingItems.map((item) =>
-                repos.transferVendorOrderItem.create(item),
-              ),
-            ),
-          );
       }
 
       return updated as T;

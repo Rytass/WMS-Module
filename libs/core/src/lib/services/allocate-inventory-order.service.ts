@@ -32,8 +32,8 @@ import {
   assertPositiveQuantity,
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
-import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
+import { assertLineNotEdited } from '../utils/assert-line-not-edited';
 import { WmsEntities } from '../models/wms-entities';
 import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
@@ -212,7 +212,7 @@ export class AllocateInventoryOrderService<
   }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
       options.items
-        ?.filter((item) => !item.removedAt)
+        ?.filter((item) => !item.id && !item.removedAt)
         .forEach((item, index) =>
           assertPositiveQuantityIfPresent(
             item.targetAllocatedQuantity,
@@ -241,30 +241,27 @@ export class AllocateInventoryOrderService<
         );
 
         const newItems: Partial<AllocateInventoryOrderItemEntityClass>[] = [];
-        const existingItems: Partial<AllocateInventoryOrderItemEntityClass>[] =
-          [];
 
         items.forEach((item) => {
-          if (!item.id && item.removedAt) return;
-          else if (!item.id) newItems.push({ ...item, orderId: id });
-          else if (existingItemIds.has(item.id))
-            existingItems.push(asRemovalMarker({ ...item, orderId: id }));
-          else
-            throw new NotFoundException(
-              `Allocate inventory order item ${item.id} not found on order ${id}`,
+          if (item.id) {
+            if (!existingItemIds.has(item.id))
+              throw new NotFoundException(
+                `Allocate inventory order item ${item.id} not found on order ${id}`,
+              );
+            // An existing line has already moved stock; it is reversed by its
+            // own operation, never edited or removed in place.
+            assertLineNotEdited(
+              item,
+              'Allocate inventory order',
+              'deallocate()',
             );
+          } else if (!item.removedAt) {
+            newItems.push({ ...item, orderId: id });
+          }
         });
 
         if (newItems.length)
           await this.processAllocateInventoryOrderItems(newItems, manager);
-        if (existingItems.length)
-          await repos.allocateInventoryOrderItem.save(
-            await Promise.all(
-              existingItems.map((item) =>
-                repos.allocateInventoryOrderItem.create(item),
-              ),
-            ),
-          );
       }
 
       return updated as T;

@@ -25,6 +25,7 @@ import {
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
+import { assertLineNotEdited } from '../utils/assert-line-not-edited';
 import { WmsEntities } from '../models/wms-entities';
 import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
@@ -195,7 +196,7 @@ export class HoldInventoryOrderService<
   }: UpdateHoldInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
       options.items
-        ?.filter((item) => !item.removedAt)
+        ?.filter((item) => !item.id && !item.removedAt)
         .forEach((item, index) =>
           assertPositiveQuantityIfPresent(
             item.targetHeldQuantity,
@@ -221,29 +222,23 @@ export class HoldInventoryOrderService<
         );
 
         const newItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
-        const existingItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
 
         items.forEach((item) => {
-          if (item.removedAt) return;
-          if (!item.id) newItems.push({ ...item, orderId: id });
-          else if (existingItemIds.has(item.id))
-            existingItems.push({ ...item, orderId: id });
-          else
-            throw new NotFoundException(
-              `Hold inventory order item ${item.id} not found on order ${id}`,
-            );
+          if (item.id) {
+            if (!existingItemIds.has(item.id))
+              throw new NotFoundException(
+                `Hold inventory order item ${item.id} not found on order ${id}`,
+              );
+            // An existing line has already moved stock; it is reversed by its
+            // own operation, never edited or removed in place.
+            assertLineNotEdited(item, 'Hold inventory order', 'release()');
+          } else if (!item.removedAt) {
+            newItems.push({ ...item, orderId: id });
+          }
         });
 
         if (newItems.length)
           await this.processHoldInventoryOrderItems(newItems, repos, manager);
-        if (existingItems.length)
-          await repos.holdInventoryOrderItem.save(
-            await Promise.all(
-              existingItems.map((item) =>
-                repos.holdInventoryOrderItem.create(item),
-              ),
-            ),
-          );
       }
 
       return updated as T;
