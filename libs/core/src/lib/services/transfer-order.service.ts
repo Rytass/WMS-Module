@@ -45,6 +45,18 @@ import { runInTransaction } from '../utils/run-in-transaction';
 import { TransferChangeKind } from '../constants/transfer-change-kind';
 import { sumTransferChanges } from '../utils/transfer-change-quantities';
 import { assertChangesHaveKind } from '../utils/assert-change-kinds';
+import {
+  addQuantity,
+  compareQuantity,
+  fromBaseQuantity,
+  isNegativeQuantity,
+  isPositiveQuantity,
+  negateQuantity,
+  quantitiesEqual,
+  subtractQuantity,
+  sumQuantities,
+  toBaseQuantity,
+} from '../utils/quantity';
 
 const TRANSFER_ORDER_SORT_FIELDS: Readonly<
   Record<TransferOrderSortField, string>
@@ -61,7 +73,7 @@ const transferredAndCancelled = (
 ): number => {
   const { transferred, cancelled } = sumTransferChanges(changes);
 
-  return transferred + cancelled;
+  return addQuantity(transferred, cancelled);
 };
 
 /**
@@ -86,9 +98,9 @@ const pendingBaseQuantity = (
   // Every caller goes on to write the ledger, so a row without a kind is refused.
   assertChangesHaveKind(item.id, item.changes);
 
-  return (
-    item.targetTransferredQuantity * conversionFactor -
-    transferredAndCancelled(item.changes)
+  return subtractQuantity(
+    toBaseQuantity(item.targetTransferredQuantity, conversionFactor),
+    transferredAndCancelled(item.changes),
   );
 };
 
@@ -175,7 +187,10 @@ export class TransferOrderService<
         repos.transferOrderChange.create({
           itemId: item.id,
           id: base.id,
-          quantityChanged: item.targetTransferredQuantity * conversionFactor,
+          quantityChanged: toBaseQuantity(
+            item.targetTransferredQuantity,
+            conversionFactor,
+          ),
           kind: TransferChangeKind.RESERVE,
         }),
       );
@@ -187,7 +202,10 @@ export class TransferOrderService<
           batchId: item.batchId,
           locationId: this.stockService.resolveLocationId(item.locationId),
           loaderId: this.stockService.resolveLoaderId(item.loaderId),
-          quantity: item.targetTransferredQuantity * conversionFactor,
+          quantity: toBaseQuantity(
+            item.targetTransferredQuantity,
+            conversionFactor,
+          ),
         },
         manager,
       );
@@ -201,7 +219,9 @@ export class TransferOrderService<
             batchId: item.batchId, // original batch
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: -1 * item.targetTransferredQuantity * conversionFactor,
+            quantity: negateQuantity(
+              toBaseQuantity(item.targetTransferredQuantity, conversionFactor),
+            ),
           } as DeepPartial<StockEntityClass>,
           // add to splitted batch in transfer state
           {
@@ -210,7 +230,10 @@ export class TransferOrderService<
             batchId: splittedBatch.id, // splitted batch marked inTransfer
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetTransferredQuantity * conversionFactor,
+            quantity: toBaseQuantity(
+              item.targetTransferredQuantity,
+              conversionFactor,
+            ),
           } as DeepPartial<StockEntityClass>,
         ]),
       );
@@ -279,8 +302,10 @@ export class TransferOrderService<
       );
       const remainingBase = pendingBaseQuantity(item, factor);
       const cancelQtyBase =
-        option.quantity != null ? option.quantity * factor : remainingBase;
-      if (cancelQtyBase !== remainingBase) {
+        option.quantity != null
+          ? toBaseQuantity(option.quantity, factor)
+          : remainingBase;
+      if (!quantitiesEqual(cancelQtyBase, remainingBase)) {
         throw new Error(
           `Whole-loader item must be cancelled atomically (item=${item.id}, thisCall=${cancelQtyBase}, remaining=${remainingBase})`,
         );
@@ -303,16 +328,20 @@ export class TransferOrderService<
         // If quantity not provided, cancel all remaining cancellable quantity
         const cancelQuantity =
           option.quantity != null
-            ? option.quantity * conversionFactor
+            ? toBaseQuantity(option.quantity, conversionFactor)
             : remainingQuantity;
 
-        if (remainingQuantity - cancelQuantity < 0) {
+        if (
+          isNegativeQuantity(
+            subtractQuantity(remainingQuantity, cancelQuantity),
+          )
+        ) {
           throw new Error(
             `Cancel quantity exceeds pending transfer for item ${option.itemId}`,
           );
         }
 
-        if (cancelQuantity <= 0) return;
+        if (!isPositiveQuantity(cancelQuantity)) return;
 
         // Generate new splitted batch for cancellation reversal with inTransfer flag
         const reversalBatch = await this.batchService.splitBatch({
@@ -340,7 +369,7 @@ export class TransferOrderService<
             repos.transferOrderChange.create({
               itemId: option.itemId,
               id: reverseOrder.id,
-              quantityChanged: -1 * cancelQuantity,
+              quantityChanged: negateQuantity(cancelQuantity),
               kind: TransferChangeKind.CANCEL,
             }),
           ),
@@ -367,7 +396,7 @@ export class TransferOrderService<
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: -1 * cancelQuantity,
+                quantity: negateQuantity(cancelQuantity),
               } as DeepPartial<StockEntityClass>,
             ]),
           ),
@@ -408,11 +437,11 @@ export class TransferOrderService<
 
         const remainingQuantity = pendingBaseQuantity(item, conversionFactor);
 
-        if (remainingQuantity > 0) {
+        if (isPositiveQuantity(remainingQuantity)) {
           // Use base quantity (without conversion) since cancelTransferInternal will apply conversion
           cancelInputs.push({
             itemId: item.id,
-            quantity: remainingQuantity / conversionFactor,
+            quantity: fromBaseQuantity(remainingQuantity, conversionFactor),
           });
         }
       }
@@ -488,11 +517,8 @@ export class TransferOrderService<
           );
         }
         // Gate 2
-        const loaderTotalQty = aggRows.reduce(
-          (s, r) => s + Number(r.quantity),
-          0,
-        );
-        let subTotalQty = 0;
+        const loaderTotalQty = sumQuantities(aggRows.map((r) => r.quantity));
+        const subTotals: number[] = [];
         for (const item of items) {
           if (item.loaderId === srcLoaderId) {
             // Runtime callers augment items with materialId/batchId/unitId beyond
@@ -506,10 +532,13 @@ export class TransferOrderService<
               itemFull.unitId || undefined,
               manager,
             );
-            subTotalQty += Number(item.targetTransferredQuantity) * factor;
+            subTotals.push(
+              toBaseQuantity(item.targetTransferredQuantity, factor),
+            );
           }
         }
-        if (subTotalQty !== loaderTotalQty) {
+        const subTotalQty = sumQuantities(subTotals);
+        if (!quantitiesEqual(subTotalQty, loaderTotalQty)) {
           throw new Error(
             `Whole-loader transfer must reserve entire loader qty for loader ${srcLoaderId} (requested=${subTotalQty}, loaderTotal=${loaderTotalQty})`,
           );
@@ -852,7 +881,7 @@ export class TransferOrderService<
       // from moving the target loader prematurely (which would orphan stocks).
       //
       // Plus the per-loader sum check: for whole-loader-mode inputs in this request,
-      // sum.input.quantity * factor must equal loaderTotalQty (catches the
+      // toBaseQuantity(sum.input.quantity, factor) must equal loaderTotalQty (catches the
       // receive-onto-moving-loader scenario where loaderTotalQty drifts > sum).
       const orderIds = new Set<string>();
       for (const item of items) orderIds.add(item.orderId);
@@ -877,14 +906,23 @@ export class TransferOrderService<
             orderItem.unitId || undefined,
             manager,
           );
-          const targetBase = orderItem.targetTransferredQuantity * factor;
+          const targetBase = toBaseQuantity(
+            orderItem.targetTransferredQuantity,
+            factor,
+          );
           assertChangesHaveKind(orderItem.id, orderItem.changes);
           const alreadyTransferred = transferredAndCancelled(orderItem.changes);
-          if (alreadyTransferred >= targetBase) continue; // already fully transferred (committed or cancelled)
+          if (compareQuantity(alreadyTransferred, targetBase) >= 0) continue; // already fully transferred (committed or cancelled)
           const inputOpt = inputMap.get(orderItem.id);
           if (inputOpt) {
-            const inputBase = inputOpt.quantity * factor;
-            if (alreadyTransferred + inputBase === targetBase) continue; // this request completes it
+            const inputBase = toBaseQuantity(inputOpt.quantity, factor);
+            if (
+              quantitiesEqual(
+                addQuantity(alreadyTransferred, inputBase),
+                targetBase,
+              )
+            )
+              continue; // this request completes it
           }
           throw new Error(
             `Whole-loader item must be fully transferred first (item=${orderItem.id}, target=${targetBase}, alreadyTransferred=${alreadyTransferred})`,
@@ -905,8 +943,10 @@ export class TransferOrderService<
           );
           wholeLoaderGroupSums.set(
             item.loaderId,
-            (wholeLoaderGroupSums.get(item.loaderId) ?? 0) +
-              option.quantity * factor,
+            addQuantity(
+              wholeLoaderGroupSums.get(item.loaderId) ?? 0,
+              toBaseQuantity(option.quantity, factor),
+            ),
           );
         }
       }
@@ -915,11 +955,8 @@ export class TransferOrderService<
           { loaderId: srcLoaderId },
           manager,
         );
-        const loaderTotalQty = aggRows.reduce(
-          (s, r) => s + Number(r.quantity),
-          0,
-        );
-        if (subTotalQty !== loaderTotalQty) {
+        const loaderTotalQty = sumQuantities(aggRows.map((r) => r.quantity));
+        if (!quantitiesEqual(subTotalQty, loaderTotalQty)) {
           throw new Error(
             `Whole-loader transfer must execute 100% qty (loader=${srcLoaderId}, thisRequest=${subTotalQty}, loaderTotal=${loaderTotalQty})`,
           );
@@ -950,7 +987,14 @@ export class TransferOrderService<
 
           const remainingQuantity = pendingBaseQuantity(item, conversionFactor);
 
-          if (remainingQuantity - option.quantity * conversionFactor < 0)
+          if (
+            isNegativeQuantity(
+              subtractQuantity(
+                remainingQuantity,
+                toBaseQuantity(option.quantity, conversionFactor),
+              ),
+            )
+          )
             throw new Error(
               `Transfer quantity exceeds remaining quantity for item ${item.id}`,
             );
@@ -978,7 +1022,7 @@ export class TransferOrderService<
               batchId: inTransferBatch.id,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: option.quantity * conversionFactor,
+              quantity: toBaseQuantity(option.quantity, conversionFactor),
             },
             manager,
           );
@@ -1002,7 +1046,9 @@ export class TransferOrderService<
               changeRepository.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged: -1 * option.quantity * conversionFactor,
+                quantityChanged: negateQuantity(
+                  toBaseQuantity(option.quantity, conversionFactor),
+                ),
                 kind: TransferChangeKind.TRANSFER,
               }),
             ),
@@ -1021,7 +1067,7 @@ export class TransferOrderService<
                   loaderId: this.stockService.resolveLoaderId(
                     item.targetLoaderId,
                   ),
-                  quantity: option.quantity * conversionFactor,
+                  quantity: toBaseQuantity(option.quantity, conversionFactor),
                 } as DeepPartial<StockEntityClass>,
                 // drain from the IN_TRANSFER split batch
                 {
@@ -1032,7 +1078,9 @@ export class TransferOrderService<
                     item.locationId,
                   ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * option.quantity * conversionFactor,
+                  quantity: negateQuantity(
+                    toBaseQuantity(option.quantity, conversionFactor),
+                  ),
                 } as DeepPartial<StockEntityClass>,
               ]),
             ),
