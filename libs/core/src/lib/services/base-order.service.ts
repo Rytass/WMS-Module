@@ -3,6 +3,7 @@ import { StockEntityClass } from '../models';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 export interface StockEntryParams {
   materialId: string;
@@ -73,7 +74,7 @@ export abstract class BaseOrderService {
         batchId,
         locationId: this.stockService.resolveLocationId(locationId),
         loaderId: this.stockService.resolveLoaderId(loaderId),
-        quantity: quantity * conversionFactor,
+        quantity: toBaseQuantity(quantity, conversionFactor),
       }),
     );
 
@@ -111,7 +112,7 @@ export abstract class BaseOrderService {
         batchId,
         locationId: this.stockService.resolveLocationId(locationId),
         loaderId: this.stockService.resolveLoaderId(loaderId),
-        quantity: quantity * conversionFactor,
+        quantity: toBaseQuantity(quantity, conversionFactor),
       },
       repos.stock.manager,
     );
@@ -123,7 +124,7 @@ export abstract class BaseOrderService {
         batchId,
         locationId: this.stockService.resolveLocationId(locationId),
         loaderId: this.stockService.resolveLoaderId(loaderId),
-        quantity: -1 * quantity * conversionFactor,
+        quantity: negateQuantity(toBaseQuantity(quantity, conversionFactor)),
       }),
     );
   }

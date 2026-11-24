@@ -54,6 +54,7 @@ import type {
   WmsCustomChangeTable,
   WmsStockChangeRow,
 } from '../typings/custom-change-table';
+import { compareQuantity, toQuantityNumber } from '../utils/quantity';
 
 /** Every `ChangeType` value, for deciding whether a host reused our vocabulary. */
 const CHANGE_TYPE_VALUES: ReadonlySet<string> = new Set(
@@ -963,9 +964,9 @@ export class StockService<
       .setParameters(aggregateQuery.getParameters())
       .getRawOne<{ total: string }>();
 
-    const available = parseFloat(result?.total ?? '0');
+    const available = toQuantityNumber(result?.total ?? '0');
 
-    if (available < quantity) {
+    if (compareQuantity(available, quantity) < 0) {
       throw new Error(
         `Insufficient stock: available ${available}, requested ${quantity} (materialId=${materialId}, batchId=${batchId}, loaderId=${loaderId})`,
       );
