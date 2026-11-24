@@ -158,7 +158,7 @@ it was being counted ends up with a book quantity that is not what is on the she
 says nothing about the 3 that were still on the shelf when the counter passed); that timing
 difference is the host's (ERP's) to reconcile. The snapshot and the count stay on
 `inventory_count_order_items` (`inventoryCountOrderItems`) for that purpose. Upgrade SQL is in
-`libs/core/docs/integration-guide.md` §4.11.
+`libs/core/docs/integration-guide.md` §4.12.
 
 
 The count's own entities (order, scope, item, change) are **not** in `WmsEntities` — they
@@ -237,6 +237,11 @@ Public write entry points call `assertPositiveQuantity` (`libs/core/src/lib/util
 anything is written (#221). Do **not** put it in the shared `process*Items` helpers: `release`, `deallocate`
 and `return*` write negative targets on purpose. On `update*` paths the check and the persistence loop must
 share one predicate (a new line carrying `removedAt` is skipped, not created).
+
+Unit `conversionFactor` follows the same rule: `assertPositiveConversionFactor` guards `createMaterial` /
+`updateMaterial` before any write, and `MaterialService.getConversionFactor` re-checks what it reads (the
+column is unconstrained `numeric`, so a stored `0`, negative, `NaN` or `Infinity` throws instead of being
+multiplied in).
 
 #### A transfer never moves a loader away from its stock
 

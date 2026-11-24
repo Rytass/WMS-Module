@@ -404,6 +404,21 @@ describe('table prefix (integration)', () => {
     });
   });
 
+  describe('3b. batches.groupId is indexed under the prefix', () => {
+    it('names the index with the prefix, on the prefixed table', async () => {
+      const rows: { indexname: string }[] = await dataSource.query(
+        `SELECT indexname FROM pg_indexes
+          WHERE schemaname = 'public' AND tablename = $1
+            AND indexdef LIKE '%("groupId")%'`,
+        [`${PREFIX}batches`],
+      );
+
+      expect(rows.map(({ indexname }) => indexname)).toEqual([
+        `${PREFIX}IDX_batches_groupId`,
+      ]);
+    });
+  });
+
   describe('4. idempotent, and one prefix per process', () => {
     it('does not double the prefix when applied again', () => {
       applyWmsTablePrefix(PREFIX);

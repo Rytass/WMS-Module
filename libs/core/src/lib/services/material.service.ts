@@ -24,6 +24,7 @@ import {
 import { SortOrder } from '../typings/list-sort';
 import { UnitEntityClass } from '../models';
 import { applyListSort } from '../utils/list-sort';
+import { assertPositiveConversionFactor } from '../utils/assert-positive-conversion-factor';
 
 /** ORDER BY expressions per sort field; `baseUnit` is joined on demand. */
 const MATERIAL_SORT_FIELDS: Readonly<Record<MaterialSortField, string>> = {
@@ -75,7 +76,12 @@ export class MaterialService<
       id: unitId,
     });
 
-    return materialUnit.conversionFactor;
+    // `numeric` comes back from pg as a string; a stored 0, negative, NaN or
+    // Infinity must stop the movement rather than be multiplied in.
+    return assertPositiveConversionFactor(
+      materialUnit.conversionFactor,
+      materialUnit.unit,
+    );
   }
 
   async createMaterial({
@@ -90,6 +96,10 @@ export class MaterialService<
 
     const unitRepository =
       manager.getRepository<UnitEntityClass>(UnitEntityClass);
+
+    options.units?.forEach((unit) =>
+      assertPositiveConversionFactor(unit.conversionFactor, unit.unit),
+    );
 
     const baseUnit = await unitRepository
       .findOneBy({ key: options.baseUnit })
@@ -132,6 +142,32 @@ export class MaterialService<
       id: options.id,
     });
 
+    const newUnits: Partial<MaterialUnitEntityClass>[] = [];
+    const existingUnits: Partial<MaterialUnitEntityClass>[] = [];
+
+    if (options.units?.length) {
+      const known = new Set(
+        (
+          await materialUnitRepository.find({
+            where: { materialId: options.id },
+          })
+        ).map((u) => u.unit),
+      );
+
+      // Checked before anything is written. An existing unit may be re-sent
+      // without a factor; any value given, and every new unit's, must be usable.
+      options.units.forEach((unit) => {
+        if (known.has(unit.unit)) {
+          if (unit.conversionFactor !== undefined)
+            assertPositiveConversionFactor(unit.conversionFactor, unit.unit);
+          existingUnits.push(unit);
+        } else {
+          assertPositiveConversionFactor(unit.conversionFactor, unit.unit);
+          newUnits.push(unit);
+        }
+      });
+    }
+
     const updated = await materialRepository.save(
       materialRepository.create({
         ...material,
@@ -139,36 +175,21 @@ export class MaterialService<
       }),
     );
 
-    if (options.units?.length) {
-      const newUnits: Partial<MaterialUnitEntityClass>[] = [];
-      const existingUnits: Partial<MaterialUnitEntityClass>[] = [];
-
-      await materialUnitRepository
-        .find({ where: { materialId: options.id } })
-        .then((units) => {
-          const unitSet = new Set(units.map((u) => u.unit));
-          options.units?.forEach((unit) => {
-            if (unitSet.has(unit.unit)) existingUnits.push(unit);
-            else newUnits.push(unit);
-          });
-        });
-
-      if (newUnits.length)
-        await materialUnitRepository.save(
-          materialUnitRepository.create(
-            newUnits.map((unit) => ({ ...unit, materialId: options.id })),
+    if (newUnits.length)
+      await materialUnitRepository.save(
+        materialUnitRepository.create(
+          newUnits.map((unit) => ({ ...unit, materialId: options.id })),
+        ),
+      );
+    if (existingUnits.length)
+      await Promise.all(
+        existingUnits.map((unit) =>
+          materialUnitRepository.update(
+            { materialId: options.id, unit: unit.unit },
+            unit,
           ),
-        );
-      if (existingUnits.length)
-        await Promise.all(
-          existingUnits.map((unit) =>
-            materialUnitRepository.update(
-              { materialId: options.id, unit: unit.unit },
-              unit,
-            ),
-          ),
-        );
-    }
+        ),
+      );
 
     return updated as T;
   }
