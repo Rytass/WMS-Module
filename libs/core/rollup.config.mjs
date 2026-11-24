@@ -15,6 +15,7 @@ const externalPatterns = [
   /^lodash\//,
   'lru-cache',
   'luxon',
+  'decimal.js',
   'tslib',
   ...builtinModules,
   ...builtinModules.map((mod) => `node:${mod}`),
