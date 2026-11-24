@@ -13,9 +13,12 @@ import {
   InventoryCountStatus,
   LocationEntityClass,
   MaterialEntityClass,
+  ReceiveInventoryOrderService,
   ScrapeService,
+  ShipInventoryOrderService,
   StockEntityClass,
   StockService,
+  StockStatus,
   TransferOrderService,
   WmsEntities,
 } from '@rytass/wms-module-core';
@@ -77,6 +80,8 @@ describe('inventory counting (integration)', () => {
   let countService: InventoryCountOrderService;
   let scrapeService: ScrapeService;
   let transferService: TransferOrderService;
+  let shipService: ShipInventoryOrderService;
+  let receiveService: ReceiveInventoryOrderService;
   let stockService: StockService;
   let batchService: BatchService;
   let schema: GraphQLSchema;
@@ -208,6 +213,8 @@ describe('inventory counting (integration)', () => {
     countService = app.get(InventoryCountOrderService);
     scrapeService = app.get(ScrapeService);
     transferService = app.get(TransferOrderService);
+    shipService = app.get(ShipInventoryOrderService);
+    receiveService = app.get(ReceiveInventoryOrderService);
     stockService = app.get(StockService);
     batchService = app.get(BatchService);
     schema = app.get(GraphQLSchemaHost).schema;
@@ -1081,6 +1088,485 @@ describe('inventory counting (integration)', () => {
             row.countedQuantity === null,
         ),
       ).toBe(true);
+
+      await countService.cancel(order.id);
+    });
+  });
+
+  /**
+   * `lockLocations: false` -- the count that runs while the warehouse keeps
+   * moving. Its own location tree and one material per test, so nothing here
+   * lands on the shelf the suites above read by position.
+   */
+  describe('counting without locking the locations', () => {
+    let freeAisleId: string;
+    let freeShelfId: string;
+    let freeDockId: string;
+    let seq = 0;
+
+    const sumText = async (material: string): Promise<string> => {
+      const [row] = await dataSource.query(
+        `SELECT COALESCE(SUM(quantity), 0)::text AS total FROM ${t('stocks')} WHERE "materialId" = $1`,
+        [material],
+      );
+
+      return row.total;
+    };
+
+    const stockedMaterial = async (
+      quantity: number,
+    ): Promise<{
+      materialId: string;
+      materialKey: string;
+      batchId: string;
+      batchKey: string;
+    }> => {
+      seq += 1;
+
+      const materialRepository = dataSource.getRepository<MaterialEntityClass>(
+        entities.material,
+      );
+      const material = await materialRepository.save(
+        materialRepository.create({
+          key: `FREE-MATERIAL-${seq}`,
+        } as DeepPartial<MaterialEntityClass>),
+      );
+      const batchKey = `FREE-BATCH-${seq}`;
+      const batch = await batchService.getBatch({
+        key: batchKey,
+        materialId: material.id,
+      });
+
+      await seedStock(quantity, {
+        materialId: material.id,
+        batchId: batch.id,
+        locationId: freeShelfId,
+      });
+
+      return {
+        materialId: material.id,
+        materialKey: material.key,
+        batchId: batch.id,
+        batchKey,
+      };
+    };
+
+    const shipLine = async (
+      materialId: string,
+      batchId: string,
+      quantity: number,
+    ): Promise<string> =>
+      dataSource.transaction(async (manager) => {
+        seq += 1;
+
+        const order = await shipService.createShipInventoryOrder({
+          key: `FREE-SHIP-${seq}`,
+          description: 'shipped during a count',
+          references: [],
+          manager,
+        });
+
+        await shipService.addShipInventoryOrderItems(
+          {
+            orderId: order.id,
+            items: [
+              {
+                materialId,
+                batchId,
+                locationId: freeShelfId,
+                targetShippedQuantity: quantity,
+                status: StockStatus.FREE,
+                serialId: `FREE-SHIP-LINE-${seq}`,
+                orderId: order.id,
+              },
+            ],
+          },
+          manager,
+        );
+
+        const [item] = await manager.query(
+          `SELECT id FROM ${t('ship_inventory_order_items')} WHERE "orderId" = $1`,
+          [order.id],
+        );
+
+        return item.id as string;
+      });
+
+    const itemOf = async (
+      orderId: string,
+      materialId: string,
+    ): Promise<{ id: string }> => {
+      const [item] = await dataSource.query(
+        `SELECT id FROM ${t('inventory_count_order_items')} WHERE "orderId" = $1 AND "materialId" = $2 AND "isAddition" = false`,
+        [orderId, materialId],
+      );
+
+      return item;
+    };
+
+    const createFree = async (name: string, lockLocations: boolean) =>
+      countService.create({
+        name,
+        countDate: '2026-11-23',
+        locationIds: [freeAisleId],
+        lockLocations,
+      });
+
+    beforeAll(async () => {
+      const locationRepository = dataSource.getRepository<LocationEntityClass>(
+        entities.location,
+      );
+      const aisle = await locationRepository.save(
+        locationRepository.create({
+          key: 'FREE-AISLE',
+          description: 'aisle',
+          isActive: true,
+        } as DeepPartial<LocationEntityClass>),
+      );
+      const shelf = await locationRepository.save(
+        locationRepository.create({
+          key: 'FREE-SHELF',
+          description: 'shelf',
+          isActive: true,
+          parent: aisle,
+        } as DeepPartial<LocationEntityClass>),
+      );
+      const dock = await locationRepository.save(
+        locationRepository.create({
+          key: 'FREE-DOCK',
+          description: 'dock',
+          isActive: true,
+        } as DeepPartial<LocationEntityClass>),
+      );
+
+      freeAisleId = aisle.id;
+      freeShelfId = shelf.id;
+      freeDockId = dock.id;
+    });
+
+    it('locks by default, and says so on the order', async () => {
+      const order = await countService.create({
+        name: 'default lock',
+        countDate: '2026-11-23',
+        locationIds: [freeAisleId],
+      });
+
+      expect(order.lockLocations).toBe(true);
+
+      const { materialId: lockedMaterial, batchId: lockedBatch } =
+        await stockedMaterial(5);
+
+      await countService.start(order.id);
+
+      await expect(
+        scrapeService.scrape([
+          {
+            materialId: lockedMaterial,
+            batchId: lockedBatch,
+            locationId: freeShelfId,
+            loaderId: null,
+            unitId: null,
+            quantity: 1,
+          } as never,
+        ]),
+      ).rejects.toThrow(new RegExp(order.key));
+
+      await countService.cancel(order.id);
+    });
+
+    it('lets shipping, receiving and transferring carry on while counting', async () => {
+      const stocked = await stockedMaterial(20);
+      const order = await createFree('unlocked movements', false);
+
+      expect(order.lockLocations).toBe(false);
+
+      await countService.start(order.id);
+
+      // The reproduction from #226: each of these is refused while the
+      // locations are locked.
+      const itemId = await shipLine(stocked.materialId, stocked.batchId, 1);
+
+      await shipService.ship({ itemId, quantity: 1 });
+
+      const receive = await receiveService.createReceiveInventoryOrder({
+        key: `FREE-RCV-${(seq += 1)}`,
+        description: 'received during a count',
+        items: [
+          {
+            serialId: `FREE-RCV-LINE-${seq}`,
+            materialKey: stocked.materialKey,
+            batchKey: `FREE-RCV-BATCH-${seq}`,
+            locationKey: 'FREE-SHELF',
+            targetReceivedQuantity: 4,
+            requireInspection: false,
+          },
+        ],
+      });
+      const [receiveItem] = await dataSource.query(
+        `SELECT id FROM ${t('receive_inventory_order_items')} WHERE "orderId" = $1`,
+        [receive.id],
+      );
+
+      await receiveService.receive({ itemId: receiveItem.id, quantity: 4 });
+
+      const transfer = await transferService.createTransferOrder({
+        locationId: freeDockId,
+        items: [
+          {
+            materialId: stocked.materialId,
+            batchId: stocked.batchId,
+            locationId: freeShelfId,
+            targetTransferredQuantity: 2,
+          },
+        ],
+      } as never);
+      const [transferItem] = await dataSource.query(
+        `SELECT id FROM ${t('transfer_order_items')} WHERE "orderId" = $1`,
+        [transfer.id],
+      );
+
+      await transferService.transfer({
+        itemId: transferItem.id,
+        quantity: 2,
+      });
+
+      // 20 - 1 shipped + 4 received (another batch); the transfer nets to 0.
+      expect(await sumText(stocked.materialId)).toBe('23');
+
+      await countService.cancel(order.id);
+    });
+
+    it('settles counted minus snapshot on top of what moved meanwhile', async () => {
+      const stocked = await stockedMaterial(10);
+      const order = await createFree('unlocked settle', false);
+
+      await countService.start(order.id);
+
+      // 3 leave during the count: the ledger is 7 while the snapshot says 10.
+      const itemId = await shipLine(stocked.materialId, stocked.batchId, 3);
+
+      await shipService.ship({ itemId, quantity: 3 });
+
+      expect(await sumText(stocked.materialId)).toBe('7');
+
+      // The counter reaches the shelf afterwards and finds 9: 1 short of the
+      // 10 the sheet expected, whatever the books say now.
+      const line = await itemOf(order.id, stocked.materialId);
+
+      await countService.count(order.id, [
+        { itemId: line.id, countedQuantity: 9 },
+      ]);
+
+      const settled = await countService.settle(order.id);
+
+      expect(settled.status).toBe(InventoryCountStatus.COMPLETED);
+
+      // -1, not -(7 - 9) = +2 and not "set the shelf to 9": the shipment is
+      // already in the ledger, so only the miscount may be posted. 7 - 1 = 6.
+      const [change] = await dataSource.query(
+        `SELECT "quantityChanged" FROM ${t('inventory_count_order_changes')} WHERE "itemId" = $1`,
+        [line.id],
+      );
+
+      expect(Number(change.quantityChanged)).toBe(-1);
+      expect(await sumText(stocked.materialId)).toBe('6');
+
+      // The snapshot and the count stay on the sheet for the ERP to read.
+      const [kept] = await dataSource.query(
+        `SELECT "bookQuantity"::text AS book, "countedQuantity"::text AS counted FROM ${t('inventory_count_order_items')} WHERE id = $1`,
+        [line.id],
+      );
+
+      expect(kept).toEqual({ book: '10', counted: '9' });
+    });
+
+    it('keeps 0.1-grain differences exact', async () => {
+      const stocked = await stockedMaterial(0.5);
+      const order = await createFree('unlocked grain', false);
+
+      await countService.start(order.id);
+
+      const itemId = await shipLine(stocked.materialId, stocked.batchId, 0.2);
+
+      await shipService.ship({ itemId, quantity: 0.2 });
+
+      const line = await itemOf(order.id, stocked.materialId);
+
+      // 0.4 - 0.5 is -0.09999999999999998 in floats.
+      await countService.count(order.id, [
+        { itemId: line.id, countedQuantity: 0.4 },
+      ]);
+      await countService.settle(order.id);
+
+      const [change] = await dataSource.query(
+        `SELECT "quantityChanged"::text AS delta FROM ${t('inventory_count_order_changes')} WHERE "itemId" = $1`,
+        [line.id],
+      );
+
+      expect(change.delta).toBe('-0.1');
+      expect(await sumText(stocked.materialId)).toBe('0.2');
+    });
+
+    it('does not refuse to settle when the ledger moved', async () => {
+      const stocked = await stockedMaterial(10);
+      const order = await createFree('unlocked drift', false);
+
+      await countService.start(order.id);
+      await seedStock(1, {
+        materialId: stocked.materialId,
+        batchId: stocked.batchId,
+        locationId: freeShelfId,
+      });
+
+      const line = await itemOf(order.id, stocked.materialId);
+
+      await countService.count(order.id, [
+        { itemId: line.id, countedQuantity: 10 },
+      ]);
+
+      // The locked mode refuses this ("moved"); here the movement is expected.
+      await expect(countService.settle(order.id)).resolves.toMatchObject({
+        status: InventoryCountStatus.COMPLETED,
+      });
+      expect(await sumText(stocked.materialId)).toBe('11');
+    });
+
+    it('takes the stock locks before it writes, in both modes', async () => {
+      const spy = jest.spyOn(stockService, 'lockStockSlots');
+
+      for (const lockLocations of [true, false]) {
+        const stocked = await stockedMaterial(5);
+        const order = await createFree(`slots ${lockLocations}`, lockLocations);
+
+        await countService.start(order.id);
+
+        const line = await itemOf(order.id, stocked.materialId);
+
+        await countService.count(order.id, [
+          { itemId: line.id, countedQuantity: 4 },
+        ]);
+
+        spy.mockClear();
+        await countService.settle(order.id);
+
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy.mock.calls[0][0]).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              materialId: stocked.materialId,
+              batchId: stocked.batchId,
+            }),
+          ]),
+        );
+      }
+
+      spy.mockRestore();
+    });
+
+    it('waits for a shipment that holds the stock slot', async () => {
+      const stocked = await stockedMaterial(10);
+      const order = await createFree('unlocked race', false);
+
+      await countService.start(order.id);
+
+      const line = await itemOf(order.id, stocked.materialId);
+
+      await countService.count(order.id, [
+        { itemId: line.id, countedQuantity: 10 },
+      ]);
+
+      let release: () => void = () => undefined;
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      let acquired: () => void = () => undefined;
+      const lockTaken = new Promise<void>((resolve) => {
+        acquired = resolve;
+      });
+
+      // Another transaction in the middle of a deduction: it owns the slot.
+      const other = dataSource.transaction(async (manager) => {
+        await stockService.lockStockSlots(
+          [{ materialId: stocked.materialId, batchId: stocked.batchId }],
+          manager,
+        );
+        acquired();
+        await held;
+      });
+
+      await lockTaken;
+
+      let settled = false;
+      const settling = countService.settle(order.id).then(() => {
+        settled = true;
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
+      expect(settled).toBe(false);
+
+      release();
+      await other;
+      await settling;
+
+      expect(settled).toBe(true);
+    });
+
+    it('fixes the flag once counting has started', async () => {
+      const order = await createFree('flag frozen', false);
+
+      // Still pending: the order is editable like any other field.
+      const flipped = await countService.update(order.id, {
+        lockLocations: true,
+      });
+
+      expect(flipped.lockLocations).toBe(true);
+
+      await countService.update(order.id, { lockLocations: false });
+      await countService.start(order.id);
+
+      await expect(
+        countService.update(order.id, { lockLocations: true }),
+      ).rejects.toThrow();
+
+      const [row] = await dataSource.query(
+        `SELECT "lockLocations" FROM ${t('inventory_count_orders')} WHERE id = $1`,
+        [order.id],
+      );
+
+      expect(row.lockLocations).toBe(false);
+
+      await countService.cancel(order.id);
+    });
+
+    it('creates the order and serves its sheet through the schema', async () => {
+      const stocked = await stockedMaterial(8);
+      const created = await execute(`mutation {
+        createInventoryCountOrder(
+          name: "schema unlocked"
+          countDate: "2026-11-23"
+          locationIds: ["${freeAisleId}"]
+          lockLocations: false
+        ) { id lockLocations }
+      }`);
+
+      expect(created.errors).toBeUndefined();
+
+      const order = created.data?.['createInventoryCountOrder'] as {
+        id: string;
+        lockLocations: boolean;
+      };
+
+      expect(order.lockLocations).toBe(false);
+
+      await countService.start(order.id);
+
+      const sheet = await execute(`{
+        inventoryCountOrderItems(id: "${order.id}") { items { bookQuantity materialId } }
+      }`);
+
+      expect(sheet.errors).toBeUndefined();
+      expect(JSON.stringify(sheet.data)).toContain(stocked.materialId);
 
       await countService.cancel(order.id);
     });

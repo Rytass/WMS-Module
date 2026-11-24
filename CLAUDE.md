@@ -145,6 +145,21 @@ add it to `resolveLocationIds` or the lock has a hole. `settle()` additionally r
 the ledger and refuses on any mismatch with the snapshot, which catches writes that
 bypass change rows entirely.
 
+**`lockLocations: false` is the opt-out, chosen at `create` and fixed from `start()` on**
+(`update` refuses it once the order leaves `PENDING`; the default and every pre-existing row is
+`true`). The subscriber's query joins on `o."lockLocations" = true`, so movements pass; `settle()`
+skips `assertSnapshotHolds` because the ledger is *expected* to have moved. The posted delta is
+still `counted - bookQuantity` (the snapshot), **never** "set the shelf to counted": what moved
+during the count is already in the ledger, so only the counter's disagreement with the sheet is
+booked (snapshot 10, 3 shipped meanwhile, counted 9: post -1, ledger 7 -> 6). `settle()` takes
+`lockStockSlots` on every counted line first in **both** modes, so it queues behind a shipment
+already deducting the same (material, batch). **Known limitation:** a location that moved while
+it was being counted ends up with a book quantity that is not what is on the shelf (counted 9
+says nothing about the 3 that were still on the shelf when the counter passed); that timing
+difference is the host's (ERP's) to reconcile. The snapshot and the count stay on
+`inventory_count_order_items` (`inventoryCountOrderItems`) for that purpose. Upgrade SQL is in
+`libs/core/docs/integration-guide.md` §4.12.
+
 
 The count's own entities (order, scope, item, change) are **not** in `WmsEntities` — they
 are owned outright by this package, so reference them by class per the asymmetry rule above.

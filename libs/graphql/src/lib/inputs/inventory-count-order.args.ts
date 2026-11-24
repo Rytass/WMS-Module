@@ -129,6 +129,13 @@ export class CreateInventoryCountOrderArgs {
    */
   @Field(() => String, { nullable: true })
   createdBy?: string;
+
+  @Field(() => Boolean, {
+    nullable: true,
+    description:
+      'Default true: once counting starts, stock movements in the scope are refused. false lets the warehouse keep moving; settlement posts counted minus the snapshot, and the timing difference is left to the host. Fixed once the count starts.',
+  })
+  lockLocations?: boolean;
 }
 
 @ArgsType()
@@ -144,6 +151,12 @@ export class UpdateInventoryCountOrderArgs {
 
   @Field(() => [ID], { nullable: true })
   locationIds?: string[];
+
+  @Field(() => Boolean, {
+    nullable: true,
+    description: 'Only while the order is still PENDING.',
+  })
+  lockLocations?: boolean;
 }
 
 @InputType()

@@ -63,6 +63,9 @@ interface LockRow {
  * the conservative side to err on: stock arriving on a counted shelf is exactly
  * the movement the snapshot cannot absorb.
  *
+ * A count created with `lockLocations: false` is not in this set at all: it
+ * trades the frozen snapshot for a warehouse that keeps moving.
+ *
  * The check costs one indexed lookup per change row. That is deliberate: caching
  * the locked set would open a window right after `start()` in which a movement
  * slips through, and a lock with a window is not a lock.
@@ -103,6 +106,7 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
          JOIN ${quotedTablePathOf(event.connection, InventoryCountOrderEntityClass)} o ON o.id = l."orderId"
         WHERE l."locationId" = ANY($1)
           AND o.status = 'COUNTING'
+          AND o."lockLocations" = true
         LIMIT 1`,
       [locationIds],
     );
