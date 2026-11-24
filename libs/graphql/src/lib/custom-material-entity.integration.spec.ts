@@ -523,8 +523,8 @@ describe('custom material entity (integration)', () => {
       ).resolves.toBeNull();
     });
 
-    it('is not picked up as a receive order item', async () => {
-      const data = await executeOrFail(`
+    it('is not picked up as a receive order item, and the order is refused', async () => {
+      const { errors } = await execute(`
         mutation {
           createReceiveInventoryOrder(
             key: "CME-RO-LEGACY"
@@ -540,14 +540,13 @@ describe('custom material entity (integration)', () => {
         }
       `);
 
-      expect(
-        (data['createReceiveInventoryOrder'] as { readonly items: unknown[] })
-          .items,
-      ).toHaveLength(0);
+      expect(errors?.[0]?.message).toMatch(
+        /Material "CME-MAT-LEGACY" not found/,
+      );
     });
 
-    it('is not picked up as a ship order reference', async () => {
-      const data = await executeOrFail(`
+    it('is not picked up as a ship order reference, and the order is refused', async () => {
+      const { errors } = await execute(`
         mutation {
           createShipInventoryOrder(
             key: "CME-SO-LEGACY"
@@ -561,13 +560,9 @@ describe('custom material entity (integration)', () => {
         }
       `);
 
-      expect(
-        (
-          data['createShipInventoryOrder'] as {
-            readonly references: unknown[];
-          }
-        ).references,
-      ).toHaveLength(0);
+      expect(errors?.[0]?.message).toMatch(
+        /Material "CME-MAT-LEGACY" not found/,
+      );
     });
 
     it('cannot be used as a reclassify target', async () => {

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   ShipInventoryOrderEntity,
   ShipInventoryOrderEntityClass,
@@ -53,6 +53,7 @@ import {
   assertPositiveQuantity,
   assertPositiveQuantityIfPresent,
 } from '../utils/assert-positive-quantity';
+import { assertAllFound, assertKeyFound } from '../utils/assert-found';
 import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
@@ -204,29 +205,31 @@ export class ShipInventoryOrderService<
       async (accPromise, reference) => {
         const acc = await accPromise;
 
-        try {
-          const material = await materialRepository.findOneBy({
-            key: reference.materialKey,
-          });
-          if (!material) return acc;
+        const material = assertKeyFound(
+          reference.materialKey
+            ? await materialRepository.findOneBy({
+                key: reference.materialKey,
+              })
+            : null,
+          'Material',
+          String(reference.materialKey),
+        );
 
-          if (reference.saleId && reference.saleSerialId)
-            await saleOrderRepository.save(
-              saleOrderRepository.create({
-                id: reference.saleId,
-                serialId: reference.saleSerialId,
-              }),
-            );
-          return [
-            ...acc,
-            {
-              ...reference,
-              materialId: material.id,
-            },
-          ];
-        } catch {
-          return acc;
-        }
+        if (reference.saleId && reference.saleSerialId)
+          await saleOrderRepository.save(
+            saleOrderRepository.create({
+              id: reference.saleId,
+              serialId: reference.saleSerialId,
+            }),
+          );
+
+        return [
+          ...acc,
+          {
+            ...reference,
+            materialId: material.id,
+          },
+        ];
       },
       Promise.resolve(
         [] as DeepPartial<ShipInventoryOrderReferenceEntityClass>[],
@@ -706,6 +709,11 @@ export class ShipInventoryOrderService<
       where: { id: In(options.map((o) => o.itemId)) },
       relations: { changes: true },
     });
+    assertAllFound(
+      options.map((o) => o.itemId),
+      items,
+      'Ship inventory order item',
+    );
     const itemMap = new Map(items.map((item) => [item.id, item]));
     // Source and in-shipment (material, batch) locks first, in a fixed order,
     // before any batch-group lock -- the same order every path uses.
@@ -724,7 +732,11 @@ export class ShipInventoryOrderService<
     for (const option of options) {
       await (async () => {
         const item = itemMap.get(option.itemId);
-        if (!item) return;
+        if (!item) {
+          throw new NotFoundException(
+            `Ship inventory order item ${option.itemId} not found`,
+          );
+        }
 
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
@@ -999,6 +1011,11 @@ export class ShipInventoryOrderService<
         where: { id: In(options.map((option) => option.itemId)) },
         relations: { changes: true },
       });
+      assertAllFound(
+        options.map((o) => o.itemId),
+        items,
+        'Ship inventory order item',
+      );
       const itemMap = new Map(items.map((item) => [item.id, item]));
       // Stock is taken off the in-shipment child, so that is the slot to
       // validate -- and to lock, together with the source slot, before any
@@ -1012,7 +1029,11 @@ export class ShipInventoryOrderService<
       for (const option of options) {
         await (async () => {
           const item = itemMap.get(option.itemId);
-          if (!item) return;
+          if (!item) {
+            throw new NotFoundException(
+              `Ship inventory order item ${option.itemId} not found`,
+            );
+          }
 
           const conversionFactor =
             await this.materialService.getConversionFactor(
