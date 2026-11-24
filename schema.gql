@@ -1221,6 +1221,11 @@ type Mutation {
   updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
   transfer(items: [TransferOrderArgs!]!): Boolean!
   cancelTransfer(items: [CancelTransferOrderArgs!]!): Boolean!
+
+  """
+  Move a loader and everything on it to another location, keeping batch ids and flags (held, in-shipment, allocated). Unfinished ship, transfer and consumption lines that name the loader follow it. Recorded as an executed whole-loader transfer order; refused for a loader with no stock or a location a running count has locked.
+  """
+  moveLoader(loaderId: ID!, targetLocationId: ID!): TransferOrderDto!
   createHoldInventoryOrder(createdBy: String, items: [CreateHoldInventoryOrderItemArgs!]!): HoldInventoryOrderDto!
   updateHoldInventoryOrder(createdBy: String, id: String!, removedAt: DateTime, items: [UpdateHoldInventoryOrderItemArgs!]): HoldInventoryOrderDto!
   release(items: [ReleaseOrderArgs!]!): Boolean!
