@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
@@ -9,11 +9,12 @@ import {
   DataSource,
   type DeepPartial,
   type EntityManager,
+  type EntityTarget,
+  type ObjectLiteral,
   type QueryRunner,
 } from 'typeorm';
 import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import {
-  AllocateInventoryOrderItemEntityClass,
   AllocateInventoryOrderService,
   BatchEntityClass,
   BatchService,
@@ -3171,44 +3172,6 @@ describe('host service layer (integration, no GraphQL)', () => {
       expect(row.removedAt).not.toBeNull();
     });
 
-    it('stores only the removal of an existing allocate line that also carries a negative quantity', async () => {
-      const material = await newMaterial();
-      const { batchId } = await seedStock(material.id, 10);
-      const order = await allocateService.createAllocateInventoryOrder({
-        items: [
-          {
-            materialId: material.id,
-            batchId,
-            locationId: shelfId,
-            targetAllocatedQuantity: 4,
-            saleId: 'S',
-            saleSerialId: '1',
-          },
-        ],
-      } as Parameters<
-        AllocateInventoryOrderService['createAllocateInventoryOrder']
-      >[0]);
-      const repository =
-        dataSource.getRepository<AllocateInventoryOrderItemEntityClass>(
-          allocateService.allocateInventoryOrderItemEntity,
-        );
-      const [line] = await repository.find({ where: { orderId: order.id } });
-
-      await allocateService.updateAllocateInventoryOrder({
-        id: order.id,
-        items: [
-          { id: line.id, removedAt: removed, targetAllocatedQuantity: -100 },
-        ],
-      } as Parameters<
-        AllocateInventoryOrderService['updateAllocateInventoryOrder']
-      >[0]);
-
-      const row = await repository.findOneByOrFail({ id: line.id });
-      // allocate_inventory_order_items has no removedAt column, so only the
-      // quantity guard is observable here: the -100 must not be written.
-      expect(Number(row.targetAllocatedQuantity)).toBe(4);
-    });
-
     it('refuses a live new line with a negative quantity on update', async () => {
       const material = await newMaterial();
       const { batchId } = await seedStock(material.id, 10);
@@ -4773,6 +4736,306 @@ describe('host service layer (integration, no GraphQL)', () => {
         ).toEqual([{ locationId: d }]);
       });
     });
+  });
+  describe('a line that has moved stock is reversed, never edited or removed in place', () => {
+    type Line = { id: string } & Record<string, unknown>;
+    type Case = {
+      name: string;
+      quantity: string;
+      create: (materialId: string, batchId: string) => Promise<string>;
+      update: (
+        orderId: string,
+        items: Record<string, unknown>[],
+      ) => Promise<unknown>;
+      lines: (orderId: string) => Promise<Line[]>;
+    };
+
+    const linesOf =
+      (target: () => EntityTarget<ObjectLiteral>) =>
+      (orderId: string): Promise<Line[]> =>
+        dataSource
+          .getRepository(target())
+          .find({ where: { orderId }, order: { id: 'ASC' } }) as Promise<
+          Line[]
+        >;
+
+    const cases: readonly Case[] = [
+      {
+        name: 'allocate',
+        quantity: 'targetAllocatedQuantity',
+        create: async (materialId, batchId) =>
+          (
+            await allocateService.createAllocateInventoryOrder({
+              items: [
+                {
+                  materialId,
+                  batchId,
+                  locationId: shelfId,
+                  targetAllocatedQuantity: 4,
+                  saleId: 'S',
+                  saleSerialId: '1',
+                },
+              ],
+            })
+          ).id,
+        update: (id, items) =>
+          allocateService.updateAllocateInventoryOrder({
+            id,
+            items,
+          } as Parameters<
+            AllocateInventoryOrderService['updateAllocateInventoryOrder']
+          >[0]),
+        lines: linesOf(() => allocateService.allocateInventoryOrderItemEntity),
+      },
+      {
+        name: 'hold',
+        quantity: 'targetHeldQuantity',
+        create: async (materialId, batchId) =>
+          (
+            await holdService.createHoldInventoryOrder({
+              items: [
+                {
+                  materialId,
+                  batchId,
+                  locationId: shelfId,
+                  targetHeldQuantity: 4,
+                },
+              ],
+            })
+          ).id,
+        update: (id, items) =>
+          holdService.updateHoldInventoryOrder({
+            id,
+            items,
+          } as Parameters<
+            HoldInventoryOrderService['updateHoldInventoryOrder']
+          >[0]),
+        lines: linesOf(() => holdService.holdInventoryOrderItemEntity),
+      },
+      {
+        name: 'transfer customer',
+        quantity: 'targetTransferredQuantity',
+        create: async (materialId, batchId) =>
+          (
+            await app
+              .get(TransferCustomerOrderService)
+              .createTransferCustomerOrder({
+                customerId: 'C',
+                items: [
+                  {
+                    materialId,
+                    batchId,
+                    locationId: shelfId,
+                    targetTransferredQuantity: 4,
+                  },
+                ],
+              })
+          ).id,
+        update: (id, items) =>
+          app.get(TransferCustomerOrderService).updateTransferCustomerOrder({
+            id,
+            items,
+          } as Parameters<
+            TransferCustomerOrderService['updateTransferCustomerOrder']
+          >[0]),
+        lines: linesOf(
+          () =>
+            app.get(TransferCustomerOrderService)
+              .transferCustomerOrderItemEntity,
+        ),
+      },
+      {
+        name: 'transfer vendor',
+        quantity: 'targetTransferredQuantity',
+        create: async (materialId, batchId) =>
+          (
+            await app
+              .get(TransferVendorOrderService)
+              .createTransferVendorOrder({
+                vendorId: 'V',
+                items: [
+                  {
+                    materialId,
+                    batchId,
+                    locationId: shelfId,
+                    targetTransferredQuantity: 4,
+                  },
+                ],
+              })
+          ).id,
+        update: (id, items) =>
+          app.get(TransferVendorOrderService).updateTransferVendorOrder({
+            id,
+            items,
+          } as Parameters<
+            TransferVendorOrderService['updateTransferVendorOrder']
+          >[0]),
+        lines: linesOf(
+          () =>
+            app.get(TransferVendorOrderService).transferVendorOrderItemEntity,
+        ),
+      },
+    ];
+
+    const prepare = async (
+      entry: Case,
+    ): Promise<{
+      materialId: string;
+      batchId: string;
+      orderId: string;
+      line: Line;
+    }> => {
+      const material = await newMaterial();
+      const { batchId } = await seedStock(material.id, 10);
+      const orderId = await entry.create(material.id, batchId);
+      const [line] = await entry.lines(orderId);
+
+      return { materialId: material.id, batchId, orderId, line };
+    };
+
+    describe.each(cases)('$name order', (entry) => {
+      it('refuses removing an existing line and writes nothing', async () => {
+        const { materialId, orderId, line } = await prepare(entry);
+        const stock = await byStatus(materialId);
+        const ledger = await dataSource.transaction((m) => ledgerCounts(m));
+
+        await expect(
+          entry.update(orderId, [{ id: line.id, removedAt: new Date() }]),
+        ).rejects.toThrow(
+          /cannot be removed \(removedAt\); use .+\(\) instead/,
+        );
+
+        expect(await byStatus(materialId)).toEqual(stock);
+        expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+          ledger,
+        );
+        expect(await entry.lines(orderId)).toEqual([line]);
+      });
+
+      it('refuses changing the quantity of an existing line', async () => {
+        const { orderId, line } = await prepare(entry);
+
+        await expect(
+          entry.update(orderId, [{ id: line.id, [entry.quantity]: 1 }]),
+        ).rejects.toThrow(
+          new RegExp(`cannot be changed \\(${entry.quantity}\\)`),
+        );
+        expect(await entry.lines(orderId)).toEqual([line]);
+      });
+
+      it('names a refused negative quantity on an existing line as an edit', async () => {
+        const { orderId, line } = await prepare(entry);
+
+        await expect(
+          entry.update(orderId, [
+            { id: line.id, removedAt: new Date(), [entry.quantity]: -100 },
+          ]),
+        ).rejects.toThrow(/cannot be removed/);
+      });
+
+      it('accepts an existing line named by its id alone, next to a new line', async () => {
+        const { materialId, batchId, orderId, line } = await prepare(entry);
+
+        await entry.update(orderId, [
+          { id: line.id },
+          {
+            materialId,
+            batchId,
+            locationId: shelfId,
+            [entry.quantity]: 2,
+            saleId: 'S',
+            saleSerialId: '1',
+          },
+        ]);
+
+        const lines = await entry.lines(orderId);
+        expect(lines).toHaveLength(2);
+        expect(lines.find(({ id }) => id === line.id)).toEqual(line);
+      });
+
+      it('throws NotFoundException for a line id that is not on the order', async () => {
+        const { orderId } = await prepare(entry);
+
+        await expect(
+          entry.update(orderId, [
+            { id: '00000000-0000-4000-8000-000000000000' },
+          ]),
+        ).rejects.toBeInstanceOf(NotFoundException);
+      });
+    });
+
+    it.each([
+      ['transfer customer', 'customerId', 'C'],
+      ['transfer vendor', 'vendorId', 'V'],
+    ] as const)(
+      '%s: a line added by an update is for the party the existing lines are for',
+      async (name, field, party) => {
+        const entry = cases.find(
+          (candidate) => candidate.name === name,
+        ) as Case;
+        const { materialId, batchId, orderId } = await prepare(entry);
+
+        await entry.update(orderId, [
+          {
+            materialId,
+            batchId,
+            locationId: shelfId,
+            targetTransferredQuantity: 2,
+          },
+        ]);
+
+        const lines = await entry.lines(orderId);
+        expect(lines.map((line) => line[field])).toEqual([party, party]);
+      },
+    );
+
+    it.each([
+      ['transfer customer', 'customerId'],
+      ['transfer vendor', 'vendorId'],
+    ] as const)(
+      '%s: refuses switching %s once stock has moved',
+      async (name, field) => {
+        const entry = cases.find(
+          (candidate) => candidate.name === name,
+        ) as Case;
+        const { materialId, batchId, orderId } = await prepare(entry);
+
+        await expect(
+          name === 'transfer customer'
+            ? app
+                .get(TransferCustomerOrderService)
+                .updateTransferCustomerOrder({
+                  id: orderId,
+                  customerId: 'OTHER',
+                  items: [
+                    {
+                      materialId,
+                      batchId,
+                      locationId: shelfId,
+                      targetTransferredQuantity: 1,
+                    },
+                  ],
+                } as Parameters<
+                  TransferCustomerOrderService['updateTransferCustomerOrder']
+                >[0])
+            : app.get(TransferVendorOrderService).updateTransferVendorOrder({
+                id: orderId,
+                vendorId: 'OTHER',
+                items: [
+                  {
+                    materialId,
+                    batchId,
+                    locationId: shelfId,
+                    targetTransferredQuantity: 1,
+                  },
+                ],
+              } as Parameters<
+                TransferVendorOrderService['updateTransferVendorOrder']
+              >[0]),
+        ).rejects.toThrow(new RegExp(`${field} .+ cannot switch to OTHER`));
+        expect(await entry.lines(orderId)).toHaveLength(1);
+      },
+    );
   });
 });
 
