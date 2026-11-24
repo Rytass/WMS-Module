@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   TransferCustomerOrderEntity,
   TransferCustomerOrderEntityClass,
@@ -41,7 +41,7 @@ export type TransferCustomerOrderItemInput = {
   locationId?: string;
   loaderId?: string;
   quantity: number;
-  locationKey: string;
+  locationKey?: string;
   loaderKey?: string;
 };
 
@@ -249,6 +249,10 @@ export class TransferCustomerOrderService<
           if (!item.id) newItems.push({ ...item, orderId: id });
           else if (existingItemIds.has(item.id))
             existingItems.push({ ...item, orderId: id });
+          else
+            throw new NotFoundException(
+              `Transfer customer order item ${item.id} not found on order ${id}`,
+            );
         });
 
         if (newItems.length)
