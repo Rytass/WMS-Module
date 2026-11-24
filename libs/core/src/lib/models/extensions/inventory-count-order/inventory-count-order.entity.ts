@@ -48,6 +48,18 @@ export class InventoryCountOrderEntityClass {
   @Index()
   status!: InventoryCountStatus;
 
+  /**
+   * Whether `COUNTING` refuses stock movements in the scope.
+   *
+   * `true` (the default, and what every row created before this column existed
+   * holds) freezes the scope so `bookQuantity` stays equal to the ledger. `false`
+   * lets the warehouse keep moving: the snapshot goes stale on purpose, and
+   * settlement posts `counted - snapshot` on top of whatever moved meanwhile.
+   * Chosen while `PENDING`, immutable from `start()` on.
+   */
+  @Column({ type: 'boolean', default: true })
+  lockLocations!: boolean;
+
   /** Who created the order, in whatever id space the host uses. */
   @Column({ type: 'varchar', nullable: true })
   createdBy!: string | null;

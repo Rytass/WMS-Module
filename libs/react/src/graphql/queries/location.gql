@@ -9,6 +9,7 @@ query Locations(
   $limit: Int
   $description: String
   $key: String
+  $keys: [String!]
   $isActive: Boolean
   $sort: LocationSortInput
 ) {
@@ -17,6 +18,7 @@ query Locations(
     limit: $limit
     description: $description
     key: $key
+    keys: $keys
     isActive: $isActive
     sort: $sort
   ) {

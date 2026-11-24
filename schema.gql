@@ -45,7 +45,7 @@ type LoaderDto {
   createdAt: DateTime!
   type: LoaderTypeDto!
   location: LocationDto!
-  totalQuantity: Int!
+  totalQuantity: Float!
 }
 
 type Loaders {
@@ -82,7 +82,7 @@ type MaterialUnitDto {
 type StockDto {
   id: ID!
   loaderId: ID!
-  quantity: Int!
+  quantity: Float!
   status: StockStatus!
   material: MaterialDto!
   location: LocationDto!
@@ -109,7 +109,7 @@ type Stocks {
 }
 
 type AggregatedStockDto {
-  quantity: Int!
+  quantity: Float!
   status: StockStatus!
   transferId: ID
   held: Boolean
@@ -141,7 +141,7 @@ type AggregatedStocks {
 }
 
 type ChangeLogDto {
-  quantity: Int!
+  quantity: Float!
   changeType: ChangeType!
   id: ID!
   material: MaterialDto!
@@ -173,6 +173,8 @@ enum ChangeType {
   ISSUED
   RETURNED
   CONSUMED
+  SHIP_CANCELLED
+  TRANSFER_CANCELLED
 }
 
 type ChangeLogs {
@@ -194,7 +196,7 @@ type ReceiveInventoryOrderItemDto {
   batch: BatchDto
   location: LocationDto
   loader: LoaderDto
-  receivedQuantity: Int!
+  receivedQuantity: Float!
 }
 
 type ReceiveInventoryOrderDto {
@@ -236,7 +238,7 @@ type ShipInventoryOrderItemDto {
   saleSerialId: ID
   location: LocationDto
   loader: LoaderDto
-  shippedQuantity: Int!
+  shippedQuantity: Float!
 }
 
 type ShipInventoryOrderDto {
@@ -266,7 +268,7 @@ type ShipInventoryOrders {
 
 type HoldInventoryOrderItemDto {
   id: ID!
-  targetHeldQuantity: Int!
+  targetHeldQuantity: Float!
   removedAt: DateTime
 }
 
@@ -300,7 +302,7 @@ type AllocateInventoryOrders {
 
 type AllocateInventoryOrderItemDto {
   id: ID!
-  targetAllocatedQuantity: Int!
+  targetAllocatedQuantity: Float!
   saleId: String!
   saleSerialId: String!
 }
@@ -308,7 +310,7 @@ type AllocateInventoryOrderItemDto {
 type TransferOrderItemDto {
   id: ID!
   unitId: String
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
   removedAt: DateTime
   material: MaterialDto!
   batch: BatchDto
@@ -316,7 +318,7 @@ type TransferOrderItemDto {
   loader: LoaderDto
   saleId: ID
   saleSerialId: ID
-  transferredQuantity: Int!
+  transferredQuantity: Float!
 }
 
 type TransferOrderDto {
@@ -347,7 +349,7 @@ type TransferCustomerOrderItemDto {
   customerId: String!
   orderId: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 type TransferCustomerOrderDto {
@@ -366,7 +368,7 @@ type TransferVendorOrderItemDto {
   vendorId: String!
   orderId: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 type TransferVendorOrderDto {
@@ -384,7 +386,7 @@ type ScrapeOrderItemDto {
   loaderId: ID
   orderId: ID!
   unitId: ID
-  targetScrapedQuantity: Int!
+  targetScrapedQuantity: Float!
 }
 
 type ScrapeOrderDto {
@@ -402,7 +404,7 @@ type QualityInspectionOrderItemDto {
   loaderId: ID
   orderId: ID!
   unitId: ID
-  targetInspectedQuantity: Int!
+  targetInspectedQuantity: Float!
 }
 
 type QualityInspectionOrderDto {
@@ -445,6 +447,7 @@ type InventoryCountOrderDto {
   name: String!
   countDate: String!
   status: InventoryCountStatus!
+  lockLocations: Boolean!
   createdBy: String
   startedAt: DateTime
   settledAt: DateTime
@@ -647,9 +650,9 @@ type ShipInventoryOrderReferenceDto {
   saleId: String
   saleSerialId: String
   unitId: ID
-  targetShippedQuantity: Int!
+  targetShippedQuantity: Float!
   removedAt: DateTime
-  shippedQuantity: Int!
+  shippedQuantity: Float!
   material: MaterialDto!
   batch: BatchDto
   items: [ShipInventoryOrderItemDto!]!
@@ -745,7 +748,31 @@ type Query {
   ): Materials!
   batches(offset: Int, limit: Int, key: String, materialId: ID): Batches!
   stock(id: ID!): StockDto!
-  stocks(offset: Int, limit: Int, materialId: ID, batchId: ID, locationId: ID, excludeLocationIds: [ID!], loaderId: ID, ids: [ID!], description: String, status: StockStatus, materialKey: String, batchKey: String, locationKey: String, loaderKey: String, vendorId: String, customerId: String, saleId: String, saleSerialId: String): Stocks!
+  stocks(
+    offset: Int
+    limit: Int
+    materialId: ID
+    batchId: ID
+    locationId: ID
+    excludeLocationIds: [ID!]
+    loaderId: ID
+    ids: [ID!]
+    description: String
+    status: StockStatus
+    materialKey: String
+    batchKey: String
+    locationKey: String
+    loaderKey: String
+
+    """
+    A scanned label, matched exactly against a material key, then a batch key, then a location key; the first kind that knows the code wins.
+    """
+    scanCode: String
+    vendorId: String
+    customerId: String
+    saleId: String
+    saleSerialId: String
+  ): Stocks!
   stocksGroupedByMaterial(
     materialId: ID
     batchId: ID
@@ -759,6 +786,11 @@ type Query {
     batchKey: String
     locationKey: String
     loaderKey: String
+
+    """
+    A scanned label, matched exactly against a material key, then a batch key, then a location key; the first kind that knows the code wins.
+    """
+    scanCode: String
     vendorId: String
     customerId: String
     saleId: String
@@ -782,6 +814,11 @@ type Query {
     batchKey: String
     locationKey: String
     loaderKey: String
+
+    """
+    A scanned label, matched exactly against a material key, then a batch key, then a location key; the first kind that knows the code wins.
+    """
+    scanCode: String
     vendorId: String
     customerId: String
     saleId: String
@@ -807,6 +844,11 @@ type Query {
     batchKey: String
     locationKey: String
     loaderKey: String
+
+    """
+    A scanned label, matched exactly against a material key, then a batch key, then a location key; the first kind that knows the code wins.
+    """
+    scanCode: String
     vendorId: String
     customerId: String
     saleId: String
@@ -885,6 +927,11 @@ type Query {
     description: String
     isActive: Boolean
     key: String
+
+    """
+    Exact, case-sensitive match on the location key, for a scanned label. `key` is a substring search; this is not.
+    """
+    keys: [String!]
 
     """Omitted: newest first (createdAt DESC), then id."""
     sort: LocationSortInput
@@ -1175,6 +1222,11 @@ type Mutation {
   updateTransferOrder(description: String, locationId: ID, loaderId: ID, receiver: String, createdBy: String, id: ID!, removedAt: DateTime, items: [UpdateTransferOrderItemArgs!]): TransferOrderDto!
   transfer(items: [TransferOrderArgs!]!): Boolean!
   cancelTransfer(items: [CancelTransferOrderArgs!]!): Boolean!
+
+  """
+  Move a loader and everything on it to another location, keeping batch ids and flags (held, in-shipment, allocated). Unfinished ship, transfer and consumption lines that name the loader follow it. Recorded as an executed whole-loader transfer order; refused for a loader with no stock or a location a running count has locked.
+  """
+  moveLoader(loaderId: ID!, targetLocationId: ID!): TransferOrderDto!
   createHoldInventoryOrder(createdBy: String, items: [CreateHoldInventoryOrderItemArgs!]!): HoldInventoryOrderDto!
   updateHoldInventoryOrder(createdBy: String, id: String!, removedAt: DateTime, items: [UpdateHoldInventoryOrderItemArgs!]): HoldInventoryOrderDto!
   release(items: [ReleaseOrderArgs!]!): Boolean!
@@ -1195,8 +1247,24 @@ type Mutation {
   reclassifyInventoryOrder(materialKey: ID!, items: [ReclassifyInventoryOrderItemInput!]!): ReclassifyInventoryOrderDto!
   scrapeMaterials(items: [ScrapeOrderItemInput!]!): ScrapeOrderDto!
   inspectMaterials(key: String!, note: String, items: [CreateQualityInspectionOrderItemArgs!]!): QualityInspectionOrderDto!
-  createInventoryCountOrder(name: String!, countDate: String!, locationIds: [ID!]!, createdBy: String): InventoryCountOrderDto!
-  updateInventoryCountOrder(id: ID!, name: String, countDate: String, locationIds: [ID!]): InventoryCountOrderDto!
+  createInventoryCountOrder(
+    name: String!
+    countDate: String!
+    locationIds: [ID!]!
+    createdBy: String
+
+    """Default true: once counting starts, stock movements in the scope are refused. false lets the warehouse keep moving; settlement posts counted minus the snapshot, and the timing difference is left to the host. Fixed once the count starts."""
+    lockLocations: Boolean
+  ): InventoryCountOrderDto!
+  updateInventoryCountOrder(
+    id: ID!
+    name: String
+    countDate: String
+    locationIds: [ID!]
+
+    """Only while the order is still PENDING."""
+    lockLocations: Boolean
+  ): InventoryCountOrderDto!
   startInventoryCount(id: ID!): InventoryCountOrderDto!
   countInventory(id: ID!, items: [CountInventoryItemInput!]!): InventoryCountOrderDto!
   addInventoryCountItem(id: ID!, materialId: ID!, batchKey: String!, locationId: ID!, loaderId: ID, countedQuantity: Float!, unitId: ID): InventoryCountOrderItemDto!
@@ -1263,7 +1331,7 @@ input ReceiveOrderArgs {
   batchKey: String
   locationKey: String
   loaderKey: String
-  quantity: Int!
+  quantity: Float!
   inspectionResult: Boolean
 }
 
@@ -1272,7 +1340,7 @@ input CreateShipInventoryOrderReferenceArgs {
   unitId: String
   batchKey: String
   materialKey: String!
-  targetShippedQuantity: Int!
+  targetShippedQuantity: Float!
   serialId: String!
   saleId: String
   saleSerialId: String
@@ -1283,7 +1351,7 @@ input UpdateShipInventoryOrderReferenceArgs {
   unitId: String
   batchKey: String
   materialKey: String
-  targetShippedQuantity: Int
+  targetShippedQuantity: Float
   serialId: String
   saleId: String
   saleSerialId: String
@@ -1302,24 +1370,24 @@ input UpdateShipInventoryOrderItemArgs {
 
 input ShipOrderArgs {
   itemId: ID!
-  quantity: Int!
+  quantity: Float!
 }
 
 input CancelShipOrderArgs {
   itemId: ID!
-  quantity: Int
+  quantity: Float
 }
 
 input CreateTransferOrderItemArgs {
   aggregatedKey: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 input UpdateTransferOrderItemArgs {
   aggregatedKey: ID
   unitId: ID
-  targetTransferredQuantity: Int
+  targetTransferredQuantity: Float
   id: ID
   removedAt: DateTime
 }
@@ -1329,7 +1397,7 @@ input TransferOrderArgs {
   itemId: ID!
 
   """The quantity to transfer"""
-  quantity: Int!
+  quantity: Float!
 }
 
 input CancelTransferOrderArgs {
@@ -1339,7 +1407,7 @@ input CancelTransferOrderArgs {
   """
   The quantity to cancel. If not provided, cancels all remaining cancellable quantity.
   """
-  quantity: Int
+  quantity: Float
 }
 
 input CreateHoldInventoryOrderItemArgs {
@@ -1358,7 +1426,7 @@ input UpdateHoldInventoryOrderItemArgs {
 
 input ReleaseOrderArgs {
   aggregatedKey: ID!
-  quantity: Int!
+  quantity: Float!
   unitId: ID
 }
 
@@ -1407,27 +1475,27 @@ input UpdateAllocateInventoryOrderItemArgs {
 
 input DeallocateOrderArgs {
   aggregatedKey: ID!
-  quantity: Int!
+  quantity: Float!
   unitId: ID
 }
 
 input CreateTransferCustomerOrderItemArgs {
   aggregatedKey: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 input UpdateTransferCustomerOrderItemArgs {
   aggregatedKey: ID
   unitId: ID
-  targetTransferredQuantity: Int
+  targetTransferredQuantity: Float
   id: ID
   removedAt: DateTime
 }
 
 input ReturnTransferCustomerOrderArgs {
   aggregatedKey: ID!
-  quantity: Int!
+  quantity: Float!
   unitId: ID
   locationKey: ID!
   loaderKey: ID
@@ -1436,20 +1504,20 @@ input ReturnTransferCustomerOrderArgs {
 input CreateTransferVendorOrderItemArgs {
   aggregatedKey: ID!
   unitId: ID
-  targetTransferredQuantity: Int!
+  targetTransferredQuantity: Float!
 }
 
 input UpdateTransferVendorOrderItemArgs {
   aggregatedKey: ID
   unitId: ID
-  targetTransferredQuantity: Int
+  targetTransferredQuantity: Float
   id: ID
   removedAt: DateTime
 }
 
 input ReturnTransferVendorOrderArgs {
   aggregatedKey: ID!
-  quantity: Int!
+  quantity: Float!
   unitId: ID
   locationKey: ID!
   loaderKey: ID
@@ -1475,13 +1543,13 @@ input ReclassifyInventoryOrderItemInput {
 input ScrapeOrderItemInput {
   aggregateKey: String!
   unitId: ID
-  quantity: Int!
+  quantity: Float!
 }
 
 input CreateQualityInspectionOrderItemArgs {
   aggregateKey: String!
   unitId: ID
-  quantity: Int!
+  quantity: Float!
   inspectionResult: Boolean!
 }
 

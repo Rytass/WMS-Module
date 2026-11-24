@@ -8,6 +8,8 @@
   row-gap: spacing.semantic-variable(gap, spacious);
   background-color: #f3f4f6;
   max-height: 100vh;
+  max-height: 100dvh;
+  min-width: 0;
 
   .inputSection {
     display: flex;
@@ -23,7 +25,7 @@
 
       .actionsWrapper {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: spacing.semantic-variable(gap, calm)
           spacing.semantic-variable(gap, base);
 
@@ -37,5 +39,36 @@
         }
       }
     }
+
+    .scanRow {
+      display: flex;
+      flex-direction: column;
+      row-gap: spacing.semantic-variable(gap, calm);
+    }
+
+    @media (max-width: 767px) {
+      row-gap: spacing.semantic-variable(gap, calm);
+      padding: spacing.semantic-variable(padding, vertical, calm)
+        spacing.semantic-variable(padding, horizontal, comfort) 0;
+    }
   }
+
+  @media (max-width: 767px) {
+    row-gap: spacing.semantic-variable(gap, calm);
+  }
+}
+
+.actionPickerButton {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.actionRadios {
+  display: flex;
+  flex-direction: column;
+  row-gap: spacing.semantic-variable(gap, comfort);
+}
+
+.actionDrawer {
+  max-width: 100vw;
 }

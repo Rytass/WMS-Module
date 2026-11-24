@@ -1,4 +1,4 @@
-import { ChildEntity, Column, JoinColumn, ManyToOne } from 'typeorm';
+import { ChildEntity, Column, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { BatchEntity as BaseBatchEntity } from '@rytass/wms-base-nestjs-module';
 import { type BatchGroupEntityClass } from './batch-group.entity';
 
@@ -6,6 +6,14 @@ export const BatchEntity = Symbol('BatchEntity');
 
 @ChildEntity()
 export class BatchEntityClass extends BaseBatchEntity {
+  /*
+   * `BatchService.splitBatch` finds sibling batches by this column, and
+   * PostgreSQL does not index the referencing side of a foreign key (#230).
+   * The name is explicit so it is predictable for an upgrade script, and so
+   * `withWmsTablePrefix` rewrites it (an unnamed index is `IDX_<hash>` and
+   * carries no prefix).
+   */
+  @Index('IDX_batches_groupId')
   @Column({ type: 'varchar', nullable: true })
   groupId!: string;
 

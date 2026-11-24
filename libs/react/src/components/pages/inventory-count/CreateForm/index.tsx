@@ -5,6 +5,7 @@ import { FormModalWrapper } from '../../../fields/FormModalWrapper';
 import InputField from '../../../fields/InputField';
 import DateField from '../../../fields/DateField';
 import LocationScopeField from './LocationScopeField';
+import LockLocationsField from './LockLocationsField';
 import { formSchema } from './schema';
 import { FormValues } from './typing';
 import classes from './index.module.scss';
@@ -26,6 +27,7 @@ const CreateInventoryCountForm: FC<CreateInventoryCountFormProps> = ({
       name: '',
       countDate: '',
       locations: [],
+      lockLocations: true,
     },
   });
 
@@ -65,6 +67,7 @@ const CreateInventoryCountForm: FC<CreateInventoryCountFormProps> = ({
           required
         />
         <LocationScopeField name="locations" />
+        <LockLocationsField name="lockLocations" />
       </div>
     </FormModalWrapper>
   );

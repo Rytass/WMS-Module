@@ -11,6 +11,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { InventoryCountOrderEntityClass } from './inventory-count-order.entity';
 import { InventoryCountOrderChangeEntityClass } from './inventory-count-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const InventoryCountOrderItemEntity = Symbol(
   'InventoryCountOrderItemEntity',
@@ -63,11 +64,19 @@ export class InventoryCountOrderItemEntityClass {
   unitId!: string | null;
 
   /** Ledger quantity in base units, frozen when counting started. */
-  @Column({ type: 'numeric', default: 0 })
+  @Column({
+    type: 'numeric',
+    transformer: numericColumnTransformer,
+    default: 0,
+  })
   bookQuantity!: number;
 
   /** What was actually found, in {@link unitId}. `null` until someone counts. */
-  @Column({ type: 'numeric', nullable: true })
+  @Column({
+    type: 'numeric',
+    transformer: numericColumnTransformer,
+    nullable: true,
+  })
   countedQuantity!: number | null;
 
   /** `true` for a line added during counting for unbooked stock (盤盈). */

@@ -103,6 +103,16 @@ export class LocationService<
         isActive: options.isActive,
       });
 
+    if (options.keys !== undefined) {
+      if (options.keys.length === 0) {
+        queryBuilder.andWhere('1 = 0');
+      } else {
+        queryBuilder.andWhere('location."key" IN (:...exactKeys)', {
+          exactKeys: [...options.keys],
+        });
+      }
+    }
+
     if (options.wildcard) {
       const { key, value } = options.wildcard;
       queryBuilder.andWhere(`location."${String(key)}" ILIKE :value`, {

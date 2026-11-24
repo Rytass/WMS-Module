@@ -15,8 +15,10 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import { assertPositiveQuantity } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 @Injectable()
 export class SplitBatchOrderService<
@@ -39,6 +41,10 @@ export class SplitBatchOrderService<
 
   split(options: SplitBatchInput, outerManager?: EntityManager): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       const splitBatchOrderRepository =
         manager.getRepository<SplitBatchOrderEntityClass>(
           this.splitBatchOrderEntity,
@@ -120,7 +126,7 @@ export class SplitBatchOrderService<
             splitBatchOrderChangeRepository.create({
               itemId: splitItem.id,
               id: baseOrder.id,
-              quantityChanged: item.quantity * conversionFactor,
+              quantityChanged: toBaseQuantity(item.quantity, conversionFactor),
             }),
           );
 
@@ -131,7 +137,7 @@ export class SplitBatchOrderService<
               batchId: options.batchId,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.quantity * conversionFactor,
+              quantity: toBaseQuantity(item.quantity, conversionFactor),
             },
             manager,
           );
@@ -147,7 +153,9 @@ export class SplitBatchOrderService<
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: -1 * item.quantity * conversionFactor,
+                quantity: negateQuantity(
+                  toBaseQuantity(item.quantity, conversionFactor),
+                ),
               } as DeepPartial<StockEntityClass>,
               // Add to target batch
               {
@@ -158,7 +166,7 @@ export class SplitBatchOrderService<
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: item.quantity * conversionFactor,
+                quantity: toBaseQuantity(item.quantity, conversionFactor),
               } as DeepPartial<StockEntityClass>,
             ]),
           );

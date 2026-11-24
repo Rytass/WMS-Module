@@ -8,8 +8,11 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { MergeBatchOrderItemEntityClass } from './merge-batch-order-item.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
-export const MergeBatchOrderChangeEntity = Symbol('MergeBatchOrderChangeEntity');
+export const MergeBatchOrderChangeEntity = Symbol(
+  'MergeBatchOrderChangeEntity',
+);
 @Entity('merge_batch_order_changes')
 export class MergeBatchOrderChangeEntityClass {
   @PrimaryGeneratedColumn('uuid')
@@ -18,7 +21,7 @@ export class MergeBatchOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   @OneToOne('orders')

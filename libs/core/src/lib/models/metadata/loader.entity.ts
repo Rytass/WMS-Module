@@ -11,6 +11,7 @@ import {
 } from 'typeorm';
 import { LoaderTypeEntityClass } from './loader-type.entity';
 import { LocationEntity } from '@rytass/wms-base-nestjs-module';
+import { numericColumnTransformer } from '../numeric-column.transformer';
 
 export const LoadersEntity = Symbol('LoadersEntity');
 
@@ -31,19 +32,35 @@ export class LoadersEntityClass {
   @Index()
   locationId!: string;
 
-  @Column({ type: 'numeric', nullable: true })
+  @Column({
+    type: 'numeric',
+    transformer: numericColumnTransformer,
+    nullable: true,
+  })
   length!: number | null;
 
-  @Column({ type: 'numeric', nullable: true })
+  @Column({
+    type: 'numeric',
+    transformer: numericColumnTransformer,
+    nullable: true,
+  })
   width!: number | null;
 
-  @Column({ type: 'numeric', nullable: true })
+  @Column({
+    type: 'numeric',
+    transformer: numericColumnTransformer,
+    nullable: true,
+  })
   height!: number | null;
 
   @Column({ type: 'varchar', nullable: true })
   sizeUnit!: string | null;
 
-  @Column({ type: 'numeric', nullable: true })
+  @Column({
+    type: 'numeric',
+    transformer: numericColumnTransformer,
+    nullable: true,
+  })
   volume!: number | null;
 
   @Column({ type: 'varchar', nullable: true })

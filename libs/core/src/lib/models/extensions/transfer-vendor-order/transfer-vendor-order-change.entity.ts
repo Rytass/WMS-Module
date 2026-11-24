@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { TransferVendorOrderItemEntityClass } from './transfer-vendor-order-item.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const TransferVendorOrderChangeEntity = Symbol(
   'TransferVendorOrderChangeEntity',
@@ -20,7 +21,7 @@ export class TransferVendorOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   @OneToOne('orders')

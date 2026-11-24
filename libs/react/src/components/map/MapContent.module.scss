@@ -1,5 +1,24 @@
+@use '@mezzanine-ui/system/palette';
+
 .container {
+  --wms-map-selected-ring: #{palette.semantic-variable(border, brand)};
+
   min-height: 500px;
   width: 100%;
   position: relative;
+}
+
+/*
+ * The map package sizes its own wrapper to the viewport (`calc(95vh - 80px)`),
+ * which is right for the modal it was built for and far too tall above a
+ * table. A host-given height replaces it; the child selector outranks the
+ * package's single class.
+ */
+.sized {
+  min-height: 0;
+
+  > div {
+    height: var(--wms-map-height);
+    min-height: 320px;
+  }
 }

@@ -1,3 +1,106 @@
+## 0.13.0 (2026-11-20)
+
+### 🚀 Features
+
+- **react:** pass keys through the Locations operation ([97eed14c](https://github.com/Rytass/WMS-Module/commit/97eed14c))
+
+### 🩹 Fixes
+
+- **react:** keep list pages within a phone screen ([5f19d499](https://github.com/Rytass/WMS-Module/commit/5f19d499))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
+## 0.12.0 (2026-11-20)
+
+### 🚀 Features
+
+- **react:** make the label search work from a scanner or the camera on a phone ([bcd64754](https://github.com/Rytass/WMS-Module/commit/bcd64754))
+- **react:** let the table drop its pager and the modal go full screen ([5e6a2370](https://github.com/Rytass/WMS-Module/commit/5e6a2370))
+
+### 🩹 Fixes
+
+- **react:** open the pane that owns an invalid field, ignore a frame decoded after close ([bcb5499e](https://github.com/Rytass/WMS-Module/commit/bcb5499e))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
+## 0.11.0 (2026-11-18)
+
+### 🚀 Features
+
+- **react:** require wms-map-react-components 0.4 ([23850184](https://github.com/Rytass/WMS-Module/commit/23850184))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
+## 0.10.0 (2026-11-18)
+
+### 🚀 Features
+
+- **react:** pick dark or light map labels from what is behind them ([a8ca3b75](https://github.com/Rytass/WMS-Module/commit/a8ca3b75))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
+## 0.9.0 (2026-11-18)
+
+### 🚀 Features
+
+- **react:** highlight the selected location and shorten the maps page map ([2f3998da](https://github.com/Rytass/WMS-Module/commit/2f3998da))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
+## 0.8.0 (2026-11-18)
+
+### 🚀 Features
+
+- **react:** let hosts skip the map selection dialog ([bbfbbff7](https://github.com/Rytass/WMS-Module/commit/bbfbbff7))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
+## 0.7.0 (2026-11-18)
+
+### 🚀 Features
+
+- **react:** sort the change history table on the server ([aabca4ae](https://github.com/Rytass/WMS-Module/commit/aabca4ae))
+- **react:** sort the receive and ship order pages on the server ([63bb6747](https://github.com/Rytass/WMS-Module/commit/63bb6747))
+- **react:** sort the inventory count list and count sheet on the server ([377dbdd0](https://github.com/Rytass/WMS-Module/commit/377dbdd0))
+- **react:** sort the consumption orders table on the server ([8aee0f20](https://github.com/Rytass/WMS-Module/commit/8aee0f20))
+- **react:** sort the inventory movement order tables on the server ([50dd7be2](https://github.com/Rytass/WMS-Module/commit/50dd7be2))
+- **react:** sort the loader and loader type tables on the server ([ef9bc9c7](https://github.com/Rytass/WMS-Module/commit/ef9bc9c7))
+- **react:** sort the locations table on the server ([ab823b6e](https://github.com/Rytass/WMS-Module/commit/ab823b6e))
+- **react:** sort the stock tables by column ([3e89e749](https://github.com/Rytass/WMS-Module/commit/3e89e749))
+- **react:** preview the map from consumption order locations ([0c973f2d](https://github.com/Rytass/WMS-Module/commit/0c973f2d))
+- **react:** preview the map from inventory count locations ([935c9804](https://github.com/Rytass/WMS-Module/commit/935c9804))
+- **react:** preview the map from inventory movement locations ([2b960977](https://github.com/Rytass/WMS-Module/commit/2b960977))
+- **react:** preview the map from stock, loader and change-history locations ([0b1bf44f](https://github.com/Rytass/WMS-Module/commit/0b1bf44f))
+- **react:** treat DEFAULT as no location in LocationMapPreview ([5d3d04ae](https://github.com/Rytass/WMS-Module/commit/5d3d04ae))
+- **react:** add LocationMapPreview hover card ([3cb46d59](https://github.com/Rytass/WMS-Module/commit/3cb46d59))
+- **react:** add LocationMapPreview query document ([0be16ed6](https://github.com/Rytass/WMS-Module/commit/0be16ed6))
+- **graphql:** add locationMapPreview query ([184de80f](https://github.com/Rytass/WMS-Module/commit/184de80f))
+- **react:** sort the materials table by column ([37717342](https://github.com/Rytass/WMS-Module/commit/37717342))
+- **react:** add useTableSort hook for server-sorted tables ([dbdc5412](https://github.com/Rytass/WMS-Module/commit/dbdc5412))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.6.0 (2026-11-17)
 
 ### 🚀 Features

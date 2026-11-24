@@ -1,4 +1,4 @@
-import { Field, InputType, Int } from '@nestjs/graphql';
+import { Field, InputType, Float } from '@nestjs/graphql';
 
 @InputType()
 export class ReceiveOrderArgs {
@@ -14,7 +14,7 @@ export class ReceiveOrderArgs {
   @Field(() => String, { nullable: true })
   loaderKey?: string;
 
-  @Field(() => Int)
+  @Field(() => Float)
   quantity!: number;
 
   @Field(() => Boolean, { nullable: true })

@@ -90,6 +90,7 @@ function ChangeHistoryTable({ currentFilter }: ChangeHistoryTableProps) {
       <Table<ChangeLogFragment>
         tableKey="ChangeLog"
         pinnedUntilColumnKey="key"
+        reserveResizeSpace
         columns={columns}
         dataSource={dataSource}
         loading={loading}

@@ -1,4 +1,10 @@
-import { Context, Int, Parent, ResolveField, Resolver } from '@nestjs/graphql';
+import {
+  Context,
+  Float,
+  Parent,
+  ResolveField,
+  Resolver,
+} from '@nestjs/graphql';
 import {
   LoaderDto,
   MaterialDto,
@@ -16,6 +22,7 @@ import {
   ReceiveInventoryOrderChangeEntityClass,
   ReceiveInventoryOrderItemEntityClass,
   WmsEntities,
+  sumQuantities,
 } from '@rytass/wms-module-core';
 import { BatchDto } from '../dto/batch.dto';
 import { LocationDto } from '../dto/location.dto';
@@ -98,7 +105,7 @@ export class ReceiveInventoryOrderItemResolver {
     });
   }
 
-  @ResolveField(() => Int)
+  @ResolveField(() => Float)
   async receivedQuantity(
     @Parent() { id }: ReceiveInventoryOrderItemEntityClass,
     @Context() { loaders }: LoaderType<ReceiveInventoryOrderChangeEntityClass>,
@@ -107,8 +114,6 @@ export class ReceiveInventoryOrderItemResolver {
       __entity: ReceiveInventoryOrderChangeEntityClass,
       __from: { itemId: id },
     });
-    return changes.reduce((acc, { quantityChanged }) => {
-      return acc + Number(quantityChanged);
-    }, 0);
+    return sumQuantities(changes.map(({ quantityChanged }) => quantityChanged));
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@rytass/wms-module-react",
-  "version": "0.6.0",
+  "version": "0.13.0",
   "description": "Rytass WMS Module — React components, hooks, Apollo client factory and GraphQL operations for warehouse management",
   "keywords": [
     "rytass",
@@ -87,7 +87,9 @@
     "@mezzanine-ui/icons": "^1.0.0",
     "@mezzanine-ui/react": "^1.7.0",
     "@mezzanine-ui/system": "^1.0.0",
-    "@rytass/wms-map-react-components": "^0.3.0",
+    "@rytass/wms-map-react-components": "^0.4.0",
+    "@zxing/browser": "^0.2.0",
+    "@zxing/library": "^0.23.0",
     "graphql": "^16.0.0 || ^17.0.0",
     "lodash": "^4.17.0",
     "next": "^15.0.0 || ^16.0.0",

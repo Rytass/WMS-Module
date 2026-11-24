@@ -41,7 +41,7 @@ import {
 
 /**
  * `withWmsTablePrefix`, held to the five constraints a host with its own
- * schema put on it (Shuttle):
+ * schema put on it:
  *
  * 1. a host entity with exactly base's class name **and** table name
  *    (`LocationEntity` on `locations`) keeps its table, and our relations bind
@@ -54,7 +54,7 @@ import {
  *    end under the prefix, events and the count lock included.
  *
  * Driven through the service layer only, with no GraphQL module mounted —
- * which is how a host like Shuttle uses the package.
+ * which is how such a host uses the package.
  *
  * Requires a reachable PostgreSQL; override with WMS_TEST_DB_* env vars.
  */
@@ -200,7 +200,13 @@ const buildApp = async (
 
   const app = moduleRef.createNestApplication();
 
-  await app.init();
+  try {
+    await app.init();
+  } catch (error) {
+    // A failed init leaves its connection pool open, which outlives the test.
+    await app.close();
+    throw error;
+  }
 
   return app;
 };
@@ -394,6 +400,21 @@ describe('table prefix (integration)', () => {
         naming.foreignKeyName('host_shelves', ['locationId'], 'locations', [
           'id',
         ]),
+      ]);
+    });
+  });
+
+  describe('3b. batches.groupId is indexed under the prefix', () => {
+    it('names the index with the prefix, on the prefixed table', async () => {
+      const rows: { indexname: string }[] = await dataSource.query(
+        `SELECT indexname FROM pg_indexes
+          WHERE schemaname = 'public' AND tablename = $1
+            AND indexdef LIKE '%("groupId")%'`,
+        [`${PREFIX}batches`],
+      );
+
+      expect(rows.map(({ indexname }) => indexname)).toEqual([
+        `${PREFIX}IDX_batches_groupId`,
       ]);
     });
   });

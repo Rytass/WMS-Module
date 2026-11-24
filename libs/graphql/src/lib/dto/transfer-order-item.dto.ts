@@ -1,4 +1,4 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Float, ObjectType } from '@nestjs/graphql';
 import { PaginatedResponse } from './pagination.dto';
 
 @ObjectType()
@@ -19,7 +19,7 @@ export class TransferOrderItemDto {
   @Field(() => String, { nullable: true })
   unitId!: string | null;
 
-  @Field(() => Int)
+  @Field(() => Float)
   targetTransferredQuantity!: number;
 
   @Field(() => Date, { nullable: true })

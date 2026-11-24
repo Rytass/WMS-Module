@@ -1,4 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   TransferCustomerOrderEntity,
   TransferCustomerOrderEntityClass,
@@ -28,8 +33,15 @@ import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
+import { assertLineNotEdited } from '../utils/assert-line-not-edited';
+import { resolveOrderParty } from '../utils/resolve-order-party';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 export type TransferCustomerOrderItemInput = {
   materialId: string;
@@ -37,7 +49,7 @@ export type TransferCustomerOrderItemInput = {
   locationId?: string;
   loaderId?: string;
   quantity: number;
-  locationKey: string;
+  locationKey?: string;
   loaderKey?: string;
 };
 
@@ -119,7 +131,10 @@ export class TransferCustomerOrderService<
           repos.transferCustomerOrderChange.create({
             item,
             order: base,
-            quantityChanged: item.targetTransferredQuantity * conversionFactor,
+            quantityChanged: toBaseQuantity(
+              item.targetTransferredQuantity,
+              conversionFactor,
+            ),
           }),
         );
 
@@ -130,7 +145,10 @@ export class TransferCustomerOrderService<
             batchId: item.batchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetTransferredQuantity * conversionFactor,
+            quantity: toBaseQuantity(
+              item.targetTransferredQuantity,
+              conversionFactor,
+            ),
           },
           manager,
         );
@@ -144,7 +162,12 @@ export class TransferCustomerOrderService<
               batchId: item.batchId, // original batch
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetTransferredQuantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(
+                  item.targetTransferredQuantity,
+                  conversionFactor,
+                ),
+              ),
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in customer transfer state
             {
@@ -153,7 +176,10 @@ export class TransferCustomerOrderService<
               batchId: splittedBatch.id, // splitted batch marked with customerId
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetTransferredQuantity * conversionFactor,
+              quantity: toBaseQuantity(
+                item.targetTransferredQuantity,
+                conversionFactor,
+              ),
             } as DeepPartial<StockEntityClass>,
           ]),
         );
@@ -166,6 +192,14 @@ export class TransferCustomerOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item, index) =>
+        assertPositiveQuantity(
+          item.targetTransferredQuantity,
+          'targetTransferredQuantity',
+          `item #${index}`,
+        ),
+      );
+
       const repos = this.getRepositories(manager);
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
       const { items, ...orderOptions } = options;
@@ -197,6 +231,16 @@ export class TransferCustomerOrderService<
     manager?: EntityManager;
   }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items
+        ?.filter((item) => !item.id && !item.removedAt)
+        .forEach((item, index) =>
+          assertPositiveQuantityIfPresent(
+            item.targetTransferredQuantity,
+            'targetTransferredQuantity',
+            `item #${index}`,
+          ),
+        );
+
       const repos = this.getRepositories(manager);
       const { items, ...orderOptions } = options;
 
@@ -209,36 +253,43 @@ export class TransferCustomerOrderService<
       });
 
       if (items?.length) {
-        const existingItemIds = new Set(
-          (
-            await repos.transferCustomerOrderItem.find({
-              where: { orderId: id },
-              relations: { changes: true },
-            })
-          ).map((item) => item.id),
+        const existingLines = await repos.transferCustomerOrderItem.find({
+          where: { orderId: id },
+        });
+        const existingItemIds = new Set(existingLines.map((item) => item.id));
+        const customerId = resolveOrderParty(
+          'customerId',
+          options.customerId,
+          existingLines.map((item) => item.customerId),
+          id,
         );
 
         const newItems: Partial<TransferCustomerOrderItemEntityClass>[] = [];
-        const existingItems: Partial<TransferCustomerOrderItemEntityClass>[] =
-          [];
 
         items.forEach((item) => {
-          if (item.removedAt) return;
-          if (!item.id) newItems.push({ ...item, orderId: id });
-          else if (existingItemIds.has(item.id))
-            existingItems.push({ ...item, orderId: id });
+          if (item.id) {
+            if (!existingItemIds.has(item.id))
+              throw new NotFoundException(
+                `Transfer customer order item ${item.id} not found on order ${id}`,
+              );
+            // An existing line has already moved stock; it is reversed by its
+            // own operation, never edited or removed in place.
+            assertLineNotEdited(
+              item,
+              'Transfer customer order',
+              'returnTransferCustomerOrder()',
+            );
+          } else if (!item.removedAt) {
+            if (!customerId)
+              throw new BadRequestException(
+                `Transfer customer order ${id} has no customerId to add a line under; pass customerId`,
+              );
+            newItems.push({ ...item, orderId: id, customerId });
+          }
         });
 
         if (newItems.length)
           await this.processTransferCustomerOrderItems(newItems, manager);
-        if (existingItems.length)
-          await repos.transferCustomerOrderItem.save(
-            await Promise.all(
-              existingItems.map((item) =>
-                repos.transferCustomerOrderItem.create(item),
-              ),
-            ),
-          );
       }
 
       return updated as T;
@@ -250,6 +301,11 @@ export class TransferCustomerOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const list = Array.isArray(options) ? options : [options];
+      list.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       if (!Array.isArray(options)) options = [options];
       const repos = this.getRepositories(manager);
 
@@ -283,7 +339,7 @@ export class TransferCustomerOrderService<
               repos.transferCustomerOrderItem.create({
                 ...data,
                 customerId: originalBatch.customerId as string,
-                targetTransferredQuantity: -1 * data.quantity,
+                targetTransferredQuantity: negateQuantity(data.quantity),
                 orderId: order.id,
               }),
             );
@@ -300,8 +356,12 @@ export class TransferCustomerOrderService<
               repos.transferCustomerOrderChange.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged:
-                  -1 * item.targetTransferredQuantity * conversionFactor,
+                quantityChanged: negateQuantity(
+                  toBaseQuantity(
+                    item.targetTransferredQuantity,
+                    conversionFactor,
+                  ),
+                ),
               }),
             );
             let targetLocationId: string | undefined;
@@ -341,7 +401,7 @@ export class TransferCustomerOrderService<
                     item.locationId,
                   ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * change.quantityChanged,
+                  quantity: negateQuantity(change.quantityChanged),
                 } as DeepPartial<StockEntityClass>,
                 // add to splitted batch in released state
                 {

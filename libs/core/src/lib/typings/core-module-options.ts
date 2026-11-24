@@ -73,6 +73,35 @@ export interface WmsModuleCoreModuleOptions extends WmsEventWiringOptions {
    */
   seedDefaults?: boolean;
   /**
+   * Whether stock may be moved onto a loader that sits at another location than
+   * the stock's destination, by relocating that loader first (default `false`).
+   *
+   * Only an *empty* loader is ever relocated: one whose stock rows, summed over
+   * every status (free, held, in shipment, in transfer ...), come to 0. A
+   * loader that still holds stock at its current location is refused whatever
+   * this is set to -- moving it would leave one loader with stock recorded in two
+   * places, or pull its stock along without a ledger row saying so.
+   *
+   * Applies to consolidating onto a loader in a transfer; a whole-loader
+   * transfer moves its own loader regardless.
+   */
+  relocateEmptyLoaders?: boolean;
+  /**
+   * What removing a ship order line does when the line still holds a
+   * reservation, meaning more was prepared than has shipped or been cancelled
+   * (default `false`).
+   *
+   * Off: the removal is refused, naming the line, and nothing is written; the
+   * caller cancels the reservation first (`cancelShip`) and removes the line
+   * after. On: the same transaction cancels what is left (a `CANCEL` change, the
+   * stock back on its original batch) and then removes the line. A line with no
+   * reservation left is removed either way.
+   *
+   * Applies to `updateShipInventoryOrder`. `removeShipInventoryOrder` removes a
+   * whole order and always cancels what is left on every line, removed or not.
+   */
+  cancelReservationOnShipLineRemoval?: boolean;
+  /**
    * The prefix this deployment expects its tables to carry. Optional and
    * purely a check: the prefix itself is applied by `withWmsTablePrefix`
    * before the `DataSource` initialises, which this module cannot do because

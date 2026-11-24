@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   AllocateInventoryOrderChangeEntityClass,
   AllocateInventoryOrderEntity,
@@ -28,8 +28,14 @@ import { MaterialService } from './material.service';
 import { FindAllocateInventoryOrderInput } from '../typings/find-allocate-inventory-order.input';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
+import { assertLineNotEdited } from '../utils/assert-line-not-edited';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 @Injectable()
 export class AllocateInventoryOrderService<
@@ -109,7 +115,10 @@ export class AllocateInventoryOrderService<
           repos.allocateInventoryOrderChange.create({
             item,
             order: base,
-            quantityChanged: item.targetAllocatedQuantity * conversionFactor,
+            quantityChanged: toBaseQuantity(
+              item.targetAllocatedQuantity,
+              conversionFactor,
+            ),
           }),
         );
 
@@ -120,7 +129,10 @@ export class AllocateInventoryOrderService<
             batchId: item.batchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetAllocatedQuantity * conversionFactor,
+            quantity: toBaseQuantity(
+              item.targetAllocatedQuantity,
+              conversionFactor,
+            ),
           },
           manager,
         );
@@ -134,7 +146,9 @@ export class AllocateInventoryOrderService<
               batchId: item.batchId, // original batch
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetAllocatedQuantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(item.targetAllocatedQuantity, conversionFactor),
+              ),
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in allocated state
             {
@@ -143,7 +157,10 @@ export class AllocateInventoryOrderService<
               batchId: splittedBatch.id, // splitted batch marked with saleId
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetAllocatedQuantity * conversionFactor,
+              quantity: toBaseQuantity(
+                item.targetAllocatedQuantity,
+                conversionFactor,
+              ),
             } as DeepPartial<StockEntityClass>,
           ]),
         );
@@ -156,6 +173,14 @@ export class AllocateInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item, index) =>
+        assertPositiveQuantity(
+          item.targetAllocatedQuantity,
+          'targetAllocatedQuantity',
+          `item #${index}`,
+        ),
+      );
+
       const repos = this.getRepositories(manager);
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
       const { items, ...orderOptions } = options;
@@ -186,6 +211,16 @@ export class AllocateInventoryOrderService<
     manager?: EntityManager;
   }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items
+        ?.filter((item) => !item.id && !item.removedAt)
+        .forEach((item, index) =>
+          assertPositiveQuantityIfPresent(
+            item.targetAllocatedQuantity,
+            'targetAllocatedQuantity',
+            `item #${index}`,
+          ),
+        );
+
       const repos = this.getRepositories(manager);
       const { items, ...orderOptions } = options;
 
@@ -206,25 +241,27 @@ export class AllocateInventoryOrderService<
         );
 
         const newItems: Partial<AllocateInventoryOrderItemEntityClass>[] = [];
-        const existingItems: Partial<AllocateInventoryOrderItemEntityClass>[] =
-          [];
 
         items.forEach((item) => {
-          if (!item.id) newItems.push({ ...item, orderId: id });
-          else if (existingItemIds.has(item.id))
-            existingItems.push({ ...item, orderId: id });
+          if (item.id) {
+            if (!existingItemIds.has(item.id))
+              throw new NotFoundException(
+                `Allocate inventory order item ${item.id} not found on order ${id}`,
+              );
+            // An existing line has already moved stock; it is reversed by its
+            // own operation, never edited or removed in place.
+            assertLineNotEdited(
+              item,
+              'Allocate inventory order',
+              'deallocate()',
+            );
+          } else if (!item.removedAt) {
+            newItems.push({ ...item, orderId: id });
+          }
         });
 
         if (newItems.length)
           await this.processAllocateInventoryOrderItems(newItems, manager);
-        if (existingItems.length)
-          await repos.allocateInventoryOrderItem.save(
-            await Promise.all(
-              existingItems.map((item) =>
-                repos.allocateInventoryOrderItem.create(item),
-              ),
-            ),
-          );
       }
 
       return updated as T;
@@ -238,6 +275,11 @@ export class AllocateInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const list = Array.isArray(options) ? options : [options];
+      list.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       if (!Array.isArray(options)) options = [options];
       const repos = this.getRepositories(manager);
 
@@ -274,7 +316,7 @@ export class AllocateInventoryOrderService<
                 ...data,
                 saleId: originalBatch.saleId as string,
                 saleSerialId: originalBatch.saleSerialId as string,
-                targetAllocatedQuantity: -1 * data.quantity,
+                targetAllocatedQuantity: negateQuantity(data.quantity),
                 orderId: order.id,
               }),
             );
@@ -291,8 +333,12 @@ export class AllocateInventoryOrderService<
               repos.allocateInventoryOrderChange.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged:
-                  -1 * item.targetAllocatedQuantity * conversionFactor,
+                quantityChanged: negateQuantity(
+                  toBaseQuantity(
+                    item.targetAllocatedQuantity,
+                    conversionFactor,
+                  ),
+                ),
               }),
             );
             // Stock movements track the hold through splitted batch
@@ -320,7 +366,7 @@ export class AllocateInventoryOrderService<
                     item.locationId,
                   ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * change.quantityChanged,
+                  quantity: negateQuantity(change.quantityChanged),
                 } as DeepPartial<StockEntityClass>,
                 // add to splitted batch in released state
                 {

@@ -12,6 +12,7 @@ import {
   TABLE_ACTIONS_KEY,
 } from '@mezzanine-ui/core/table';
 import { usePersistedColumnWidths } from '../../../hooks/usePersistedColumnWidths';
+import { useCompactLayout } from '../../../hooks/useCompactLayout';
 
 const COLUMN_MIN_WIDTH = 40;
 
@@ -58,9 +59,18 @@ const Table = <T extends TableDataSource>({
   tableKey,
   pinnedUntilColumnKey,
   pinnedColumnKeys,
+  unpaginated = false,
+  fullWidth = true,
+  reserveResizeSpace = false,
   ...props
 }: TableProps<T> & {
   tableKey: string;
+  /**
+   * Render every row with no pager. The wrapper otherwise always hands
+   * Mezzanine a pagination object, which draws a pager even without
+   * `total` / `current`.
+   */
+  unpaginated?: boolean;
   /**
    * Pin every data column up to and including this one to the start edge
    * while the table scrolls horizontally.
@@ -72,8 +82,23 @@ const Table = <T extends TableDataSource>({
    * columns.
    */
   pinnedColumnKeys?: readonly string[];
+  /**
+   * Stretch the table to its container (default). Pass `false` for a table
+   * that should be exactly as wide as its columns.
+   */
+  fullWidth?: boolean;
+  /**
+   * Keep an empty trailing column of `RESIZE_RESERVE_WIDTH` as the room a
+   * resize drag borrows from, so widening an early column pushes the columns
+   * to its right out into the horizontal scroll area instead of squeezing the
+   * neighbour. A stopgap until Mezzanine's Table has a grow-table resize
+   * strategy; off by default, so a table with no row actions has no actions
+   * column. A table that passes `actions` always has one.
+   */
+  reserveResizeSpace?: boolean;
 }) => {
   const [containerRef, containerWidth] = useElementWidth();
+  const compact = useCompactLayout();
 
   const { columnWidths, onColumnWidthsChange } = usePersistedColumnWidths(
     tableKey,
@@ -99,12 +124,16 @@ const Table = <T extends TableDataSource>({
         ...c,
         width: c.width ?? DEFAULT_COLUMN_WIDTH,
         minWidth: COLUMN_MIN_WIDTH,
+        // On a phone the pinned block alone is wider than the screen, and
+        // pinned columns never scroll: whatever lies past them (the material
+        // key, on the inventory list) could not be reached at all.
         fixed:
-          index <= pinnedUntilIndex || pinnedColumnKeys?.includes(c.key)
+          !compact &&
+          (index <= pinnedUntilIndex || pinnedColumnKeys?.includes(c.key))
             ? 'start'
             : c.fixed,
       })),
-    [pinnedColumnKeys, pinnedUntilIndex, props.columns],
+    [compact, pinnedColumnKeys, pinnedUntilIndex, props.columns],
   );
 
   const leadingControlsWidth =
@@ -122,18 +151,24 @@ const Table = <T extends TableDataSource>({
    * explicit width, which pushes the table past the container.
    */
   const needsReserve =
+    reserveResizeSpace &&
     containerWidth > 0 &&
     containerWidth - leadingControlsWidth - dataColumnsWidth <
       RESIZE_RESERVE_WIDTH;
 
+  const hasActionsColumn = Boolean(props.actions) || reserveResizeSpace;
+
   const actions = useMemo(
-    (): TableActionsWithMinWidth<T> => ({
-      ...props.actions,
-      render: props.actions?.render ?? (() => []),
-      minWidth: COLUMN_MIN_WIDTH,
-      width: needsReserve ? RESIZE_RESERVE_WIDTH : undefined,
-    }),
-    [needsReserve, props.actions],
+    (): TableActionsWithMinWidth<T> | undefined =>
+      hasActionsColumn
+        ? {
+            ...props.actions,
+            render: props.actions?.render ?? (() => []),
+            minWidth: COLUMN_MIN_WIDTH,
+            width: needsReserve ? RESIZE_RESERVE_WIDTH : undefined,
+          }
+        : undefined,
+    [hasActionsColumn, needsReserve, props.actions],
   );
 
   return (
@@ -142,7 +177,7 @@ const Table = <T extends TableDataSource>({
         {...props}
         columns={columns}
         actions={actions}
-        fullWidth
+        fullWidth={fullWidth}
         resizable
         columnWidths={columnWidths}
         onColumnWidthsChange={onColumnWidthsChange}
@@ -157,12 +192,25 @@ const Table = <T extends TableDataSource>({
           title: '查無資料',
           ...props.emptyProps,
         }}
-        pagination={{
-          showPageSizeOptions: true,
-          pageSizeLabel: '每頁顯示：',
-          pageSizeOptions: [5, 10, 15, 20],
-          ...props.pagination,
-        }}
+        pagination={
+          unpaginated
+            ? undefined
+            : {
+                showPageSizeOptions: true,
+                pageSizeLabel: '每頁顯示：',
+                pageSizeOptions: [5, 10, 15, 20],
+                ...props.pagination,
+                // A full pager (size picker, five page numbers, both ends)
+                // is wider than a phone and pushed the page sideways.
+                ...(compact
+                  ? {
+                      showPageSizeOptions: false,
+                      siblingCount: 0,
+                      boundaryCount: 1,
+                    }
+                  : {}),
+              }
+        }
       />
     </div>
   );

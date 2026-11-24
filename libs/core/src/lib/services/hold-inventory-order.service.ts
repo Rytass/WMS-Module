@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   HoldInventoryOrderChangeEntityClass,
   HoldInventoryOrderEntity,
@@ -20,8 +20,14 @@ import { ReleaseInventoryOrderItemInput } from '../typings/release-inventory-ord
 import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
+import { assertLineNotEdited } from '../utils/assert-line-not-edited';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 @Injectable()
 export class HoldInventoryOrderService<
@@ -97,7 +103,10 @@ export class HoldInventoryOrderService<
           repos.holdInventoryOrderChange.create({
             itemId: item.id,
             id: base.id,
-            quantityChanged: item.targetHeldQuantity * conversionFactor,
+            quantityChanged: toBaseQuantity(
+              item.targetHeldQuantity,
+              conversionFactor,
+            ),
           }),
         );
 
@@ -108,7 +117,7 @@ export class HoldInventoryOrderService<
             batchId: item.batchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetHeldQuantity * conversionFactor,
+            quantity: toBaseQuantity(item.targetHeldQuantity, conversionFactor),
           },
           manager,
         );
@@ -122,7 +131,9 @@ export class HoldInventoryOrderService<
               batchId: item.batchId, // original batch
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetHeldQuantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(item.targetHeldQuantity, conversionFactor),
+              ),
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in held state
             {
@@ -131,7 +142,10 @@ export class HoldInventoryOrderService<
               batchId: splittedBatch.id, // splitted batch marked held
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetHeldQuantity * conversionFactor,
+              quantity: toBaseQuantity(
+                item.targetHeldQuantity,
+                conversionFactor,
+              ),
             } as DeepPartial<StockEntityClass>,
           ]),
         );
@@ -144,6 +158,14 @@ export class HoldInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item, index) =>
+        assertPositiveQuantity(
+          item.targetHeldQuantity,
+          'targetHeldQuantity',
+          `item #${index}`,
+        ),
+      );
+
       const repos = this.getRepositories(manager);
       const { items, ...orderOptions } = options;
 
@@ -173,6 +195,16 @@ export class HoldInventoryOrderService<
     ...options
   }: UpdateHoldInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items
+        ?.filter((item) => !item.id && !item.removedAt)
+        .forEach((item, index) =>
+          assertPositiveQuantityIfPresent(
+            item.targetHeldQuantity,
+            'targetHeldQuantity',
+            `item #${index}`,
+          ),
+        );
+
       const repos = this.getRepositories(manager);
       const { items, ...orderOptions } = options;
 
@@ -190,25 +222,23 @@ export class HoldInventoryOrderService<
         );
 
         const newItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
-        const existingItems: Partial<HoldInventoryOrderItemEntityClass>[] = [];
 
         items.forEach((item) => {
-          if (item.removedAt) return;
-          if (!item.id) newItems.push({ ...item, orderId: id });
-          else if (existingItemIds.has(item.id))
-            existingItems.push({ ...item, orderId: id });
+          if (item.id) {
+            if (!existingItemIds.has(item.id))
+              throw new NotFoundException(
+                `Hold inventory order item ${item.id} not found on order ${id}`,
+              );
+            // An existing line has already moved stock; it is reversed by its
+            // own operation, never edited or removed in place.
+            assertLineNotEdited(item, 'Hold inventory order', 'release()');
+          } else if (!item.removedAt) {
+            newItems.push({ ...item, orderId: id });
+          }
         });
 
         if (newItems.length)
           await this.processHoldInventoryOrderItems(newItems, repos, manager);
-        if (existingItems.length)
-          await repos.holdInventoryOrderItem.save(
-            await Promise.all(
-              existingItems.map((item) =>
-                repos.holdInventoryOrderItem.create(item),
-              ),
-            ),
-          );
       }
 
       return updated as T;
@@ -289,6 +319,11 @@ export class HoldInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      const list = Array.isArray(options) ? options : [options];
+      list.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       if (!Array.isArray(options)) options = [options];
       const repos = this.getRepositories(manager);
 
@@ -316,7 +351,7 @@ export class HoldInventoryOrderService<
             const item = await repos.holdInventoryOrderItem.save(
               repos.holdInventoryOrderItem.create({
                 ...data,
-                targetHeldQuantity: -1 * data.quantity,
+                targetHeldQuantity: negateQuantity(data.quantity),
                 orderId: order.id,
               }),
             );
@@ -332,8 +367,9 @@ export class HoldInventoryOrderService<
               repos.holdInventoryOrderChange.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged:
-                  -1 * item.targetHeldQuantity * conversionFactor,
+                quantityChanged: negateQuantity(
+                  toBaseQuantity(item.targetHeldQuantity, conversionFactor),
+                ),
               }),
             );
 
@@ -362,7 +398,7 @@ export class HoldInventoryOrderService<
                     item.locationId,
                   ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * change.quantityChanged,
+                  quantity: negateQuantity(change.quantityChanged),
                 } as DeepPartial<StockEntityClass>,
                 // add to splitted batch in released state
                 {

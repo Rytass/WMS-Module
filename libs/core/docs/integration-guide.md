@@ -14,6 +14,12 @@ Target audience: engineers integrating WMS into a new product who want a working
 4. [Backend setup (NestJS + GraphQL + TypeORM)](#4-backend-setup-nestjs--graphql--typeorm)
    - [4.6 Version compatibility matrix](#46-version-compatibility-matrix)
    - [4.7 Module format: CommonJS only](#47-module-format-commonjs-only)
+   - [4.8 Upgrading: change `kind` columns](#48-upgrading-change-kind-columns)
+   - [4.9 Removing a ship order line](#49-removing-a-ship-order-line)
+   - [4.10 Decimal quantities](#410-decimal-quantities)
+   - [4.11 Upgrading: `batches.groupId` index](#411-upgrading-batchesgroupid-index)
+   - [4.12 Counting without locking the locations](#412-counting-without-locking-the-locations)
+   - [4.13 Moving a loader that holds reserved stock](#413-moving-a-loader-that-holds-reserved-stock)
 5. [Frontend setup (Next.js Pages Router)](#5-frontend-setup-nextjs-pages-router)
 6. [Pages Router shell pattern (the 19 thin shells)](#6-pages-router-shell-pattern-the-19-thin-shells)
 7. [Apollo client wiring](#7-apollo-client-wiring)
@@ -397,6 +403,155 @@ problem: it finds the tables to prefix by class identity.
 ESM consumers lose nothing. Node reads named exports out of CommonJS through `cjs-module-lexer`,
 so `import { WmsModuleCoreModule } from '@rytass/wms-module-core'` works as written. The NestJS 12
 line is ESM-only; it is outside the accepted peer range (see §4.6).
+
+### 4.8 Upgrading: change `kind` columns
+
+A ship and a cancel both write a **negative** `quantityChanged`, so the sign cannot say whether
+goods left the warehouse or a reservation was undone. `ship_inventory_order_changes` therefore
+carries a `kind` column (`RESERVE` / `SHIP` / `CANCEL`), set on every write, and every read
+(order status, shipped and cancellable quantities, change logs, `stock.*` events) goes by it.
+Before this column existed a cancelled quantity counted as shipped: an order with 4 of 10
+cancelled read `PARTIAL_SHIPPED`, a fully cancelled one `SHIPPED`.
+
+The column is **nullable**, because a table that already holds rows cannot gain a `NOT NULL`
+column without a value, and any single default would silently mislabel two of the three kinds.
+`synchronize: true` adds it; with migrations, add `kind varchar NULL`. Rows written before the
+upgrade keep `NULL` until you run the statement below, and a `NULL` row counts for nothing: the
+order reads as if nothing had shipped and the row emits no event (`changeLogs` falls back to the
+old sign rule for it). **Run it once, right after the schema change, before serving traffic.** It
+is idempotent (it only touches `NULL` rows).
+
+Until it has run, an item whose rows include a `NULL` kind **cannot be shipped, transferred or
+cancelled**: `ship`, `cancelShip`, `removeShipInventoryOrder`, `transfer`, `cancelTransfer` and
+`removeTransferOrder` (including a whole-loader item) throw
+`Item <id> has change rows without a kind; run the upgrade SQL in integration-guide §4.8 before
+moving its stock`. Reading is unaffected. The refusal is deliberate: counting a `NULL` row as zero
+would overstate what is left to ship or transfer and let the same stock move twice.
+
+`<prefix>` is your `withWmsTablePrefix` prefix (empty by default). `stocks` belongs to
+`@rytass/wms-base-nestjs-module` and carries no prefix.
+
+The old rows are told apart by what they wrote to `stocks` under the same id: a positive
+`quantityChanged` is a reservation; a negative one that also put stock *back* (a positive
+`stocks` row, on the item's original batch) is a cancel; a negative one that only took stock off
+the in-shipment batch is a ship.
+
+```sql
+-- wms:ship-change-kind-backfill
+UPDATE <prefix>ship_inventory_order_changes AS c
+SET kind = CASE
+  WHEN c."quantityChanged" > 0 THEN 'RESERVE'
+  WHEN EXISTS (
+    SELECT 1 FROM stocks AS s WHERE s."orderId" = c.id AND s.quantity > 0
+  ) THEN 'CANCEL'
+  ELSE 'SHIP'
+END
+WHERE c.kind IS NULL;
+```
+
+Order status after a cancel: `SHIPPED` once what shipped covers `target - cancelled` (and that is
+above zero), `PARTIAL_SHIPPED` while some has shipped and some is still to go, otherwise
+`PENDING`. Lines marked `removedAt` are left out of all three sums (target, shipped, cancelled), so
+the status follows the remaining lines only; an order whose lines are all removed reads `PENDING`.
+`changeLogs` reports a cancel as `SHIP_CANCELLED` and the event is
+`stock.ship-cancelled`; `stock.shipped` now means goods actually left.
+
+**Transfer orders have the same column.** `transfer_order_changes.kind` is `RESERVE` / `TRANSFER`
+/ `CANCEL`, nullable for the same reason, and drives the pending quantity (target - transferred -
+cancelled), the `transferredQuantity` field, `changeLogs` (`TRANSFER_CANCELLED`) and the event
+`stock.transfer-cancelled`; `stock.transferred` now means stock actually arrived. An executed
+transfer puts stock back on the original batch at the *destination* and a cancel puts it back at
+the *source*, so a negative row whose stock pair changes location or loader is a transfer and one
+whose pair stays where it was is a cancel. (A transfer whose destination equals its source writes
+exactly what a cancel writes, so the two cannot be told apart and it backfills as `CANCEL`. Such a
+transfer moves nothing.)
+
+```sql
+-- wms:transfer-change-kind-backfill
+UPDATE <prefix>transfer_order_changes AS c
+SET kind = CASE
+  WHEN c."quantityChanged" > 0 THEN 'RESERVE'
+  WHEN EXISTS (
+    SELECT 1
+    FROM stocks AS p
+    JOIN stocks AS n ON n."orderId" = p."orderId"
+    WHERE p."orderId" = c.id
+      AND p.quantity > 0
+      AND n.quantity < 0
+      AND (p."locationId" IS DISTINCT FROM n."locationId"
+        OR p."loaderId" IS DISTINCT FROM n."loaderId")
+  ) THEN 'TRANSFER'
+  ELSE 'CANCEL'
+END
+WHERE c.kind IS NULL;
+```
+
+Run both statements in the same step; each is idempotent.
+
+### 4.9 Removing a ship order line
+
+`updateShipInventoryOrder` with `removedAt` on a line that still holds a reservation (reserved - shipped - cancelled > 0) is **refused** with a `BadRequestException`, because the stock would stay parked on the line's in-shipment batch with nothing left to ship or cancel it. Call `cancelShip` for the line first, then remove it. A line with nothing left reserved is removed as usual.
+
+To have the removal cancel the remainder itself, in the same transaction and with a `CANCEL` change, set the module option (default `false`):
+
+```ts
+WmsModuleCoreModule.forRootAsync({
+  // ...
+  cancelReservationOnShipLineRemoval: true,
+});
+```
+
+`removeShipInventoryOrder` removes a whole order and always cancels what is left on every line, including lines removed earlier.
+
+### 4.10 Decimal quantities
+
+Quantities are exact decimals (`numeric`), and the services add, convert and compare them with `decimal.js` (a runtime dependency of core), so `0.1 x 3` ships against a reservation of `0.3` and a whole-loader transfer does not depend on item order. If your host does its own arithmetic on quantities, use the exported helpers (`sumQuantities`, `addQuantity`, `subtractQuantity`, `compareQuantity`, `toBaseQuantity`, `fromBaseQuantity`, ...) instead of `+`, `*` or `===`. Entity fields come back as numbers; raw query results and `SUM(...)` are still strings, which the helpers accept as they are.
+
+### 4.11 Upgrading: `batches.groupId` index
+
+`BatchService.splitBatch` finds sibling batches through `batches."groupId"`, and PostgreSQL does not index the referencing column of a foreign key. The entity now declares the index as `IDX_batches_groupId`, so `synchronize: true` creates it. With migrations, or on a large table where you want to avoid a blocking build, run once:
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS "<prefix>IDX_batches_groupId" ON "<prefix>batches" ("groupId");
+```
+
+`<prefix>` is your `withWmsTablePrefix` prefix, applied to both the index and the table (empty by default). With `withWmsTablePrefix(options, 'wms_')` that is `"wms_IDX_batches_groupId"` on `"wms_batches"`. `CONCURRENTLY` cannot run inside a transaction, so keep it out of a transactional migration. Keep this exact name: `synchronize` matches the index by name, and would drop an index named otherwise and build its own.
+
+### 4.12 Counting without locking the locations
+
+`InventoryCountOrderService.create` takes `lockLocations` (GraphQL: `createInventoryCountOrder(lockLocations: ...)`; the order and its DTO expose it too). The default is `true`: `start()` refuses every stock movement in the scope until the count is settled or cancelled. With `false` the warehouse keeps shipping, receiving and transferring during the count.
+
+- The flag is chosen at creation (it may still be changed with `update` while the order is `PENDING`) and is **fixed from `start()` on**.
+- `settle` skips the "ledger still equals the snapshot" check and posts `counted - snapshot` for each counted line, on top of whatever moved meanwhile. Example: snapshot 10, 3 shipped during the count, counted 9 -> the line posts -1 and the ledger goes 7 -> 6. It does not set the ledger to the counted figure.
+- `settle` takes the stock slot locks of the counted lines first (in both modes), so it queues behind a shipment that is already deducting the same (material, batch).
+- The snapshot (`bookQuantity`) and the count (`countedQuantity`) stay on `inventory_count_order_items` and can be read through `inventoryCountOrderItems`, for the ERP to reconcile.
+- **Known limitation:** a location that moved during the count ends up with a book quantity that is not what is physically on the shelf; the module records no per-line count time, so the timing difference is the host's to reconcile.
+
+The new column is `NOT NULL DEFAULT true`, so every existing order keeps locking. `synchronize: true` adds it; with migrations:
+
+```sql
+ALTER TABLE <prefix>inventory_count_orders
+  ADD COLUMN IF NOT EXISTS "lockLocations" boolean NOT NULL DEFAULT true;
+```
+
+### 4.13 Moving a loader that holds reserved stock
+
+A whole-loader transfer refuses a loader whose stock is not `FREE` (reserved, held), because a transfer splits every batch into a `transferId` child and the flags do not survive the split. To carry a pallet to another location with its reservations intact, call `TransferOrderService.moveLoader` (GraphQL: `moveLoader(loaderId, targetLocationId)`):
+
+```ts
+await transferOrderService.moveLoader({ loaderId, targetLocationId }, manager);
+```
+
+- Every batch the loader holds keeps its id and its flags; the stock is written out of the old location and into the new one, and `loaders.locationId` follows. Shipping or cancelling an existing reservation afterwards works as before.
+- It is recorded as a transfer order that is executed at once: the change log lists it as `TRANSFERRED` and each slot emits `stock.transferred` (the GraphQL mutation also emits `transfer-order.loader-moved`). The order has nothing left to execute or cancel.
+- Unfinished ship, transfer and receive lines (something left to receive) that name the loader get the new `locationId`; open consumption lines get `locationId` (loader is the source) or `targetLocationId` (loader is the consuming loader). Finished lines, and hold, allocate, vendor, customer, scrape and similar lines, keep what they recorded.
+- Refused, with nothing written: the default loader, a loader already at the target, a loader with no stock (use `LoaderService.updateLoader`), an unknown loader or location, and a source or target location that a running inventory count has locked.
+- A pending transfer that consolidates onto the moved loader is not re-pointed (its target location stays): cancel and recreate it after the move.
+- If a reservation lands on the loader while it is being moved, the call throws `ConflictException`; retry it.
+
+If you restrict operations, the new name is `transfer-order:move-loader`.
+
+---
 
 ## 5. Frontend setup (Next.js Pages Router)
 

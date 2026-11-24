@@ -27,6 +27,11 @@ interface LocationsFieldProps {
   disabled?: boolean;
   selectValueMode: boolean;
   useMpaButton?: boolean;
+  /**
+   * Ask before a click on the map fills the field. Overrides
+   * `MapSettingsProvider`; see `MapSettings.confirmSelection`.
+   */
+  confirmMapSelection?: boolean;
 }
 
 const LocationsField: FC<LocationsFieldProps> = ({
@@ -40,6 +45,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
   disabled,
   selectValueMode,
   useMpaButton = false,
+  confirmMapSelection,
 }) => {
   const { setValue } = useFormContext();
   const [modalOpened, setModalOpened] = useState<boolean>(false);
@@ -123,6 +129,7 @@ const LocationsField: FC<LocationsFieldProps> = ({
             onClose={() => {
               setModalOpened(false);
             }}
+            confirmSelection={confirmMapSelection}
             onNodeClick={(nodeInfo, isExistingLocation) => {
               if (!isExistingLocation) {
                 Message.error('不存在此位置');
@@ -143,7 +150,15 @@ const LocationsField: FC<LocationsFieldProps> = ({
           />
         </>
       ) : null,
-    [modalOpened, name, onChange, selectValueMode, setValue, useMpaButton],
+    [
+      confirmMapSelection,
+      modalOpened,
+      name,
+      onChange,
+      selectValueMode,
+      setValue,
+      useMpaButton,
+    ],
   );
 
   if (selectValueMode) {

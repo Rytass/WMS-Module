@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import {
   MergeBatchOrderEntity,
   MergeBatchOrderEntityClass,
@@ -21,8 +21,31 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { HelperService } from './helper.service';
 import { StockService } from './stock.service';
+import { assertPositiveQuantity } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
+
+/** Attribute documents are equal when their JSON content is, whatever the key order. */
+const canonical = (value: unknown): unknown =>
+  Array.isArray(value)
+    ? value.map(canonical)
+    : value !== null && typeof value === 'object'
+      ? Object.fromEntries(
+          Object.entries(value)
+            .sort(([left], [right]) =>
+              left < right ? -1 : left > right ? 1 : 0,
+            )
+            .map(([key, inner]) => [key, canonical(inner)]),
+        )
+      : value;
+
+const sameAttributes = (
+  left: Record<string, unknown> | null | undefined,
+  right: Record<string, unknown> | null | undefined,
+): boolean =>
+  JSON.stringify(canonical(left ?? null)) ===
+  JSON.stringify(canonical(right ?? null));
 
 @Injectable()
 export class MergeBatchOrderService<
@@ -45,6 +68,10 @@ export class MergeBatchOrderService<
 
   merge(options: MergeBatchInput, outerManager?: EntityManager): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item, index) =>
+        assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+      );
+
       const mergeBatchOrderRepository =
         manager.getRepository<MergeBatchOrderEntityClass>(
           this.mergeBatchOrderEntity,
@@ -59,13 +86,18 @@ export class MergeBatchOrderService<
       const stockRepository = manager.getRepository(this.entities.stock);
       const batchRepository = manager.getRepository(this.entities.batch);
 
-      // Verify all source batches have identical metadata (except key and groupId)
+      // Verify all source batches have identical metadata (except key and groupId).
+      // One batch can be named by several lines (it sits at two locations), so
+      // the lookup is compared against the distinct ids, not the line count.
+      const batchIds = [
+        ...new Set(options.items.map(({ batchId }) => batchId)),
+      ];
       const sourceBatches = await batchRepository.find({
-        where: { id: In(options.items.map((item) => item.batchId)) },
+        where: { id: In(batchIds) },
       });
 
-      if (sourceBatches.length !== options.items.length) {
-        throw new Error('Some source batches were not found');
+      if (sourceBatches.length !== batchIds.length) {
+        throw new BadRequestException('Some source batches were not found');
       }
 
       const metadataKeys = [
@@ -77,16 +109,25 @@ export class MergeBatchOrderService<
         'transferId',
         'held',
         'inShipment',
+        'requiresInspection',
       ] as const;
 
       const referenceBatch = sourceBatches[0];
       for (const batch of sourceBatches) {
         for (const field of metadataKeys) {
           if (batch[field] !== referenceBatch[field]) {
-            throw new Error(
+            throw new BadRequestException(
               `Batch metadata mismatch on field "${field}": batch ${batch.id} has ${batch[field]}, expected ${referenceBatch[field]}`,
             );
           }
+        }
+
+        // Host attributes are part of what a batch is, so batches that differ
+        // in them are different batches and are not merged into one.
+        if (!sameAttributes(batch.attributes, referenceBatch.attributes)) {
+          throw new BadRequestException(
+            `Batch metadata mismatch on field "attributes": batch ${batch.id} has ${JSON.stringify(batch.attributes)}, expected ${JSON.stringify(referenceBatch.attributes)}`,
+          );
         }
       }
 
@@ -102,7 +143,7 @@ export class MergeBatchOrderService<
       // item by item, two merges naming the same batches in opposite order
       // deadlocked.
       await this.stockService.lockStockSlots(
-        options.items.map(({ batchId }) => ({
+        batchIds.map((batchId) => ({
           materialId: targetBatch.materialId,
           batchId,
         })),
@@ -121,6 +162,8 @@ export class MergeBatchOrderService<
         transferId: referenceBatch.transferId,
         held: referenceBatch.held,
         inShipment: referenceBatch.inShipment,
+        requiresInspection: referenceBatch.requiresInspection,
+        attributes: referenceBatch.attributes,
       });
 
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
@@ -159,7 +202,7 @@ export class MergeBatchOrderService<
             mergeBatchOrderChangeRepository.create({
               itemId: mergeItem.id,
               id: baseOrder.id,
-              quantityChanged: item.quantity * conversionFactor,
+              quantityChanged: toBaseQuantity(item.quantity, conversionFactor),
             }),
           );
 
@@ -170,7 +213,7 @@ export class MergeBatchOrderService<
               batchId: item.batchId,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.quantity * conversionFactor,
+              quantity: toBaseQuantity(item.quantity, conversionFactor),
             },
             manager,
           );
@@ -186,7 +229,9 @@ export class MergeBatchOrderService<
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: -1 * item.quantity * conversionFactor,
+                quantity: negateQuantity(
+                  toBaseQuantity(item.quantity, conversionFactor),
+                ),
               } as DeepPartial<StockEntityClass>,
               // Add to target batch
               {
@@ -197,7 +242,7 @@ export class MergeBatchOrderService<
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: item.quantity * conversionFactor,
+                quantity: toBaseQuantity(item.quantity, conversionFactor),
               } as DeepPartial<StockEntityClass>,
             ]),
           );

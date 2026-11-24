@@ -1,4 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import {
   ShipInventoryOrderEntity,
   ShipInventoryOrderEntityClass,
@@ -13,7 +19,9 @@ import {
   EntityManager,
   In,
   IsNull,
+  MoreThan,
   SelectQueryBuilder,
+  type FindOptionsWhere,
   type EntityTarget,
 } from 'typeorm';
 import {
@@ -28,14 +36,19 @@ import {
   ShipInventoryOrderSortField,
 } from '../typings/find-ship-inventory-order.input';
 import { SortOrder } from '../typings/list-sort';
+import { ShipChangeKind } from '../constants/ship-change-kind';
+import { sumShipChanges } from '../utils/ship-change-quantities';
+import { assertChangesHaveKind } from '../utils/assert-change-kinds';
 import { applyListSort } from '../utils/list-sort';
 import { OrderEntity, BatchEntity } from '@rytass/wms-base-nestjs-module';
 import {
   ShipInventoryOrderChangeEntityClass,
   LoadersEntityClass,
+  BatchEntityClass,
   ShipInventoryOrderReferenceEntity,
   ShipInventoryOrderReferenceEntityClass,
   MaterialEntityClass,
+  MaterialUnitEntityClass,
   StockEntityClass,
   SaleOrderEntity,
   SaleOrderEntityClass,
@@ -46,9 +59,27 @@ import { MaterialService } from './material.service';
 import { BatchService } from './batch.service';
 import { CreateShipInventoryOrderReferenceInput } from '../typings/create-ship-inventory-order.input';
 import { StockService } from './stock.service';
+import {
+  assertPositiveQuantity,
+  assertPositiveQuantityIfPresent,
+} from '../utils/assert-positive-quantity';
+import { assertAllFound, assertKeyFound } from '../utils/assert-found';
+import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import {
+  WMS_CORE_MODULE_OPTIONS,
+  type WmsModuleCoreModuleOptions,
+} from '../typings/core-module-options';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
+import {
+  fromBaseQuantity,
+  isNegativeQuantity,
+  isPositiveQuantity,
+  negateQuantity,
+  subtractQuantity,
+  toBaseQuantity,
+} from '../utils/quantity';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -98,6 +129,9 @@ export class ShipInventoryOrderService<
     readonly shipInventoryOrderReferenceEntity: EntityTarget<ShipInventoryOrderReferenceEntityClass>,
     @Inject(SaleOrderEntity)
     readonly saleOrderEntity: EntityTarget<SaleOrderEntityClass>,
+    @Optional()
+    @Inject(WMS_CORE_MODULE_OPTIONS)
+    private readonly coreOptions: WmsModuleCoreModuleOptions | null = null,
   ) {
     this.selectQueryBuilder = (alias: string) => {
       return this.dataSource
@@ -109,8 +143,8 @@ export class ShipInventoryOrderService<
               .select(
                 `CASE
                   WHEN o."removedAt" IS NOT NULL THEN '${ShipInventoryOrderStatus.REMOVED}'
-                  WHEN COALESCE(change_sums.shippedsum, 0) >= COALESCE(target_sum.targetsum, 0) AND COALESCE(target_sum.targetsum, 0) > 0 THEN '${ShipInventoryOrderStatus.SHIPPED}'
-                  WHEN COALESCE(change_sums.shippedsum, 0) > 0 AND COALESCE(change_sums.shippedsum, 0) < COALESCE(target_sum.targetsum, 0) THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
+                  WHEN COALESCE(target_sum.targetsum, 0) - COALESCE(change_sums.cancelledsum, 0) > 0 AND COALESCE(change_sums.shippedsum, 0) >= COALESCE(target_sum.targetsum, 0) - COALESCE(change_sums.cancelledsum, 0) THEN '${ShipInventoryOrderStatus.SHIPPED}'
+                  WHEN COALESCE(change_sums.shippedsum, 0) > 0 AND COALESCE(change_sums.shippedsum, 0) < COALESCE(target_sum.targetsum, 0) - COALESCE(change_sums.cancelledsum, 0) THEN '${ShipInventoryOrderStatus.PARTIAL_SHIPPED}'
                   ELSE '${ShipInventoryOrderStatus.PENDING}'
                 END`,
                 'status',
@@ -124,8 +158,11 @@ export class ShipInventoryOrderService<
                 (sumQuery) =>
                   sumQuery
                     .select('i."orderId"', 'orderid')
+                    // Shipped and cancelled quantities are base units, a line's
+                    // target is in the line's own unit: convert it before the
+                    // two are compared. No unit means the base unit.
                     .addSelect(
-                      `SUM(CAST(i."targetShippedQuantity" AS NUMERIC))`,
+                      `SUM(CAST(i."targetShippedQuantity" AS NUMERIC) * COALESCE(u."conversionFactor", 1))`,
                       'targetsum',
                     )
                     .from(
@@ -135,6 +172,10 @@ export class ShipInventoryOrderService<
                       ),
                       'i',
                     )
+                    .leftJoin(MaterialUnitEntityClass, 'u', 'u.id = i."unitId"')
+                    // A removed line is out of the order: its target, and what it
+                    // shipped or cancelled, no longer count toward the status.
+                    .where('i."removedAt" IS NULL')
                     .groupBy('i."orderId"'),
                 'target_sum',
                 'target_sum.orderid = o.id',
@@ -144,8 +185,12 @@ export class ShipInventoryOrderService<
                   sumQuery
                     .select('i."orderId"', 'orderid')
                     .addSelect(
-                      `SUM(CASE WHEN CAST(c."quantityChanged" AS NUMERIC) < 0 THEN ABS(CAST(c."quantityChanged" AS NUMERIC)) ELSE 0 END)`,
+                      `SUM(CASE WHEN c.kind = '${ShipChangeKind.SHIP}' THEN ABS(CAST(c."quantityChanged" AS NUMERIC)) ELSE 0 END)`,
                       'shippedsum',
+                    )
+                    .addSelect(
+                      `SUM(CASE WHEN c.kind = '${ShipChangeKind.CANCEL}' THEN ABS(CAST(c."quantityChanged" AS NUMERIC)) ELSE 0 END)`,
+                      'cancelledsum',
                     )
                     .from(
                       tablePathOf(
@@ -165,6 +210,7 @@ export class ShipInventoryOrderService<
                       'i',
                       'c."itemId" = i.id',
                     )
+                    .where('i."removedAt" IS NULL')
                     .groupBy('i."orderId"'),
                 'change_sums',
                 'change_sums.orderid = o.id',
@@ -196,29 +242,31 @@ export class ShipInventoryOrderService<
       async (accPromise, reference) => {
         const acc = await accPromise;
 
-        try {
-          const material = await materialRepository.findOneBy({
-            key: reference.materialKey,
-          });
-          if (!material) return acc;
+        const material = assertKeyFound(
+          reference.materialKey
+            ? await materialRepository.findOneBy({
+                key: reference.materialKey,
+              })
+            : null,
+          'Material',
+          String(reference.materialKey),
+        );
 
-          if (reference.saleId && reference.saleSerialId)
-            await saleOrderRepository.save(
-              saleOrderRepository.create({
-                id: reference.saleId,
-                serialId: reference.saleSerialId,
-              }),
-            );
-          return [
-            ...acc,
-            {
-              ...reference,
-              materialId: material.id,
-            },
-          ];
-        } catch {
-          return acc;
-        }
+        if (reference.saleId && reference.saleSerialId)
+          await saleOrderRepository.save(
+            saleOrderRepository.create({
+              id: reference.saleId,
+              serialId: reference.saleSerialId,
+            }),
+          );
+
+        return [
+          ...acc,
+          {
+            ...reference,
+            materialId: material.id,
+          },
+        ];
       },
       Promise.resolve(
         [] as DeepPartial<ShipInventoryOrderReferenceEntityClass>[],
@@ -275,7 +323,11 @@ export class ShipInventoryOrderService<
           shipInventoryOrderChangeRepository.create({
             itemId: item.id,
             id: base.id,
-            quantityChanged: item.targetShippedQuantity * conversionFactor,
+            quantityChanged: toBaseQuantity(
+              item.targetShippedQuantity,
+              conversionFactor,
+            ),
+            kind: ShipChangeKind.RESERVE,
           }),
         );
 
@@ -286,7 +338,10 @@ export class ShipInventoryOrderService<
             batchId: item.batchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetShippedQuantity * conversionFactor,
+            quantity: toBaseQuantity(
+              item.targetShippedQuantity,
+              conversionFactor,
+            ),
           },
           manager,
         );
@@ -300,7 +355,9 @@ export class ShipInventoryOrderService<
               batchId: item.batchId, // original batch
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetShippedQuantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(item.targetShippedQuantity, conversionFactor),
+              ),
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in shipment state
             {
@@ -309,7 +366,10 @@ export class ShipInventoryOrderService<
               batchId: splittedBatch.id, // splitted batch marked inShipment
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetShippedQuantity * conversionFactor,
+              quantity: toBaseQuantity(
+                item.targetShippedQuantity,
+                conversionFactor,
+              ),
             } as DeepPartial<StockEntityClass>,
           ]),
         );
@@ -322,6 +382,14 @@ export class ShipInventoryOrderService<
     ...options
   }: CreateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.references?.forEach((reference) =>
+        assertPositiveQuantity(
+          reference.targetShippedQuantity,
+          'targetShippedQuantity',
+          `reference ${reference.serialId}`,
+        ),
+      );
+
       const orderRepository = manager.getRepository<OrderEntity>(
         this.entities.order,
       );
@@ -374,6 +442,16 @@ export class ShipInventoryOrderService<
     ...options
   }: UpdateShipInventoryOrderInput & { manager?: EntityManager }): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      [...(options.references ?? []), ...(options.items ?? [])]
+        .filter((line) => !line.removedAt)
+        .forEach((line) =>
+          assertPositiveQuantityIfPresent(
+            line.targetShippedQuantity,
+            'targetShippedQuantity',
+            line.id ? `line ${line.id}` : `line ${line.serialId}`,
+          ),
+        );
+
       const shipInventoryOrderRepository =
         manager.getRepository<ShipInventoryOrderEntityClass>(
           this.shipInventoryOrderEntity,
@@ -395,6 +473,16 @@ export class ShipInventoryOrderService<
         id,
         removedAt: IsNull(),
       });
+
+      // Decided before anything is written: a refusal leaves no trace even in a
+      // caller's transaction that carries on after catching it.
+      const releaseOnRemoval = await this.planReleaseOfRemovedLines(
+        id,
+        (options.items ?? [])
+          .filter((line) => line.id && line.removedAt)
+          .map((line) => line.id as string),
+        manager,
+      );
       const { references, items, ...orderOptions } = options;
       const updated = await shipInventoryOrderRepository.save(
         shipInventoryOrderRepository.create({
@@ -438,9 +526,13 @@ export class ShipInventoryOrderService<
         results.forEach((result) => {
           if (!result) return;
           const { item, batch } = result;
-          if (!item.id) newItems.push({ ...item, batchId: batch?.id || null });
+          if (!item.id && item.removedAt) return;
+          else if (!item.id)
+            newItems.push({ ...item, batchId: batch?.id || null });
           else if (itemSet.has(item.id))
-            existingItems.push({ ...item, batchId: batch?.id || null });
+            existingItems.push(
+              asRemovalMarker({ ...item, batchId: batch?.id || null }),
+            );
         });
 
         if (newItems.length) {
@@ -474,11 +566,17 @@ export class ShipInventoryOrderService<
           .then((dbItems) => {
             const itemSet = new Set(dbItems.map((i) => i.id));
             items?.forEach((item) => {
-              if (!item.id) newItems.push({ ...item, orderId: id });
-              else if (itemSet.has(item.id)) existingItems.push(item);
+              if (!item.id && item.removedAt) return;
+              else if (!item.id) newItems.push({ ...item, orderId: id });
+              else if (itemSet.has(item.id))
+                existingItems.push(asRemovalMarker(item));
             });
           });
 
+        // First, so the stock a removed line gives back is there for the lines
+        // this same update adds.
+        if (releaseOnRemoval.length)
+          await this.cancelShipInternal(releaseOnRemoval, manager);
         if (newItems.length)
           await this.processShipInventoryOrderItems(newItems, manager);
         if (existingItems.length)
@@ -494,6 +592,52 @@ export class ShipInventoryOrderService<
 
       return updated as T;
     });
+  }
+
+  /**
+   * What removing these lines must cancel first: for each line that is still
+   * live and still holds a reservation (reserved - shipped - cancelled > 0,
+   * read from the change rows' `kind`), the cancel that releases it.
+   *
+   * A line removed with its reservation standing keeps the stock parked on its
+   * in-shipment child with nothing left that could ship or cancel it, so unless
+   * `cancelReservationOnShipLineRemoval` is on, such a removal is refused here.
+   */
+  private async planReleaseOfRemovedLines(
+    orderId: string,
+    itemIds: readonly string[],
+    manager: EntityManager,
+  ): Promise<CancelShipInventoryOrderInput[]> {
+    if (itemIds.length === 0) return [];
+
+    const lines = await manager
+      .getRepository<ShipInventoryOrderItemEntityClass>(
+        this.shipInventoryOrderItemEntity,
+      )
+      .find({
+        where: { id: In([...itemIds]), orderId, removedAt: IsNull() },
+        relations: { changes: true },
+      });
+    const release: CancelShipInventoryOrderInput[] = [];
+
+    for (const line of lines) {
+      assertChangesHaveKind(line.id, line.changes);
+      const { reserved, shipped, cancelled } = sumShipChanges(line.changes);
+      const outstanding = reserved - shipped - cancelled;
+
+      if (outstanding <= 0) continue;
+
+      if (!this.coreOptions?.cancelReservationOnShipLineRemoval) {
+        throw new BadRequestException(
+          `Ship line ${line.serialId} (${line.id}) still holds ${outstanding} reserved and neither shipped nor cancelled; cancelShip it before removing the line (or enable cancelReservationOnShipLineRemoval)`,
+        );
+      }
+
+      // No quantity: everything still reserved, exactly, with no unit round trip.
+      release.push({ itemId: line.id });
+    }
+
+    return release;
   }
 
   /**
@@ -535,23 +679,18 @@ export class ShipInventoryOrderService<
           manager,
         );
 
-        const preparedQuantity = item.changes.reduce((sum, change) => {
-          const qty = Number(change.quantityChanged);
-          return qty > 0 ? sum + qty : sum;
-        }, 0);
+        assertChangesHaveKind(item.id, item.changes);
+        const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
+        const cancellableQuantity = subtractQuantity(
+          subtractQuantity(reserved, shipped),
+          cancelled,
+        );
 
-        const shippedQuantity = item.changes.reduce((sum, change) => {
-          const qty = Number(change.quantityChanged);
-          return qty < 0 ? sum + Math.abs(qty) : sum;
-        }, 0);
-
-        const cancellableQuantity = preparedQuantity - shippedQuantity;
-
-        if (cancellableQuantity > 0) {
+        if (isPositiveQuantity(cancellableQuantity)) {
           // Use base quantity (without conversion) since cancelShip will apply conversion
           cancelInputs.push({
             itemId: item.id,
-            quantity: cancellableQuantity / conversionFactor,
+            quantity: fromBaseQuantity(cancellableQuantity, conversionFactor),
           });
         }
       }
@@ -568,6 +707,85 @@ export class ShipInventoryOrderService<
       );
       return true;
     });
+  }
+
+  /**
+   * Name the in-shipment child of every item from the ledger, and take the
+   * stock locks of both the source batch and that child in one sorted pass.
+   *
+   * The child is read off the reservation itself, never re-derived from the
+   * source batch's current attributes: a prepare writes a change row whose `id`
+   * is the `orderId` of the stock rows it moved, and the positive stock row of
+   * that order sits on the child. A lookup by batch state would stop matching
+   * as soon as the source batch changed afterwards -- a later receipt flagging
+   * the emptied batch `requiresInspection`, say -- and strand the order.
+   *
+   * Reservations are the change rows whose `kind` is `RESERVE` (cancels and
+   * shipments are both negative, so the sign cannot tell them apart; a row
+   * without a kind counts for nothing, as in `sumShipChanges`). One item is reserved exactly once,
+   * by `processShipInventoryOrderItems`, so they all name one child; if the
+   * ledger ever names two, that is a corrupted order and is refused rather than
+   * guessed at. An item with no reservation is absent from the returned map and
+   * the caller decides what that means.
+   *
+   * No batch-group lock is taken here, and one must never be taken before the
+   * stock locks: `splitBatch` takes the group lock, so stock locks come first.
+   * Loader-row locks (loader placement) come before both.
+   */
+  private async lockWithInShipmentBatches(
+    items: readonly ShipInventoryOrderItemEntityClass[],
+    manager: EntityManager,
+  ): Promise<Map<string, string>> {
+    const stockRepository = manager.getRepository<StockEntityClass>(
+      this.entities.stock,
+    );
+    const reservationIds = (
+      item: ShipInventoryOrderItemEntityClass,
+    ): string[] =>
+      item.changes
+        .filter((change) => change.kind === ShipChangeKind.RESERVE)
+        .map((change) => change.id);
+
+    const allIds = items.flatMap(reservationIds);
+    const rows = allIds.length
+      ? await stockRepository.find({
+          where: {
+            orderId: In(allIds),
+            quantity: MoreThan(0),
+          } as FindOptionsWhere<StockEntityClass>,
+        })
+      : [];
+    const batchByOrder = new Map(rows.map((row) => [row.orderId, row.batchId]));
+
+    const found = new Map<string, string>();
+    for (const item of items) {
+      const batchIds = [
+        ...new Set(
+          reservationIds(item).flatMap((id) => batchByOrder.get(id) ?? []),
+        ),
+      ];
+
+      if (batchIds.length > 1) {
+        throw new Error(
+          `Ship item ${item.id} was reserved onto more than one in-shipment batch (${batchIds.join(', ')})`,
+        );
+      }
+
+      if (batchIds.length === 1) found.set(item.id, batchIds[0]);
+    }
+
+    await this.stockService.lockStockSlots(
+      [
+        ...items,
+        ...items.flatMap((item) => {
+          const batchId = found.get(item.id);
+          return batchId ? [{ materialId: item.materialId, batchId }] : [];
+        }),
+      ],
+      manager,
+    );
+
+    return found;
   }
 
   /**
@@ -596,15 +814,32 @@ export class ShipInventoryOrderService<
       where: { id: In(options.map((o) => o.itemId)) },
       relations: { changes: true },
     });
+    assertAllFound(
+      options.map((o) => o.itemId),
+      items,
+      'Ship inventory order item',
+    );
     const itemMap = new Map(items.map((item) => [item.id, item]));
-    // Source (material, batch) locks first, in a fixed order, before any
-    // batch-group lock a split takes -- the same order every path uses.
-    await this.stockService.lockStockSlots(items, manager);
+    // Source and in-shipment (material, batch) locks first, in a fixed order,
+    // before any batch-group lock -- the same order every path uses.
+    // An item with nothing left to cancel needs no child and no lock.
+    const inShipmentBatches = await this.lockWithInShipmentBatches(
+      items.filter((item) => {
+        assertChangesHaveKind(item.id, item.changes);
+        const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
+        return reserved - shipped - cancelled > 0;
+      }),
+      manager,
+    );
 
     for (const option of options) {
       await (async () => {
         const item = itemMap.get(option.itemId);
-        if (!item) return;
+        if (!item) {
+          throw new NotFoundException(
+            `Ship inventory order item ${option.itemId} not found`,
+          );
+        }
 
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
@@ -612,36 +847,36 @@ export class ShipInventoryOrderService<
           manager,
         );
 
-        const preparedQuantity = item.changes.reduce((sum, change) => {
-          const qty = Number(change.quantityChanged);
-          return qty > 0 ? sum + qty : sum;
-        }, 0);
-
-        const shippedQuantity = item.changes.reduce((sum, change) => {
-          const qty = Number(change.quantityChanged);
-          return qty < 0 ? sum + Math.abs(qty) : sum;
-        }, 0);
-
-        const cancellableQuantity = preparedQuantity - shippedQuantity;
+        assertChangesHaveKind(item.id, item.changes);
+        const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
+        const cancellableQuantity = subtractQuantity(
+          subtractQuantity(reserved, shipped),
+          cancelled,
+        );
 
         const cancelQuantity =
           option.quantity != null
-            ? option.quantity * conversionFactor
+            ? toBaseQuantity(option.quantity, conversionFactor)
             : cancellableQuantity;
 
-        if (cancellableQuantity - cancelQuantity < 0) {
+        if (
+          isNegativeQuantity(
+            subtractQuantity(cancellableQuantity, cancelQuantity),
+          )
+        ) {
           throw new Error(
             `Cancel quantity exceeds prepared quantity for item ${option.itemId}`,
           );
         }
 
-        if (cancelQuantity <= 0) return;
+        if (!isPositiveQuantity(cancelQuantity)) return;
 
-        const inShipmentBatch = await this.batchService.splitBatch({
-          id: item.batchId,
-          inShipment: true,
-          manager,
-        });
+        const inShipmentBatchId = inShipmentBatches.get(item.id);
+        if (!inShipmentBatchId) {
+          throw new Error(
+            `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${cancelQuantity}`,
+          );
+        }
 
         const reverseOrder = await orderRepository.save(
           orderRepository.create(),
@@ -650,7 +885,7 @@ export class ShipInventoryOrderService<
         await this.stockService.validateStockAvailability(
           {
             materialId: item.materialId,
-            batchId: inShipmentBatch.id,
+            batchId: inShipmentBatchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
             quantity: cancelQuantity,
@@ -663,7 +898,8 @@ export class ShipInventoryOrderService<
             changeRepository.create({
               itemId: option.itemId,
               id: reverseOrder.id,
-              quantityChanged: -1 * cancelQuantity,
+              quantityChanged: negateQuantity(cancelQuantity),
+              kind: ShipChangeKind.CANCEL,
             }),
           ),
           stockRepository.save(
@@ -681,12 +917,12 @@ export class ShipInventoryOrderService<
               {
                 orderId: reverseOrder.id,
                 materialId: item.materialId,
-                batchId: inShipmentBatch.id,
+                batchId: inShipmentBatchId,
                 locationId: this.stockService.resolveLocationId(
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: -1 * cancelQuantity,
+                quantity: negateQuantity(cancelQuantity),
               } as DeepPartial<StockEntityClass>,
             ]),
           ),
@@ -814,6 +1050,14 @@ export class ShipInventoryOrderService<
     outerManager?: EntityManager,
   ): Promise<T> {
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.items.forEach((item) =>
+        assertPositiveQuantity(
+          item.targetShippedQuantity,
+          'targetShippedQuantity',
+          `item ${item.serialId}`,
+        ),
+      );
+
       const shipInventoryOrderRepository =
         manager.getRepository<ShipInventoryOrderEntityClass>(
           this.shipInventoryOrderEntity,
@@ -842,6 +1086,14 @@ export class ShipInventoryOrderService<
   ): Promise<boolean> {
     if (!Array.isArray(options)) options = [options];
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      options.forEach((option) =>
+        assertPositiveQuantity(
+          option.quantity,
+          'quantity',
+          `item ${option.itemId}`,
+        ),
+      );
+
       const changeRepository =
         manager.getRepository<ShipInventoryOrderChangeEntityClass>(
           ShipInventoryOrderChangeEntityClass,
@@ -862,14 +1114,29 @@ export class ShipInventoryOrderService<
         where: { id: In(options.map((option) => option.itemId)) },
         relations: { changes: true },
       });
+      assertAllFound(
+        options.map((o) => o.itemId),
+        items,
+        'Ship inventory order item',
+      );
       const itemMap = new Map(items.map((item) => [item.id, item]));
-      // Source (material, batch) locks first, in a fixed order, before any
-      // batch-group lock a split takes -- the same order every path uses.
-      await this.stockService.lockStockSlots(items, manager);
+      // Stock is taken off the in-shipment child, so that is the slot to
+      // validate -- and to lock, together with the source slot, before any
+      // batch-group lock is taken (stock locks first, never after).
+      const shippedBatches = await this.lockWithInShipmentBatches(
+        items.filter((item) =>
+          options.some((option) => option.itemId === item.id),
+        ),
+        manager,
+      );
       for (const option of options) {
         await (async () => {
           const item = itemMap.get(option.itemId);
-          if (!item) return;
+          if (!item) {
+            throw new NotFoundException(
+              `Ship inventory order item ${option.itemId} not found`,
+            );
+          }
 
           const conversionFactor =
             await this.materialService.getConversionFactor(
@@ -878,36 +1145,47 @@ export class ShipInventoryOrderService<
               manager,
             );
 
-          const totalShipped = item.changes.reduce((sum, change) => {
-            const qty = Number(change.quantityChanged);
-            return qty < 0 ? sum + Math.abs(qty) : sum;
-          }, 0);
+          // A cancelled quantity is not going out either, so it leaves the
+          // room to ship just as a shipped one does.
+          assertChangesHaveKind(item.id, item.changes);
+          const { shipped, cancelled } = sumShipChanges(item.changes);
+          const remainingQuantity = subtractQuantity(
+            subtractQuantity(
+              toBaseQuantity(item.targetShippedQuantity, conversionFactor),
+              shipped,
+            ),
+            cancelled,
+          );
 
-          const remainingQuantity =
-            conversionFactor * item.targetShippedQuantity - totalShipped;
-
-          if (remainingQuantity - option.quantity * conversionFactor < 0) {
+          if (
+            isNegativeQuantity(
+              subtractQuantity(
+                remainingQuantity,
+                toBaseQuantity(option.quantity, conversionFactor),
+              ),
+            )
+          ) {
             throw new Error(
               `Shipping quantity exceeds target for item ${option.itemId}`,
             );
           }
 
-          // Create splitted batch for ship completion
-          const shippedBatch = await this.batchService.splitBatch({
-            id: item.batchId,
-            inShipment: true,
-            manager,
-          });
+          const shippedBatchId = shippedBatches.get(item.id);
+          if (!shippedBatchId) {
+            throw new Error(
+              `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${toBaseQuantity(option.quantity, conversionFactor)}`,
+            );
+          }
 
           const newOrder = await orderRepository.save(orderRepository.create());
 
           await this.stockService.validateStockAvailability(
             {
               materialId: item.materialId,
-              batchId: item.batchId,
+              batchId: shippedBatchId,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: option.quantity * conversionFactor,
+              quantity: toBaseQuantity(option.quantity, conversionFactor),
             },
             manager,
           );
@@ -916,20 +1194,25 @@ export class ShipInventoryOrderService<
             changeRepository.save(
               changeRepository.create({
                 itemId: option.itemId,
-                quantityChanged: -1 * option.quantity * conversionFactor,
+                quantityChanged: negateQuantity(
+                  toBaseQuantity(option.quantity, conversionFactor),
+                ),
+                kind: ShipChangeKind.SHIP,
                 id: newOrder.id,
               }),
             ),
             stockRepository.save(
               stockRepository.create([
                 {
-                  batchId: shippedBatch.id,
+                  batchId: shippedBatchId,
                   materialId: item.materialId,
                   locationId: this.stockService.resolveLocationId(
                     item.locationId,
                   ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * option.quantity * conversionFactor,
+                  quantity: negateQuantity(
+                    toBaseQuantity(option.quantity, conversionFactor),
+                  ),
                   orderId: newOrder.id,
                 } as DeepPartial<StockEntityClass>,
               ]),
@@ -955,6 +1238,19 @@ export class ShipInventoryOrderService<
     if (!Array.isArray(options)) options = [options];
 
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      // An absent quantity means "cancel everything cancellable"; a given one
+      // must be positive. A zero or negative one used to return `true` and do
+      // nothing.
+      options.forEach((option) =>
+        option.quantity === undefined || option.quantity === null
+          ? undefined
+          : assertPositiveQuantity(
+              option.quantity,
+              'quantity',
+              `item ${option.itemId}`,
+            ),
+      );
+
       await this.cancelShipInternal(options, manager);
       return true;
     });

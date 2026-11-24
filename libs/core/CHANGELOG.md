@@ -1,3 +1,54 @@
+## 0.13.0 (2026-11-20)
+
+### 🚀 Features
+
+- **core,graphql:** look locations up by exact key ([c2d2ebc2](https://github.com/Rytass/WMS-Module/commit/c2d2ebc2))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
+## 0.12.0 (2026-11-20)
+
+### 🚀 Features
+
+- **core:** match a scanned label exactly in the stock queries ([29b4ba86](https://github.com/Rytass/WMS-Module/commit/29b4ba86))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
+## 0.11.0 (2026-11-18)
+
+### 🚀 Features
+
+- **graphql:** sort the change history on the server ([be21808b](https://github.com/Rytass/WMS-Module/commit/be21808b))
+- **graphql:** sort the ship orders list on the server ([37a27a1e](https://github.com/Rytass/WMS-Module/commit/37a27a1e))
+- **graphql:** sort the receive orders list on the server ([a5a3d841](https://github.com/Rytass/WMS-Module/commit/a5a3d841))
+- **graphql:** sort the inventory count lists on the server ([ce2c1032](https://github.com/Rytass/WMS-Module/commit/ce2c1032))
+- **graphql:** sort the consumption orders list on the server ([285ca9aa](https://github.com/Rytass/WMS-Module/commit/285ca9aa))
+- **graphql:** sort the transfer orders list on the server ([adaebec8](https://github.com/Rytass/WMS-Module/commit/adaebec8))
+- **graphql:** sort the loader and loader type lists on the server ([69d5414b](https://github.com/Rytass/WMS-Module/commit/69d5414b))
+- **graphql:** sort the locations list on the server ([b3bffa32](https://github.com/Rytass/WMS-Module/commit/b3bffa32))
+- **core:** sort aggregated and material-grouped stock on the server ([3b125f5d](https://github.com/Rytass/WMS-Module/commit/3b125f5d))
+- **core:** accept a composite tiebreaker in applyListSort ([b47380c6](https://github.com/Rytass/WMS-Module/commit/b47380c6))
+- **graphql:** add locationMapPreview query ([184de80f](https://github.com/Rytass/WMS-Module/commit/184de80f))
+- **core:** resolve where a location is drawn and its map breadcrumb ([4a290914](https://github.com/Rytass/WMS-Module/commit/4a290914))
+- **graphql:** sort the materials list on the server ([4411dcce](https://github.com/Rytass/WMS-Module/commit/4411dcce))
+- **core:** add applyListSort helper for server-side list sorting ([dc2c5a9d](https://github.com/Rytass/WMS-Module/commit/dc2c5a9d))
+
+### 🩹 Fixes
+
+- **core:** sort the change history quantity by magnitude ([5717086b](https://github.com/Rytass/WMS-Module/commit/5717086b))
+- **core:** give the hold and allocate lists a deterministic order ([efa3cf9f](https://github.com/Rytass/WMS-Module/commit/efa3cf9f))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.10.1 (2026-11-05)
 
 ### 🩹 Fixes

@@ -1,7 +1,7 @@
 import {
   Context,
   ID,
-  Int,
+  Float,
   Parent,
   ResolveField,
   Resolver,
@@ -17,6 +17,7 @@ import {
   MaterialEntity,
   MaterialEntityClass,
   TransferOrderChangeEntityClass,
+  sumTransferChanges,
   TransferOrderItemEntityClass,
   WmsEntities,
 } from '@rytass/wms-module-core';
@@ -174,7 +175,7 @@ export class TransferOrderItemResolver {
       .then((batch) => batch.saleSerialId);
   }
 
-  @ResolveField(() => Int)
+  @ResolveField(() => Float)
   async transferredQuantity(
     @Parent() { id }: TransferOrderItemEntityClass,
     @Context() { loaders }: LoaderType<TransferOrderChangeEntityClass>,
@@ -184,9 +185,6 @@ export class TransferOrderItemResolver {
       __from: { itemId: id },
     });
 
-    return changes.reduce((acc, { quantityChanged }) => {
-      const qty = Number(quantityChanged);
-      return qty < 0 ? acc + Math.abs(qty) : acc;
-    }, 0);
+    return sumTransferChanges(changes).transferred;
   }
 }

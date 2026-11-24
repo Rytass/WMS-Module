@@ -11,7 +11,7 @@ yarn add @rytass/wms-module-react
 # peer deps
 yarn add react react-dom next @apollo/client graphql \
   @mezzanine-ui/core @mezzanine-ui/system @mezzanine-ui/react @mezzanine-ui/icons \
-  @rytass/wms-map-react-components \
+  @rytass/wms-map-react-components @zxing/browser @zxing/library \
   react-hook-form @hookform/resolvers yup nuqs lodash
 ```
 
@@ -251,6 +251,47 @@ resource. Pass `haveInventoryActionsSystem={false}` to make it read-only:
 The default stays `true` in this major for backwards compatibility; **it flips to
 `false` in the next major.**
 
+## Selecting a location on a map without the dialog
+
+A click on a map range asks 「確認選擇此位置」 before it selects anything — on the
+`Maps` page and in the map picker of `LocationsField`. Turn that off for the whole
+app with the optional `MapSettingsProvider`, mounted next to the other providers:
+
+```tsx
+import { MapSettingsProvider } from '@rytass/wms-module-react';
+
+<MapSettingsProvider confirmSelection={false}>{children}</MapSettingsProvider>
+```
+
+A single map can still override it: `<Maps confirmMapSelection />`,
+`<LocationsField confirmMapSelection={false} … />`. Without the provider nothing
+changes. A double-click still only drills down: the map component drops the click
+that precedes it.
+
+## Label search on a phone
+
+`LabelSearch` works from a handheld scanner, the phone camera or the keyboard, and
+lays itself out for a 390px screen below 768px.
+
+- **Matching is exact.** The page sends the code as `scanCode`, which matches a
+  material key, then a batch key (a split batch is found by its label too), then a
+  location key; the first kind that knows the code wins. One position is added
+  straight away; several open a pick list.
+- **The camera needs `@zxing/browser` and `@zxing/library`.** They are peer
+  dependencies loaded on demand when the camera opens, but your bundler still has
+  to resolve them at build time. The camera only starts over HTTPS (or localhost).
+  It reads QR, Data Matrix, Code 128, Code 39, EAN-13 and EAN-8.
+- **Set the viewport scale.** iOS Safari zooms into any input under 16px when it
+  gets focus, and Mezzanine inputs are 14px. Without a scale, the page is left
+  scrollable sideways. Set it once in your app shell:
+
+  ```tsx
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  ```
+
+  This stops the auto-zoom, and iOS still allows pinch zoom. Android Chrome also
+  stops pinch zoom, so leave it out if your operators need that on Android.
+
 ## Inventory counting
 
 `InventoryCount` (the list) and `ViewInventoryCount` (one count) implement the full
@@ -345,6 +386,8 @@ import {
 } from '@rytass/wms-module-react';
 ```
 
+Material quantities are `Float` in the schema and the generated types, and the quantity forms accept fractional input (`0.1`). The loader count on the loader forms is still an integer.
+
 ## Known issues for standalone consumers
 
 `@mezzanine-ui/react` (a peer dependency) ships JavaScript files written in ESM syntax but does **not** set `"type": "module"` in its `package.json`, and its files import lodash subpaths without explicit `.js` extensions (e.g. `import compact from 'lodash/compact'`). This combination fails Node's ESM resolver when this lib (which is `"type": "module"`) imports Mezzanine UI at SSR time on a fresh npm-installed Next.js app.
@@ -356,6 +399,22 @@ The Rytass internal monorepo does not hit this because `apps/client` builds the 
 - Pre-bundle Mezzanine UI into the consumer's app using `next.config.js` `transpilePackages` plus a custom webpack `resolve.extensionAlias` (still does not fully cover the SSR `next start` page-data-collection step).
 
 Track upstream progress via the [Mezzanine UI repo](https://github.com/mezzanine-ui/mezzanine).
+
+## Resizing columns on wide tables
+
+Every bundled table has draggable column widths, remembered per table in `localStorage`
+(`table-col-widths:<tableKey>`). Mezzanine's `Table` (1.10.2) keeps the total column width constant while
+you drag: the width a column gains is taken from the last column first, then from its right neighbour.
+It has no mode where the table grows and the following columns scroll out to the right (tracked upstream).
+
+Until it does, the wide tables (inventory list in both modes, change history) keep an empty trailing column
+of 200px that a drag borrows from, so one drag can widen a column by up to 160px without touching its
+neighbours; beyond that the neighbour is squeezed. That column is never persisted, so it is back at full
+size after every drag and a restored layout never carries it or changes this behavior. Tables without row
+actions have no trailing actions column at all.
+
+The internal table wrapper takes `fullWidth` (default `true`), `scroll` (passed through to Mezzanine) and
+`reserveResizeSpace` (default `false`; adds the trailing column described above).
 
 ## Generic hooks
 

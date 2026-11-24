@@ -69,6 +69,21 @@ export class FilesController {
       `${ALLOWED_MIME_TYPES.has(file.mime) ? 'inline' : 'attachment'}; filename=${encodeURIComponent(filename)}`,
     );
 
-    this.filesService.createReadStream(file.id).pipe(res);
+    // A row whose bytes are gone (storage reset, restored DB) must answer 404:
+    // an unhandled stream error takes the whole process down.
+    const stream = this.filesService.createReadStream(file.id);
+
+    stream.once('error', () => {
+      if (res.headersSent) {
+        res.destroy();
+
+        return;
+      }
+
+      res.removeHeader('Content-Disposition');
+      res.status(404).type('text/plain').send('file not found');
+    });
+
+    stream.pipe(res);
   }
 }

@@ -1,4 +1,10 @@
-import { useState, useCallback } from 'react';
+import {
+  useState,
+  useCallback,
+  useId,
+  useMemo,
+  type CSSProperties,
+} from 'react';
 import {
   WMSMapModalContent,
   EditMode,
@@ -11,6 +17,7 @@ import { COLOR_PALETTE } from './utils';
 import { DEFAULT_MAP_DATA_KEY, DEFAULT_MAP_DATA_NAME } from '../../utils/share';
 import { useDialog } from '../dialog/useDialog';
 import { useQueryMapData } from './useApi';
+import { useMapSettings } from './settings';
 import { uploadFile } from '../../utils/upload';
 import classes from './MapContent.module.scss';
 
@@ -22,14 +29,47 @@ interface MapContentProps {
     isExistingLocation: boolean,
     editMode: EditMode,
   ) => void;
+  /** Overrides `MapSettingsProvider`; see `MapSettings.confirmSelection`. */
+  confirmSelection?: boolean;
+  /**
+   * The location currently selected through this map. Its range is outlined in
+   * the brand colour and the other ranges fade, on the map level that shows it;
+   * other levels are left alone.
+   */
+  selectedLocationKey?: string | null;
+  /** CSS height of the map, e.g. `'40vh'`. Defaults to the package's own height. */
+  height?: string;
+}
+
+/**
+ * The map package keeps its nodes in internal state and only reloads them when
+ * the set of ids changes, so a selection cannot travel through node data
+ * without remounting the map (and losing the viewport). It is drawn with a
+ * stylesheet scoped to this map instead, keyed on React Flow's `data-id`.
+ */
+function selectionStyle(scope: string, key: string): string {
+  const root = `[data-wms-map="${CSS.escape(scope)}"]`;
+  const selected = `.react-flow__node[data-id="${CSS.escape(key)}"]`;
+  const ranges = ['rectangleNode', 'pathNode']
+    .map((type) => `${root} .react-flow__node-${type}:not(${selected})`)
+    .join(', ');
+
+  return `${ranges} { opacity: 0.35; transition: opacity 0.2s ease; }
+${root} ${selected} { outline: 3px solid var(--wms-map-selected-ring); outline-offset: 2px; border-radius: 6px; }`;
 }
 
 function MapContent({
   viewMode = ViewMode.EDIT,
   onSave,
   onNodeClick: onNodeClickProps,
+  confirmSelection: confirmSelectionProp,
+  selectedLocationKey,
+  height,
 }: MapContentProps) {
+  const scope = useId();
   const { openDialog } = useDialog();
+  const settings = useMapSettings();
+  const confirmSelection = confirmSelectionProp ?? settings.confirmSelection;
   const [editMode, setEditMode] = useState<EditMode>(EditMode.BACKGROUND);
   const [drawingMode, setDrawingMode] = useState<DrawingMode>(DrawingMode.NONE);
   const [selectedColor, setSelectedColor] = useState<string>(COLOR_PALETTE[0]);
@@ -58,13 +98,15 @@ function MapContent({
   const onNodeClick = useCallback(
     async (nodeInfo: WMSNodeClickInfo, editMode: EditMode) => {
       if (onNodeClickProps && nodeInfo.type !== 'imageNode') {
-        const isConfirm = await openDialog({
-          modalStatusType: 'info',
-          title: '確認選擇此位置',
-          supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
-          cancelText: '取消',
-          confirmText: '確認',
-        });
+        const isConfirm =
+          !confirmSelection ||
+          (await openDialog({
+            modalStatusType: 'info',
+            title: '確認選擇此位置',
+            supportingText: `您目前選擇的位置為：${nodeInfo.id}`,
+            cancelText: '取消',
+            confirmText: '確認',
+          }));
 
         if (isConfirm) {
           onNodeClickProps(
@@ -75,7 +117,7 @@ function MapContent({
         }
       }
     },
-    [existingLocationKeys, onNodeClickProps, openDialog],
+    [confirmSelection, existingLocationKeys, onNodeClickProps, openDialog],
   );
 
   const onNodeDoubleClick = useCallback(
@@ -118,7 +160,19 @@ function MapContent({
   }, []);
 
   return (
-    <div className={classes.container}>
+    <div
+      className={
+        height ? `${classes.container} ${classes.sized}` : classes.container
+      }
+      data-wms-map={scope}
+      style={
+        height ? ({ '--wms-map-height': height } as CSSProperties) : undefined
+      }
+    >
+      {selectedLocationKey &&
+      initialNodes.some((node) => node.id === selectedLocationKey) ? (
+        <style>{selectionStyle(scope, selectedLocationKey)}</style>
+      ) : null}
       <WMSMapModalContent
         editMode={editMode}
         viewMode={viewMode}

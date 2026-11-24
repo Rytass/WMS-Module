@@ -6,6 +6,12 @@ import {
   type InsertEvent,
 } from 'typeorm';
 import { ConsumptionChangeKind } from '../constants/consumption-change-kind';
+import {
+  CHANGE_CLASSIFICATIONS,
+  classifyChange,
+} from '../constants/change-classification';
+import { ShipChangeKind } from '../constants/ship-change-kind';
+import { TransferChangeKind } from '../constants/transfer-change-kind';
 import { ChangeType } from '../constants/stock-status';
 import type {
   WmsCustomChangeTable,
@@ -16,6 +22,7 @@ import { wmsOwnedLogicalTableName } from '../table-prefix/table-prefix';
 import { WMS_CUSTOM_CHANGE_TABLES, WMS_STOCK_ENRICH } from './wms-event.tokens';
 import type { WmsStockEventPayload } from './wms-event.types';
 import type { WmsStockEventName } from './wms-event.types';
+import { toQuantityNumber } from '../utils/quantity';
 
 /** A `*_order_change` row as seen in `afterInsert` (relations not loaded). */
 interface ChangeRowLike {
@@ -24,7 +31,11 @@ interface ChangeRowLike {
   readonly quantityChanged: number | string;
   readonly result?: boolean | null;
   /** Consumption orders record intent rather than encoding it in the sign. */
-  readonly kind?: ConsumptionChangeKind | null;
+  readonly kind?:
+    | ConsumptionChangeKind
+    | ShipChangeKind
+    | TransferChangeKind
+    | null;
 }
 
 /** The subset of order-item columns used to enrich a stock event. */
@@ -43,77 +54,25 @@ type StockEnrichment = Pick<
 >;
 
 /**
- * The consumption order's three actions, which the sign cannot separate: a
- * return and a settlement are both negative.
- */
-const CONSUMPTION_KIND_TO_CHANGE_TYPE: Readonly<
-  Record<ConsumptionChangeKind, ChangeType>
-> = {
-  [ConsumptionChangeKind.ISSUE]: ChangeType.ISSUED,
-  [ConsumptionChangeKind.RETURN]: ChangeType.RETURNED,
-  [ConsumptionChangeKind.SETTLE]: ChangeType.CONSUMED,
-};
-
-/**
- * Resolve the `ChangeType` for a change table. Most tables whose semantics
- * depend on direction (ship / transfer / vendor / customer / hold / allocate)
- * branch on the sign of `quantityChanged`; the rest are fixed. The resolver is
+ * Resolve the `ChangeType` for a change table from the shared classification
+ * table, which `StockService.findChangeLogs` renders as SQL — so an event and
+ * the change log line for the same row can never disagree. The resolver is
  * handed the whole row rather than just the quantity because the sign is not
- * always enough — see `consumption_order_changes`.
+ * always enough: see `consumption_order_changes`.
  */
-const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
+export const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   string,
   (change: ChangeRowLike) => ChangeType | null
-> = new Map<string, (change: ChangeRowLike) => ChangeType | null>([
-  ['receive_inventory_order_changes', () => ChangeType.RECEIVED],
-  [
-    'ship_inventory_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.IN_SHIPMENT : ChangeType.SHIPPED,
-  ],
-  [
-    'transfer_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.IN_TRANSFER : ChangeType.TRANSFERRED,
-  ],
-  [
-    'transfer_vendor_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0
-        ? ChangeType.VENDOR_TRANSFERRED
-        : ChangeType.VENDOR_RETURNED,
-  ],
-  [
-    'transfer_customer_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.CUSTOMER_HELD : ChangeType.CUSTOMER_RETURNED,
-  ],
-  [
-    'hold_inventory_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.HELD : ChangeType.RELEASED,
-  ],
-  [
-    'allocate_inventory_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.ALLOCATED : ChangeType.DEALLOCATED,
-  ],
-  ['split_batch_order_changes', () => ChangeType.SPLITTED],
-  ['merge_batch_order_changes', () => ChangeType.MERGED],
-  ['reclassify_inventory_order_changes', () => ChangeType.RECLASSIFIED],
-  ['scrape_order_changes', () => ChangeType.SCRAPED],
-  [
-    'inventory_count_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.COUNT_GAINED : ChangeType.COUNT_LOST,
-  ],
-  [
-    'consumption_order_changes',
-    ({ kind }) => (kind ? CONSUMPTION_KIND_TO_CHANGE_TYPE[kind] : null),
-  ],
-]);
+> = new Map(
+  CHANGE_CLASSIFICATIONS.map(({ table, rule }) => [
+    table,
+    (change: ChangeRowLike): ChangeType | null => classifyChange(rule, change),
+  ]),
+);
 
-const CHANGE_TYPE_TO_EVENT: Readonly<Record<ChangeType, WmsStockEventName>> = {
+export const CHANGE_TYPE_TO_EVENT: Readonly<
+  Record<ChangeType, WmsStockEventName>
+> = {
   [ChangeType.RECEIVED]: 'stock.received',
   [ChangeType.IN_SHIPMENT]: 'stock.in-shipment',
   [ChangeType.SHIPPED]: 'stock.shipped',
@@ -136,6 +95,8 @@ const CHANGE_TYPE_TO_EVENT: Readonly<Record<ChangeType, WmsStockEventName>> = {
   [ChangeType.ISSUED]: 'stock.issued',
   [ChangeType.RETURNED]: 'stock.returned',
   [ChangeType.CONSUMED]: 'stock.consumed',
+  [ChangeType.SHIP_CANCELLED]: 'stock.ship-cancelled',
+  [ChangeType.TRANSFER_CANCELLED]: 'stock.transfer-cancelled',
 };
 
 const QUALITY_INSPECTION_TABLE = 'quality_inspection_order_changes';
@@ -209,7 +170,12 @@ export class StockChangeSubscriber implements EntitySubscriberInterface {
       return;
     }
 
-    const quantityDelta = Number(entity.quantityChanged);
+    // A row without `quantityChanged` (a table probe, a host's own change
+    // table) has no delta; `NaN` is what it always carried.
+    const quantityDelta =
+      entity.quantityChanged === undefined || entity.quantityChanged === null
+        ? Number.NaN
+        : toQuantityNumber(entity.quantityChanged);
 
     if (ownedTableName === QUALITY_INSPECTION_TABLE) {
       const enrichment = this.enrich

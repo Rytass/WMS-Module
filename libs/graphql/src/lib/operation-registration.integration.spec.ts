@@ -140,6 +140,7 @@ describe('operation registration switches (integration)', () => {
     expect(mutations).toContain('updateMaterial');
     expect(mutations).toContain('scrapeMaterials');
     expect(mutations).toContain('splitBatch');
+    expect(mutations).toContain('moveLoader');
   });
 
   it('drops a single field named through `disabledFields`', () => {

@@ -181,6 +181,42 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
   }
 
   /**
+   * Find, without creating and without taking any lock, the sibling of batch
+   * `id` that `splitBatch` would return for the same options -- `null` when
+   * `splitBatch` would have to create one.
+   *
+   * It exists so a caller can learn which stock slots a split will touch and
+   * lock them *before* `splitBatch` takes the batch-group lock (stock locks
+   * first, never after). Because it takes no group lock, the answer is only
+   * stable once the caller holds the stock locks of the slots involved.
+   */
+  async findSplitSibling({
+    manager = this.dataSource.manager,
+    ...options
+  }: {
+    id: string;
+    manager?: EntityManager;
+  } & SplitBatchInput): Promise<T | null> {
+    const batchRepository = manager.getRepository<BatchEntityClass>(
+      this.batchEntity,
+    );
+    const batch = await batchRepository.findOneOrFail({
+      where: { id: options.id },
+      relations: { batchGroup: true },
+    });
+
+    this.validateStateTransition(batch, options);
+
+    return (await batchRepository.findOne({
+      where: this.buildSplitSiblingCondition({
+        ...batch,
+        ...options,
+        groupId: batch.batchGroup.id,
+      }),
+    })) as T | null;
+  }
+
+  /**
    * Find or create the sibling of batch `id` in its group that carries the
    * requested state.
    *
@@ -201,6 +237,56 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
     return runInTransaction(this.dataSource, outerManager, (manager) =>
       this.splitBatchLocked(manager, options),
     );
+  }
+
+  /**
+   * The identity a split matches on: the group plus every state the batch
+   * carries. Shared by `splitBatchLocked` (find or create) and
+   * `findSplitSibling` (find only) so the two can never disagree on what counts
+   * as "the same batch".
+   */
+  private buildSplitSiblingCondition(
+    mergedBatch: Partial<BatchEntityClass> & SplitBatchInput,
+  ): FindOptionsWhere<BatchEntityClass> {
+    /*
+     * Absent attributes have to be matched with `IsNull()`, not with a bare
+     * `null`. A `null` on the right of a find condition compiles to `= NULL`,
+     * which is never true in SQL — so this lookup used to miss every batch whose
+     * attributes were unset and split off a duplicate instead of reusing the one
+     * already there. `getBatch` above has always done it this way; this call
+     * site did not. TypeORM 1.x refuses a bare `null` here outright, which is
+     * how the bug surfaced.
+     */
+    const orNull = <V>(value: V | null | undefined): V | FindOperator<V> =>
+      value === null || value === undefined ? IsNull() : value;
+
+    return {
+      groupId: mergedBatch.groupId,
+      saleId: orNull(mergedBatch.saleId),
+      saleSerialId: orNull(mergedBatch.saleSerialId),
+      customerId: orNull(mergedBatch.customerId),
+      vendorId: orNull(mergedBatch.vendorId),
+      inspectionResult: orNull(mergedBatch.inspectionResult),
+      transferId: orNull(mergedBatch.transferId),
+      held: mergedBatch.held ?? false,
+      inShipment: mergedBatch.inShipment ?? false,
+      // Part of the batch's identity: material waiting on an inspection must
+      // not be merged back into the free stock it was split away from.
+      requiresInspection: mergedBatch.requiresInspection ?? false,
+      /*
+       * Attributes take part in the identity check, so a split that asks for
+       * `{ bin: 'B1' }` never lands on the sibling holding `{ bin: 'B2' }`.
+       * Compared as `jsonb`, whose equality is by content rather than by the
+       * text of the document, so key order and whitespace do not matter — which
+       * a plain string comparison on the serialized column would get wrong.
+       */
+      attributes:
+        mergedBatch.attributes === null || mergedBatch.attributes === undefined
+          ? IsNull()
+          : Raw((alias) => `${alias} = cast(:batchAttributes as jsonb)`, {
+              batchAttributes: JSON.stringify(mergedBatch.attributes),
+            }),
+    };
   }
 
   private async splitBatchLocked(
@@ -237,45 +323,7 @@ export class BatchService<T extends BatchEntityClass = BatchEntityClass> {
       groupId: batch.batchGroup.id,
     };
 
-    /*
-     * Absent attributes have to be matched with `IsNull()`, not with a bare
-     * `null`. A `null` on the right of a find condition compiles to `= NULL`,
-     * which is never true in SQL — so this lookup used to miss every batch whose
-     * attributes were unset and split off a duplicate instead of reusing the one
-     * already there. `getBatch` above has always done it this way; this call
-     * site did not. TypeORM 1.x refuses a bare `null` here outright, which is
-     * how the bug surfaced.
-     */
-    const orNull = <V>(value: V | null | undefined): V | FindOperator<V> =>
-      value === null || value === undefined ? IsNull() : value;
-
-    const whereCondition: FindOptionsWhere<BatchEntityClass> = {
-      groupId: mergedBatch.groupId,
-      saleId: orNull(mergedBatch.saleId),
-      saleSerialId: orNull(mergedBatch.saleSerialId),
-      customerId: orNull(mergedBatch.customerId),
-      vendorId: orNull(mergedBatch.vendorId),
-      inspectionResult: orNull(mergedBatch.inspectionResult),
-      transferId: orNull(mergedBatch.transferId),
-      held: mergedBatch.held ?? false,
-      inShipment: mergedBatch.inShipment ?? false,
-      // Part of the batch's identity: material waiting on an inspection must
-      // not be merged back into the free stock it was split away from.
-      requiresInspection: mergedBatch.requiresInspection ?? false,
-      /*
-       * Attributes take part in the identity check, so a split that asks for
-       * `{ bin: 'B1' }` never lands on the sibling holding `{ bin: 'B2' }`.
-       * Compared as `jsonb`, whose equality is by content rather than by the
-       * text of the document, so key order and whitespace do not matter — which
-       * a plain string comparison on the serialized column would get wrong.
-       */
-      attributes:
-        mergedBatch.attributes === null || mergedBatch.attributes === undefined
-          ? IsNull()
-          : Raw((alias) => `${alias} = cast(:batchAttributes as jsonb)`, {
-              batchAttributes: JSON.stringify(mergedBatch.attributes),
-            }),
-    };
+    const whereCondition = this.buildSplitSiblingCondition(mergedBatch);
 
     // Check if a batch with these exact metrics already exists in the same group
     const existingBatch = await batchRepository.findOne({

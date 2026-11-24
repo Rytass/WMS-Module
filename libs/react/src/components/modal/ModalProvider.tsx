@@ -14,6 +14,7 @@ const ModalProvider: FC = ({ children }) => {
     title,
     titleAlign = 'center',
     size = 'regular',
+    fullScreen,
     cancelButtonProps,
     confirmButtonProps,
     cancelText = '取消',
@@ -69,6 +70,7 @@ const ModalProvider: FC = ({ children }) => {
           showDismissButton
           modalType="standard"
           size={size}
+          fullScreen={fullScreen}
           cancelText={cancelText}
           confirmText={confirmText}
           onCancel={() => {

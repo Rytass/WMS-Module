@@ -20,7 +20,7 @@ import {
 /**
  * `sequenceStorage: 'table'` (B6): counters live in the `sequences` table.
  *
- * Shuttle's schema changes only through migrations, and the default storage
+ * Some hosts change their schema only through migrations, and the default storage
  * runs `CREATE SEQUENCE` at runtime the first time a counter is used — one per
  * order type per day for order keys. In table mode nothing creates a database
  * object at runtime, and the increment is transactional, so a rolled-back

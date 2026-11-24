@@ -30,6 +30,7 @@ export type WmsOperationEventName =
   | 'transfer-order.created'
   | 'transfer-order.updated'
   | 'transfer-order.transferred'
+  | 'transfer-order.loader-moved'
   | 'transfer-order.transfer-cancelled'
   | 'hold-inventory-order.created'
   | 'hold-inventory-order.updated'
@@ -103,6 +104,10 @@ export type WmsStockEventName =
   | 'stock.issued'
   | 'stock.returned'
   | 'stock.consumed'
+  // A ship reservation undone; the stock went back to its batch.
+  | 'stock.ship-cancelled'
+  // A transfer reservation undone; the stock went back to its source.
+  | 'stock.transfer-cancelled'
   /**
    * A movement on a change table the host registered through
    * `customChangeTables`, whose kind this package has no name for. The host's

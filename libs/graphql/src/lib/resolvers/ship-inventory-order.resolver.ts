@@ -1,7 +1,7 @@
 import {
   Context,
   ID,
-  Int,
+  Float,
   Parent,
   ResolveField,
   Resolver,
@@ -24,6 +24,7 @@ import {
   ShipInventoryOrderItemEntityClass,
   ShipInventoryOrderReferenceEntityClass,
   WmsEntities,
+  sumShipChanges,
 } from '@rytass/wms-module-core';
 import { type LoaderType } from '../helpers';
 import { BatchDto } from '../dto/batch.dto';
@@ -157,7 +158,7 @@ export class ShipInventoryOrderItemResolver {
     });
   }
 
-  @ResolveField(() => Int)
+  @ResolveField(() => Float)
   async shippedQuantity(
     @Parent() { id }: ShipInventoryOrderItemEntityClass,
     @Context() { loaders }: LoaderType<ShipInventoryOrderChangeEntityClass>,
@@ -167,10 +168,7 @@ export class ShipInventoryOrderItemResolver {
       __from: { itemId: id },
     });
 
-    return changes.reduce((acc, { quantityChanged }) => {
-      const qty = Number(quantityChanged);
-      return qty < 0 ? acc + Math.abs(qty) : acc;
-    }, 0);
+    return sumShipChanges(changes).shipped;
   }
 }
 
@@ -185,7 +183,7 @@ export class ShipInventoryOrderReferenceResolver {
    */
   constructor(private readonly entities: WmsEntities) {}
 
-  @ResolveField(() => Int)
+  @ResolveField(() => Float)
   async shippedQuantity(
     @Parent() { orderId, serialId }: ShipInventoryOrderReferenceEntityClass,
     @Context() { loaders }: LoaderType<ShipInventoryOrderItemEntityClass>,
@@ -197,10 +195,7 @@ export class ShipInventoryOrderReferenceResolver {
     });
     const changes = items.flatMap((item) => item.changes);
 
-    return changes.reduce((acc, { quantityChanged }) => {
-      const qty = Number(quantityChanged);
-      return qty < 0 ? acc + Math.abs(qty) : acc;
-    }, 0);
+    return sumShipChanges(changes).shipped;
   }
 
   @ResolveField(() => MaterialDto)

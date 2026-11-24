@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { StockEntity, StockEntityClass } from '../models/metadata/stock.entity';
 import {
   DataSource,
@@ -25,6 +25,7 @@ import { StockStatus, ChangeType } from '../constants/stock-status';
 import {
   AggregatedStock,
   ChangeLog,
+  LoaderSlot,
   ValidateStockDeductionParams,
 } from '../typings/aggregated-stock';
 import { BatchEntity } from '@rytass/wms-base-nestjs-module';
@@ -42,8 +43,24 @@ import {
 import { WMS_CORE_MODULE_OPTIONS } from '../typings/core-module-options';
 import type { WmsModuleCoreModuleOptions } from '../typings/core-module-options';
 import { WmsEntities } from '../models/wms-entities';
-import { tablePathOf } from '../utils/table-path';
+import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
 import { getWmsTablePrefix } from '../table-prefix/logical-table-name';
+import { wmsOwnedLogicalTableName } from '../table-prefix/table-prefix';
+import {
+  CHANGE_CLASSIFICATIONS,
+  changeTypeSqlOf,
+} from '../constants/change-classification';
+import { WMS_CUSTOM_CHANGE_TABLES } from '../events/wms-event.tokens';
+import type {
+  WmsCustomChangeTable,
+  WmsStockChangeRow,
+} from '../typings/custom-change-table';
+import { compareQuantity, toQuantityNumber } from '../utils/quantity';
+
+/** Every `ChangeType` value, for deciding whether a host reused our vocabulary. */
+const CHANGE_TYPE_VALUES: ReadonlySet<string> = new Set(
+  Object.values(ChangeType),
+);
 
 /**
  * ORDER BY expressions for `findAggregatedStocks`, over the outer query: the
@@ -153,6 +170,9 @@ export class StockService<
     @Inject(MaterialEntity) private readonly materialEntity: new () => K,
     @Inject(WMS_CORE_MODULE_OPTIONS)
     private readonly coreOptions: WmsModuleCoreModuleOptions,
+    @Optional()
+    @Inject(WMS_CUSTOM_CHANGE_TABLES)
+    private readonly customChangeTables: readonly WmsCustomChangeTable[] = [],
   ) {
     this.stockRepository = this.dataSource.getRepository<T>(this.stockEntity);
     // select builder for status and quantity calculation, calculated field will override fields in stock entity.
@@ -188,8 +208,8 @@ export class StockService<
               .addSelect('b."customerId"', 'customerId')
               .from(tablePathOf(this.dataSource, this.stockEntity), 's')
               // The entity, not its table path: a schema-qualified path such as
-              // `shuttle.wms_batches` reads to TypeORM as `<alias>.<relation>`
-              // in a join and fails with `"shuttle" alias was not found`.
+              // `app.wms_batches` reads to TypeORM as `<alias>.<relation>`
+              // in a join and fails with `"app" alias was not found`.
               .innerJoin(this.entities.batch, 'b', 's."batchId" = b.id'),
           'stock_status',
           `stock_status."stockId" = ${alias}.id`,
@@ -321,6 +341,207 @@ export class StockService<
 
   resolveLocationId(locationId: string | null | undefined): string {
     return locationId || this.defaultLocationId;
+  }
+
+  /** The `relocateEmptyLoaders` module option; `false` unless set. */
+  get relocateEmptyLoaders(): boolean {
+    return this.coreOptions.relocateEmptyLoaders ?? false;
+  }
+
+  /**
+   * Take a row lock on each loader, in id order, through `manager`.
+   *
+   * Where a loader sits is decided by reading its row (`resolveLoaderPlacement`,
+   * the whole-loader gates) and then acting on that answer; without the lock a
+   * whole-loader move and a consolidation onto the same loader both read the old
+   * location, both pass, and the loader ends up away from half of its stock.
+   *
+   * LOCK ORDER (project-wide): loader row locks first, then the advisory stock
+   * locks (`lockStockSlots` / `validateStockAvailability`), then the
+   * batch-group lock (`splitBatch`). Never take a loader lock after either of
+   * the others. Loaders among themselves are taken sorted by id.
+   */
+  async lockLoaders(
+    loaderIds: readonly string[],
+    manager: EntityManager,
+  ): Promise<void> {
+    const repository = manager.getRepository(LoadersEntityClass);
+
+    for (const id of [...new Set(loaderIds)].sort()) {
+      await repository.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+        loadEagerRelations: false,
+        relationLoadStrategy: 'query',
+      });
+    }
+  }
+
+  /**
+   * Whether a loader carries no stock at all: no (material, batch, location)
+   * slot on it holds a non-zero quantity. Slots are judged one by one, so a
+   * +5 and a -5 in different slots (stock that is out of step with itself) do
+   * not cancel into "empty". Read through `manager` so it sees the caller's own
+   * uncommitted writes.
+   */
+  async isLoaderEmpty(
+    loaderId: string,
+    manager: EntityManager,
+  ): Promise<boolean> {
+    const rows = await manager
+      .getRepository<T>(this.stockEntity)
+      .createQueryBuilder('stock')
+      .select('stock."materialId"', 'materialId')
+      .addSelect('stock."batchId"', 'batchId')
+      .addSelect('stock."locationId"', 'locationId')
+      .where('stock."loaderId" = :loaderId', { loaderId })
+      .groupBy('stock."materialId"')
+      .addGroupBy('stock."batchId"')
+      .addGroupBy('stock."locationId"')
+      .having('SUM(stock.quantity) <> 0')
+      .limit(1)
+      .getRawMany();
+
+    return rows.length === 0;
+  }
+
+  /**
+   * What a loader holds, one entry per (material, batch, location) whose net
+   * quantity is not zero, in a fixed order. Read through `manager`, so it sees
+   * the caller's own uncommitted writes.
+   *
+   * A slot is a batch -- status is a flag on the batch, so a held, allocated
+   * or in-shipment child is a slot of its own -- and `quantity` is exact (the
+   * database's own `numeric` sum, never re-added in floats).
+   */
+  async findLoaderSlots(
+    loaderId: string,
+    manager: EntityManager,
+  ): Promise<LoaderSlot[]> {
+    const rows = await manager
+      .getRepository<T>(this.stockEntity)
+      .createQueryBuilder('stock')
+      .select('stock."materialId"', 'materialId')
+      .addSelect('stock."batchId"', 'batchId')
+      .addSelect('stock."locationId"', 'locationId')
+      .addSelect('SUM(stock.quantity)', 'quantity')
+      .where('stock."loaderId" = :loaderId', { loaderId })
+      .groupBy('stock."materialId"')
+      .addGroupBy('stock."batchId"')
+      .addGroupBy('stock."locationId"')
+      .having('SUM(stock.quantity) <> 0')
+      .orderBy('stock."materialId"')
+      .addOrderBy('stock."batchId"')
+      .addOrderBy('stock."locationId"')
+      .getRawMany<{
+        materialId: string;
+        batchId: string;
+        locationId: string;
+        quantity: string;
+      }>();
+
+    return rows.map((row) => ({
+      materialId: row.materialId,
+      batchId: row.batchId,
+      locationId: row.locationId,
+      quantity: toQuantityNumber(row.quantity),
+    }));
+  }
+
+  /**
+   * Decide whether stock may be placed on `loaderId` at `locationId`.
+   *
+   * Returns `'in-place'` when the loader already sits there, `'relocate'` when
+   * it sits elsewhere but is empty and `relocateEmptyLoaders` is on (the caller
+   * then moves the loader), and throws otherwise -- a loader with stock at
+   * another location must never be pulled away from that stock.
+   *
+   * Takes the loader's row lock first (held to the end of the caller's
+   * transaction), so the answer cannot be overtaken by a concurrent move of the
+   * same loader. Call it before any stock lock; see `lockLoaders`.
+   */
+  async resolveLoaderPlacement(
+    loaderId: string,
+    locationId: string,
+    manager: EntityManager,
+  ): Promise<'in-place' | 'relocate'> {
+    await this.lockLoaders([loaderId], manager);
+
+    const loader = await manager
+      .getRepository(LoadersEntityClass)
+      .findOneByOrFail({ id: loaderId });
+
+    if (loader.locationId === locationId) return 'in-place';
+
+    if (
+      this.relocateEmptyLoaders &&
+      (await this.isLoaderEmpty(loaderId, manager))
+    ) {
+      return 'relocate';
+    }
+
+    throw new Error(
+      `Loader ${loaderId} is at location ${loader.locationId}, not ${locationId}, so stock cannot be placed on it there${
+        this.relocateEmptyLoaders
+          ? ' (the loader still holds stock)'
+          : ' (enable relocateEmptyLoaders to move an empty loader)'
+      }`,
+    );
+  }
+
+  /**
+   * Narrows to the stock a scanned label names, matching keys exactly with
+   * material → batch → location precedence (see `FindStockInput.scanCode`).
+   *
+   * One SQL predicate rather than three look-ups first: it keeps this a plain
+   * filter on whatever builder the caller passes (so it composes with every
+   * other filter and with pagination), and it needs no extra round trip.
+   * Tables come from the configured entities, never a literal, so a prefixed or
+   * overridden table is the one read.
+   */
+  private applyScanCode<U extends ObjectLiteral>(
+    queryBuilder: SelectQueryBuilder<U>,
+    scanCode: string,
+  ): void {
+    /*
+     * Hand-written rather than `subQuery().from(entity)`: TypeORM appends the
+     * single-table discriminator to a sub-select of an overridable entity, so a
+     * host's subclass rows (or ours, under a host's override) would silently
+     * fall outside it. Same reasoning as the hand-written key joins below.
+     */
+    const keyIds = (entity: EntityTarget<ObjectLiteral>): string => {
+      const metadata = this.dataSource.getMetadata(entity);
+      const notDeleted = metadata.deleteDateColumn
+        ? ` AND "${metadata.deleteDateColumn.databaseName}" IS NULL`
+        : '';
+
+      return `(SELECT "id" FROM ${quotedTablePathOf(this.dataSource, entity)} WHERE "key" = :scanCode${notDeleted})`;
+    };
+
+    const materialIds = keyIds(this.materialEntity);
+    const locationIds = keyIds(this.entities.location);
+
+    /*
+     * A batch label carries the batch *group* key: acting on part (or all) of
+     * a batch splits a child off as `<group key>_<timestamp>`, and every screen
+     * shows the group key for it. Matching `batches.key` alone made a batch
+     * unscannable the moment it was held, transferred or shipped. So the code
+     * names every batch of its group; a child key typed in full still matches
+     * that one batch.
+     */
+    const batchMetadata = this.dataSource.getMetadata(this.entities.batch);
+    const batchNotDeleted = batchMetadata.deleteDateColumn
+      ? ` AND b."${batchMetadata.deleteDateColumn.databaseName}" IS NULL`
+      : '';
+    const batchIds = `(SELECT b."id" FROM ${quotedTablePathOf(this.dataSource, this.entities.batch)} b WHERE (b."key" = :scanCode OR b."groupId" IN (SELECT g."id" FROM ${quotedTablePathOf(this.dataSource, BatchGroupEntityClass)} g WHERE g."key" = :scanCode))${batchNotDeleted})`;
+
+    const byPrecedence = [
+      `stock."materialId" IN ${materialIds}`,
+      `(NOT EXISTS ${materialIds} AND stock."batchId" IN ${batchIds})`,
+      `(NOT EXISTS ${materialIds} AND NOT EXISTS ${batchIds} AND stock."locationId" IN ${locationIds})`,
+    ].join(' OR ');
+
+    queryBuilder.andWhere(`(${byPrecedence})`, { scanCode });
   }
 
   private pipeSelectOptionsToQueryBuilder<U extends ObjectLiteral>(
@@ -463,6 +684,8 @@ export class StockService<
           locationKey: `%${options.locationKey}%`,
         },
       );
+
+    if (options.scanCode) this.applyScanCode(queryBuilder, options.scanCode);
 
     if (options.loaderKey)
       queryBuilder.innerJoin(
@@ -785,9 +1008,9 @@ export class StockService<
       .setParameters(aggregateQuery.getParameters())
       .getRawOne<{ total: string }>();
 
-    const available = parseFloat(result?.total ?? '0');
+    const available = toQuantityNumber(result?.total ?? '0');
 
-    if (available < quantity) {
+    if (compareQuantity(available, quantity) < 0) {
       throw new Error(
         `Insufficient stock: available ${available}, requested ${quantity} (materialId=${materialId}, batchId=${batchId}, loaderId=${loaderId})`,
       );
@@ -975,89 +1198,134 @@ export class StockService<
     return [items, count];
   }
 
+  /**
+   * Left-join every change table the log understands onto `stock` and keep the
+   * stock rows that are the visible side of one of its changes.
+   *
+   * What a change table means comes from `CHANGE_CLASSIFICATIONS`, the table the
+   * event subscriber reads too, so a movement is listed under the type its event
+   * carried. A host's `customChangeTables` entry whose resolver names one of our
+   * `ChangeType`s is listed as that type; one that names anything else (or
+   * nothing) is not listed: `ChangeType` is the GraphQL enum and a host's own
+   * string has no member to be shown as. A resolver is JavaScript, so its rows
+   * are classified by reading the host table once per call and joining on the
+   * ids it placed.
+   *
+   * Also returns the `CASE` over the same aliases, which is the ORDER BY for
+   * CHANGE_TYPE: PostgreSQL accepts an output alias in ORDER BY only on its own,
+   * never inside an expression.
+   */
+  private async joinChangeTables(
+    queryBuilder: SelectQueryBuilder<T>,
+  ): Promise<{ queryBuilder: SelectQueryBuilder<T>; changeTypeSql: string }> {
+    const branches: { alias: string; match: string; type: string }[] = [];
+
+    CHANGE_CLASSIFICATIONS.forEach(({ table, rule, stockSign }, index) => {
+      // Our own tables, wherever `withWmsTablePrefix` put them.
+      const metadata = this.dataSource.entityMetadatas.find(
+        (candidate) => wmsOwnedLogicalTableName(candidate) === table,
+      );
+
+      if (!metadata) return;
+
+      const alias = `chg_${index}`;
+
+      queryBuilder.leftJoin(
+        metadata.target,
+        alias,
+        `stock."orderId" = ${alias}.id`,
+      );
+      branches.push({
+        alias,
+        match: `${alias}."quantityChanged" * stock.quantity ${stockSign === 'same' ? '>' : '<'} 0`,
+        type: `WHEN ${alias}.id IS NOT NULL THEN ${changeTypeSqlOf(alias, rule)}`,
+      });
+    });
+
+    for (const [index, entry] of this.customChangeTables.entries()) {
+      const metadata = this.dataSource.entityMetadatas.find(
+        (candidate) =>
+          candidate.tableName === entry.table &&
+          wmsOwnedLogicalTableName(candidate) === null,
+      );
+
+      if (!metadata) continue;
+
+      const rows = await this.dataSource.query<WmsStockChangeRow[]>(
+        `SELECT * FROM ${quotedTablePathOf(this.dataSource, metadata.target)}`,
+      );
+      const idsByType = new Map<ChangeType, string[]>();
+
+      rows.forEach((row) => {
+        const resolved = entry.changeType(row);
+
+        if (!resolved || !CHANGE_TYPE_VALUES.has(resolved)) return;
+
+        idsByType.set(resolved as ChangeType, [
+          ...(idsByType.get(resolved as ChangeType) ?? []),
+          row.id,
+        ]);
+      });
+
+      if (idsByType.size === 0) continue;
+
+      const alias = `chg_custom_${index}`;
+      const typed = [...idsByType.entries()].map(([type, ids], position) => ({
+        type,
+        parameter: `${alias}_ids_${position}`,
+        ids,
+      }));
+      const listed = typed
+        .map(({ parameter }) => `${alias}.id::text = ANY(:${parameter})`)
+        .join(' OR ');
+
+      // Joined on the ids the resolver placed, so a row it did not place is
+      // simply absent from the join and cannot match below.
+      queryBuilder.leftJoin(
+        metadata.target,
+        alias,
+        `stock."orderId" = ${alias}.id AND (${listed})`,
+      );
+      typed.forEach(({ parameter, ids }) =>
+        queryBuilder.setParameter(parameter, ids),
+      );
+      branches.push({
+        alias,
+        match: `${alias}."quantityChanged" * stock.quantity > 0`,
+        type: `WHEN ${alias}.id IS NOT NULL THEN CASE ${typed
+          .map(
+            ({ type, parameter }) =>
+              `WHEN ${alias}.id::text = ANY(:${parameter}) THEN '${type}'`,
+          )
+          .join(' ')} END`,
+      });
+    }
+
+    queryBuilder.andWhere(
+      `(${branches
+        .map(({ alias, match }) => `(${alias}.id IS NOT NULL AND ${match})`)
+        .join(' OR ')})`,
+    );
+
+    return {
+      queryBuilder,
+      changeTypeSql: `CASE ${branches.map(({ type }) => type).join(' ')} ELSE NULL END`,
+    };
+  }
+
   async findChangeLogs(
     options: FindChangeLogInput<T>,
   ): Promise<[ChangeLog[], number]> {
     const { sort, ...filters } = options;
-    // Our own change tables, named as they ended up under `withWmsTablePrefix`.
-    const prefix = getWmsTablePrefix();
 
-    // Build base query with all change entity joins
-    const changesQueryBuilder = this.pipeSelectOptionsToQueryBuilder(
+    const baseQueryBuilder = this.pipeSelectOptionsToQueryBuilder(
       { ...filters, offset: undefined, limit: undefined },
       this.selectQueryBuilder('stock'),
       false,
-    )
-      .leftJoin(
-        `${prefix}receive_inventory_order_changes`,
-        'receive_change',
-        'stock."orderId" = receive_change.id',
-      )
-      .leftJoin(
-        `${prefix}ship_inventory_order_changes`,
-        'ship_change',
-        'stock."orderId" = ship_change.id',
-      )
-      .leftJoin(
-        `${prefix}transfer_order_changes`,
-        'transfer_change',
-        'stock."orderId" = transfer_change.id',
-      )
-      .leftJoin(
-        `${prefix}transfer_vendor_order_changes`,
-        'vendor_change',
-        'stock."orderId" = vendor_change.id',
-      )
-      .leftJoin(
-        `${prefix}transfer_customer_order_changes`,
-        'customer_change',
-        'stock."orderId" = customer_change.id',
-      )
-      .leftJoin(
-        `${prefix}hold_inventory_order_changes`,
-        'hold_change',
-        'stock."orderId" = hold_change.id',
-      )
-      .leftJoin(
-        `${prefix}split_batch_order_changes`,
-        'split_change',
-        'stock."orderId" = split_change.id',
-      )
-      .leftJoin(
-        `${prefix}merge_batch_order_changes`,
-        'merge_change',
-        'stock."orderId" = merge_change.id',
-      )
-      .leftJoin(
-        `${prefix}allocate_inventory_order_changes`,
-        'allocate_change',
-        'stock."orderId" = allocate_change.id',
-      )
-      .leftJoin(
-        `${prefix}reclassify_inventory_order_changes`,
-        'reclassify_change',
-        'stock."orderId" = reclassify_change.id',
-      )
-      .leftJoin(
-        `${prefix}scrape_order_changes`,
-        'scrape_change',
-        'stock."orderId" = scrape_change.id',
-      )
-      .andWhere(
-        `(
-          (receive_change.id IS NOT NULL AND receive_change."quantityChanged" * stock.quantity > 0)
-          OR (ship_change.id IS NOT NULL AND ship_change."quantityChanged" * stock.quantity > 0)
-          OR (transfer_change.id IS NOT NULL AND transfer_change."quantityChanged" * stock.quantity > 0)
-          OR (vendor_change.id IS NOT NULL AND vendor_change."quantityChanged" * stock.quantity > 0)
-          OR (customer_change.id IS NOT NULL AND customer_change."quantityChanged" * stock.quantity > 0)
-          OR (hold_change.id IS NOT NULL AND hold_change."quantityChanged" * stock.quantity > 0)
-          OR (split_change.id IS NOT NULL AND split_change."quantityChanged" * stock.quantity > 0)
-          OR (merge_change.id IS NOT NULL AND merge_change."quantityChanged" * stock.quantity > 0)
-          OR (allocate_change.id IS NOT NULL AND allocate_change."quantityChanged" * stock.quantity > 0)
-          OR (reclassify_change.id IS NOT NULL AND reclassify_change."quantityChanged" * stock.quantity > 0)
-          OR (scrape_change.id IS NOT NULL AND scrape_change."quantityChanged" * stock.quantity > 0)
-        )`,
-      );
+    );
+
+    const { queryBuilder: changesQueryBuilder, changeTypeSql } =
+      await this.joinChangeTables(baseQueryBuilder);
 
     // Get count from the filtered base query (before adding expensive CASE)
     const countQuerySimple = changesQueryBuilder
@@ -1074,7 +1342,7 @@ export class StockService<
     // Add changeType CASE only after we have the filtered result set, apply pagination
     const resultQueryBuilder = changesQueryBuilder.clone();
 
-    // Raw query with eleven joins: `skip`/`take` are entity-mode pagination
+    // Raw query with a join per change table: `skip`/`take` are entity-mode pagination
     // and TypeORM drops them from a raw query that has a join, so the whole
     // history came back on every page. `offset`/`limit` are emitted as SQL.
     // Every join here is on a primary key (`<change>.id` is the base order
@@ -1086,35 +1354,6 @@ export class StockService<
     if (options.limit !== undefined && options.limit > 0) {
       resultQueryBuilder.limit(options.limit);
     }
-
-    // Also the ORDER BY for CHANGE_TYPE: PostgreSQL accepts an output alias
-    // in ORDER BY only on its own, never inside an expression.
-    const changeTypeSql = `CASE
-          WHEN receive_change.id IS NOT NULL THEN '${ChangeType.RECEIVED}'
-          WHEN ship_change.id IS NOT NULL THEN
-            CASE WHEN ship_change."quantityChanged" > 0 THEN '${ChangeType.IN_SHIPMENT}'
-                 ELSE '${ChangeType.SHIPPED}' END
-          WHEN transfer_change.id IS NOT NULL THEN
-            CASE WHEN transfer_change."quantityChanged" > 0 THEN '${ChangeType.IN_TRANSFER}'
-                 ELSE '${ChangeType.TRANSFERRED}' END
-          WHEN vendor_change.id IS NOT NULL THEN
-            CASE WHEN vendor_change."quantityChanged" > 0 THEN '${ChangeType.VENDOR_TRANSFERRED}'
-                 ELSE '${ChangeType.VENDOR_RETURNED}' END
-          WHEN customer_change.id IS NOT NULL THEN
-            CASE WHEN customer_change."quantityChanged" > 0 THEN '${ChangeType.CUSTOMER_HELD}'
-                 ELSE '${ChangeType.CUSTOMER_RETURNED}' END
-          WHEN hold_change.id IS NOT NULL THEN
-            CASE WHEN hold_change."quantityChanged" > 0 THEN '${ChangeType.HELD}'
-                 ELSE '${ChangeType.RELEASED}' END
-          WHEN split_change.id IS NOT NULL THEN '${ChangeType.SPLITTED}'
-          WHEN merge_change.id IS NOT NULL THEN '${ChangeType.MERGED}'
-          WHEN allocate_change.id IS NOT NULL THEN
-            CASE WHEN allocate_change."quantityChanged" > 0 THEN '${ChangeType.ALLOCATED}'
-                 ELSE '${ChangeType.DEALLOCATED}' END
-          WHEN reclassify_change.id IS NOT NULL THEN '${ChangeType.RECLASSIFIED}'
-          WHEN scrape_change.id IS NOT NULL THEN '${ChangeType.SCRAPED}'
-          ELSE NULL
-        END`;
 
     // Explicitly select only the fields needed for ChangeLog
     resultQueryBuilder

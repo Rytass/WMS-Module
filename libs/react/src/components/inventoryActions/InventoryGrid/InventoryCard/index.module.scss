@@ -5,6 +5,7 @@
 .host {
   display: flex;
   align-self: stretch;
+  min-width: 0;
   flex-direction: column;
   align-items: flex-start;
   gap: spacing.semantic-variable(gap, slim);
@@ -58,6 +59,20 @@
           gap: spacing.semantic-variable(gap, slim);
         }
 
+        .materialText {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+          overflow-wrap: anywhere;
+        }
+
+        .tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: spacing.semantic-variable(gap, tight);
+        }
+
         .tag {
           border-radius: radius.variable(base);
           padding: spacing.semantic-variable(padding, vertical, micro)
@@ -82,6 +97,24 @@
       align-self: stretch;
       align-items: center;
       grid-template-columns: 1fr 200px;
+      gap: spacing.semantic-variable(gap, base);
+
+      @media (max-width: 767px) {
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+    }
+  }
+
+  .disabledReason {
+    display: flex;
+    align-self: stretch;
+    align-items: flex-start;
+    gap: spacing.semantic-variable(gap, tiny);
+    min-width: 0;
+
+    > :first-child {
+      flex: none;
+      margin-top: 2px;
     }
   }
 

@@ -10,6 +10,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { MergeBatchOrderEntityClass } from './merge-batch-order.entity';
 import { MergeBatchOrderChangeEntityClass } from './merge-batch-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const MergeBatchOrderItemEntity = Symbol('MergeBatchOrderItemEntity');
 @Entity('merge_batch_order_items')
@@ -25,7 +26,7 @@ export class MergeBatchOrderItemEntityClass {
   @Column({ type: 'uuid', nullable: true })
   loaderId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetMergedQuantity!: number;
 
   @Column({ type: 'uuid' })

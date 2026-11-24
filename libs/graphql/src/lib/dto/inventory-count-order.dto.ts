@@ -123,6 +123,14 @@ export class InventoryCountOrderDto {
   @Field(() => InventoryCountStatus)
   status!: InventoryCountStatus;
 
+  /**
+   * `false`: the count does not freeze its locations, so `bookQuantity` is a
+   * snapshot that stock movements may have overtaken. Settlement posts
+   * counted minus snapshot either way.
+   */
+  @Field(() => Boolean)
+  lockLocations!: boolean;
+
   @Field(() => String, { nullable: true })
   createdBy!: string | null;
 

@@ -145,13 +145,28 @@ add it to `resolveLocationIds` or the lock has a hole. `settle()` additionally r
 the ledger and refuses on any mismatch with the snapshot, which catches writes that
 bypass change rows entirely.
 
+**`lockLocations: false` is the opt-out, chosen at `create` and fixed from `start()` on**
+(`update` refuses it once the order leaves `PENDING`; the default and every pre-existing row is
+`true`). The subscriber's query joins on `o."lockLocations" = true`, so movements pass; `settle()`
+skips `assertSnapshotHolds` because the ledger is *expected* to have moved. The posted delta is
+still `counted - bookQuantity` (the snapshot), **never** "set the shelf to counted": what moved
+during the count is already in the ledger, so only the counter's disagreement with the sheet is
+booked (snapshot 10, 3 shipped meanwhile, counted 9: post -1, ledger 7 -> 6). `settle()` takes
+`lockStockSlots` on every counted line first in **both** modes, so it queues behind a shipment
+already deducting the same (material, batch). **Known limitation:** a location that moved while
+it was being counted ends up with a book quantity that is not what is on the shelf (counted 9
+says nothing about the 3 that were still on the shelf when the counter passed); that timing
+difference is the host's (ERP's) to reconcile. The snapshot and the count stay on
+`inventory_count_order_items` (`inventoryCountOrderItems`) for that purpose. Upgrade SQL is in
+`libs/core/docs/integration-guide.md` §4.12.
+
 
 The count's own entities (order, scope, item, change) are **not** in `WmsEntities` — they
 are owned outright by this package, so reference them by class per the asymmetry rule above.
 
 #### Every new Query/Mutation needs `@WmsMutationEvent` (mutations only)
 
-The mutation event/hook system (`libs/graphql/src/lib/events`, `libs/core/src/lib/events`) lets consumers veto (`beforeHooks`) and observe (`afterListeners`) mutations. Each root `@Mutation` carries `@WmsMutationEvent({ event: '<domain>.<action>' })` next to its `@WmsOperation`; the `WmsMutationInterceptor` opens an `AsyncLocalStorage` dispatch scope, runs the before-hook (throw = veto, before any transaction), and flushes events **after the outermost transaction commits** (it awaits the handler, and `dataSource.transaction` resolves post-commit). **A bare `@Mutation` emits no operation event** — always add `@WmsMutationEvent` with a name from `WmsOperationEventName`. Do **not** add it to `@Query` or `@ResolveField`. Stock domain events (`stock.*`) are collected centrally by `StockChangeSubscriber` (a TypeORM subscriber on every `*_order_change` insert, keyed by table name + sign of `quantityChanged`) — services are not touched, so any new change-writing path is covered automatically; if you add a new `*_order_change` table, add it to that subscriber's `TABLE_TO_CHANGE_TYPE` map. **Invariant:** mutation resolvers must `await` all their DB writes (never fire-and-forget) or the post-commit guarantee breaks. The `@nestjs/event-emitter` bridge lives in the separate `@rytass/wms-module-graphql/adapters/event-emitter` entrypoint (optional peer dep).
+The mutation event/hook system (`libs/graphql/src/lib/events`, `libs/core/src/lib/events`) lets consumers veto (`beforeHooks`) and observe (`afterListeners`) mutations. Each root `@Mutation` carries `@WmsMutationEvent({ event: '<domain>.<action>' })` next to its `@WmsOperation`; the `WmsMutationInterceptor` opens an `AsyncLocalStorage` dispatch scope, runs the before-hook (throw = veto, before any transaction), and flushes events **after the outermost transaction commits** (it awaits the handler, and `dataSource.transaction` resolves post-commit). **A bare `@Mutation` emits no operation event** — always add `@WmsMutationEvent` with a name from `WmsOperationEventName`. Do **not** add it to `@Query` or `@ResolveField`. Stock domain events (`stock.*`) are collected centrally by `StockChangeSubscriber` (a TypeORM subscriber on every `*_order_change` insert, keyed by table name + sign of `quantityChanged`) — services are not touched, so any new change-writing path is covered automatically; if you add a new `*_order_change` table, add it to `CHANGE_CLASSIFICATIONS` (`libs/core/src/lib/constants/change-classification.ts`). **Invariant:** mutation resolvers must `await` all their DB writes (never fire-and-forget) or the post-commit guarantee breaks. The `@nestjs/event-emitter` bridge lives in the separate `@rytass/wms-module-graphql/adapters/event-emitter` entrypoint (optional peer dep).
 
 #### Never resolve an overridable entity by its class
 
@@ -197,6 +212,105 @@ the "opposite order" case in `host-service-layer.integration.spec.ts`. Both `loc
 and `validateStockAvailability` **throw** outside an active transaction (in autocommit the
 lock is gone before the sum it guards) and `lockStockSlots` throws on a slot without a
 material or batch; never make either of them quietly skip.
+
+A shipment's source is the **in-shipment child** of the item's batch, not the item's own batch, and the child is
+named by the **ledger**, never re-derived from the source batch's current attributes. A prepare writes a change
+row whose `id` is the `orderId` of the stock rows it moved; the positive stock row of that order sits on the
+child. `ship()` and `cancelShipInternal` read it that way (`lockWithInShipmentBatches`; reservations are the
+change rows with `kind = RESERVE`; a row without a kind counts for nothing, as in `sumShipChanges`) and hand both slots to `lockStockSlots`, then validate and deduct on
+that same child (#195). A sibling lookup by batch state stops matching once the source batch changes (a later
+receipt flags the emptied batch `requiresInspection`) and strands the order. Never validate or lock a slot only
+after a split.
+
+**Lock order, project-wide:** loader row locks (`StockService.lockLoaders`) -> advisory stock locks
+(`lockStockSlots` / `validateStockAvailability`) -> batch-group lock (`splitBatch`). Never take an earlier kind
+after a later one.
+
+#### Quantity arithmetic goes through `utils/quantity`, never JS operators
+
+`numeric` columns hold exact decimals; `0.1 * 3 !== 0.3` in a double, so float arithmetic refused valid shipments and made a whole-loader transfer depend on item order (#227). Every sum, difference, product, quotient and comparison of a quantity uses `libs/core/src/lib/utils/quantity.ts` (`sumQuantities`, `subtractQuantity`, `compareQuantity`, `toBaseQuantity`, `fromBaseQuantity`, ...), which accepts the strings a raw query returns. Services never use `+ - * /` or `< > ===` on a quantity, never `Number()`/`parseFloat()` one, and never import `decimal.js` directly. Our entities' `numeric` columns carry `numericColumnTransformer` so the declared `number` is what you get; `getRawMany()` results and the base module's `StockEntity.quantity` are still strings. SQL `SUM` stays in SQL. Guard: `libs/graphql/src/lib/decimal-quantities.integration.spec.ts` and `utils/quantity.spec.ts`.
+
+#### Material quantities are `Float` in GraphQL
+
+Every GraphQL argument or field that carries a material quantity is `Float`, never `Int` (an `Int` refuses `0.1` at coercion, before any service runs). `Int` stays only for non-quantity counts: pagination, and the number of loaders in `createLoader`. Guard: `libs/graphql/src/lib/float-quantities.integration.spec.ts`.
+
+#### A line that has moved stock is reversed, never edited
+
+On allocate, hold and customer/vendor transfer orders a line moves stock when it is **created** (batch split,
+change row written). So `update*Order` refuses an existing line that carries anything but its `id` —
+`removedAt` included — with `BadRequestException` naming the reversal (`deallocate`, `release`,
+`return*Order`); `assertLineNotEdited` in `libs/core/src/lib/utils`. Stamping or rewriting the line would leave
+the stock where it is and the document disagreeing with the ledger. A line added by an update is processed like
+a created one; on the two transfer orders it takes the `customerId` / `vendorId` the existing lines carry
+(`resolveOrderParty`: the order row has no such column, and switching party after stock moved is refused).
+Ship and receive are different: their lines move stock only when executed, so removal stays a flag there.
+
+#### Quantities from a caller must be greater than 0
+
+Public write entry points call `assertPositiveQuantity` (`libs/core/src/lib/utils`) on `quantity`,
+`target*Quantity` and `items[].quantity`; a zero, negative or `NaN` value throws `BadRequestException` before
+anything is written (#221). Do **not** put it in the shared `process*Items` helpers: `release`, `deallocate`
+and `return*` write negative targets on purpose. On `update*` paths the check and the persistence loop must
+share one predicate (a new line carrying `removedAt` is skipped, not created).
+
+Unit `conversionFactor` follows the same rule: `assertPositiveConversionFactor` guards `createMaterial` /
+`updateMaterial` before any write, and `MaterialService.getConversionFactor` re-checks what it reads (the
+column is unconstrained `numeric`, so a stored `0`, negative, `NaN` or `Infinity` throws instead of being
+multiplied in).
+
+#### A transfer never moves a loader away from its stock
+
+Only a whole-loader item (`item.loaderId === item.targetLoaderId`) relocates its loader on `transfer()`.
+Consolidating onto a loader at another location is refused in `createTransferOrder` (and re-checked at
+`transfer`) unless `relocateEmptyLoaders: true` **and** no slot on the loader holds a non-zero quantity
+(`StockService.resolveLoaderPlacement` / `isLoaderEmpty`, reusable by the receive path) (#222). Both read the
+loader's location and then act on it, so they take a `pessimistic_write` lock on the loader row first
+(`lockLoaders`, id order, held to commit); `transfer()` locks every loader it reads or moves before its stock
+locks. A header loader that is the whole-loader source of an item in the same order skips the creation-time
+check: whole-loader items run first (the priority rule, and first within one `transfer()` call), after which the
+loader is at the target and the consolidating items pass the execution-time check.
+
+#### `moveLoader` moves a loader in place; it is not a transfer
+
+`TransferOrderService.moveLoader` (#225) is the only way to move a loader that holds reserved, held or allocated
+stock. It never splits: every slot the loader holds (`StockService.findLoaderSlots`: material, batch, location)
+is written out of its location and into the target under the **same batch id**, so flags survive. It is recorded
+as a whole-loader transfer order executed at once -- one item and one `TRANSFER` change per slot, **no RESERVE
+row** -- so the count lock, `stock.transferred` and the change log's `TRANSFERRED` apply with no new table; the
+order has nothing pending, so `transfer`/`cancelTransfer` on it are no-ops by design. Order of work: loader row
+lock, read slots, `assertLocationsNotCounting` on source and target (before any write: a host may swallow the
+refusal), `lockStockSlots`, **re-read the slots** (a reservation does not take the loader row) and throw
+`ConflictException` if a slot appeared -- never lock it late, that inverts the lock order -- then write, then
+`followLoader`, then `loaders.locationId`. Refused: default loader, same location, empty loader (use
+`LoaderService.updateLoader`), unknown ids, counted locations.
+
+`followLoader` re-points the lines whose *later operations read `item.locationId`*, and only while unfinished:
+ship (`ship`/`cancelShip`), transfer (`transfer`/`cancelTransfer`) and receive (`receive`, while target − received > 0) `locationId`; consumption (`issue`/`return`/
+`settle`) `locationId` where the loader is the source and `targetLocationId` where it is the consuming loader.
+Finished lines are history and stay. Hold, allocate, vendor, customer, scrape, inspection, split, merge,
+reclassify and count lines are not touched: they were written in full at creation and a release/return takes its
+location from its own input. **A new item table whose later operations read its stored location must be added to
+`followLoader`.** Known gap: a transfer line that consolidates *onto* the moved loader keeps its
+target location (it fails loudly in the placement check and must be cancelled). Receive lines follow because
+receive is placement-checked (#233): a stale location would leave the order unreceivable.
+
+#### Removing a ship line that still holds a reservation is refused
+
+`updateShipInventoryOrder` with `removedAt` on a line whose `reserved - shipped - cancelled` (from the change rows' `kind`, via `sumShipChanges`) is above 0 throws `BadRequestException` before anything is written; the caller `cancelShip`s first. Removing only stamped `removedAt`, so the stock stayed on the in-shipment child with no line left to ship or cancel it. The `cancelReservationOnShipLineRemoval` module option (default `false`, beside `relocateEmptyLoaders`) instead cancels the remainder through `cancelShipInternal` ahead of the removal, in the same transaction. `removeShipInventoryOrder` always cancels everything left on every line, removed or not. Tests that remove lines with reservations in `host-service-layer.integration.spec.ts` toggle the option on the injected `WMS_CORE_MODULE_OPTIONS` object.
+
+`receive()` goes through `resolveLoaderPlacement` too (#223): stock is received where its loader is, an empty loader
+elsewhere is moved to the receiving location only with `relocateEmptyLoaders`, and `createReceiveInventoryOrder`
+checks at creation as well. A line without a loader (the DEFAULT loader) is not checked.
+
+#### An id or key the caller names must exist, or the call throws
+
+`ship`, `receive`, `transfer`, `cancelShip`, `cancelTransfer`, the `update*Order` paths and the `create*` item
+processors throw `NotFoundException` (message names the id or key) when a caller-supplied item id, material key,
+loader key, location key or loader type is not found, and roll the whole call back (#224). Never `return` /
+`continue` past it, and never wrap a lookup in a `try { … } catch { return acc }`: the old code dropped a line
+for an unknown material and swallowed every other error from the line too, so a bad id looked like success.
+`assertAllFound` / `assertKeyFound` (`libs/core/src/lib/utils/assert-found.ts`) do the check; run it before the
+first write. Silently skipping is only right for something the service derived itself.
 
 #### Table names are reached through metadata; the prefix follows class identity
 
@@ -347,6 +461,17 @@ Two things to keep in mind when touching it:
   widened to take the whole change row rather than just the quantity for exactly this, and
   its resolvers may now return `null` for a row they cannot classify (no event beats a wrong
   one).
+- **Ship and transfer changes carry a `kind` too.** `ship_inventory_order_changes.kind`
+  (`RESERVE` / `SHIP` / `CANCEL`) and `transfer_order_changes.kind` (`RESERVE` / `TRANSFER` /
+  `CANCEL`) exist for the same reason: an execution and a cancel are both negative. Every write
+  sets it and every read (status, shipped/pending quantities, `findChangeLogs`, subscriber)
+  goes by it, never by sign; `sumShipChanges` / `sumTransferChanges` are the one place that adds
+  them up. The columns are nullable only so existing tables can gain them -- the upgrade SQL
+  is in `libs/core/docs/integration-guide.md` §4.8, and a new `*_order_changes` writer must set
+  `kind`. Reads count a `NULL` row as zero, but every path that
+  writes the ledger (ship, cancelShip, removeShipInventoryOrder, transfer, cancelTransfer,
+  removeTransferOrder) calls `assertChangesHaveKind` first and refuses -- zero would overstate
+  what is left to move and let stock move twice.
 - Nothing is denormalised onto the item. `getProgress` and the `issuedQuantity` /
   `outstandingQuantity` resolvers read the change rows back every time, because those rows
   are what the stock ledger and the `stock.*` events agree with; a counter kept alongside
@@ -396,8 +521,21 @@ upstream once it stops being one deployment's special case.
 Registration is validated at module-definition time (`core.module.ts`): shadowing an owned
 table, registering one twice, or missing the `_order_changes` suffix all throw. Each of those
 mistakes otherwise looks exactly like working software until someone reads a report. **A new
-change table this package owns must be added to `OWNED_CHANGE_TABLES` as well as to
-`TABLE_TO_CHANGE_TYPE`.**
+change table this package owns is added to `CHANGE_CLASSIFICATIONS` and nowhere else:
+`TABLE_TO_CHANGE_TYPE` and `OWNED_CHANGE_TABLES` in the subscriber are derived from it.**
+
+#### The change log and the stock events read one classification table
+
+`CHANGE_CLASSIFICATIONS` (`libs/core/src/lib/constants/change-classification.ts`) says what a row of each change table
+means: a fixed type, one by the sign of `quantityChanged`, or one by its `kind`. `StockChangeSubscriber` runs it as a
+function to pick the event; `StockService.findChangeLogs` renders the same rule as SQL (`changeTypeSqlOf`) to list and
+sort the rows. Never write a second `CASE` for the change log: it drifted before, leaving counts, consumptions and
+scrapes out of the list and its `total`. `stockSign` names which `stocks` row of the order a change is listed
+through: `same` as the change's sign, except a scrape, which records a positive change over a negative stock row (read
+at query time, not corrected at the writer, so old rows are listed too). A host's `customChangeTables` entry is listed
+when its resolver returns one of our `ChangeType`s (the host table is read once per call to place its rows, because the
+resolver is JavaScript); a resolver that returns its own string or `null` is not listed, since the GraphQL
+`ChangeType` enum has no member to show it as. The guard is the D2 block in `host-service-layer.integration.spec.ts`.
 
 #### The event guarantee belongs to `WmsOperationRunner`, not the interceptor
 
@@ -488,6 +626,8 @@ Exposed through GraphQL as the `JSONObject` scalar in `libs/graphql/src/lib/scal
 in-repo on top of `graphql` rather than pulled from `graphql-type-json` so the peer dependency
 list does not grow. It deliberately rejects bare scalars, arrays and class instances.
 
+`MergeBatchOrderService.merge` refuses (`BadRequestException`) source batches whose `attributes` differ by content or whose `requiresInspection` differs, like every other identity field, and passes both onto the merged batch.
+
 #### DTO and entity nullability must match
 
 GraphQL DTOs in `libs/graphql/src/lib/dto/*.dto.ts` are returned from services that hand back the TypeORM entity. If the entity column is `string | null`, the DTO field must also declare `string | null` plus `@Field(() => String, { nullable: true })`. Mismatches trigger TS2322 (we suppress it in build via `noEmitOnError: false`, so the build still succeeds but the published `.d.ts` lies about the contract). Check both sides whenever you add or modify a nullable column.
@@ -574,6 +714,17 @@ with `noEmit`. Deleting one silently restores the race.
 - **Domain Services**: Each domain (inventory orders, stock, transfers, batches, materials, quality inspection) has a dedicated service in `libs/core` and resolver in `libs/graphql`
 - **Standalone Next.js**: Client uses `output: 'standalone'` for lightweight Docker images
 - **Entity-as-ObjectType**: TypeORM entities double as GraphQL ObjectTypes via `@ObjectType()` decorators in `libs/core`
+
+## Testing
+
+Two layers, one merged report:
+
+- **Unit** (`libs/core`, `*.spec.ts`, no database): pure functions only — `utils/**`, event dispatch, table-prefix state, key builders. `nx test core`. A function that is pure but buried in a service or exported-by-`index.ts` module goes in its own file that `index.ts` does not re-export, so extracting it for a test does not widen the public API.
+- **Integration** (`libs/graphql`, `*.integration.spec.ts`, real Postgres): everything that touches SQL, locks or transactions. Mocking `EntityManager` proves a method was called, not what it does, so services are covered here and not by mocks. `nx test graphql` (needs Postgres; `WMS_TEST_DB_HOST/PORT/USER/PASS` override the defaults).
+
+`yarn test:coverage` runs both from the **repo root** (`jest.config.mjs`) and then `tools/coverage-gate.mjs`. The root run is not optional: coverage collected from inside `libs/graphql` silently excludes core. The gate reads `coverage/coverage-final.json` and drops the `cond-expr` branches `@swc/jest`'s `decoratorMetadata` generates (jest's `coverageThreshold` cannot). Floors are in `tools/coverage-thresholds.json` and only move up. CI (`.github/workflows/test.yml`) runs lint, typecheck, this, against a Postgres service container.
+
+**New integration specs use `libs/graphql/src/lib/testing`** (`createWmsTestApp`, `createTestDatabase`, `seed`): every call gets its own database, named from label, pid, jest worker and a random suffix, and `close()` drops it. Do not hard-code a database name in a new spec — fixed names (`wms_module_*_test`) make two sessions overwrite each other and leave one database behind per run. Existing specs still use fixed names and move over when next edited. A boot that is expected to fail must close what it opened (an unclosed pool keeps the jest worker alive).
 
 ## Environment Variables
 

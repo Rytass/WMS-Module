@@ -1,10 +1,10 @@
-import { Field, ID, InputType, Int } from '@nestjs/graphql';
+import { Field, ID, InputType, Float } from '@nestjs/graphql';
 
 @InputType()
 export class ShipOrderArgs {
   @Field(() => ID)
   itemId!: string;
 
-  @Field(() => Int)
+  @Field(() => Float)
   quantity!: number;
 }

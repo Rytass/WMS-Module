@@ -1,4 +1,4 @@
-import { ArgsType, Field, ID, InputType, Int } from '@nestjs/graphql';
+import { ArgsType, Field, ID, InputType, Float } from '@nestjs/graphql';
 
 @InputType()
 export class CreateQualityInspectionOrderItemArgs {
@@ -8,7 +8,7 @@ export class CreateQualityInspectionOrderItemArgs {
   @Field(() => ID, { nullable: true })
   unitId?: string;
 
-  @Field(() => Int)
+  @Field(() => Float)
   quantity!: number;
 
   @Field(() => Boolean)

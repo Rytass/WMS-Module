@@ -32,8 +32,19 @@ import { applyListSort } from '../utils/list-sort';
 import { WmsEntities } from '../models/wms-entities';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
+import { assertPositiveQuantity } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { StockService } from './stock.service';
+import {
+  absQuantity,
+  addQuantity,
+  compareQuantity,
+  isPositiveQuantity,
+  negateQuantity,
+  subtractQuantity,
+  sumQuantities,
+  toBaseQuantity,
+} from '../utils/quantity';
 
 const CONSUMPTION_ORDER_SORT_FIELDS: Readonly<
   Record<ConsumptionOrderSortField, string>
@@ -141,6 +152,10 @@ export class ConsumptionOrderService<
       throw new Error('A consumption order needs at least one item');
     }
 
+    options.items.forEach((item, index) =>
+      assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+    );
+
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
@@ -172,6 +187,10 @@ export class ConsumptionOrderService<
     options: UpdateConsumptionOrderInput,
     outerManager?: EntityManager,
   ): Promise<T> {
+    options.items?.forEach((item, index) =>
+      assertPositiveQuantity(item.quantity, 'quantity', `item #${index}`),
+    );
+
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
 
@@ -298,13 +317,11 @@ export class ConsumptionOrderService<
         const own = changes.filter((change) => change.itemId === item.id);
 
         const sum = (kind: ConsumptionChangeKind): number =>
-          own
-            .filter((change) => change.kind === kind)
-            .reduce(
-              (total, change) =>
-                total + Math.abs(Number(change.quantityChanged)),
-              0,
-            );
+          sumQuantities(
+            own
+              .filter((change) => change.kind === kind)
+              .map((change) => absQuantity(change.quantityChanged)),
+          );
 
         const issued = sum(ConsumptionChangeKind.ISSUE);
         const returned = sum(ConsumptionChangeKind.RETURN);
@@ -312,11 +329,14 @@ export class ConsumptionOrderService<
 
         return {
           itemId: item.id,
-          target: Number(item.targetConsumedQuantity) * conversionFactor,
+          target: toBaseQuantity(item.targetConsumedQuantity, conversionFactor),
           issued,
           returned,
           settled,
-          outstanding: issued - returned - settled,
+          outstanding: subtractQuantity(
+            subtractQuantity(issued, returned),
+            settled,
+          ),
         };
       }),
     );
@@ -354,6 +374,16 @@ export class ConsumptionOrderService<
     kind: ConsumptionChangeKind,
     outerManager: EntityManager | undefined,
   ): Promise<boolean> {
+    options.items?.forEach((line) => {
+      if (line.quantity !== undefined) {
+        assertPositiveQuantity(
+          line.quantity,
+          'quantity',
+          `item ${line.itemId}`,
+        );
+      }
+    });
+
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
       const repos = this.getRepositories(manager);
 
@@ -452,17 +482,19 @@ export class ConsumptionOrderService<
         //
         // `??` rather than `||`: a line with nothing left must stay 0 and be
         // rejected below, not fall through to the whole target.
-        const remaining =
-          (kind === ConsumptionChangeKind.ISSUE
-            ? (state?.target ?? 0) - (state?.issued ?? 0)
-            : (state?.outstanding ?? 0)) - alreadyMoved;
+        const remaining = subtractQuantity(
+          kind === ConsumptionChangeKind.ISSUE
+            ? subtractQuantity(state?.target ?? 0, state?.issued ?? 0)
+            : (state?.outstanding ?? 0),
+          alreadyMoved,
+        );
 
         const amount =
           line.quantity === undefined
             ? remaining
-            : line.quantity * conversionFactor;
+            : toBaseQuantity(line.quantity, conversionFactor);
 
-        if (amount <= 0) {
+        if (!isPositiveQuantity(amount)) {
           // Acting on the whole order is the common call, and an order where
           // some lines are already done is the common state; skipping them
           // beats making the caller compute the list.
@@ -473,7 +505,7 @@ export class ConsumptionOrderService<
           );
         }
 
-        if (amount > remaining) {
+        if (compareQuantity(amount, remaining) > 0) {
           throw new Error(
             kind === ConsumptionChangeKind.ISSUE
               ? `Consumption order line ${item.id} has only ${remaining} left to issue, asked for ${amount} (base units)`
@@ -483,7 +515,7 @@ export class ConsumptionOrderService<
 
         await this.writeMovement(repos, manager, item, kind, amount);
 
-        movedInThisCall.set(item.id, alreadyMoved + amount);
+        movedInThisCall.set(item.id, addQuantity(alreadyMoved, amount));
       }
 
       return true;
@@ -534,7 +566,9 @@ export class ConsumptionOrderService<
         // The sign follows the stock the order controls: an issue puts material
         // into the process's hands, a return and a settlement take it back out.
         quantityChanged:
-          kind === ConsumptionChangeKind.ISSUE ? amount : -1 * amount,
+          kind === ConsumptionChangeKind.ISSUE
+            ? amount
+            : negateQuantity(amount),
         kind,
       }),
     );
@@ -546,7 +580,7 @@ export class ConsumptionOrderService<
         batchId: item.batchId,
         locationId: movement.from.locationId,
         loaderId: movement.from.loaderId,
-        quantity: -1 * amount,
+        quantity: negateQuantity(amount),
       },
     ];
 

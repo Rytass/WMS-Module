@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { ReceiveInventoryOrderEntityClass } from './receive-inventory-order.entity';
 import { ReceiveInventoryOrderChangeEntityClass } from './receive-inventory-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ReceiveInventoryOrderItemEntity = Symbol(
   'ReceiveInventoryOrderItemEntity',
@@ -30,7 +31,7 @@ export class ReceiveInventoryOrderItemEntityClass {
   @Column({ type: 'bool', default: true })
   requireInspection!: boolean;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetReceivedQuantity!: number;
 
   @Column({ type: 'uuid' })

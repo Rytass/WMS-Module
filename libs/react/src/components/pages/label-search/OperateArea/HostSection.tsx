@@ -1,5 +1,14 @@
-import { useMemo, ReactNode } from 'react';
-import { Typography, Button, Empty, cx } from '@mezzanine-ui/react';
+import { FormEvent, useEffect, useMemo, useState, ReactNode } from 'react';
+import { useFormContext } from 'react-hook-form';
+import {
+  Typography,
+  Button,
+  Empty,
+  Tab,
+  TabItem,
+  cx,
+} from '@mezzanine-ui/react';
+import { useCompactLayout } from '../../../../hooks/useCompactLayout';
 import SectionWrapper from '../../../SectionWrapper';
 import { useDialog } from '../../../dialog/useDialog';
 import { StockInActionsFragment } from '../../../../graphql/generated/.graphql';
@@ -42,23 +51,91 @@ const HostSection: FC<HostSectionProps> = ({
     [inventoryList, targetAction],
   );
 
+  // On a phone the two columns become two tabs. Both stay mounted and only
+  // one is shown, so switching never drops what was typed into the other.
+  const compact = useCompactLayout();
+  const [pane, setPane] = useState<'items' | 'settings'>('items');
+  const showTabs = compact && haveAdditionalBlock;
+
+  // The panel without an action renders outside any form.
+  const form = useFormContext() as ReturnType<typeof useFormContext> | null;
+  const submitCount = form?.formState.submitCount ?? 0;
+  const hasErrors = Object.keys(form?.formState.errors ?? {}).length > 0;
+
+  // A rejected submit with the settings tab hidden would look like nothing
+  // happened: bring the fields that failed into view.
+  useEffect(() => {
+    if (showTabs && submitCount > 0 && hasErrors) setPane('settings');
+  }, [hasErrors, showTabs, submitCount]);
+
+  // Fields marked `required` are stopped by the browser before the form
+  // library ever runs, and a control inside a hidden pane cannot show its
+  // bubble — on a phone the submit just did nothing. Catch the native event,
+  // reveal the pane, then let the browser point at the field.
+  const onInvalidCapture = (event: FormEvent<HTMLDivElement>): void => {
+    if (!showTabs) return;
+
+    const control = event.target;
+    // Children when tabbed: the tab bar, the items pane, the settings pane.
+    const settingsPane = event.currentTarget.children.item(2);
+    const owner =
+      control instanceof Node && settingsPane?.contains(control)
+        ? 'settings'
+        : 'items';
+
+    // The visible pane reports its own fields.
+    if (owner === pane) return;
+
+    setPane(owner);
+
+    if (
+      control instanceof HTMLInputElement ||
+      control instanceof HTMLSelectElement ||
+      control instanceof HTMLTextAreaElement
+    ) {
+      requestAnimationFrame(() => control.reportValidity());
+    }
+  };
+
   return (
     <div
       className={cx(classes.host, {
         [classes.haveAdditionalBlock]: haveAdditionalBlock,
+        [classes.tabbed]: showTabs,
+        [classes.showSettings]: showTabs && pane === 'settings',
       })}
+      onInvalidCapture={onInvalidCapture}
     >
+      {showTabs && (
+        <Tab
+          className={classes.tabs}
+          size="sub"
+          activeKey={pane}
+          onChange={(key) => setPane(key === 'settings' ? 'settings' : 'items')}
+        >
+          <TabItem key="items">
+            {inventoryList.length > 0
+              ? `已選項目 (${inventoryList.length})`
+              : '已選項目'}
+          </TabItem>
+          <TabItem key="settings" error={hasErrors}>
+            操作設定
+          </TabItem>
+        </Tab>
+      )}
       <SectionWrapper className={classes.block}>
         {customizedMainBlock ? (
           customizedMainBlock
         ) : (
           <>
             <div className={classes.titleWrapper}>
-              <Typography variant="h3" color="text-neutral-solid">
-                {inventoryList.length > 0
-                  ? `已選項目 (${inventoryList.length})`
-                  : '已選項目'}
-              </Typography>
+              {!showTabs && (
+                <Typography variant="h3" color="text-neutral-solid">
+                  {inventoryList.length > 0
+                    ? `已選項目 (${inventoryList.length})`
+                    : '已選項目'}
+                </Typography>
+              )}
               {inventoryList.length > 0 && (
                 <div className={classes.clearButtons}>
                   <Button
