@@ -254,6 +254,20 @@ loader is at the target and the consolidating items pass the execution-time chec
 
 `updateShipInventoryOrder` with `removedAt` on a line whose `reserved - shipped - cancelled` (from the change rows' `kind`, via `sumShipChanges`) is above 0 throws `BadRequestException` before anything is written; the caller `cancelShip`s first. Removing only stamped `removedAt`, so the stock stayed on the in-shipment child with no line left to ship or cancel it. The `cancelReservationOnShipLineRemoval` module option (default `false`, beside `relocateEmptyLoaders`) instead cancels the remainder through `cancelShipInternal` ahead of the removal, in the same transaction. `removeShipInventoryOrder` always cancels everything left on every line, removed or not. Tests that remove lines with reservations in `host-service-layer.integration.spec.ts` toggle the option on the injected `WMS_CORE_MODULE_OPTIONS` object.
 
+`receive()` goes through `resolveLoaderPlacement` too (#223): stock is received where its loader is, an empty loader
+elsewhere is moved to the receiving location only with `relocateEmptyLoaders`, and `createReceiveInventoryOrder`
+checks at creation as well. A line without a loader (the DEFAULT loader) is not checked.
+
+#### An id or key the caller names must exist, or the call throws
+
+`ship`, `receive`, `transfer`, `cancelShip`, `cancelTransfer`, the `update*Order` paths and the `create*` item
+processors throw `NotFoundException` (message names the id or key) when a caller-supplied item id, material key,
+loader key, location key or loader type is not found, and roll the whole call back (#224). Never `return` /
+`continue` past it, and never wrap a lookup in a `try { … } catch { return acc }`: the old code dropped a line
+for an unknown material and swallowed every other error from the line too, so a bad id looked like success.
+`assertAllFound` / `assertKeyFound` (`libs/core/src/lib/utils/assert-found.ts`) do the check; run it before the
+first write. Silently skipping is only right for something the service derived itself.
+
 #### Table names are reached through metadata; the prefix follows class identity
 
 `withWmsTablePrefix(options, 'wms_')` (`libs/core/src/lib/table-prefix`) rewrites the
@@ -656,6 +670,17 @@ with `noEmit`. Deleting one silently restores the race.
 - **Domain Services**: Each domain (inventory orders, stock, transfers, batches, materials, quality inspection) has a dedicated service in `libs/core` and resolver in `libs/graphql`
 - **Standalone Next.js**: Client uses `output: 'standalone'` for lightweight Docker images
 - **Entity-as-ObjectType**: TypeORM entities double as GraphQL ObjectTypes via `@ObjectType()` decorators in `libs/core`
+
+## Testing
+
+Two layers, one merged report:
+
+- **Unit** (`libs/core`, `*.spec.ts`, no database): pure functions only — `utils/**`, event dispatch, table-prefix state, key builders. `nx test core`. A function that is pure but buried in a service or exported-by-`index.ts` module goes in its own file that `index.ts` does not re-export, so extracting it for a test does not widen the public API.
+- **Integration** (`libs/graphql`, `*.integration.spec.ts`, real Postgres): everything that touches SQL, locks or transactions. Mocking `EntityManager` proves a method was called, not what it does, so services are covered here and not by mocks. `nx test graphql` (needs Postgres; `WMS_TEST_DB_HOST/PORT/USER/PASS` override the defaults).
+
+`yarn test:coverage` runs both from the **repo root** (`jest.config.mjs`) and then `tools/coverage-gate.mjs`. The root run is not optional: coverage collected from inside `libs/graphql` silently excludes core. The gate reads `coverage/coverage-final.json` and drops the `cond-expr` branches `@swc/jest`'s `decoratorMetadata` generates (jest's `coverageThreshold` cannot). Floors are in `tools/coverage-thresholds.json` and only move up. CI (`.github/workflows/test.yml`) runs lint, typecheck, this, against a Postgres service container.
+
+**New integration specs use `libs/graphql/src/lib/testing`** (`createWmsTestApp`, `createTestDatabase`, `seed`): every call gets its own database, named from label, pid, jest worker and a random suffix, and `close()` drops it. Do not hard-code a database name in a new spec — fixed names (`wms_module_*_test`) make two sessions overwrite each other and leave one database behind per run. Existing specs still use fixed names and move over when next edited. A boot that is expected to fail must close what it opened (an unclosed pool keeps the jest worker alive).
 
 ## Environment Variables
 

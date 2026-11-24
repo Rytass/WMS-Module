@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   AllocateInventoryOrderChangeEntityClass,
   AllocateInventoryOrderEntity,
@@ -249,6 +249,10 @@ export class AllocateInventoryOrderService<
           else if (!item.id) newItems.push({ ...item, orderId: id });
           else if (existingItemIds.has(item.id))
             existingItems.push(asRemovalMarker({ ...item, orderId: id }));
+          else
+            throw new NotFoundException(
+              `Allocate inventory order item ${item.id} not found on order ${id}`,
+            );
         });
 
         if (newItems.length)
