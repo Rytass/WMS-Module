@@ -50,6 +50,14 @@ import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
+import {
+  isNegativeQuantity,
+  isPositiveQuantity,
+  subtractQuantity,
+  sumQuantities,
+  toBaseQuantity,
+  toQuantityNumber,
+} from '../utils/quantity';
 
 /**
  * Service for managing receive inventory orders and their items
@@ -581,15 +589,23 @@ export class ReceiveInventoryOrderService<
               manager,
             );
 
-          const totalChanged = item.changes.reduce(
-            (sum, change) => sum + Number(change.quantityChanged),
-            0,
+          const totalChanged = sumQuantities(
+            item.changes.map((change) => change.quantityChanged),
           );
 
-          const remainingQuantity =
-            conversionFactor * item.targetReceivedQuantity - totalChanged;
+          const remainingQuantity = subtractQuantity(
+            toBaseQuantity(item.targetReceivedQuantity, conversionFactor),
+            totalChanged,
+          );
 
-          if (remainingQuantity - option.quantity * conversionFactor < 0) {
+          if (
+            isNegativeQuantity(
+              subtractQuantity(
+                remainingQuantity,
+                toBaseQuantity(option.quantity, conversionFactor),
+              ),
+            )
+          ) {
             throw new Error(
               `Receiving quantity exceeds target for item ${option.itemId}`,
             );
@@ -657,9 +673,9 @@ export class ReceiveInventoryOrderService<
               .select('COALESCE(SUM(stock.quantity), 0)', 'total')
               .where('stock."batchId" = :batchId', { batchId })
               .getRawOne<{ total: string }>()
-              .then((row) => parseFloat(row?.total ?? '0'));
+              .then((row) => toQuantityNumber(row?.total ?? '0'));
 
-            if (onHand > 0) {
+            if (isPositiveQuantity(onHand)) {
               batchId = await this.batchService
                 .splitBatch({
                   manager,
@@ -690,7 +706,10 @@ export class ReceiveInventoryOrderService<
             changeRepository.save(
               changeRepository.create({
                 itemId: option.itemId,
-                quantityChanged: option.quantity * conversionFactor,
+                quantityChanged: toBaseQuantity(
+                  option.quantity,
+                  conversionFactor,
+                ),
                 id: newOrder.id,
               }),
             ),
@@ -700,7 +719,7 @@ export class ReceiveInventoryOrderService<
                 locationId: this.stockService.resolveLocationId(locationId),
                 loaderId: this.stockService.resolveLoaderId(loaderId),
                 materialId: item.materialId,
-                quantity: option.quantity * conversionFactor,
+                quantity: toBaseQuantity(option.quantity, conversionFactor),
                 orderId: newOrder.id,
               }),
             ),
