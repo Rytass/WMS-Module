@@ -1,4 +1,10 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   ConsumptionOrderItemEntityClass,
   LoadersEntityClass,
@@ -34,6 +40,7 @@ import {
   TransferOrderSortField,
 } from '../typings/find-transfer-order.input';
 import { SortOrder } from '../typings/list-sort';
+import { assertAllFound } from '../utils/assert-found';
 import { applyListSort } from '../utils/list-sort';
 import { TransferOrderInput } from '../typings/transfer-order.input';
 import { CancelTransferOrderInput } from '../typings/cancel-transfer-order.input';
@@ -174,7 +181,11 @@ export class TransferOrderService<
     await this.stockService.lockStockSlots(items, manager);
     for (const data of items) {
       // Ensure required fields are present
-      if (!data.batchId || !data.materialId) continue;
+      if (!data.batchId || !data.materialId) {
+        throw new BadRequestException(
+          `Transfer order line needs a materialId and a batchId (got materialId=${data.materialId}, batchId=${data.batchId})`,
+        );
+      }
 
       // Save item with ORIGINAL batch id to maintain source state
       const item = await repos.transferOrderItem.save(
@@ -289,6 +300,11 @@ export class TransferOrderService<
       relations: { changes: true },
     });
 
+    assertAllFound(
+      options.map((o) => o.itemId),
+      items,
+      'Transfer order item',
+    );
     const itemMap = new Map(items.map((item) => [item.id, item]));
 
     // Source (material, batch) locks first, in a fixed order, before any
@@ -304,7 +320,7 @@ export class TransferOrderService<
     // Decant items in the same order can be partially cancelled independently.
     for (const option of options) {
       const item = itemMap.get(option.itemId);
-      if (!item || !item.loaderId || !item.targetLoaderId) continue;
+      if (!item?.loaderId || !item.targetLoaderId) continue;
       if (item.loaderId !== item.targetLoaderId) continue; // not whole-loader
       const factor = await this.materialService.getConversionFactor(
         item.materialId,
@@ -326,7 +342,11 @@ export class TransferOrderService<
     for (const option of options) {
       await (async () => {
         const item = itemMap.get(option.itemId);
-        if (!item) return;
+        if (!item) {
+          throw new NotFoundException(
+            `Transfer order item ${option.itemId} not found`,
+          );
+        }
 
         const conversionFactor = await this.materialService.getConversionFactor(
           item.materialId,
@@ -1029,6 +1049,10 @@ export class TransferOrderService<
           newItems.push({ ...item, orderId: order.id });
         } else if (existingItemIds.has(item.id)) {
           existingItems.push({ ...item, orderId: order.id });
+        } else {
+          throw new NotFoundException(
+            `Transfer order item ${item.id} not found on order ${id}`,
+          );
         }
       });
 
@@ -1230,6 +1254,11 @@ export class TransferOrderService<
         relations: { changes: true },
       });
 
+      assertAllFound(
+        options.map((o) => o.itemId),
+        items,
+        'Transfer order item',
+      );
       const itemMap = new Map(items.map((item) => [item.id, item]));
 
       // Every loader this call reads the location of or moves, locked before
@@ -1357,7 +1386,11 @@ export class TransferOrderService<
       ]) {
         await (async () => {
           const item = itemMap.get(option.itemId);
-          if (!item) return;
+          if (!item) {
+            throw new NotFoundException(
+              `Transfer order item ${option.itemId} not found`,
+            );
+          }
 
           const conversionFactor =
             await this.materialService.getConversionFactor(

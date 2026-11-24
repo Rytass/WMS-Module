@@ -398,6 +398,22 @@ The Rytass internal monorepo does not hit this because `apps/client` builds the 
 
 Track upstream progress via the [Mezzanine UI repo](https://github.com/mezzanine-ui/mezzanine).
 
+## Resizing columns on wide tables
+
+Every bundled table has draggable column widths, remembered per table in `localStorage`
+(`table-col-widths:<tableKey>`). Mezzanine's `Table` (1.10.2) keeps the total column width constant while
+you drag: the width a column gains is taken from the last column first, then from its right neighbour.
+It has no mode where the table grows and the following columns scroll out to the right (tracked upstream).
+
+Until it does, the wide tables (inventory list in both modes, change history) keep an empty trailing column
+of 200px that a drag borrows from, so one drag can widen a column by up to 160px without touching its
+neighbours; beyond that the neighbour is squeezed. That column is never persisted, so it is back at full
+size after every drag and a restored layout never carries it or changes this behavior. Tables without row
+actions have no trailing actions column at all.
+
+The internal table wrapper takes `fullWidth` (default `true`), `scroll` (passed through to Mezzanine) and
+`reserveResizeSpace` (default `false`; adds the trailing column described above).
+
 ## Generic hooks
 
 `useColumnWidthPersistence`, `useFormCancel`, `usePreviousValue`, `useRoutes`, `useFetchAllOptions`, `useFetchMoreOptions`, `useInsertOption`, `useSortTable`, `useTablePageState`, `useTablePageTotal` — useful for custom screens that follow the same conventions as the bundled pages.
