@@ -503,6 +503,23 @@ WmsModuleCoreModule.forRootAsync({
 
 Quantities are exact decimals (`numeric`), and the services add, convert and compare them with `decimal.js` (a runtime dependency of core), so `0.1 x 3` ships against a reservation of `0.3` and a whole-loader transfer does not depend on item order. If your host does its own arithmetic on quantities, use the exported helpers (`sumQuantities`, `addQuantity`, `subtractQuantity`, `compareQuantity`, `toBaseQuantity`, `fromBaseQuantity`, ...) instead of `+`, `*` or `===`. Entity fields come back as numbers; raw query results and `SUM(...)` are still strings, which the helpers accept as they are.
 
+### 4.11 Counting without locking the locations
+
+`InventoryCountOrderService.create` takes `lockLocations` (GraphQL: `createInventoryCountOrder(lockLocations: ...)`; the order and its DTO expose it too). The default is `true`: `start()` refuses every stock movement in the scope until the count is settled or cancelled. With `false` the warehouse keeps shipping, receiving and transferring during the count.
+
+- The flag is chosen at creation (it may still be changed with `update` while the order is `PENDING`) and is **fixed from `start()` on**.
+- `settle` skips the "ledger still equals the snapshot" check and posts `counted - snapshot` for each counted line, on top of whatever moved meanwhile. Example: snapshot 10, 3 shipped during the count, counted 9 -> the line posts -1 and the ledger goes 7 -> 6. It does not set the ledger to the counted figure.
+- `settle` takes the stock slot locks of the counted lines first (in both modes), so it queues behind a shipment that is already deducting the same (material, batch).
+- The snapshot (`bookQuantity`) and the count (`countedQuantity`) stay on `inventory_count_order_items` and can be read through `inventoryCountOrderItems`, for the ERP to reconcile.
+- **Known limitation:** a location that moved during the count ends up with a book quantity that is not what is physically on the shelf; the module records no per-line count time, so the timing difference is the host's to reconcile.
+
+The new column is `NOT NULL DEFAULT true`, so every existing order keeps locking. `synchronize: true` adds it; with migrations:
+
+```sql
+ALTER TABLE <prefix>inventory_count_orders
+  ADD COLUMN IF NOT EXISTS "lockLocations" boolean NOT NULL DEFAULT true;
+```
+
 ---
 
 ## 5. Frontend setup (Next.js Pages Router)
