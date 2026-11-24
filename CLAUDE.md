@@ -622,6 +622,17 @@ with `noEmit`. Deleting one silently restores the race.
 - **Standalone Next.js**: Client uses `output: 'standalone'` for lightweight Docker images
 - **Entity-as-ObjectType**: TypeORM entities double as GraphQL ObjectTypes via `@ObjectType()` decorators in `libs/core`
 
+## Testing
+
+Two layers, one merged report:
+
+- **Unit** (`libs/core`, `*.spec.ts`, no database): pure functions only — `utils/**`, event dispatch, table-prefix state, key builders. `nx test core`. A function that is pure but buried in a service or exported-by-`index.ts` module goes in its own file that `index.ts` does not re-export, so extracting it for a test does not widen the public API.
+- **Integration** (`libs/graphql`, `*.integration.spec.ts`, real Postgres): everything that touches SQL, locks or transactions. Mocking `EntityManager` proves a method was called, not what it does, so services are covered here and not by mocks. `nx test graphql` (needs Postgres; `WMS_TEST_DB_HOST/PORT/USER/PASS` override the defaults).
+
+`yarn test:coverage` runs both from the **repo root** (`jest.config.mjs`) and then `tools/coverage-gate.mjs`. The root run is not optional: coverage collected from inside `libs/graphql` silently excludes core. The gate reads `coverage/coverage-final.json` and drops the `cond-expr` branches `@swc/jest`'s `decoratorMetadata` generates (jest's `coverageThreshold` cannot). Floors are in `tools/coverage-thresholds.json` and only move up. CI (`.github/workflows/test.yml`) runs lint, typecheck, this, against a Postgres service container.
+
+**New integration specs use `libs/graphql/src/lib/testing`** (`createWmsTestApp`, `createTestDatabase`, `seed`): every call gets its own database, named from label, pid, jest worker and a random suffix, and `close()` drops it. Do not hard-code a database name in a new spec — fixed names (`wms_module_*_test`) make two sessions overwrite each other and leave one database behind per run. Existing specs still use fixed names and move over when next edited. A boot that is expected to fail must close what it opened (an unclosed pool keeps the jest worker alive).
+
 ## Environment Variables
 
 | Variable | Used By | Default |

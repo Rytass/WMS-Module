@@ -50,7 +50,7 @@
         "parallel": false,
         "commands": [
           "tsc -p libs/graphql/tsconfig.spec.json",
-          "jest -c libs/graphql/jest.config.mjs"
+          "jest -c libs/graphql/jest.config.mjs --maxWorkers=2"
         ]
       }
     },
@@ -72,6 +72,12 @@
         "build",
         "pkg-quality"
       ]
+    },
+    "test:unit": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "jest -c libs/graphql/jest.config.mjs --maxWorkers=2 --testPathIgnorePatterns='integration\\.spec\\.ts$'"
+      }
     }
   },
   "tags": []
