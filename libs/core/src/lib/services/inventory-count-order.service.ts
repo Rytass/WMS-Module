@@ -162,12 +162,21 @@ export interface CreateInventoryCountOrderInput {
   /** Root locations; every descendant is pulled into the scope. */
   readonly locationIds: readonly string[];
   readonly createdBy?: string | null;
+  /**
+   * Default `true`: starting the count refuses stock movements in its scope.
+   * `false` keeps the warehouse running; settlement then posts
+   * `counted - snapshot` and the timing difference is the host's to reconcile.
+   * Fixed once the count starts.
+   */
+  readonly lockLocations?: boolean;
 }
 
 export interface UpdateInventoryCountOrderInput {
   readonly name?: string;
   readonly countDate?: string;
   readonly locationIds?: readonly string[];
+  /** Only while `PENDING`, like every other field here. */
+  readonly lockLocations?: boolean;
 }
 
 export interface CountInventoryItemInput {
@@ -712,6 +721,7 @@ export class InventoryCountOrderService<
           countDate: input.countDate,
           status: InventoryCountStatus.PENDING,
           createdBy: input.createdBy ?? null,
+          lockLocations: input.lockLocations ?? true,
         } as DeepPartial<InventoryCountOrderEntityClass>),
       );
 
@@ -751,6 +761,9 @@ export class InventoryCountOrderService<
 
       if (input.name !== undefined) order.name = input.name;
       if (input.countDate !== undefined) order.countDate = input.countDate;
+      if (input.lockLocations !== undefined) {
+        order.lockLocations = input.lockLocations;
+      }
 
       await repos.order.save(order);
 
@@ -1039,11 +1052,18 @@ export class InventoryCountOrderService<
    * Uncounted lines are left alone — "not counted" is not "counted as zero", and
    * treating it as zero would wipe out stock nobody looked at.
    *
-   * Before anything is written, the snapshot is checked against the live
-   * ledger. The lock makes the two equal by construction; if they differ,
-   * something wrote around the lock — a direct `stocks` insert, a path with no
-   * change row — and settling would post a variance against books that no
-   * longer exist. Refusing is the only safe answer.
+   * Before anything is written, a locked count's snapshot is checked against
+   * the live ledger. The lock makes the two equal by construction; if they
+   * differ, something wrote around the lock — a direct `stocks` insert, a path
+   * with no change row — and settling would post a variance against books that
+   * no longer exist. Refusing is the only safe answer.
+   *
+   * An unlocked count (`lockLocations: false`) skips that check and posts
+   * `counted - snapshot` -- never "set the shelf to counted": what moved during
+   * the count is already in the ledger, so only the counter's disagreement with
+   * the sheet is booked. A location that moved while it was being counted ends
+   * up with a book quantity that is not the shelf's; that timing difference is
+   * the host's to reconcile.
    */
   async settle(id: string, outerManager?: EntityManager): Promise<T> {
     return this.inTransaction(outerManager, async (manager) => {
@@ -1054,7 +1074,22 @@ export class InventoryCountOrderService<
 
       const items = await repos.item.find({ where: { orderId: id } });
 
-      await this.assertSnapshotHolds(order, items, manager);
+      // Before reading the ledger and before writing: a shipment deducting the
+      // same (material, batch) now finishes first or waits for this commit. The
+      // same in both modes -- locking the locations does not serialise a
+      // transaction that was already past the subscriber when settle began.
+      await this.stockService.lockStockSlots(
+        items.filter((item) => item.countedQuantity !== null),
+        manager,
+      );
+
+      // A locked count keeps the snapshot equal to the ledger, so a difference
+      // means something wrote around the lock. An unlocked count has no such
+      // promise: the ledger is expected to have moved, and the delta below is
+      // `counted - snapshot`, which is what the sheet recorded.
+      if (order.lockLocations) {
+        await this.assertSnapshotHolds(order, items, manager);
+      }
 
       for (const item of items) {
         if (item.countedQuantity === null) {
