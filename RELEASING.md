@@ -102,6 +102,7 @@ minor slot is the breaking-change channel.
 1. **npm scope**: ensure the `@rytass` org on npmjs.com has the publishing user as a maintainer with publish rights.
 2. **Local npm login**: `npm login --scope=@rytass --registry=https://registry.npmjs.org/` once, so subsequent publishes only need an OTP, not a full credential round-trip.
 3. **GPG signing**: commits are signed (`commit.gpgsign=true` in `~/.gitconfig`). Make sure your `gpg-agent` is unlocked **before** running `yarn release`, otherwise the underlying `git commit` will time out on the pinentry prompt. The release artefacts are then orphaned on disk — `git reset --hard HEAD` to discard, unlock GPG, and rerun `yarn release`.
+4. **Node 20**: `.node-version` pins the repo to Node 20, the version CI runs. Let fnm or nvm switch to it (`fnm use`): Node 25 and later no longer ship corepack, so `yarn` is not found and `nx release` fails at its lockfile step.
 
 ## Local release flow
 
