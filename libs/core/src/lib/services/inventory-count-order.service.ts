@@ -37,6 +37,15 @@ import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
 import { positionKey } from '../utils/position-key';
+import {
+  isNegativeQuantity,
+  isPositiveQuantity,
+  isZeroQuantity,
+  quantitiesEqual,
+  subtractQuantity,
+  toBaseQuantity,
+  toQuantityNumber,
+} from '../utils/quantity';
 
 const INVENTORY_COUNT_ORDER_SORT_FIELDS: Readonly<
   Record<InventoryCountOrderSortField, string>
@@ -351,7 +360,7 @@ export class InventoryCountOrderService<
       batchId: row.batchId,
       locationId: row.locationId,
       loaderId: row.loaderId,
-      quantity: Number(row.quantity),
+      quantity: toQuantityNumber(row.quantity),
       attributes: {
         held: row.held ?? null,
         inShipment: row.inShipment ?? null,
@@ -824,7 +833,8 @@ export class InventoryCountOrderService<
 
         if (
           entry.countedQuantity !== null &&
-          (!Number.isFinite(entry.countedQuantity) || entry.countedQuantity < 0)
+          (!Number.isFinite(entry.countedQuantity) ||
+            isNegativeQuantity(entry.countedQuantity))
         ) {
           throw new BadRequestException(
             `Counted quantity for item ${entry.itemId} must be a non-negative number`,
@@ -855,7 +865,10 @@ export class InventoryCountOrderService<
     input: AddInventoryCountItemInput,
     outerManager?: EntityManager,
   ): Promise<InventoryCountOrderItemEntityClass> {
-    if (!Number.isFinite(input.countedQuantity) || input.countedQuantity <= 0) {
+    if (
+      !Number.isFinite(input.countedQuantity) ||
+      !isPositiveQuantity(input.countedQuantity)
+    ) {
       throw new BadRequestException(
         'An added inventory count line needs a positive counted quantity',
       );
@@ -1054,10 +1067,10 @@ export class InventoryCountOrderService<
           manager,
         );
 
-        const counted = Number(item.countedQuantity) * conversionFactor;
-        const delta = counted - Number(item.bookQuantity);
+        const counted = toBaseQuantity(item.countedQuantity, conversionFactor);
+        const delta = subtractQuantity(counted, item.bookQuantity);
 
-        if (delta === 0) {
+        if (isZeroQuantity(delta)) {
           continue;
         }
 
@@ -1112,7 +1125,7 @@ export class InventoryCountOrderService<
 
       const current = live.get(positionKey(item)) ?? 0;
 
-      if (current !== Number(item.bookQuantity)) {
+      if (!quantitiesEqual(current, item.bookQuantity)) {
         throw new ConflictException(
           `Inventory count order ${order.key} cannot settle: the ledger behind item ${item.id} moved from ${item.bookQuantity} to ${current} while the count was running. Cancel the count and recount this scope.`,
         );

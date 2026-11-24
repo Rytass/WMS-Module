@@ -11,6 +11,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { ConsumptionOrderEntityClass } from './consumption-order.entity';
 import { ConsumptionOrderChangeEntityClass } from './consumption-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ConsumptionOrderItemEntity = Symbol('ConsumptionOrderItemEntity');
 
@@ -39,7 +40,7 @@ export class ConsumptionOrderItemEntityClass {
   @Column({ type: 'uuid', nullable: true })
   unitId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetConsumedQuantity!: number;
 
   /**

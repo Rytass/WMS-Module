@@ -24,6 +24,7 @@ import { StockService } from './stock.service';
 import { assertPositiveQuantity } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 /** Attribute documents are equal when their JSON content is, whatever the key order. */
 const canonical = (value: unknown): unknown =>
@@ -201,7 +202,7 @@ export class MergeBatchOrderService<
             mergeBatchOrderChangeRepository.create({
               itemId: mergeItem.id,
               id: baseOrder.id,
-              quantityChanged: item.quantity * conversionFactor,
+              quantityChanged: toBaseQuantity(item.quantity, conversionFactor),
             }),
           );
 
@@ -212,7 +213,7 @@ export class MergeBatchOrderService<
               batchId: item.batchId,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.quantity * conversionFactor,
+              quantity: toBaseQuantity(item.quantity, conversionFactor),
             },
             manager,
           );
@@ -228,7 +229,9 @@ export class MergeBatchOrderService<
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: -1 * item.quantity * conversionFactor,
+                quantity: negateQuantity(
+                  toBaseQuantity(item.quantity, conversionFactor),
+                ),
               } as DeepPartial<StockEntityClass>,
               // Add to target batch
               {
@@ -239,7 +242,7 @@ export class MergeBatchOrderService<
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: item.quantity * conversionFactor,
+                quantity: toBaseQuantity(item.quantity, conversionFactor),
               } as DeepPartial<StockEntityClass>,
             ]),
           );

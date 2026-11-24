@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { ScrapeOrderItemEntityClass } from './scrape-order-item.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ScrapeOrderChangeEntity = Symbol('ScrapeOrderChangeEntity');
 
@@ -19,7 +20,7 @@ export class ScrapeOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   @OneToOne('orders')

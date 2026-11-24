@@ -13,11 +13,10 @@ import { ScrapeInput } from '../typings/scrape.input';
 import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
-import {
-  assertPositiveQuantity,
-} from '../utils/assert-positive-quantity';
+import { assertPositiveQuantity } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 @Injectable()
 export class ScrapeService<
@@ -99,7 +98,10 @@ export class ScrapeService<
             repos.scrapeOrderChange.create({
               item,
               order: baseOrder,
-              quantityChanged: item.targetScrapedQuantity * conversionFactor,
+              quantityChanged: toBaseQuantity(
+                item.targetScrapedQuantity,
+                conversionFactor,
+              ),
             }),
           );
 
@@ -110,7 +112,10 @@ export class ScrapeService<
               batchId: item.batchId,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetScrapedQuantity * conversionFactor,
+              quantity: toBaseQuantity(
+                item.targetScrapedQuantity,
+                conversionFactor,
+              ),
             },
             manager,
           );
@@ -122,7 +127,9 @@ export class ScrapeService<
               batchId: item.batchId,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetScrapedQuantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(item.targetScrapedQuantity, conversionFactor),
+              ),
             } as DeepPartial<StockEntityClass>),
           );
         })();

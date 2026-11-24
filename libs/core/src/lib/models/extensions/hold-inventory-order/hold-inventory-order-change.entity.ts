@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { HoldInventoryOrderItemEntityClass } from './hold-inventory-order-item.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const HoldInventoryOrderChangeEntity = Symbol(
   'HoldInventoryOrderChangeEntity',
@@ -20,7 +21,7 @@ export class HoldInventoryOrderChangeEntityClass {
   @Column({ type: 'uuid' })
   itemId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   quantityChanged!: number;
 
   @OneToOne('orders')

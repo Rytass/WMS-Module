@@ -10,6 +10,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { TransferCustomerOrderEntityClass } from './transfer-customer-order.entity';
 import { TransferCustomerOrderChangeEntityClass } from './transfer-customer-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const TransferCustomerOrderItemEntity = Symbol(
   'TransferCustomerOrderItemEntity',
@@ -43,7 +44,7 @@ export class TransferCustomerOrderItemEntityClass {
   @Column({ type: 'varchar' })
   customerId!: string;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetTransferredQuantity!: number;
 
   @Column({ type: 'uuid' })

@@ -1,4 +1,5 @@
 import { Column, Entity, Index, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const ShipInventoryOrderReferenceEntity = Symbol(
   'ShipInventoryOrderReferenceEntity',
@@ -22,7 +23,7 @@ export class ShipInventoryOrderReferenceEntityClass {
   @Column({ type: 'uuid', nullable: true })
   unitId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetShippedQuantity!: number;
 
   @Column({ type: 'uuid' })

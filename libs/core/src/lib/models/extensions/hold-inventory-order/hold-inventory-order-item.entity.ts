@@ -11,6 +11,7 @@ import {
 import { LoadersEntityClass, LocationEntityClass } from '../../metadata';
 import { HoldInventoryOrderEntityClass } from './hold-inventory-order.entity';
 import { HoldInventoryOrderChangeEntityClass } from './hold-inventory-order-change.entity';
+import { numericColumnTransformer } from '../../numeric-column.transformer';
 
 export const HoldInventoryOrderItemEntity = Symbol(
   'HoldInventoryOrderItemEntity',
@@ -36,7 +37,7 @@ export class HoldInventoryOrderItemEntityClass {
   @Column({ type: 'uuid', nullable: true })
   loaderId!: string | null;
 
-  @Column({ type: 'numeric' })
+  @Column({ type: 'numeric', transformer: numericColumnTransformer })
   targetHeldQuantity!: number;
 
   @Column({ type: 'uuid' })

@@ -13,11 +13,10 @@ import { OrderEntity } from '@rytass/wms-base-nestjs-module';
 import { BatchService } from './batch.service';
 import { MaterialService } from './material.service';
 import { StockService } from './stock.service';
-import {
-  assertPositiveQuantity,
-} from '../utils/assert-positive-quantity';
+import { assertPositiveQuantity } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 @Injectable()
 export class QualityInspectionOrderService<
@@ -102,7 +101,10 @@ export class QualityInspectionOrderService<
           await qualityInspectionOrderChangeRepository.save(
             qualityInspectionOrderChangeRepository.create({
               itemId: item.id,
-              quantityChanged: item.targetInspectedQuantity * conversionFactor,
+              quantityChanged: toBaseQuantity(
+                item.targetInspectedQuantity,
+                conversionFactor,
+              ),
               order: baseOrder,
             }),
           );
@@ -120,7 +122,7 @@ export class QualityInspectionOrderService<
               batchId: splittedBatch.id,
               locationId: this.stockService.resolveLocationId(data.locationId),
               loaderId: this.stockService.resolveLoaderId(data.loaderId),
-              quantity: data.quantity * conversionFactor,
+              quantity: toBaseQuantity(data.quantity, conversionFactor),
             }),
             stockRepository.create({
               orderId: baseOrder.id,
@@ -128,7 +130,9 @@ export class QualityInspectionOrderService<
               batchId: data.batchId,
               locationId: this.stockService.resolveLocationId(data.locationId),
               loaderId: this.stockService.resolveLoaderId(data.loaderId),
-              quantity: -1 * data.quantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(data.quantity, conversionFactor),
+              ),
             }),
           ]);
         })();

@@ -1,4 +1,5 @@
 import { ShipChangeKind } from '../constants/ship-change-kind';
+import { absQuantity, sumQuantities } from './quantity';
 
 /** What a ship order item's change rows add up to, in base units. */
 export interface ShipChangeQuantities {
@@ -22,12 +23,10 @@ export const sumShipChanges = (
   }[],
 ): ShipChangeQuantities => {
   const total = (kind: ShipChangeKind): number =>
-    changes.reduce(
-      (sum, change) =>
-        change.kind === kind
-          ? sum + Math.abs(Number(change.quantityChanged))
-          : sum,
-      0,
+    sumQuantities(
+      changes
+        .filter((change) => change.kind === kind)
+        .map((change) => absQuantity(change.quantityChanged)),
     );
 
   return {

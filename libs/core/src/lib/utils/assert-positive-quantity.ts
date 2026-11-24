@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { isPositiveQuantity } from './quantity';
 
 /**
  * Refuse a quantity a caller handed in that is not a finite number above zero.
@@ -24,7 +25,7 @@ export const assertPositiveQuantity = (
     value === null ||
     value === undefined ||
     !Number.isFinite(quantity) ||
-    quantity <= 0
+    !isPositiveQuantity(quantity)
   ) {
     throw new BadRequestException(
       `${field} must be a number greater than 0 (got ${String(value)}${context ? `, ${context}` : ''})`,

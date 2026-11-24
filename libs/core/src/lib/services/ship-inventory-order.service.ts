@@ -72,6 +72,14 @@ import {
   type WmsModuleCoreModuleOptions,
 } from '../typings/core-module-options';
 import { quotedTablePathOf, tablePathOf } from '../utils/table-path';
+import {
+  fromBaseQuantity,
+  isNegativeQuantity,
+  isPositiveQuantity,
+  negateQuantity,
+  subtractQuantity,
+  toBaseQuantity,
+} from '../utils/quantity';
 
 /**
  * Service for managing ship inventory orders and their items
@@ -315,7 +323,10 @@ export class ShipInventoryOrderService<
           shipInventoryOrderChangeRepository.create({
             itemId: item.id,
             id: base.id,
-            quantityChanged: item.targetShippedQuantity * conversionFactor,
+            quantityChanged: toBaseQuantity(
+              item.targetShippedQuantity,
+              conversionFactor,
+            ),
             kind: ShipChangeKind.RESERVE,
           }),
         );
@@ -327,7 +338,10 @@ export class ShipInventoryOrderService<
             batchId: item.batchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetShippedQuantity * conversionFactor,
+            quantity: toBaseQuantity(
+              item.targetShippedQuantity,
+              conversionFactor,
+            ),
           },
           manager,
         );
@@ -341,7 +355,9 @@ export class ShipInventoryOrderService<
               batchId: item.batchId, // original batch
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetShippedQuantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(item.targetShippedQuantity, conversionFactor),
+              ),
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in shipment state
             {
@@ -350,7 +366,10 @@ export class ShipInventoryOrderService<
               batchId: splittedBatch.id, // splitted batch marked inShipment
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetShippedQuantity * conversionFactor,
+              quantity: toBaseQuantity(
+                item.targetShippedQuantity,
+                conversionFactor,
+              ),
             } as DeepPartial<StockEntityClass>,
           ]),
         );
@@ -662,13 +681,16 @@ export class ShipInventoryOrderService<
 
         assertChangesHaveKind(item.id, item.changes);
         const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
-        const cancellableQuantity = reserved - shipped - cancelled;
+        const cancellableQuantity = subtractQuantity(
+          subtractQuantity(reserved, shipped),
+          cancelled,
+        );
 
-        if (cancellableQuantity > 0) {
+        if (isPositiveQuantity(cancellableQuantity)) {
           // Use base quantity (without conversion) since cancelShip will apply conversion
           cancelInputs.push({
             itemId: item.id,
-            quantity: cancellableQuantity / conversionFactor,
+            quantity: fromBaseQuantity(cancellableQuantity, conversionFactor),
           });
         }
       }
@@ -827,20 +849,27 @@ export class ShipInventoryOrderService<
 
         assertChangesHaveKind(item.id, item.changes);
         const { reserved, shipped, cancelled } = sumShipChanges(item.changes);
-        const cancellableQuantity = reserved - shipped - cancelled;
+        const cancellableQuantity = subtractQuantity(
+          subtractQuantity(reserved, shipped),
+          cancelled,
+        );
 
         const cancelQuantity =
           option.quantity != null
-            ? option.quantity * conversionFactor
+            ? toBaseQuantity(option.quantity, conversionFactor)
             : cancellableQuantity;
 
-        if (cancellableQuantity - cancelQuantity < 0) {
+        if (
+          isNegativeQuantity(
+            subtractQuantity(cancellableQuantity, cancelQuantity),
+          )
+        ) {
           throw new Error(
             `Cancel quantity exceeds prepared quantity for item ${option.itemId}`,
           );
         }
 
-        if (cancelQuantity <= 0) return;
+        if (!isPositiveQuantity(cancelQuantity)) return;
 
         const inShipmentBatchId = inShipmentBatches.get(item.id);
         if (!inShipmentBatchId) {
@@ -869,7 +898,7 @@ export class ShipInventoryOrderService<
             changeRepository.create({
               itemId: option.itemId,
               id: reverseOrder.id,
-              quantityChanged: -1 * cancelQuantity,
+              quantityChanged: negateQuantity(cancelQuantity),
               kind: ShipChangeKind.CANCEL,
             }),
           ),
@@ -893,7 +922,7 @@ export class ShipInventoryOrderService<
                   item.locationId,
                 ),
                 loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                quantity: -1 * cancelQuantity,
+                quantity: negateQuantity(cancelQuantity),
               } as DeepPartial<StockEntityClass>,
             ]),
           ),
@@ -1120,10 +1149,22 @@ export class ShipInventoryOrderService<
           // room to ship just as a shipped one does.
           assertChangesHaveKind(item.id, item.changes);
           const { shipped, cancelled } = sumShipChanges(item.changes);
-          const remainingQuantity =
-            conversionFactor * item.targetShippedQuantity - shipped - cancelled;
+          const remainingQuantity = subtractQuantity(
+            subtractQuantity(
+              toBaseQuantity(item.targetShippedQuantity, conversionFactor),
+              shipped,
+            ),
+            cancelled,
+          );
 
-          if (remainingQuantity - option.quantity * conversionFactor < 0) {
+          if (
+            isNegativeQuantity(
+              subtractQuantity(
+                remainingQuantity,
+                toBaseQuantity(option.quantity, conversionFactor),
+              ),
+            )
+          ) {
             throw new Error(
               `Shipping quantity exceeds target for item ${option.itemId}`,
             );
@@ -1132,7 +1173,7 @@ export class ShipInventoryOrderService<
           const shippedBatchId = shippedBatches.get(item.id);
           if (!shippedBatchId) {
             throw new Error(
-              `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${option.quantity * conversionFactor}`,
+              `Insufficient stock: nothing is prepared for shipment on item ${item.id} (materialId=${item.materialId}, batchId=${item.batchId}), requested ${toBaseQuantity(option.quantity, conversionFactor)}`,
             );
           }
 
@@ -1144,7 +1185,7 @@ export class ShipInventoryOrderService<
               batchId: shippedBatchId,
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: option.quantity * conversionFactor,
+              quantity: toBaseQuantity(option.quantity, conversionFactor),
             },
             manager,
           );
@@ -1153,7 +1194,9 @@ export class ShipInventoryOrderService<
             changeRepository.save(
               changeRepository.create({
                 itemId: option.itemId,
-                quantityChanged: -1 * option.quantity * conversionFactor,
+                quantityChanged: negateQuantity(
+                  toBaseQuantity(option.quantity, conversionFactor),
+                ),
                 kind: ShipChangeKind.SHIP,
                 id: newOrder.id,
               }),
@@ -1167,7 +1210,9 @@ export class ShipInventoryOrderService<
                     item.locationId,
                   ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * option.quantity * conversionFactor,
+                  quantity: negateQuantity(
+                    toBaseQuantity(option.quantity, conversionFactor),
+                  ),
                   orderId: newOrder.id,
                 } as DeepPartial<StockEntityClass>,
               ]),
