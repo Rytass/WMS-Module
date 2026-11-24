@@ -35,6 +35,7 @@ import {
 import { asRemovalMarker } from '../utils/removal-marker';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 @Injectable()
 export class AllocateInventoryOrderService<
@@ -114,7 +115,10 @@ export class AllocateInventoryOrderService<
           repos.allocateInventoryOrderChange.create({
             item,
             order: base,
-            quantityChanged: item.targetAllocatedQuantity * conversionFactor,
+            quantityChanged: toBaseQuantity(
+              item.targetAllocatedQuantity,
+              conversionFactor,
+            ),
           }),
         );
 
@@ -125,7 +129,10 @@ export class AllocateInventoryOrderService<
             batchId: item.batchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetAllocatedQuantity * conversionFactor,
+            quantity: toBaseQuantity(
+              item.targetAllocatedQuantity,
+              conversionFactor,
+            ),
           },
           manager,
         );
@@ -139,7 +146,9 @@ export class AllocateInventoryOrderService<
               batchId: item.batchId, // original batch
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetAllocatedQuantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(item.targetAllocatedQuantity, conversionFactor),
+              ),
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in allocated state
             {
@@ -148,7 +157,10 @@ export class AllocateInventoryOrderService<
               batchId: splittedBatch.id, // splitted batch marked with saleId
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetAllocatedQuantity * conversionFactor,
+              quantity: toBaseQuantity(
+                item.targetAllocatedQuantity,
+                conversionFactor,
+              ),
             } as DeepPartial<StockEntityClass>,
           ]),
         );
@@ -303,7 +315,7 @@ export class AllocateInventoryOrderService<
                 ...data,
                 saleId: originalBatch.saleId as string,
                 saleSerialId: originalBatch.saleSerialId as string,
-                targetAllocatedQuantity: -1 * data.quantity,
+                targetAllocatedQuantity: negateQuantity(data.quantity),
                 orderId: order.id,
               }),
             );
@@ -320,8 +332,12 @@ export class AllocateInventoryOrderService<
               repos.allocateInventoryOrderChange.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged:
-                  -1 * item.targetAllocatedQuantity * conversionFactor,
+                quantityChanged: negateQuantity(
+                  toBaseQuantity(
+                    item.targetAllocatedQuantity,
+                    conversionFactor,
+                  ),
+                ),
               }),
             );
             // Stock movements track the hold through splitted batch
@@ -349,7 +365,7 @@ export class AllocateInventoryOrderService<
                     item.locationId,
                   ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * change.quantityChanged,
+                  quantity: negateQuantity(change.quantityChanged),
                 } as DeepPartial<StockEntityClass>,
                 // add to splitted batch in released state
                 {

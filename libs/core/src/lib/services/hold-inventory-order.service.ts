@@ -26,6 +26,7 @@ import {
 } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
 import { WmsEntities } from '../models/wms-entities';
+import { negateQuantity, toBaseQuantity } from '../utils/quantity';
 
 @Injectable()
 export class HoldInventoryOrderService<
@@ -101,7 +102,10 @@ export class HoldInventoryOrderService<
           repos.holdInventoryOrderChange.create({
             itemId: item.id,
             id: base.id,
-            quantityChanged: item.targetHeldQuantity * conversionFactor,
+            quantityChanged: toBaseQuantity(
+              item.targetHeldQuantity,
+              conversionFactor,
+            ),
           }),
         );
 
@@ -112,7 +116,7 @@ export class HoldInventoryOrderService<
             batchId: item.batchId,
             locationId: this.stockService.resolveLocationId(item.locationId),
             loaderId: this.stockService.resolveLoaderId(item.loaderId),
-            quantity: item.targetHeldQuantity * conversionFactor,
+            quantity: toBaseQuantity(item.targetHeldQuantity, conversionFactor),
           },
           manager,
         );
@@ -126,7 +130,9 @@ export class HoldInventoryOrderService<
               batchId: item.batchId, // original batch
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: -1 * item.targetHeldQuantity * conversionFactor,
+              quantity: negateQuantity(
+                toBaseQuantity(item.targetHeldQuantity, conversionFactor),
+              ),
             } as DeepPartial<StockEntityClass>,
             // add to splitted batch in held state
             {
@@ -135,7 +141,10 @@ export class HoldInventoryOrderService<
               batchId: splittedBatch.id, // splitted batch marked held
               locationId: this.stockService.resolveLocationId(item.locationId),
               loaderId: this.stockService.resolveLoaderId(item.loaderId),
-              quantity: item.targetHeldQuantity * conversionFactor,
+              quantity: toBaseQuantity(
+                item.targetHeldQuantity,
+                conversionFactor,
+              ),
             } as DeepPartial<StockEntityClass>,
           ]),
         );
@@ -343,7 +352,7 @@ export class HoldInventoryOrderService<
             const item = await repos.holdInventoryOrderItem.save(
               repos.holdInventoryOrderItem.create({
                 ...data,
-                targetHeldQuantity: -1 * data.quantity,
+                targetHeldQuantity: negateQuantity(data.quantity),
                 orderId: order.id,
               }),
             );
@@ -359,8 +368,9 @@ export class HoldInventoryOrderService<
               repos.holdInventoryOrderChange.create({
                 itemId: item.id,
                 id: base.id,
-                quantityChanged:
-                  -1 * item.targetHeldQuantity * conversionFactor,
+                quantityChanged: negateQuantity(
+                  toBaseQuantity(item.targetHeldQuantity, conversionFactor),
+                ),
               }),
             );
 
@@ -389,7 +399,7 @@ export class HoldInventoryOrderService<
                     item.locationId,
                   ),
                   loaderId: this.stockService.resolveLoaderId(item.loaderId),
-                  quantity: -1 * change.quantityChanged,
+                  quantity: negateQuantity(change.quantityChanged),
                 } as DeepPartial<StockEntityClass>,
                 // add to splitted batch in released state
                 {
