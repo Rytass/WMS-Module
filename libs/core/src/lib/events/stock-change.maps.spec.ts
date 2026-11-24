@@ -1,4 +1,6 @@
 import { ChangeType } from '../constants/stock-status';
+import { ShipChangeKind } from '../constants/ship-change-kind';
+import { TransferChangeKind } from '../constants/transfer-change-kind';
 import {
   CHANGE_TYPE_TO_EVENT,
   OWNED_CHANGE_TABLES,
@@ -44,14 +46,47 @@ describe('stock change classification tables', () => {
   });
 
   it('uses the sign of quantityChanged for directional tables, number or numeric string', () => {
-    const ship = TABLE_TO_CHANGE_TYPE.get('ship_inventory_order_changes');
+    const vendor = TABLE_TO_CHANGE_TYPE.get('transfer_vendor_order_changes');
 
-    expect(ship?.({ id: 'o', itemId: 'i', quantityChanged: '2.5' })).toBe(
-      ChangeType.IN_SHIPMENT,
+    expect(vendor?.({ id: 'o', itemId: 'i', quantityChanged: '2.5' })).toBe(
+      ChangeType.VENDOR_TRANSFERRED,
     );
-    expect(ship?.({ id: 'o', itemId: 'i', quantityChanged: -2.5 })).toBe(
+    expect(vendor?.({ id: 'o', itemId: 'i', quantityChanged: -2.5 })).toBe(
+      ChangeType.VENDOR_RETURNED,
+    );
+  });
+
+  it('separates ship reserve, ship and cancel by kind, not sign', () => {
+    const ship = TABLE_TO_CHANGE_TYPE.get('ship_inventory_order_changes');
+    const row = { id: 'o', itemId: 'i', quantityChanged: -1 };
+
+    expect(
+      ship?.({
+        ...row,
+        quantityChanged: 1,
+        kind: ShipChangeKind.RESERVE as never,
+      }),
+    ).toBe(ChangeType.IN_SHIPMENT);
+    expect(ship?.({ ...row, kind: ShipChangeKind.SHIP as never })).toBe(
       ChangeType.SHIPPED,
     );
+    expect(ship?.({ ...row, kind: ShipChangeKind.CANCEL as never })).toBe(
+      ChangeType.SHIP_CANCELLED,
+    );
+    expect(ship?.(row)).toBeNull();
+  });
+
+  it('separates transfer reserve, transfer and cancel by kind, not sign', () => {
+    const transfer = TABLE_TO_CHANGE_TYPE.get('transfer_order_changes');
+    const row = { id: 'o', itemId: 'i', quantityChanged: -1 };
+
+    expect(
+      transfer?.({ ...row, kind: TransferChangeKind.TRANSFER as never }),
+    ).toBe(ChangeType.TRANSFERRED);
+    expect(
+      transfer?.({ ...row, kind: TransferChangeKind.CANCEL as never }),
+    ).toBe(ChangeType.TRANSFER_CANCELLED);
+    expect(transfer?.(row)).toBeNull();
   });
 
   it('separates consumption return and settlement by kind, not sign', () => {
