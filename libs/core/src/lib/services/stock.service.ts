@@ -1,4 +1,10 @@
-import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { StockEntity, StockEntityClass } from '../models/metadata/stock.entity';
 import {
   DataSource,
@@ -803,13 +809,59 @@ export class StockService<
     return queryBuilder;
   }
 
-  findMany(options: FindStockInput<T>): Promise<[T[], number]> {
+  /**
+   * Stock rows with `status` filled in.
+   *
+   * `status` is not a column: `selectQueryBuilder` derives it from the batch
+   * flags and selects it as a raw value, which `getMany()` drops while
+   * hydrating the entity. So the entities are read together with their raw
+   * rows and `status` is copied across by id. Without that every row came back
+   * with `status` undefined, and selecting it through GraphQL failed on the
+   * non-null field.
+   */
+  async findMany(options: FindStockInput<T>): Promise<[T[], number]> {
     const queryBuilder = this.pipeSelectOptionsToQueryBuilder(
       options,
       this.selectQueryBuilder('stock'),
     );
 
-    return queryBuilder.getManyAndCount();
+    const { entities, raw } = await queryBuilder.getRawAndEntities();
+    const total = await queryBuilder.getCount();
+
+    return [this.withStatus(entities, raw, 'stock'), total];
+  }
+
+  /**
+   * One stock row by id, `status` filled in; throws `NotFoundException` when
+   * there is none.
+   */
+  async findById(id: string): Promise<T> {
+    const { entities, raw } = await this.selectQueryBuilder('stock')
+      .where('stock.id = :id', { id })
+      .getRawAndEntities();
+
+    const [stock] = this.withStatus(entities, raw, 'stock');
+
+    if (!stock) throw new NotFoundException(`Stock ${id} not found`);
+
+    return stock;
+  }
+
+  private withStatus(
+    entities: readonly T[],
+    raw: readonly Record<string, unknown>[],
+    alias: string,
+  ): T[] {
+    const statusById = new Map(
+      raw.map((row) => [
+        String(row[`${alias}_id`]),
+        row['status'] as StockStatus,
+      ]),
+    );
+
+    return entities.map((entity) =>
+      Object.assign(entity, { status: statusById.get(entity.id) }),
+    );
   }
 
   /**
