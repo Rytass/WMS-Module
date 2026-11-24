@@ -17,6 +17,7 @@ import {
   MaterialEntity,
   MaterialEntityClass,
   TransferOrderChangeEntityClass,
+  sumTransferChanges,
   TransferOrderItemEntityClass,
   WmsEntities,
 } from '@rytass/wms-module-core';
@@ -184,9 +185,6 @@ export class TransferOrderItemResolver {
       __from: { itemId: id },
     });
 
-    return changes.reduce((acc, { quantityChanged }) => {
-      const qty = Number(quantityChanged);
-      return qty < 0 ? acc + Math.abs(qty) : acc;
-    }, 0);
+    return sumTransferChanges(changes).transferred;
   }
 }

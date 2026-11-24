@@ -296,7 +296,8 @@ what and when.
 `stock.held`, `stock.released`, `stock.customer-held`,
 `stock.customer-returned`, `stock.splitted`, `stock.merged`, `stock.allocated`,
 `stock.deallocated`, `stock.reclassified`, `stock.scraped`,
-`stock.count-gained`, `stock.count-lost`, `stock.inspection-resolved`.
+`stock.count-gained`, `stock.count-lost`, `stock.inspection-resolved`,
+`stock.ship-cancelled`, `stock.transfer-cancelled`.
 
 19 of them map 1:1 to `ChangeType`. `stock.inspection-resolved` has no
 `ChangeType` (quality inspection only flips the `inspectionResult` flag) and

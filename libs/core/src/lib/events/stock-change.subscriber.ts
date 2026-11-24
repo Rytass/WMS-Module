@@ -6,6 +6,8 @@ import {
   type InsertEvent,
 } from 'typeorm';
 import { ConsumptionChangeKind } from '../constants/consumption-change-kind';
+import { ShipChangeKind } from '../constants/ship-change-kind';
+import { TransferChangeKind } from '../constants/transfer-change-kind';
 import { ChangeType } from '../constants/stock-status';
 import type {
   WmsCustomChangeTable,
@@ -24,7 +26,11 @@ interface ChangeRowLike {
   readonly quantityChanged: number | string;
   readonly result?: boolean | null;
   /** Consumption orders record intent rather than encoding it in the sign. */
-  readonly kind?: ConsumptionChangeKind | null;
+  readonly kind?:
+    | ConsumptionChangeKind
+    | ShipChangeKind
+    | TransferChangeKind
+    | null;
 }
 
 /** The subset of order-item columns used to enrich a stock event. */
@@ -46,12 +52,31 @@ type StockEnrichment = Pick<
  * The consumption order's three actions, which the sign cannot separate: a
  * return and a settlement are both negative.
  */
-const CONSUMPTION_KIND_TO_CHANGE_TYPE: Readonly<
-  Record<ConsumptionChangeKind, ChangeType>
-> = {
+const CONSUMPTION_KIND_TO_CHANGE_TYPE: Readonly<Record<string, ChangeType>> = {
   [ConsumptionChangeKind.ISSUE]: ChangeType.ISSUED,
   [ConsumptionChangeKind.RETURN]: ChangeType.RETURNED,
   [ConsumptionChangeKind.SETTLE]: ChangeType.CONSUMED,
+};
+
+/**
+ * The ship order's three actions: a ship and a cancel are both negative. A row
+ * without a kind predates the column and is not classified until the upgrade
+ * SQL has run (no event beats a wrong one).
+ */
+const SHIP_KIND_TO_CHANGE_TYPE: Readonly<Record<string, ChangeType>> = {
+  [ShipChangeKind.RESERVE]: ChangeType.IN_SHIPMENT,
+  [ShipChangeKind.SHIP]: ChangeType.SHIPPED,
+  [ShipChangeKind.CANCEL]: ChangeType.SHIP_CANCELLED,
+};
+
+/**
+ * The transfer order's three actions: an execution and a cancel are both
+ * negative. Rows without a kind are left unclassified, like the ship order's.
+ */
+const TRANSFER_KIND_TO_CHANGE_TYPE: Readonly<Record<string, ChangeType>> = {
+  [TransferChangeKind.RESERVE]: ChangeType.IN_TRANSFER,
+  [TransferChangeKind.TRANSFER]: ChangeType.TRANSFERRED,
+  [TransferChangeKind.CANCEL]: ChangeType.TRANSFER_CANCELLED,
 };
 
 /**
@@ -68,13 +93,11 @@ export const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   ['receive_inventory_order_changes', () => ChangeType.RECEIVED],
   [
     'ship_inventory_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.IN_SHIPMENT : ChangeType.SHIPPED,
+    ({ kind }) => (kind ? (SHIP_KIND_TO_CHANGE_TYPE[kind] ?? null) : null),
   ],
   [
     'transfer_order_changes',
-    ({ quantityChanged: q }) =>
-      Number(q) > 0 ? ChangeType.IN_TRANSFER : ChangeType.TRANSFERRED,
+    ({ kind }) => (kind ? (TRANSFER_KIND_TO_CHANGE_TYPE[kind] ?? null) : null),
   ],
   [
     'transfer_vendor_order_changes',
@@ -109,7 +132,8 @@ export const TABLE_TO_CHANGE_TYPE: ReadonlyMap<
   ],
   [
     'consumption_order_changes',
-    ({ kind }) => (kind ? CONSUMPTION_KIND_TO_CHANGE_TYPE[kind] : null),
+    ({ kind }) =>
+      kind ? (CONSUMPTION_KIND_TO_CHANGE_TYPE[kind] ?? null) : null,
   ],
 ]);
 
@@ -138,6 +162,8 @@ export const CHANGE_TYPE_TO_EVENT: Readonly<
   [ChangeType.ISSUED]: 'stock.issued',
   [ChangeType.RETURNED]: 'stock.returned',
   [ChangeType.CONSUMED]: 'stock.consumed',
+  [ChangeType.SHIP_CANCELLED]: 'stock.ship-cancelled',
+  [ChangeType.TRANSFER_CANCELLED]: 'stock.transfer-cancelled',
 };
 
 const QUALITY_INSPECTION_TABLE = 'quality_inspection_order_changes';

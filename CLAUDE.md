@@ -202,7 +202,7 @@ A shipment's source is the **in-shipment child** of the item's batch, not the it
 named by the **ledger**, never re-derived from the source batch's current attributes. A prepare writes a change
 row whose `id` is the `orderId` of the stock rows it moved; the positive stock row of that order sits on the
 child. `ship()` and `cancelShipInternal` read it that way (`lockWithInShipmentBatches`; reservations are the
-change rows with `quantityChanged > 0`) and hand both slots to `lockStockSlots`, then validate and deduct on
+change rows with `kind = RESERVE`; a row without a kind counts for nothing, as in `sumShipChanges`) and hand both slots to `lockStockSlots`, then validate and deduct on
 that same child (#195). A sibling lookup by batch state stops matching once the source batch changes (a later
 receipt flags the emptied batch `requiresInspection`) and strands the order. Never validate or lock a slot only
 after a split.
@@ -394,6 +394,17 @@ Two things to keep in mind when touching it:
   widened to take the whole change row rather than just the quantity for exactly this, and
   its resolvers may now return `null` for a row they cannot classify (no event beats a wrong
   one).
+- **Ship and transfer changes carry a `kind` too.** `ship_inventory_order_changes.kind`
+  (`RESERVE` / `SHIP` / `CANCEL`) and `transfer_order_changes.kind` (`RESERVE` / `TRANSFER` /
+  `CANCEL`) exist for the same reason: an execution and a cancel are both negative. Every write
+  sets it and every read (status, shipped/pending quantities, `findChangeLogs`, subscriber)
+  goes by it, never by sign; `sumShipChanges` / `sumTransferChanges` are the one place that adds
+  them up. The columns are nullable only so existing tables can gain them -- the upgrade SQL
+  is in `libs/core/docs/integration-guide.md` §4.8, and a new `*_order_changes` writer must set
+  `kind`. Reads count a `NULL` row as zero, but every path that
+  writes the ledger (ship, cancelShip, removeShipInventoryOrder, transfer, cancelTransfer,
+  removeTransferOrder) calls `assertChangesHaveKind` first and refuses -- zero would overstate
+  what is left to move and let stock move twice.
 - Nothing is denormalised onto the item. `getProgress` and the `issuedQuantity` /
   `outstandingQuantity` resolvers read the change rows back every time, because those rows
   are what the stock ledger and the `stock.*` events agree with; a counter kept alongside
