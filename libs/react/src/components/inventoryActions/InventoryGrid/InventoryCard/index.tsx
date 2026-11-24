@@ -114,8 +114,6 @@ const InventoryCard: FC<InventoryCardProps> = ({
       if (inputQuantity) {
         if (inputQuantity > quantity) {
           updateErrorSignature(inventory.id, '數量大於庫存數量');
-        } else if (!Number.isInteger(inputQuantity)) {
-          updateErrorSignature(inventory.id, '需要為整數');
         } else if (inputQuantity < 0) {
           updateErrorSignature(inventory.id, '不可小於 0');
         }
@@ -133,11 +131,7 @@ const InventoryCard: FC<InventoryCardProps> = ({
   useEffect(() => {
     if (!notUpdateError) {
       if (currentErrorSignature) {
-        if (
-          inputQuantity <= quantity &&
-          Number.isInteger(inputQuantity) &&
-          inputQuantity >= 0
-        ) {
+        if (inputQuantity <= quantity && inputQuantity >= 0) {
           removeErrorSignature(inventory.id);
         }
       }

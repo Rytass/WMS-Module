@@ -12,7 +12,6 @@ export const formSchema: Yup.ObjectSchema<AddFormValues> = Yup.object({
     name: Yup.string().required('必填'),
   }).nullable(),
   quantity: Yup.number()
-    .integer('必須為整數')
     .min(1, '不可小於 1')
     .required('必填'),
   unit: Yup.string().required('必填'),

@@ -8,7 +8,6 @@ export const formSchema: Yup.ObjectSchema<FormValues> = Yup.object({
       Yup.object({
         itemId: Yup.string().required('必填'),
         quantity: Yup.number()
-          .integer('必須為整數')
           .min(0, '不可小於 0')
           .test('max-quantity', '不可超過剩餘入庫數量', function (value) {
             const { targetReceivedQuantity, receivedQuantity } = this.parent;
