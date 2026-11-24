@@ -1,4 +1,4 @@
-import { Field, ID, InputType, Int, PartialType } from '@nestjs/graphql';
+import { Field, ID, InputType, Float, PartialType } from '@nestjs/graphql';
 
 @InputType()
 export class CreateTransferOrderItemArgs {
@@ -8,7 +8,7 @@ export class CreateTransferOrderItemArgs {
   @Field(() => ID, { nullable: true })
   unitId?: string;
 
-  @Field(() => Int)
+  @Field(() => Float)
   targetTransferredQuantity!: number;
 }
 

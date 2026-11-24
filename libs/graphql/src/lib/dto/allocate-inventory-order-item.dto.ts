@@ -1,4 +1,4 @@
-import { Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import { Field, ID, Float, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
 export class AllocateInventoryOrderItemDto {
@@ -17,7 +17,7 @@ export class AllocateInventoryOrderItemDto {
 
   unitId!: string | null;
 
-  @Field(() => Int)
+  @Field(() => Float)
   targetAllocatedQuantity!: number;
 
   @Field(() => String)

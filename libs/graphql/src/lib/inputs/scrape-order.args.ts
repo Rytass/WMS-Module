@@ -1,4 +1,4 @@
-import { ArgsType, Field, ID, InputType, Int } from '@nestjs/graphql';
+import { ArgsType, Field, ID, InputType, Float } from '@nestjs/graphql';
 
 @InputType()
 export class ScrapeOrderItemInput {
@@ -8,7 +8,7 @@ export class ScrapeOrderItemInput {
   @Field(() => ID, { nullable: true })
   unitId?: string;
 
-  @Field(() => Int)
+  @Field(() => Float)
   quantity!: number;
 }
 
