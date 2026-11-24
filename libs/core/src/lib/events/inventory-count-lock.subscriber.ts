@@ -11,17 +11,13 @@ import {
 } from '../models/extensions/inventory-count-order/inventory-count-order.entity';
 import { wmsOwnedLogicalTableName } from '../table-prefix/table-prefix';
 import { quotedTablePathOf } from '../utils/table-path';
+import {
+  collectLocationIds,
+  type ItemLocationLike,
+} from './collect-location-ids';
 
 /** The count's own settlement writes here; it must never lock itself out. */
 const INVENTORY_COUNT_CHANGE_TABLE = 'inventory_count_order_changes';
-
-/** The columns of an order item that name where its stock sits or goes. */
-interface ItemLocationLike {
-  readonly id?: string;
-  readonly locationId?: string | null;
-  /** A transfer item also names a destination; completing it writes stock there. */
-  readonly targetLocationId?: string | null;
-}
 
 /** A `*_order_change` row as seen in `beforeInsert`. */
 interface ChangeRowLike {
@@ -133,17 +129,7 @@ export class InventoryCountLockSubscriber implements EntitySubscriberInterface {
   ): Promise<string[]> {
     const item = await this.resolveItem(event);
 
-    if (!item) {
-      return [];
-    }
-
-    return [
-      ...new Set(
-        [item.locationId, item.targetLocationId].filter(
-          (id): id is string => typeof id === 'string' && id.length > 0,
-        ),
-      ),
-    ];
+    return collectLocationIds(item);
   }
 
   private async resolveItem(

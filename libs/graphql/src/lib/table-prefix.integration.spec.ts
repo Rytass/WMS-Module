@@ -200,7 +200,13 @@ const buildApp = async (
 
   const app = moduleRef.createNestApplication();
 
-  await app.init();
+  try {
+    await app.init();
+  } catch (error) {
+    // A failed init leaves its connection pool open, which outlives the test.
+    await app.close();
+    throw error;
+  }
 
   return app;
 };

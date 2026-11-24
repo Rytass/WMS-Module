@@ -3204,8 +3204,9 @@ describe('host service layer (integration, no GraphQL)', () => {
       >[0]);
 
       const row = await repository.findOneByOrFail({ id: line.id });
+      // allocate_inventory_order_items has no removedAt column, so only the
+      // quantity guard is observable here: the -100 must not be written.
       expect(Number(row.targetAllocatedQuantity)).toBe(4);
-      expect(row.removedAt).not.toBeNull();
     });
 
     it('refuses a live new line with a negative quantity on update', async () => {
@@ -4170,7 +4171,7 @@ describe('host service layer (integration, no GraphQL)', () => {
 
       const [changes] = await dataSource
         .query<
-          { kind: string; quantityChanged: string }[][]
+          { kind: string; quantityChanged: string }[]
         >(`SELECT c.kind, c."quantityChanged" FROM "${dataSource.getMetadata(getWmsTablePrefix() + 'ship_inventory_order_changes').tablePath}" c WHERE c."itemId" = $1 AND c.kind = 'CANCEL'`, [itemId])
         .then((rows) => [rows]);
 
@@ -4257,6 +4258,386 @@ describe('host service layer (integration, no GraphQL)', () => {
 
       expect(provider).toMatchObject({
         useValue: { cancelReservationOnShipLineRemoval: true },
+      });
+    });
+  });
+
+  describe('#224: an id or key the caller names must exist', () => {
+    const missing = '00000000-0000-4000-8000-000000000000';
+
+    it.each([
+      [
+        'ship',
+        (): Promise<boolean> =>
+          shipService.ship({ itemId: missing, quantity: 1 }),
+      ],
+      [
+        'receive',
+        (): Promise<boolean> =>
+          receiveService.receive({ itemId: missing, quantity: 1 }),
+      ],
+      [
+        'transfer',
+        (): Promise<unknown> =>
+          transferService.transfer({ itemId: missing, quantity: 1 }),
+      ],
+    ])('%s throws for an unknown itemId', async (_name, call) => {
+      await expect(call()).rejects.toThrow(new RegExp(missing));
+    });
+
+    it('cancelShip and cancelTransfer throw for an unknown itemId', async () => {
+      await expect(
+        shipService.cancelShip({ itemId: missing, quantity: 1 }),
+      ).rejects.toThrow(new RegExp(missing));
+      await expect(
+        transferService.cancelTransfer({ itemId: missing, quantity: 1 }),
+      ).rejects.toThrow(new RegExp(missing));
+    });
+
+    it('one unknown id in a batch of receives rolls the whole call back', async () => {
+      const material = await newMaterial();
+      const { itemId } = await createReceive(material.key, unique('B'), 5);
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        receiveService.receive([
+          { itemId, quantity: 5 },
+          { itemId: missing, quantity: 1 },
+        ]),
+      ).rejects.toThrow(new RegExp(missing));
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+    });
+
+    const receiveLine = (
+      materialKey: string,
+      extra: Record<string, string> = {},
+    ): Parameters<
+      ReceiveInventoryOrderService['createReceiveInventoryOrder']
+    >[0]['items'][number] => ({
+      serialId: unique('HSL-L'),
+      locationKey: 'HSL-SHELF',
+      batchKey: unique('HSL-B'),
+      materialKey,
+      targetReceivedQuantity: 5,
+      requireInspection: false,
+      ...extra,
+    });
+
+    const orderCount = async (): Promise<number> =>
+      Number(
+        (
+          await dataSource.query<[{ count: string }]>(
+            `SELECT COUNT(*) AS count FROM "${dataSource.getMetadata(receiveService.receiveInventoryOrderEntity).tablePath}"`,
+          )
+        )[0].count,
+      );
+
+    it('createReceiveInventoryOrder fails whole when one materialKey does not exist', async () => {
+      const material = await newMaterial();
+      const orders = await orderCount();
+      const items = await dataSource
+        .getRepository(receiveService.receiveInventoryOrderItemEntity)
+        .count();
+
+      await expect(
+        receiveService.createReceiveInventoryOrder({
+          key: unique('HSL-RCV'),
+          description: 'x',
+          items: [receiveLine('NO-SUCH-MATERIAL'), receiveLine(material.key)],
+        }),
+      ).rejects.toThrow(/NO-SUCH-MATERIAL/);
+
+      expect(await orderCount()).toBe(orders);
+      expect(
+        await dataSource
+          .getRepository(receiveService.receiveInventoryOrderItemEntity)
+          .count(),
+      ).toBe(items);
+    });
+
+    it('createReceiveInventoryOrder rejects an unknown loaderKey or locationKey', async () => {
+      const material = await newMaterial();
+      const create = (extra: Record<string, string>): Promise<unknown> =>
+        receiveService.createReceiveInventoryOrder({
+          key: unique('HSL-RCV'),
+          description: 'x',
+          items: [receiveLine(material.key, extra)],
+        });
+
+      await expect(create({ loaderKey: 'NO-SUCH-LOADER' })).rejects.toThrow(
+        /NO-SUCH-LOADER/,
+      );
+      await expect(create({ locationKey: 'NO-SUCH-LOCATION' })).rejects.toThrow(
+        /NO-SUCH-LOCATION/,
+      );
+    });
+  });
+  describe('#223: receive places stock where the loader is', () => {
+    const loaderOf = async (
+      loaderId: string,
+    ): Promise<{ serialId: string; locationId: string }> =>
+      dataSource
+        .getRepository(LoadersEntityClass)
+        .findOneByOrFail({ id: loaderId });
+
+    const receiveOnto = async (
+      materialKey: string,
+      loaderSerialId: string,
+      locationKey: string,
+      quantity: number,
+    ): Promise<string> => {
+      const order = await receiveService.createReceiveInventoryOrder({
+        key: unique('HSL-RCV'),
+        description: 'x',
+        items: [
+          {
+            serialId: unique('HSL-L'),
+            materialKey,
+            batchKey: unique('HSL-B'),
+            loaderKey: loaderSerialId,
+            locationKey,
+            targetReceivedQuantity: quantity,
+            requireInspection: false,
+          },
+        ],
+      });
+      const [item] = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId: order.id } });
+
+      return item.id;
+    };
+
+    const stockedAt = async (
+      materialId: string,
+      loaderId: string,
+    ): Promise<Record<string, number>> =>
+      (
+        await dataSource.query<{ locationId: string; q: string }[]>(
+          `SELECT "locationId", SUM(quantity) AS q FROM "${dataSource.getMetadata(entities.stock).tablePath}" WHERE "materialId" = $1 AND "loaderId" = $2 GROUP BY "locationId"`,
+          [materialId, loaderId],
+        )
+      ).reduce((acc, row) => ({ ...acc, [row.locationId]: Number(row.q) }), {});
+
+    it('receives as before when the loader is already at the location', async () => {
+      const material = await newMaterial();
+      const loaderId = await newLoader(shelfId);
+      const { serialId } = await loaderOf(loaderId);
+      const itemId = await receiveOnto(material.key, serialId, 'HSL-SHELF', 7);
+
+      await receiveService.receive({ itemId, quantity: 7 });
+
+      expect(await stockedAt(material.id, loaderId)).toEqual({ [shelfId]: 7 });
+    });
+
+    it('refuses a receipt naming a location other than the loader’s, empty loader or not, and writes nothing', async () => {
+      const material = await newMaterial();
+      const loaderId = await newLoader(shelfId);
+      const { serialId } = await loaderOf(loaderId);
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        receiveOnto(material.key, serialId, 'HSL-DOCK', 7),
+      ).rejects.toThrow(/enable relocateEmptyLoaders/);
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect((await loaderOf(loaderId)).locationId).toBe(shelfId);
+    });
+
+    it('refuses at execution time when the loader was moved after the order was created', async () => {
+      const material = await newMaterial();
+      const loaderId = await newLoader(shelfId);
+      const { serialId } = await loaderOf(loaderId);
+      const itemId = await receiveOnto(material.key, serialId, 'HSL-SHELF', 7);
+      await dataSource
+        .getRepository(LoadersEntityClass)
+        .update({ id: loaderId }, { locationId: dockId });
+
+      await expect(
+        receiveService.receive({ itemId, quantity: 7 }),
+      ).rejects.toThrow(/stock cannot be placed on it there/);
+    });
+
+    it('refuses two lines of one call that put one loader at two locations, writing nothing', async () => {
+      const material = await newMaterial();
+      const loaderId = await newLoader(shelfId);
+      const { serialId } = await loaderOf(loaderId);
+      const line = (
+        locationKey: string,
+      ): Parameters<
+        ReceiveInventoryOrderService['createReceiveInventoryOrder']
+      >[0]['items'][number] => ({
+        serialId: unique('HSL-L'),
+        materialKey: material.key,
+        batchKey: unique('HSL-B'),
+        locationKey,
+        targetReceivedQuantity: 3,
+        requireInspection: false,
+      });
+      const order = await receiveService.createReceiveInventoryOrder({
+        key: unique('HSL-RCV'),
+        description: 'x',
+        items: [line('HSL-SHELF'), line('HSL-DOCK')],
+      });
+      const items = await dataSource
+        .getRepository<ReceiveInventoryOrderItemEntityClass>(
+          receiveService.receiveInventoryOrderItemEntity,
+        )
+        .find({ where: { orderId: order.id } });
+      // Created without a loader (so creation passes); the loader arrives with the receipt.
+      const before = await dataSource.transaction((m) => ledgerCounts(m));
+
+      await expect(
+        receiveService.receive([
+          { itemId: items[0].id, quantity: 3, loaderKey: serialId },
+          { itemId: items[1].id, quantity: 3, loaderKey: serialId },
+        ]),
+      ).rejects.toThrow(/at both location/);
+
+      expect(await dataSource.transaction((m) => ledgerCounts(m))).toEqual(
+        before,
+      );
+      expect((await loaderOf(loaderId)).locationId).toBe(shelfId);
+    });
+
+    describe('with relocateEmptyLoaders', () => {
+      const relocDb = `${DB_NAME}_p223`;
+      let relocApp: INestApplication;
+
+      beforeAll(async () => {
+        await resetDatabase(relocDb);
+
+        relocApp = await Test.createTestingModule({
+          imports: [
+            TypeOrmModule.forRoot({
+              type: 'postgres',
+              host: DB_HOST,
+              port: DB_PORT,
+              username: DB_USER,
+              password: DB_PASS,
+              database: relocDb,
+              autoLoadEntities: true,
+              synchronize: true,
+              uuidExtension: 'uuid-ossp',
+            }),
+            WmsModuleCoreModule.forRootAsync({
+              useFactory: async () => ({}),
+              defaultLoaderSerialId: 'DEFAULT',
+              defaultLoaderTypeKey: 'DEFAULT',
+              defaultLocationKey: 'DEFAULT',
+              relocateEmptyLoaders: true,
+            }),
+          ],
+        })
+          .compile()
+          .then((moduleRef) => moduleRef.createNestApplication());
+        await relocApp.init();
+      });
+
+      afterAll(async () => {
+        await relocApp?.close();
+        await resetDatabase(relocDb, false);
+      });
+
+      it('moves an empty loader to the receiving location, but not one holding stock', async () => {
+        const ds = relocApp.get(DataSource);
+        const ents = relocApp.get(WmsEntities);
+        const loaders = relocApp.get(LoaderService);
+        const receives = relocApp.get(ReceiveInventoryOrderService);
+        const locationRepository = ds.getRepository<LocationEntityClass>(
+          ents.location,
+        );
+        const [a, d] = await Promise.all(
+          ['PA', 'PD'].map(
+            async (key) =>
+              (
+                await locationRepository.save(
+                  locationRepository.create({
+                    key,
+                    description: key,
+                    isActive: true,
+                  } as DeepPartial<LocationEntityClass>),
+                )
+              ).id,
+          ),
+        );
+        const type = await loaders.createLoaderType({
+          key: 'PP',
+          description: 'p',
+        });
+        const [empty, full] = await loaders.createLoader({
+          typeId: type.id,
+          locationId: a,
+          quantity: 2,
+        });
+        const materialRepository = ds.getRepository<MaterialEntityClass>(
+          ents.material,
+        );
+        const material = await materialRepository.save(
+          materialRepository.create({
+            key: 'PM',
+          } as DeepPartial<MaterialEntityClass>),
+        );
+        const make = async (
+          serialId: string,
+          locationKey: string,
+          batchKey: string,
+        ): Promise<string> => {
+          const order = await receives.createReceiveInventoryOrder({
+            key: `PR-${batchKey}`,
+            description: 'x',
+            items: [
+              {
+                serialId: batchKey,
+                materialKey: 'PM',
+                batchKey,
+                loaderKey: serialId,
+                locationKey,
+                targetReceivedQuantity: 9,
+                requireInspection: false,
+              },
+            ],
+          });
+          const [item] = await ds
+            .getRepository<ReceiveInventoryOrderItemEntityClass>(
+              receives.receiveInventoryOrderItemEntity,
+            )
+            .find({ where: { orderId: order.id } });
+
+          return item.id;
+        };
+        const locationOf = async (id: string): Promise<string> =>
+          (await ds.getRepository(LoadersEntityClass).findOneByOrFail({ id }))
+            .locationId;
+
+        // `full` first receives at its own location, so it holds stock.
+        await receives.receive({
+          itemId: await make(full.serialId, 'PA', 'F1'),
+          quantity: 2,
+        });
+        await expect(make(full.serialId, 'PD', 'F2')).rejects.toThrow(
+          /still holds stock/,
+        );
+        expect(await locationOf(full.id)).toBe(a);
+
+        await receives.receive({
+          itemId: await make(empty.serialId, 'PD', 'E1'),
+          quantity: 9,
+        });
+        expect(await locationOf(empty.id)).toBe(d);
+        expect(
+          await ds.query<{ locationId: string }[]>(
+            `SELECT DISTINCT "locationId" FROM "${ds.getMetadata(ents.stock).tablePath}" WHERE "loaderId" = $1`,
+            [empty.id],
+          ),
+        ).toEqual([{ locationId: d }]);
       });
     });
   });

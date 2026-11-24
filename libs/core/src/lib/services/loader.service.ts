@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import {
   EntityManager,
   type EntityTarget,
@@ -154,7 +154,9 @@ export class LoaderService<
       const loaders: LoadersEntityClass[] = [];
       for (const option of options) {
         const loaderType = typeMap.get(option.typeId);
-        if (!loaderType) continue;
+        if (!loaderType) {
+          throw new NotFoundException(`Loader type ${option.typeId} not found`);
+        }
 
         const { key } = loaderType;
         const startSeq = await this.getSeq(key, option.quantity, manager);

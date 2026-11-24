@@ -9,7 +9,11 @@
     "gql": "nx run react:graphql",
     "pages": "npx generate-next-links -P apps/client/src/ -O libs/react/src/utils/ -N NextPath -T",
     "release": "nx release --skip-publish",
-    "release:publish": "nx release publish"
+    "release:publish": "nx release publish",
+    "typecheck:specs": "tsc -p libs/core/tsconfig.spec.json && tsc -p libs/graphql/tsconfig.spec.json",
+    "test:coverage:run": "jest -c jest.config.mjs --coverage --maxWorkers=2",
+    "test:coverage:gate": "node tools/coverage-gate.mjs",
+    "test:coverage": "yarn test:coverage:run && yarn test:coverage:gate"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.16.4",
