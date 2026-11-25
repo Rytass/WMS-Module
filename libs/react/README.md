@@ -403,18 +403,14 @@ Track upstream progress via the [Mezzanine UI repo](https://github.com/mezzanine
 ## Resizing columns on wide tables
 
 Every bundled table has draggable column widths, remembered per table in `localStorage`
-(`table-col-widths:<tableKey>`). Mezzanine's `Table` (1.10.2) keeps the total column width constant while
-you drag: the width a column gains is taken from the last column first, then from its right neighbour.
-It has no mode where the table grows and the following columns scroll out to the right (tracked upstream).
+(`table-col-widths:<tableKey>`). Tables resize with Mezzanine's `resizeStrategy="grow-table"`: a drag
+changes only the dragged column, so the table widens and the columns to its right scroll out to the right
+instead of being squeezed. While the columns are narrower than the container, the last column fills the
+remaining space. Tables without row actions have no actions column.
 
-Until it does, the wide tables (inventory list in both modes, change history) keep an empty trailing column
-of 200px that a drag borrows from, so one drag can widen a column by up to 160px without touching its
-neighbours; beyond that the neighbour is squeezed. That column is never persisted, so it is back at full
-size after every drag and a restored layout never carries it or changes this behavior. Tables without row
-actions have no trailing actions column at all.
+This needs `@mezzanine-ui/react` 1.11.0 or later (and `@mezzanine-ui/core` 1.4.0), which is the peer range.
 
-The internal table wrapper takes `fullWidth` (default `true`), `scroll` (passed through to Mezzanine) and
-`reserveResizeSpace` (default `false`; adds the trailing column described above).
+The internal table wrapper takes `fullWidth` (default `true`) and `scroll` (passed through to Mezzanine).
 
 ## Generic hooks
 

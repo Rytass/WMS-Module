@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import {
   Table as MznTable,
   TableColumnWithMinWidth,
@@ -6,11 +6,7 @@ import {
   TableDataSource,
   TableProps,
 } from '@mezzanine-ui/react';
-import {
-  EXPANSION_COLUMN_WIDTH,
-  SELECTION_COLUMN_WIDTH,
-  TABLE_ACTIONS_KEY,
-} from '@mezzanine-ui/core/table';
+import { TABLE_ACTIONS_KEY } from '@mezzanine-ui/core/table';
 import { usePersistedColumnWidths } from '../../../hooks/usePersistedColumnWidths';
 import { useCompactLayout } from '../../../hooks/useCompactLayout';
 
@@ -19,41 +15,7 @@ const COLUMN_MIN_WIDTH = 40;
 /** Width a column gets when its definition does not name one. */
 const DEFAULT_COLUMN_WIDTH = 160;
 
-/**
- * Room kept free to the right of the last data column.
- *
- * Mezzanine's resize handle takes the width a column grows by from the
- * table's *last* column first and only then from the neighbour. Our last
- * column is the actions column, which used to be a flex column: once the
- * data columns filled the container it sat at its 40px minimum, had nothing
- * to give, and every drag ate the neighbour instead. Keeping it at least
- * this wide gives a drag somewhere to go; since its width is never
- * persisted, it is back to full size after every drag, and the table
- * scrolls horizontally instead.
- */
-const RESIZE_RESERVE_WIDTH = 200;
-
 const TRANSIENT_WIDTH_KEYS = [TABLE_ACTIONS_KEY] as const;
-
-function useElementWidth(): [RefObject<HTMLDivElement | null>, number] {
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return undefined;
-
-    const observer = new ResizeObserver(([entry]) => {
-      setWidth(entry.contentRect.width);
-    });
-
-    observer.observe(element);
-
-    return () => observer.disconnect();
-  }, []);
-
-  return [ref, width];
-}
 
 const Table = <T extends TableDataSource>({
   tableKey,
@@ -61,7 +23,6 @@ const Table = <T extends TableDataSource>({
   pinnedColumnKeys,
   unpaginated = false,
   fullWidth = true,
-  reserveResizeSpace = false,
   ...props
 }: TableProps<T> & {
   tableKey: string;
@@ -87,17 +48,7 @@ const Table = <T extends TableDataSource>({
    * that should be exactly as wide as its columns.
    */
   fullWidth?: boolean;
-  /**
-   * Keep an empty trailing column of `RESIZE_RESERVE_WIDTH` as the room a
-   * resize drag borrows from, so widening an early column pushes the columns
-   * to its right out into the horizontal scroll area instead of squeezing the
-   * neighbour. A stopgap until Mezzanine's Table has a grow-table resize
-   * strategy; off by default, so a table with no row actions has no actions
-   * column. A table that passes `actions` always has one.
-   */
-  reserveResizeSpace?: boolean;
 }) => {
-  const [containerRef, containerWidth] = useElementWidth();
   const compact = useCompactLayout();
 
   const { columnWidths, onColumnWidthsChange } = usePersistedColumnWidths(
@@ -115,8 +66,8 @@ const Table = <T extends TableDataSource>({
 
   /*
    * Every data column gets an explicit width. Pinned offsets are computed
-   * from `column.width`, and an implicit flex column would also compete with
-   * the actions column for the free space this wrapper keeps on the right.
+   * from `column.width`, and under `grow-table` an implicit flex column would
+   * be the one that absorbs a drag instead of the table growing.
    */
   const columns = useMemo(
     (): TableColumnWithMinWidth<T>[] =>
@@ -136,83 +87,60 @@ const Table = <T extends TableDataSource>({
     [compact, pinnedColumnKeys, pinnedUntilIndex, props.columns],
   );
 
-  const leadingControlsWidth =
-    (props.rowSelection ? SELECTION_COLUMN_WIDTH : 0) +
-    (props.expandable ? EXPANSION_COLUMN_WIDTH : 0);
-
-  const dataColumnsWidth = columns.reduce(
-    (sum, c) => sum + (columnWidths[c.key] ?? c.width ?? 0),
-    0,
-  );
-
-  /*
-   * While the free space is at least the reserve, the actions column stays a
-   * flex column and fills it exactly. Below that it gets the reserve as an
-   * explicit width, which pushes the table past the container.
-   */
-  const needsReserve =
-    reserveResizeSpace &&
-    containerWidth > 0 &&
-    containerWidth - leadingControlsWidth - dataColumnsWidth <
-      RESIZE_RESERVE_WIDTH;
-
-  const hasActionsColumn = Boolean(props.actions) || reserveResizeSpace;
-
   const actions = useMemo(
     (): TableActionsWithMinWidth<T> | undefined =>
-      hasActionsColumn
-        ? {
-            ...props.actions,
-            render: props.actions?.render ?? (() => []),
-            minWidth: COLUMN_MIN_WIDTH,
-            width: needsReserve ? RESIZE_RESERVE_WIDTH : undefined,
-          }
+      props.actions
+        ? { ...props.actions, minWidth: COLUMN_MIN_WIDTH }
         : undefined,
-    [hasActionsColumn, needsReserve, props.actions],
+    [props.actions],
   );
 
   return (
-    <div ref={containerRef}>
-      <MznTable<T>
-        {...props}
-        columns={columns}
-        actions={actions}
-        fullWidth={fullWidth}
-        resizable
-        columnWidths={columnWidths}
-        onColumnWidthsChange={onColumnWidthsChange}
-        /*
-         * Caller-first. This used to be a hard-coded `{ title: '查無資料' }`
-         * placed after the spread, which silently swallowed every caller's
-         * `emptyProps` — the inventory list could not tell "you have not
-         * searched yet" apart from "your search matched nothing", which the
-         * design treats as two different screens.
-         */
-        emptyProps={{
-          title: '查無資料',
-          ...props.emptyProps,
-        }}
-        pagination={
-          unpaginated
-            ? undefined
-            : {
-                showPageSizeOptions: true,
-                pageSizeLabel: '每頁顯示：',
-                pageSizeOptions: [5, 10, 15, 20],
-                ...props.pagination,
-                // A full pager (size picker, five page numbers, both ends)
-                // is wider than a phone and pushed the page sideways.
-                ...(compact
-                  ? {
-                      showPageSizeOptions: false,
-                      siblingCount: 0,
-                      boundaryCount: 1,
-                    }
-                  : {}),
-              }
-        }
-      />
-    </div>
+    <MznTable<T>
+      {...props}
+      columns={columns}
+      actions={actions}
+      fullWidth={fullWidth}
+      resizable
+      /*
+       * A drag changes only the dragged column; the table widens and
+       * scrolls horizontally instead of taking the width from the last
+       * column or the neighbour (#180).
+       */
+      resizeStrategy="grow-table"
+      columnWidths={columnWidths}
+      onColumnWidthsChange={onColumnWidthsChange}
+      /*
+       * Caller-first. This used to be a hard-coded `{ title: '查無資料' }`
+       * placed after the spread, which silently swallowed every caller's
+       * `emptyProps` — the inventory list could not tell "you have not
+       * searched yet" apart from "your search matched nothing", which the
+       * design treats as two different screens.
+       */
+      emptyProps={{
+        title: '查無資料',
+        ...props.emptyProps,
+      }}
+      pagination={
+        unpaginated
+          ? undefined
+          : {
+              showPageSizeOptions: true,
+              pageSizeLabel: '每頁顯示：',
+              pageSizeOptions: [5, 10, 15, 20],
+              ...props.pagination,
+              // A full pager (size picker, five page numbers, both ends)
+              // is wider than a phone and pushed the page sideways.
+              ...(compact
+                ? {
+                    showPageSizeOptions: false,
+                    siblingCount: 0,
+                    boundaryCount: 1,
+                  }
+                : {}),
+            }
+      }
+    />
   );
 };
 

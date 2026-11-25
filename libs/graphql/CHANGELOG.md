@@ -1,3 +1,14 @@
+## 0.16.1 (2026-11-24)
+
+### 🩹 Fixes
+
+- **graphql:** scope dataloader caches to the request ([#249](https://github.com/Rytass/WMS-Module/pull/249))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.16.0 (2026-11-24)
 
 ### 🚀 Features

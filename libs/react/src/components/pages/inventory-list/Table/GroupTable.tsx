@@ -509,7 +509,6 @@ function InventoryGroupTable({
     <Table<DataType>
       tableKey="InventoryGroupTable"
       pinnedUntilColumnKey="materialKey"
-      reserveResizeSpace
       columns={baseColumns}
       dataSource={dataSource}
       emptyProps={stockEmptyProps(currentFilter)}
