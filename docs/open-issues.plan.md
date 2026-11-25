@@ -160,18 +160,10 @@
   - PR 對象：npm 的 `repository` 指向 `Rytass/Utils`，但本機 clone 的 remote 是 `cloudsan/Utils`。開 PR 前要確認目標。
 - **#180**：見 §6。
 
-## 6. #180 現況（未在瀏覽器實測）
+## 6. #180（已解決，2026-11-25）
 
-issue 是在 Mezzanine 1.4.3 上量測的；目前專案是 `@mezzanine-ui/react` 1.10.2，PR #198 之後尚未實測。
-
-`TableWrapper/Table` 仍寫死 `fullWidth`／`resizable`，actions 欄永遠存在。PR #198 刻意讓 actions 欄撐到 200px
-當作 resize 的借用空間（`RESIZE_RESERVE_WIDTH`），這和 issue 要的「沒有 row actions 就不出空欄」正好相反。
-
-真正的 grow-table 模式要 Mezzanine Table 提供 resize 策略，應該往上游提。本 repo 能做的：
-
-1. 在 1.10.2 上實測，確認 inventory list 能否把前段欄位往右拉寬；
-2. 把 `fullWidth`、`scroll` 開放成 wrapper prop；
-3. 上游有 grow 模式之後，再把保留區換成 grow 策略，並拿掉空的 actions 欄。
+`@mezzanine-ui/react` 1.11.0 加入 `resizeStrategy="grow-table"`。`TableWrapper/Table` 改用它，並移除
+`reserveResizeSpace` 與 200px 的保留空欄。peer 範圍提高到 react ^1.11.0、core ^1.4.0。
 
 ## 7. 待決策
 

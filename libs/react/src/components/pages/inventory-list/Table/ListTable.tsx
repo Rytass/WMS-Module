@@ -74,7 +74,6 @@ function InventoryListTable({
     <Table<AggregatedStockFragment>
       tableKey="InventoryListTable"
       pinnedUntilColumnKey="materialKey"
-      reserveResizeSpace
       columns={columns}
       dataSource={dataSource}
       emptyProps={stockEmptyProps(currentFilter)}
