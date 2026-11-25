@@ -1,3 +1,18 @@
+## 0.17.0 (2026-11-25)
+
+### 🚀 Features
+
+- accept @rytass/wms-base-nestjs-module 0.5 ([#228](https://github.com/Rytass/WMS-Module/issues/228))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.15.0
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.16.2 (2026-11-25)
 
 ### 🩹 Fixes
