@@ -128,9 +128,13 @@ function ConsumptionOrdersTable({
         dataSource={dataSource}
         loading={loading}
         actions={{
+          // The 檢視 button (60px) plus the cell's 12px padding on each side;
+          // without a width the column sits at its 40px minimum whenever the
+          // data columns fill the container, and the button overflows it.
+          width: 88,
           render: (source) => [
             {
-              text: '檢視',
+              name: '檢視',
               onClick: () =>
                 push(NextPath.CONSUMPTIONORDERS_ID.replace('[id]', source.id)),
             },

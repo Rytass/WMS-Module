@@ -14,6 +14,7 @@ import {
   ConsumptionOrderEntityClass,
   ConsumptionOrderItemEntity,
   ConsumptionOrderItemEntityClass,
+  LoadersEntityClass,
   StockEntity,
   StockEntityClass,
 } from '../models';
@@ -34,6 +35,7 @@ import { HelperService } from './helper.service';
 import { MaterialService } from './material.service';
 import { assertPositiveQuantity } from '../utils/assert-positive-quantity';
 import { runInTransaction } from '../utils/run-in-transaction';
+import { assertAllFound } from '../utils/assert-found';
 import { StockService } from './stock.service';
 import {
   absQuantity,
@@ -144,6 +146,51 @@ export class ConsumptionOrderService<
     };
   }
 
+  /**
+   * Refuse lines that name a material, batch, location or loader the database
+   * does not have. The line is only read back later (by `issue` and by the item
+   * resolvers), so an unknown id was stored as given and broke every list that
+   * selects the line (#224).
+   */
+  private async assertItemReferencesExist(
+    items: readonly CreateConsumptionOrderItemInput[],
+    manager: EntityManager,
+  ): Promise<void> {
+    const ids = (
+      pick: (
+        item: CreateConsumptionOrderItemInput,
+      ) => (string | null | undefined)[],
+    ): string[] => [
+      ...new Set(items.flatMap(pick).filter((id): id is string => Boolean(id))),
+    ];
+
+    const checks: readonly [string, EntityTarget<{ id: string }>, string[]][] =
+      [
+        ['Material', this.entities.material, ids((item) => [item.materialId])],
+        ['Batch', this.entities.batch, ids((item) => [item.batchId])],
+        [
+          'Location',
+          this.entities.location,
+          ids((item) => [item.locationId, item.targetLocationId]),
+        ],
+        [
+          'Loader',
+          LoadersEntityClass,
+          ids((item) => [item.loaderId, item.targetLoaderId]),
+        ],
+      ];
+
+    for (const [label, entity, requested] of checks) {
+      if (requested.length === 0) continue;
+
+      const found = await manager
+        .getRepository(entity)
+        .find({ select: { id: true }, where: { id: In(requested) } });
+
+      assertAllFound(requested, found, label);
+    }
+  }
+
   async createConsumptionOrder(
     options: CreateConsumptionOrderInput,
     outerManager?: EntityManager,
@@ -157,6 +204,8 @@ export class ConsumptionOrderService<
     );
 
     return runInTransaction(this.dataSource, outerManager, async (manager) => {
+      await this.assertItemReferencesExist(options.items, manager);
+
       const repos = this.getRepositories(manager);
       const key = await this.helperService.getSeq(this.seqPrefix, manager);
 
@@ -230,6 +279,7 @@ export class ConsumptionOrderService<
           );
         }
 
+        await this.assertItemReferencesExist(options.items, manager);
         await repos.consumptionOrderItem.remove(existing);
         await repos.consumptionOrderItem.save(
           options.items.map((item) =>
