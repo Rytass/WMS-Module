@@ -7102,9 +7102,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rytass/wms-base-nestjs-module@npm:0.4.0":
-  version: 0.4.0
-  resolution: "@rytass/wms-base-nestjs-module@npm:0.4.0"
+"@rytass/wms-base-nestjs-module@npm:0.5.0":
+  version: 0.5.0
+  resolution: "@rytass/wms-base-nestjs-module@npm:0.5.0"
   dependencies:
     uuid: "npm:^13.0.0"
   peerDependencies:
@@ -7112,7 +7112,10 @@ __metadata:
     "@nestjs/graphql": "*"
     "@nestjs/typeorm": "*"
     typeorm: "*"
-  checksum: 10c0/da33db2b405644dd78e59e4fc6223013a2fe1afe1eeab660ba9d1f3378c15fd3a87f7d98dce52538c41369cadea5a5a3e140039887538b1c4e2a2db127dadcb3
+  peerDependenciesMeta:
+    "@nestjs/graphql":
+      optional: true
+  checksum: 10c0/a116353ca2ae0c4fba15b6030ebe98b5463aa72d7172b2ded8943c1bd36a4706ed2462c9e0cae7a0db50d2fbb0b73fc7b5acd86b6ebcd80592d7d7ff55ecf91b
   languageName: node
   linkType: hard
 
@@ -8771,7 +8774,7 @@ __metadata:
     "@nx/webpack": "npm:22.7.12"
     "@rollup/plugin-typescript": "npm:^12.1.0"
     "@rytass/secret-adapter-vault-nestjs": "npm:^0.4.4"
-    "@rytass/wms-base-nestjs-module": "npm:0.4.0"
+    "@rytass/wms-base-nestjs-module": "npm:0.5.0"
     "@rytass/wms-map-react-components": "npm:0.4.0"
     "@swc-node/register": "npm:1.12.1"
     "@swc/cli": "npm:0.7.10"
