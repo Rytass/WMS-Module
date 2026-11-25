@@ -11,6 +11,7 @@ import {
   BatchService,
   ConsumptionChangeKind,
   ConsumptionOrderChangeEntityClass,
+  ConsumptionOrderEntityClass,
   ConsumptionOrderService,
   LocationEntityClass,
   MaterialEntityClass,
@@ -578,6 +579,57 @@ describe('consumption order (integration)', () => {
       await expect(
         service.issue({ orderId, items: [{ itemId: other.itemId }] }),
       ).rejects.toThrow('does not belong to');
+    });
+
+    it('refuses a line naming an unknown batch, and writes nothing', async () => {
+      const unknownBatchId = '00000000-0000-4000-8000-000000000001';
+      const ordersBefore = await dataSource
+        .getRepository(ConsumptionOrderEntityClass)
+        .count();
+
+      // A batch-group id is the easy mistake (`stocks { batch { id } }` is the
+      // group); it used to be stored as given and every list that selected the
+      // line failed on it.
+      await expect(
+        service.createConsumptionOrder({
+          items: [
+            {
+              materialId,
+              batchId: unknownBatchId,
+              locationId: shelfId,
+              quantity: 1,
+            },
+          ],
+        }),
+      ).rejects.toThrow(`Batch ${unknownBatchId} not found`);
+
+      expect(
+        await dataSource.getRepository(ConsumptionOrderEntityClass).count(),
+      ).toBe(ordersBefore);
+    });
+
+    it('refuses an update naming an unknown target location, keeping the old lines', async () => {
+      const batchId = await seedBatch('CSO-UNKNOWN-TARGET');
+      const { orderId, itemId } = await newOrder(batchId, 5);
+      const unknownLocationId = '00000000-0000-4000-8000-000000000002';
+
+      await expect(
+        service.updateConsumptionOrder({
+          id: orderId,
+          items: [
+            {
+              materialId,
+              batchId,
+              locationId: shelfId,
+              targetLocationId: unknownLocationId,
+              quantity: 5,
+            },
+          ],
+        }),
+      ).rejects.toThrow(`Location ${unknownLocationId} not found`);
+
+      const [progress] = await service.getProgress(orderId);
+      expect(progress.itemId).toBe(itemId);
     });
   });
 
