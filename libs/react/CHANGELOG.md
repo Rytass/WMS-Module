@@ -1,3 +1,18 @@
+## 0.15.0 (2026-11-25)
+
+### 🚀 Features
+
+- **react:** resize table columns with the grow-table strategy ([#180](https://github.com/Rytass/WMS-Module/issues/180))
+
+### 🩹 Fixes
+
+- **react:** label the consumption orders view action and give it room ([eff0b33a](https://github.com/Rytass/WMS-Module/commit/eff0b33a))
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.14.0 (2026-11-24)
 
 ### 🚀 Features
