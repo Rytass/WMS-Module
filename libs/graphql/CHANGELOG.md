@@ -1,3 +1,18 @@
+## 0.16.2 (2026-11-25)
+
+### 🩹 Fixes
+
+- **core:** refuse consumption order lines naming unknown ids ([#224](https://github.com/Rytass/WMS-Module/issues/224))
+
+### 🧱 Updated Dependencies
+
+- Updated core to 0.14.1
+
+### ❤️ Thank You
+
+- Chia Yu Pai @fantasywind
+- Claude Opus 5.5
+
 ## 0.16.1 (2026-11-24)
 
 ### 🩹 Fixes
