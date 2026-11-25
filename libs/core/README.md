@@ -12,6 +12,12 @@ yarn add @rytass/wms-module-core
 yarn add @nestjs/common @nestjs/typeorm typeorm reflect-metadata @rytass/wms-base-nestjs-module
 ```
 
+> **Upgrading `@rytass/wms-base-nestjs-module` from 0.4.x to 0.5.x** changes `stocks.createdAt` to
+> `timestamptz`. Letting `synchronize` or `migration:generate` do it drops the column and replaces every
+> existing value with the upgrade time. Turn `synchronize` off, run the `ALTER` in
+> [integration guide §4.14](./docs/integration-guide.md#414-upgrading-stockscreatedat-to-timestamptz)
+> with your own time zone, then deploy; `synchronize` can go back on afterwards.
+
 ## Quick start
 
 ```ts
