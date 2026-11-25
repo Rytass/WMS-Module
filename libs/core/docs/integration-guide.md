@@ -20,6 +20,7 @@ Target audience: engineers integrating WMS into a new product who want a working
    - [4.11 Upgrading: `batches.groupId` index](#411-upgrading-batchesgroupid-index)
    - [4.12 Counting without locking the locations](#412-counting-without-locking-the-locations)
    - [4.13 Moving a loader that holds reserved stock](#413-moving-a-loader-that-holds-reserved-stock)
+   - [4.14 Upgrading: `stocks.createdAt` to `timestamptz`](#414-upgrading-stockscreatedat-to-timestamptz)
 5. [Frontend setup (Next.js Pages Router)](#5-frontend-setup-nextjs-pages-router)
 6. [Pages Router shell pattern (the 19 thin shells)](#6-pages-router-shell-pattern-the-19-thin-shells)
 7. [Apollo client wiring](#7-apollo-client-wiring)
@@ -359,7 +360,7 @@ combination the integration suite actually runs against.
 | `@nestjs/typeorm`        | 10.x – 11.x            | 11.0.3       | **TypeORM 1.x needs `@nestjs/typeorm` >= 11.0.1** — earlier releases peer `^0.3.0` only |
 | `reflect-metadata`       | 0.1.13+ / 0.2.x        | 0.1.x        | Ambient requirement of the decorators                                        |
 | `rxjs`                   | not a peer             | —            | Never imported by this package; `@nestjs/common` peers it for you            |
-| `@rytass/wms-base-nestjs-module` | 0.4.x          | 0.4.0        | **A peer since 0.7.0**, not a bundled dependency. It was pinned exactly under `dependencies`, which cannot prevent a second copy — it *causes* one as soon as you ask for any other 0.4.x. Two copies means two sets of entity classes and DI Symbols, the split-brain this package's Symbol discipline exists to avoid. Install it yourself so there is one |
+| `@rytass/wms-base-nestjs-module` | 0.4.x – 0.5.x  | 0.5.0        | **0.5.0 changes `stocks.createdAt` to `timestamptz`: run the upgrade in §4.14 before you deploy it.** **A peer since 0.7.0**, not a bundled dependency. It was pinned exactly under `dependencies`, which cannot prevent a second copy — it *causes* one as soon as you ask for any other 0.4.x. Two copies means two sets of entity classes and DI Symbols, the split-brain this package's Symbol discipline exists to avoid. Install it yourself so there is one |
 | PostgreSQL               | —                      | 14+          | Native dialect                                                              |
 | Node.js                  | —                      | 20 LTS / 22  | 18 deprecated, 24 untested                                                  |
 
@@ -550,6 +551,38 @@ await transferOrderService.moveLoader({ loaderId, targetLocationId }, manager);
 - If a reservation lands on the loader while it is being moved, the call throws `ConflictException`; retry it.
 
 If you restrict operations, the new name is `transfer-order:move-loader`.
+
+### 4.14 Upgrading: `stocks.createdAt` to `timestamptz`
+
+`@rytass/wms-base-nestjs-module` 0.5.0 declares `stocks."createdAt"` as `timestamptz`; 0.4.x declared
+`timestamp` (without time zone). The value is the database default `now()`, which PostgreSQL rendered in
+the writing session's `TimeZone` before dropping the zone, so rows written by sessions in different zones
+were stored hours apart and the change log sorted them out of order.
+
+**Do not let TypeORM make this change.** For a column type change, `synchronize: true` and
+`migration:generate` both drop the column and add it again, which replaces every existing `createdAt`
+with the time of the upgrade. Upgrade in this order:
+
+1. Turn `synchronize` off for the deployment that brings in 0.5.0.
+2. Run, once, with the time zone your database sessions were in when the existing rows were written:
+
+   ```sql
+   ALTER TABLE <schema>.<prefix>stocks
+     ALTER COLUMN "createdAt" TYPE timestamptz
+     USING "createdAt" AT TIME ZONE '<time zone the rows were written in>';
+   ```
+
+   `<prefix>` is your `withWmsTablePrefix` prefix (empty by default). There is no generic value for the
+   time zone: it is whatever `SHOW TIME ZONE` returned for the connections that wrote the rows (the
+   server's `timezone` setting, unless your connection sets its own). `'Asia/Taipei'` turns a stored
+   `09:00` into `01:00 UTC`.
+3. Deploy 0.5.0. `synchronize` may be turned back on afterwards: once the column is `timestamptz` it
+   finds nothing to change.
+
+Nothing in this package compares `stocks.createdAt` with a wall-clock value; the change log sorts by it,
+and the order is now right across time zones. A host query that compares the column with a
+`timestamp` literal gets the session time zone applied to the literal; pass a `Date` or an ISO string
+with an offset instead.
 
 ---
 
